@@ -23,7 +23,6 @@ ollama = "^0.2.1"
 jsonlines = "^4.0.0"
 configspace = "^1.2.0"
 smac = "^2.2.0"
-colorama = "^0.4.0"
 google-generativeai = "^0.8.1"
 modcma = "^1.0.8"
 shap = "^0.46.0"
@@ -31,7 +30,9 @@ lizard = "^1.17.13"
 networkx = "^3.4.2"
 joblib = "^1.4.2"
 iohinspector = "^0.0.3"
+tokencost = "^0.1.18"
 llamea = "^1.0.1"
+
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
@@ -52,7 +53,6 @@ pandoc = "^2.4"
 furo = "^2024.8.6"
 sphinxext-opengraph = "^0.9.1"
 sphinx-copybutton = "^0.5.2"
-sphinx-autobuild = "^2024.10.3"
 
 [build-system]
 requires = ["poetry-core>=1.2.0"]

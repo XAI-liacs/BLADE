@@ -9,6 +9,7 @@ import re
 from .utils import NoCodeException
 from .solution import Solution
 from ConfigSpace import ConfigurationSpace
+from tokencost import calculate_prompt_cost, calculate_completion_cost
 
 
 class LLM(ABC):

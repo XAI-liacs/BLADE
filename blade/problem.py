@@ -1,5 +1,8 @@
-from solution import Solution
+from .solution import Solution
 from abc import ABC, abstractmethod
+import numpy as np
+from .loggers import RunLogger
+import traceback
 
 class Problem(ABC):
     """
@@ -18,14 +21,40 @@ class Problem(ABC):
         self.logger = logger
         self.training_instances = training_instances if training_instances else []
         self.test_instances = test_instances if test_instances else []
-        self.prompt = "Write the problem description part here."
+        self.task_prompt = "Write the problem description part here."
+        self.format_prompt = "Write the format description part here."
+
+    def __call__(self, solution: Solution, logger=None):
+        """
+        Evaluates a solution on training instances and updates its fitness and feedback.
+
+        Args:
+            solution (Solution): Solution object to be evaluated.
+
+        Returns:
+            Solution: The evaluated solution with updated fitness and scores.
+        """
+        try:
+            solution = self.evaluate(solution)
+        except Exception as e:
+            solution.set_scores(-np.Inf, feedback=str(e))
+
+        if self.logger is not None:
+            self.logger.log_individual(solution)
+        return solution
+
+    def set_logger(self, logger: RunLogger):
+        """
+        Sets the logger for this problem.
+        """
+        self.logger = logger
 
     @abstractmethod
     def get_prompt(self):
         """
-        Get the prompt describing the problem.
+        Get the prompt describing the problem and how to format the answer.
         """
-        return self.prompt
+        return self.task_prompt + self.format_prompt
 
     @abstractmethod
     def evaluate(self, solution: Solution):

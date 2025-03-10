@@ -6,37 +6,72 @@ import numpy as np
 from .utils import convert_to_serializable
 from ConfigSpace.read_and_write import json as cs_json
 
-
-class RunLogger(Object):
+class ExperimentLogger:
     """
-    Logs an LLM-driven optimization run.
+    Logs an entire experiment of multiple runs.
     """
-
     def __init__(self, name=""):
         """
-        Initializes an instance of the RunLogger.
+        Initializes an instance of the ExperimentLogger.
         Sets up a new logging directory named with the current date and time.
 
         Args:
             name (str): The name of the experiment.
         """
         self.dirname = self.create_log_dir(name)
-        self.attempt = 0
-
+        # Todo: add experiment configuration log file (e.g. methods, seeds etc.)
+    
     def create_log_dir(self, name=""):
         """
         Creates a new directory for logging experiments based on the current date and time.
+
+        Returns:
+            str: The name of the created directory.
+        """
+        today = datetime.today().strftime("%m-%d_%H%M%S")
+        dirname = f"{name}-{today}"
+        os.mkdir(dirname)
+        return dirname
+
+class RunLogger:
+    """
+    Logs an LLM-driven optimization run.
+    """
+
+    def __init__(self, name="", root_dir=""):
+        """
+        Initializes an instance of the RunLogger.
+        Sets up a new logging directory named with the current date and time.
+
+        Args:
+            name (str): The name of the experiment.
+            root_dir (str): The directory to create the log folder in.
+        """
+        self.dirname = self.create_log_dir(name, root_dir)
+        self.attempt = 0
+
+    def create_log_dir(self, name="", root_dir=""):
+        """
+        Creates a new directory for logging runs based on the current date and time.
         Also creates subdirectories for IOH experimenter data and code files.
+
+        Args:
+            name (str): The name of the run.
+            root_dir (str): The directory to create the log folder in.
 
         Returns:
             str: The name of the created directory.
         """
         model_name = name.split("/")[-1]
         today = datetime.today().strftime("%m-%d_%H%M%S")
-        dirname = f"exp-{today}-{name}"
+        dirname = f"run-{today}-{name}"
+        dirname = os.path.join(root_dir, dirname)
+        if not os.path.exists(root_dir):
+            os.mkdir(root_dir)
+        
         os.mkdir(dirname)
-        os.mkdir(f"{dirname}/configspace")
-        os.mkdir(f"{dirname}/code")
+        os.mkdir(os.path.join(dirname, "configspace"))
+        os.mkdir(os.path.join(dirname, "code"))
         return dirname
 
     def log_conversation(self, role, content):
@@ -66,11 +101,8 @@ class RunLogger(Object):
             population (list): List of individual solutions
         """
         for p in population:
-            self.log_code(self.attempt, p.name, p.code)
-            if p.configspace != None:
-                self.log_configspace(self.attempt, p.name, p.configspace)
             self.log_individual(p)
-            self.attempt += 1
+            
 
     def log_individual(self, individual):
         """
@@ -79,9 +111,13 @@ class RunLogger(Object):
         Args:
             individual (Individual): potential solution to be logged.
         """
+        self.log_code(self.attempt, individual.name, individual.code)
+        if individual.configspace != None:
+            self.log_configspace(self.attempt, individual.name, individual.configspace)
         ind_dict = individual.to_dict()
         with jsonlines.open(f"{self.dirname}/log.jsonl", "a") as file:
             file.write(convert_to_serializable(ind_dict))
+        self.attempt += 1
 
     def log_code(self, attempt, algorithm_name, code):
         """
