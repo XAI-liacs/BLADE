@@ -4,6 +4,7 @@ import numpy as np
 from .loggers import RunLogger
 import traceback
 
+
 class Problem(ABC):
     """
     Abstract problem class.

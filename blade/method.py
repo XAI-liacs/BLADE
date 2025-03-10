@@ -1,7 +1,7 @@
-
 from abc import ABC, abstractmethod
 from .problem import Problem
 from .llm import LLM
+
 
 class Method(ABC):
     def __init__(self, llm: LLM, budget):

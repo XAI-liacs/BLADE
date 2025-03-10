@@ -2,6 +2,7 @@ import numpy as np
 import numpy as np
 from ioh import LogInfo, logger
 
+
 def convert_to_serializable(data):
     if isinstance(data, dict):
         return {key: convert_to_serializable(value) for key, value in data.items()}
@@ -22,15 +23,18 @@ class NoCodeException(Exception):
 
     pass
 
+
 class ThresholdReachedException(Exception):
     """The algorithm reached the lower threshold."""
 
     pass
 
+
 class OverBudgetException(Exception):
     """The algorithm tried to do more evaluations than allowed."""
 
     pass
+
 
 def correct_aoc(ioh_function, logger, budget):
     """Correct aoc values in case a run stopped before the budget was exhausted
@@ -68,7 +72,7 @@ class aoc_logger(logger.AbstractLogger):
         lower=1e-8,
         upper=1e8,
         scale_log=True,
-        stop_on_threshold = False,
+        stop_on_threshold=False,
         *args,
         **kwargs,
     ):

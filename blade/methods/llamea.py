@@ -1,10 +1,11 @@
-
 from ..problem import Problem
 from ..llm import LLM
 from ..method import Method
 
 from llamea import LLaMEA as LLAMEA_Algorithm
+
 # We import the LLaMEA algorithm directly from the pypi package. This has the advantage that we can easily get the latest version.
+
 
 class LLaMEA(Method):
     def __init__(self, llm: LLM, budget, **kwargs):
@@ -18,7 +19,6 @@ class LLaMEA(Method):
             kwargs: Additional arguments for configuring LLaMEA.
         """
         super().__init__(llm, budget)
-        
 
     def __call__(self, problem: Problem):
         """
@@ -31,7 +31,7 @@ class LLaMEA(Method):
             f=problem,  # Ensure evaluation integrates with our framework
             llm=self.llm,
             task_prompt=problem.get_prompt(),
-            log=None, #We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
+            log=None,  # We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
             budget=self.budget,
         )
-        return self.llamea_instance.run()   
+        return self.llamea_instance.run()

@@ -6,10 +6,12 @@ import numpy as np
 from .utils import convert_to_serializable
 from ConfigSpace.read_and_write import json as cs_json
 
+
 class ExperimentLogger:
     """
     Logs an entire experiment of multiple runs.
     """
+
     def __init__(self, name=""):
         """
         Initializes an instance of the ExperimentLogger.
@@ -20,7 +22,7 @@ class ExperimentLogger:
         """
         self.dirname = self.create_log_dir(name)
         # Todo: add experiment configuration log file (e.g. methods, seeds etc.)
-    
+
     def create_log_dir(self, name=""):
         """
         Creates a new directory for logging experiments based on the current date and time.
@@ -32,6 +34,7 @@ class ExperimentLogger:
         dirname = f"{name}-{today}"
         os.mkdir(dirname)
         return dirname
+
 
 class RunLogger:
     """
@@ -68,7 +71,7 @@ class RunLogger:
         dirname = os.path.join(root_dir, dirname)
         if not os.path.exists(root_dir):
             os.mkdir(root_dir)
-        
+
         os.mkdir(dirname)
         os.mkdir(os.path.join(dirname, "configspace"))
         os.mkdir(os.path.join(dirname, "code"))
@@ -96,13 +99,12 @@ class RunLogger:
     def log_population(self, population):
         """
         Logs the given population to code, configspace and the general log file.
-        
+
         Args:
             population (list): List of individual solutions
         """
         for p in population:
             self.log_individual(p)
-            
 
     def log_individual(self, individual):
         """

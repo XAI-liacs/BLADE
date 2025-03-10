@@ -10,12 +10,20 @@ import pandas as pd
 import traceback
 from ..problem import Problem
 
+
 class MA_BOB(Problem):
     """
     Problem class for evaluating optimization algorithms on the MA-BBOB benchmark.
     """
 
-    def __init__(self, logger=None, training_instances=None, test_instances=None, dims=[2], budget_factor=2000):
+    def __init__(
+        self,
+        logger=None,
+        training_instances=None,
+        test_instances=None,
+        dims=[2],
+        budget_factor=2000,
+    ):
         """
         Initializes the MA-BBOB problem instance.
         Args:
@@ -25,12 +33,12 @@ class MA_BOB(Problem):
             HPO (bool): Whether to perform hyperparameter optimization in the loop or not.
         """
         if training_instances is None:
-            training_instances = range(0,100)
+            training_instances = range(0, 100)
         if test_instances is None:
-            test_instances = range(100,600)
+            test_instances = range(100, 600)
         super().__init__(logger, training_instances, test_instances)
-        self.dims = dims #The dimensionalities of the problem instances to run on
-        self.budget_factor = budget_factor #The factor to multiply the dimensionality with to get the budget
+        self.dims = dims  # The dimensionalities of the problem instances to run on
+        self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.task_prompt = """
 You are a Python developer working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
@@ -70,13 +78,19 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 <code>
 ```
 """
-        
+
         # Load data files
         base_path = os.path.dirname(__file__)
-        self.weights = pd.read_csv(os.path.join(base_path, "mabbob", "weights.csv"), index_col=0)
-        self.iids = pd.read_csv(os.path.join(base_path, "mabbob", "iids.csv"), index_col=0)
-        self.opt_locs = pd.read_csv(os.path.join(base_path, "mabbob", "opt_locs.csv"), index_col=0)
-    
+        self.weights = pd.read_csv(
+            os.path.join(base_path, "mabbob", "weights.csv"), index_col=0
+        )
+        self.iids = pd.read_csv(
+            os.path.join(base_path, "mabbob", "iids.csv"), index_col=0
+        )
+        self.opt_locs = pd.read_csv(
+            os.path.join(base_path, "mabbob", "opt_locs.csv"), index_col=0
+        )
+
     def get_prompt(self):
         """
         Returns the problem description and answer format.
@@ -117,7 +131,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     xopt=np.array(self.opt_locs.iloc[idx])[:dim],
                     weights=np.array(self.weights.iloc[idx]),
                     instances=np.array(self.iids.iloc[idx], dtype=int),
-                    n_variables=dim
+                    n_variables=dim,
                 )
                 f_new.set_id(100)
                 f_new.set_instance(idx)
@@ -139,7 +153,10 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         auc_std = np.std(aucs)
 
         solution.add_metadata("aucs", aucs)
-        solution.set_scores(auc_mean, f"The algorithm {algorithm_name} scored {auc_mean:.3f} on AOCC (higher is better, 1.0 is the best).")
+        solution.set_scores(
+            auc_mean,
+            f"The algorithm {algorithm_name} scored {auc_mean:.3f} on AOCC (higher is better, 1.0 is the best).",
+        )
 
         return solution
 
