@@ -1,1 +1,1 @@
-from .mabbob import MA_BOB
+from .mabbob import MA_BBOB

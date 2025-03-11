@@ -8,7 +8,7 @@ from llamea import LLaMEA as LLAMEA_Algorithm
 
 
 class LLaMEA(Method):
-    def __init__(self, llm: LLM, budget:int, **kwargs):
+    def __init__(self, llm: LLM, budget:int, name="LLaMEA", **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.
 
@@ -18,7 +18,7 @@ class LLaMEA(Method):
             budget (int): The maximum number of evaluations.
             kwargs: Additional arguments for configuring LLaMEA.
         """
-        super().__init__(llm, budget)
+        super().__init__(llm, budget, name)
         self.kwargs = kwargs
 
     def __call__(self, problem: Problem):
@@ -46,7 +46,7 @@ class LLaMEA(Method):
             dict: Dictionary representation of the method.
         """
         return {
-            "method_name": "LLaMEA",
+            "method_name": self.name if self.name not is None else "LLaMEA",
             "budget": self.budget,
             "kwargs": self.kwargs,
         }

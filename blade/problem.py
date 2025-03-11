@@ -9,7 +9,7 @@ class Problem(ABC):
     Abstract problem class.
     """
 
-    def __init__(self, logger=None, training_instances=None, test_instances=None):
+    def __init__(self, logger=None, training_instances=None, test_instances=None, name="Problem"):
         """
         Initializes a problem instance with logging and dataset references.
 
@@ -17,12 +17,14 @@ class Problem(ABC):
             logger (Logger, optional): Logger object for tracking solutions.
             training_instances (list, optional): List of training problem instances.
             test_instances (list, optional): List of test problem instances.
+            name (str, optional): Name of the problem.
         """
         self.logger = logger
         self.training_instances = training_instances if training_instances else []
         self.test_instances = test_instances if test_instances else []
         self.task_prompt = "Write the problem description part here."
         self.format_prompt = "Write the format description part here."
+        self.name = name
 
     def __call__(self, solution: Solution, logger=None):
         """

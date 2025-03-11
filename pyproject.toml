@@ -32,6 +32,7 @@ joblib = "^1.4.2"
 iohinspector = "^0.0.3"
 tokencost = "^0.1.18"
 llamea = "^1.0.1"
+ipykernel = "^6.29.5"
 
 
 [tool.poetry.group.dev.dependencies]

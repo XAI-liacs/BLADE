@@ -4,16 +4,18 @@ from .llm import LLM
 
 
 class Method(ABC):
-    def __init__(self, llm: LLM, budget):
+    def __init__(self, llm: LLM, budget, name="Method"):
         """
         Initializes a method (optimization algorithm) instance.
 
         Args:
             llm (LLM): LLM instance to be used.
             budget (int): Budget of evaluations.
+            name (str): Name of the method (or variation).
         """
         self.llm = llm
         self.budget = budget
+        self.name = name
 
     @abstractmethod
     def __call__(self, problem: Problem):

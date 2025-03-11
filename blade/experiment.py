@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .problems import MA_BOB
+from .problems import MA_BBOB
 from .loggers import ExperimentLogger, RunLogger
 from .llm import LLM
 from .method import Method
@@ -50,9 +50,9 @@ class MA_BBOB_Experiment(Experiment):
             **kwargs: Additional keyword arguments for the MA_BBOB problem.
         """
         super().__init__(
-            methods, [MA_BOB(dims=dims, budget_factor=budget_factor, **kwargs)], llm, runs
+            methods, [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)], llm, runs
         )
-        self.exp_logger = ExperimentLogger("MA_BBOB")
+        self.exp_logger = ExperimentLogger("results/MA_BBOB")
         self.show_stdout = show_stdout
 
     def __call__(self):
@@ -65,7 +65,7 @@ class MA_BBOB_Experiment(Experiment):
                     np.random.seed(i)
                     
                     logger = RunLogger(
-                        name=f"{method.__class__.__name__}-{problem.__class__.__name__}-{i}",
+                        name=f"{method.name}-{problem.name}-{i}",
                         root_dir=self.exp_logger.dirname,
                     )
                     problem.set_logger(logger)

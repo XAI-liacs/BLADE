@@ -17,16 +17,19 @@ class ExperimentLogger:
     Logs an entire experiment of multiple runs.
     """
 
-    def __init__(self, name=""):
+    def __init__(self, name="", read=False):
         """
         Initializes an instance of the ExperimentLogger.
         Sets up a new logging directory named with the current date and time.
 
         Args:
             name (str): The name of the experiment.
+            read (bool): Whether to read the experiment log or create a new one.
         """
-        self.dirname = self.create_log_dir(name)
-        # Todo: add experiment configuration log file (e.g. methods, seeds etc.)
+        if read:
+            self.dirname = name
+        else:
+            self.dirname = self.create_log_dir(name)
 
     def create_log_dir(self, name=""):
         """
@@ -58,8 +61,8 @@ class ExperimentLogger:
             seed (int): The seed used in the run.
         """
         run_object = {
-            "method_name": str(method.__class__.__name__) if method != None else "None",
-            "problem_name": str(problem.__class__.__name__) if problem != None else "None",
+            "method_name": method.name,
+            "problem_name": problem.name,
             "llm_name": llm.model,
             "method": method.to_dict(),
             "problem": problem.to_dict(),
@@ -81,7 +84,7 @@ class ExperimentLogger:
         df = pd.read_json(f"{self.dirname}/experimentlog.jsonl", lines=True)
         return df
 
-    def get_problem_data(self, problem):
+    def get_problem_data(self, problem_name):
         """
         Retrieves the data for a specific method and problem from the experiment log.
 
@@ -98,11 +101,13 @@ class ExperimentLogger:
                 if line["problem_name"] == problem_name:
                     logdir = line["log_dir"]
                     #now process the logdirs into one combined PandasDataframe
-                    df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
-                    df["method_name"] = method_name
-                    df["problem_name"] = problem_name
-                    df["seed"] = line["seed"]
-                    bigdf = pd.concat([bigdf, df])
+                    if os.path.exists(f"{logdir}/log.jsonl"):
+                        df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
+                        df["method_name"] = line["method_name"]
+                        df["problem_name"] = line["problem_name"]
+                        df["seed"] = line["seed"]
+                        df["_id"] = df.index
+                        bigdf = pd.concat([bigdf, df], ignore_index=True)
         return bigdf
 
     def get_methods_problems(self):

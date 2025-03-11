@@ -11,7 +11,7 @@ import traceback
 from ..problem import Problem
 
 
-class MA_BOB(Problem):
+class MA_BBOB(Problem):
     """
     Problem class for evaluating optimization algorithms on the MA-BBOB benchmark.
     """
@@ -21,6 +21,7 @@ class MA_BOB(Problem):
         logger=None,
         training_instances=None,
         test_instances=None,
+        name="MA_BBOB",
         dims=[2],
         budget_factor=2000,
     ):
@@ -36,7 +37,7 @@ class MA_BOB(Problem):
             training_instances = range(0, 20)
         if test_instances is None:
             test_instances = range(20, 120)
-        super().__init__(logger, training_instances, test_instances)
+        super().__init__(logger, training_instances, test_instances, name)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.task_prompt = """
@@ -171,7 +172,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         Converts the problem to a dictionary.
         """
         return {
-            "name": self.__class__.__name__,
+            "name": self.name,
             "dims": self.dims,
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
