@@ -100,14 +100,22 @@ class LLM(ABC):
             Exception: Captures and logs any other exceptions that occur during the interaction.
         """
         if self.log:
+            try:
+                cost = calculate_prompt_cost(session_messages, self.model)
+            except Exception as e:
+                cost = 0
             self.logger.log_conversation(
-                "client", "\n".join([d["content"] for d in session_messages])
+                "client", "\n".join([d["content"] for d in session_messages]), cost
             )
 
         message = self.query(session_messages)
 
         if self.log:
-            self.logger.log_conversation(self.model, message)
+            try:
+                cost = calculate_completion_cost(message, self.model)
+            except Exception as e:
+                cost = 0
+            self.logger.log_conversation(self.model, message, cost)
 
         code = self.extract_algorithm_code(message)
         name = re.findall(
@@ -184,6 +192,21 @@ class LLM(ABC):
             return match.group(1)
         else:
             return ""
+
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the LLM including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the LLM.
+        """
+        return {
+            "model": self.model,
+            "code_pattern": self.code_pattern,
+            "name_pattern": self.name_pattern,
+            "desc_pattern": self.desc_pattern,
+            "cs_pattern": self.cs_pattern
+        }
 
 
 class OpenAI_LLM(LLM):

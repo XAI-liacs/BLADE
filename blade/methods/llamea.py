@@ -8,7 +8,7 @@ from llamea import LLaMEA as LLAMEA_Algorithm
 
 
 class LLaMEA(Method):
-    def __init__(self, llm: LLM, budget, **kwargs):
+    def __init__(self, llm: LLM, budget:int, **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.
 
@@ -19,6 +19,7 @@ class LLaMEA(Method):
             kwargs: Additional arguments for configuring LLaMEA.
         """
         super().__init__(llm, budget)
+        self.kwargs = kwargs
 
     def __call__(self, problem: Problem):
         """
@@ -33,5 +34,19 @@ class LLaMEA(Method):
             task_prompt=problem.get_prompt(),
             log=None,  # We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
             budget=self.budget,
+            **self.kwargs,
         )
         return self.llamea_instance.run()
+
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the method including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the method.
+        """
+        return {
+            "method_name": "LLaMEA",
+            "budget": self.budget,
+            "kwargs": self.kwargs,
+        }

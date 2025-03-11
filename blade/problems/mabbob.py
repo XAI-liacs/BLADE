@@ -33,9 +33,9 @@ class MA_BOB(Problem):
             HPO (bool): Whether to perform hyperparameter optimization in the loop or not.
         """
         if training_instances is None:
-            training_instances = range(0, 100)
+            training_instances = range(0, 20)
         if test_instances is None:
-            test_instances = range(100, 600)
+            test_instances = range(20, 120)
         super().__init__(logger, training_instances, test_instances)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
@@ -165,3 +165,15 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         Runs the solution on test instances and returns the fitness score.
         """
         return self.evaluate(solution, True)
+
+    def to_dict(self):
+        """
+        Converts the problem to a dictionary.
+        """
+        return {
+            "name": self.__class__.__name__,
+            "dims": self.dims,
+            "training_instances": self.training_instances,
+            "test_instances": self.test_instances,
+            "budget_factor": self.budget_factor,
+        }

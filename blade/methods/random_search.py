@@ -31,3 +31,15 @@ class RandomSearch(Method):
             if best_solution is None or solution.fitness > best_solution.fitness:
                 best_solution = solution
         return best_solution
+
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the method including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the method.
+        """
+        return {
+            "method_name": "RandomSearch",
+            "budget": self.budget,
+        }

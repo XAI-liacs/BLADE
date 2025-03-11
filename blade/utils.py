@@ -1,7 +1,14 @@
 import numpy as np
 import numpy as np
 from ioh import LogInfo, logger
+import json
 
+def is_jsonable(x):
+    try:
+        json.dumps(x)
+        return True
+    except (TypeError, OverflowError):
+        return False
 
 def convert_to_serializable(data):
     if isinstance(data, dict):
@@ -15,7 +22,10 @@ def convert_to_serializable(data):
     if isinstance(data, np.ndarray):
         return data.tolist()
     else:
-        return data
+        if is_jsonable(data):
+            return data
+        else:
+            return str(data)
 
 
 class NoCodeException(Exception):

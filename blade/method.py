@@ -24,3 +24,13 @@ class Method(ABC):
             problem (Problem): Problem instance being optimized.
         """
         pass
+
+    @abstractmethod
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the method including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the method.
+        """
+        pass

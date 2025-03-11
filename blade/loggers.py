@@ -4,7 +4,12 @@ from datetime import datetime
 import jsonlines
 import numpy as np
 from .utils import convert_to_serializable
+from .method import Method
+from .problem import Problem
+from .llm import LLM
+from .solution import Solution
 from ConfigSpace.read_and_write import json as cs_json
+import pandas as pd
 
 
 class ExperimentLogger:
@@ -30,10 +35,92 @@ class ExperimentLogger:
         Returns:
             str: The name of the created directory.
         """
-        today = datetime.today().strftime("%m-%d_%H%M%S")
-        dirname = f"{name}-{today}"
+        dirname = f"{name}"
+
+        tempi = 0
+        while os.path.exists(dirname):
+            tempi += 1
+            dirname = f"{name}-{tempi}"
+
         os.mkdir(dirname)
         return dirname
+
+    def add_run(self, method: Method, problem: Problem, llm: LLM, solution: Solution, log_dir="", seed=None):
+        """
+        Adds a run to the experiment log.
+
+        Args:
+            method (Method): The method used in the run.
+            problem (Problem): The problem used in the run.
+            llm (LLM): The llm used in the run.
+            solution (Solution): The solution found in the run.
+            log_dir (str): The directory where the run is logged.
+            seed (int): The seed used in the run.
+        """
+        run_object = {
+            "method_name": str(method.__class__.__name__) if method != None else "None",
+            "problem_name": str(problem.__class__.__name__) if problem != None else "None",
+            "llm_name": llm.model,
+            "method": method.to_dict(),
+            "problem": problem.to_dict(),
+            "llm": llm.to_dict(),
+            "solution": solution.to_dict(),
+            "log_dir": log_dir,
+            "seed": seed,
+        }
+        with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
+            file.write(convert_to_serializable(run_object))
+
+    def get_data(self):
+        """
+        Retrieves the data from the experiment log and returns a pandas dataframe.
+
+        Returns:
+            dataframe: Pandas DataFrame of the experimentlog.
+        """
+        df = pd.read_json(f"{self.dirname}/experimentlog.jsonl", lines=True)
+        return df
+
+    def get_problem_data(self, problem):
+        """
+        Retrieves the data for a specific method and problem from the experiment log.
+
+        Args:
+            problem_name (str): The name of the problem.
+
+        Returns:
+            list: List of run data for the specified method and problem.
+        """
+        logdirs = []
+        bigdf = pd.DataFrame()
+        with jsonlines.open(f"{self.dirname}/experimentlog.jsonl") as file:
+            for line in file:
+                if line["problem_name"] == problem_name:
+                    logdir = line["log_dir"]
+                    #now process the logdirs into one combined PandasDataframe
+                    df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
+                    df["method_name"] = method_name
+                    df["problem_name"] = problem_name
+                    df["seed"] = line["seed"]
+                    bigdf = pd.concat([bigdf, df])
+        return bigdf
+
+    def get_methods_problems(self):
+        """
+        Retrieves the list of methods and problems used in the experiment.
+
+        Returns:
+            tuple: Tuple of lists containing the method and problem names.
+        """
+        methods = []
+        problems = []
+        with jsonlines.open(f"{self.dirname}/experimentlog.jsonl") as file:
+            for line in file:
+                if line["method_name"] not in methods:
+                    methods.append(line["method_name"])
+                if line["problem_name"] not in problems:
+                    problems.append(line["problem_name"])
+        return methods, problems
 
 
 class RunLogger:
@@ -66,29 +153,35 @@ class RunLogger:
             str: The name of the created directory.
         """
         model_name = name.split("/")[-1]
-        today = datetime.today().strftime("%m-%d_%H%M%S")
-        dirname = f"run-{today}-{name}"
+        dirname = f"run-{name}"
         dirname = os.path.join(root_dir, dirname)
         if not os.path.exists(root_dir):
             os.mkdir(root_dir)
-
+        
+        tempi = 0
+        while os.path.exists(dirname):
+            tempi += 1
+            dirname = f"run-{name}-{tempi}"
+            dirname = os.path.join(root_dir, dirname)
         os.mkdir(dirname)
         os.mkdir(os.path.join(dirname, "configspace"))
         os.mkdir(os.path.join(dirname, "code"))
         return dirname
 
-    def log_conversation(self, role, content):
+    def log_conversation(self, role, content, cost=0.0):
         """
         Logs the given conversation content into a conversation log file.
 
         Args:
             role (str): Who (the llm or user) said the content.
             content (str): The conversation content to be logged.
+            cost (float, optional): The cost of the conversation.
         """
         conversation_object = {
             "role": role,
             "time": f"{datetime.now()}",
             "content": content,
+            "cost": float(cost),
         }
         with jsonlines.open(f"{self.dirname}/conversationlog.jsonl", "a") as file:
             file.write(conversation_object)

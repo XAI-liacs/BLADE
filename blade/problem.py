@@ -1,7 +1,6 @@
 from .solution import Solution
 from abc import ABC, abstractmethod
 import numpy as np
-from .loggers import RunLogger
 import traceback
 
 
@@ -44,7 +43,7 @@ class Problem(ABC):
             self.logger.log_individual(solution)
         return solution
 
-    def set_logger(self, logger: RunLogger):
+    def set_logger(self, logger):
         """
         Sets the logger for this problem.
         """
@@ -74,5 +73,15 @@ class Problem(ABC):
 
         Args:
             solution (Solution): Solution object to be tested.
+        """
+        pass
+
+    @abstractmethod
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the problem including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the problem.
         """
         pass
