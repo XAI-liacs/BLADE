@@ -39,7 +39,7 @@ class Problem(ABC):
         try:
             solution = self.evaluate(solution)
         except Exception as e:
-            solution.set_scores(-np.Inf, feedback=str(e))
+            solution.set_scores(-np.Inf, feedback=f"An exception occured: {traceback.format_exc()}.")
 
         if self.logger is not None:
             self.logger.log_individual(solution)

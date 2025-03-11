@@ -4,7 +4,7 @@ from ..method import Method
 
 
 class RandomSearch(Method):
-    def __init__(self, llm: LLM, budget, name=None, **kwargs):
+    def __init__(self, llm: LLM, budget, name="RandomSearch", **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.
 
@@ -40,6 +40,6 @@ class RandomSearch(Method):
             dict: Dictionary representation of the method.
         """
         return {
-            "method_name": self.name if self.name is not None else "RandomSearch",
+            "method_name": self.name if self.name != None else "RandomSearch",
             "budget": self.budget,
         }

@@ -10,7 +10,7 @@ from .utils import NoCodeException
 from .solution import Solution
 from ConfigSpace import ConfigurationSpace
 from tokencost import calculate_prompt_cost, calculate_completion_cost
-
+import time
 
 class LLM(ABC):
     def __init__(
@@ -285,7 +285,7 @@ class Gemini_LLM(LLM):
         Returns:
             str: The text content of the LLM's response.
         """
-
+        time.sleep(3) # Gemini has a rate limit of 15 requests per minute in the free tier
         history = []
         last = session_messages.pop()
         for msg in session_messages:

@@ -16,6 +16,7 @@ class LLaMEA(Method):
             problem (Problem): The problem instance to optimize.
             llm (LLM): The LLM instance to use for solution generation.
             budget (int): The maximum number of evaluations.
+            name (str): The name of the method.
             kwargs: Additional arguments for configuring LLaMEA.
         """
         super().__init__(llm, budget, name)
@@ -46,7 +47,7 @@ class LLaMEA(Method):
             dict: Dictionary representation of the method.
         """
         return {
-            "method_name": self.name if self.name not is None else "LLaMEA",
+            "method_name": self.name if self.name != None else "LLaMEA",
             "budget": self.budget,
             "kwargs": self.kwargs,
         }

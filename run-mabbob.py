@@ -7,7 +7,7 @@ api_key = os.getenv("GEMINI_API_KEY")
 ai_model = "gemini-2.0-flash"
 llm1 = Gemini_LLM(api_key, ai_model)
 llm2 = Ollama_LLM("codestral")
-budget = 10
+budget = 100
 
 
 mutation_prompts1 = [
@@ -29,17 +29,16 @@ mutation_prompts5 = [
     "Refine and simplify the selected algorithm to improve it.", #simplify
 ]
 
-budget = 20
 for llm in [llm1, llm2]:
-    RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
-    LLaMEA_method1 = LLaMEA(llm, budget=budget, name="LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=2, n_offspring=8, elitism=False)
-    LLaMEA_method2 = LLaMEA(llm, budget=budget, name="LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=2, n_offspring=8, elitism=False)
-    LLaMEA_method3 = LLaMEA(llm, budget=budget, name="LLaMEA=3", mutation_prompts=mutation_prompts3, n_parents=2, n_offspring=8, elitism=False)
-    LLaMEA_method4 = LLaMEA(llm, budget=budget, name="LLaMEA-4", mutation_prompts=mutation_prompts4, n_parents=2, n_offspring=8, elitism=False)
-    LLaMEA_method5 = LLaMEA(llm, budget=budget, name="LLaMEA-5", mutation_prompts=mutation_prompts5, n_parents=2, n_offspring=8, elitism=False) 
+    #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
+    LLaMEA_method1 = LLaMEA(llm, budget=budget, name="LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method2 = LLaMEA(llm, budget=budget, name="LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method3 = LLaMEA(llm, budget=budget, name="LLaMEA=3", mutation_prompts=mutation_prompts3, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method4 = LLaMEA(llm, budget=budget, name="LLaMEA-4", mutation_prompts=mutation_prompts4, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method5 = LLaMEA(llm, budget=budget, name="LLaMEA-5", mutation_prompts=mutation_prompts5, n_parents=4, n_offspring=12, elitism=False) 
 
-    methods = [RS, LLaMEA_method1, LLaMEA_method2, LLaMEA_method3, LLaMEA_method4, LLaMEA_method5]
-    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=3, dims=[5], budget_factor=2000) #normal run
+    methods = [LLaMEA_method1, LLaMEA_method2, LLaMEA_method3, LLaMEA_method4, LLaMEA_method5]
+    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=5, dims=[5], budget_factor=2000, show_stdout=True) #normal run
     experiment() #run the experiment
 
 
