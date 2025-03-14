@@ -31,14 +31,14 @@ mutation_prompts5 = [
 
 for llm in [llm1]:#, llm2]:
     #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
-    #LLaMEA_method1 = LLaMEA(llm, budget=budget, name="LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=12, elitism=False)
-    #LLaMEA_method2 = LLaMEA(llm, budget=budget, name="LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False)
-    LLaMEA_method3 = LLaMEA(llm, budget=budget, name="LLaMEA=3", mutation_prompts=mutation_prompts3, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method1 = LLaMEA(llm, budget=budget, name="LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method2 = LLaMEA(llm, budget=budget, name="LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False)
+    LLaMEA_method3 = LLaMEA(llm, budget=budget, name="LLaMEA-3", mutation_prompts=mutation_prompts3, n_parents=4, n_offspring=12, elitism=False)
     LLaMEA_method4 = LLaMEA(llm, budget=budget, name="LLaMEA-4", mutation_prompts=mutation_prompts4, n_parents=4, n_offspring=12, elitism=False)
     LLaMEA_method5 = LLaMEA(llm, budget=budget, name="LLaMEA-5", mutation_prompts=mutation_prompts5, n_parents=4, n_offspring=12, elitism=False) 
 
-    methods = [LLaMEA_method3] #, LLaMEA_method3, LLaMEA_method4, LLaMEA_method5
-    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=5, dims=[5], budget_factor=2000, eval_timeout=30, show_stdout=True) #normal run
+    methods = [LLaMEA_method3, LLaMEA_method3, LLaMEA_method4, LLaMEA_method5]
+    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=5, dims=[5], budget_factor=2000, eval_timeout=60, show_stdout=True) #normal run
     experiment() #run the experiment
 
 

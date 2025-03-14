@@ -12,50 +12,28 @@ class Experiment(ABC):
     Abstract class for an entire experiment, running multiple algorithms on multiple problems.
     """
 
-    def __init__(self, methods: list, problems: list, llm: LLM, runs=1):
+    def __init__(self, methods: list, problems: list, llm: LLM, runs=5, show_stdout=False, log_dir="results/experiment"):
         """
         Initializes an experiment with multiple methods and problems.
 
         Args:
             methods (list): List of method instances.
             problems (list): List of problem instances.
+            llm (LLM): LLM instance to use.
+            runs (int): Number of runs for each method.
+            show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
         """
         self.methods = methods
         self.problems = problems
         self.runs = runs
         self.llm = llm
+        self.show_stdout = show_stdout
+        self.exp_logger = ExperimentLogger(log_dir)
 
-    @abstractmethod
     def __call__(self):
         """
         Runs the experiment by executing each method on each problem.
         """
-        pass
-
-
-class MA_BBOB_Experiment(Experiment):
-    def __init__(
-        self, methods: list, llm: LLM, show_stdout=False, runs=5, dims=[2, 5], budget_factor=2000, **kwargs
-    ):
-        """
-        Initializes an experiment on MA-BBOB.
-
-        Args:
-            methods (list): List of method instances.
-            llm (LLM): LLM instance to use.
-            show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
-            runs (int): Number of runs for each method.
-            dims (list): List of problem dimensions.
-            budget_factor (int): Budget factor for the problems.
-            **kwargs: Additional keyword arguments for the MA_BBOB problem.
-        """
-        super().__init__(
-            methods, [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)], llm, runs
-        )
-        self.exp_logger = ExperimentLogger("results/MA_BBOB")
-        self.show_stdout = show_stdout
-
-    def __call__(self):
         """
         Runs the experiment by executing each method on each problem.
         """
@@ -78,3 +56,25 @@ class MA_BBOB_Experiment(Experiment):
                                 solution = method(problem)
                     self.exp_logger.add_run(method, problem, self.llm, solution, log_dir=logger.dirname, seed=i)
         return
+
+
+class MA_BBOB_Experiment(Experiment):
+    def __init__(
+        self, methods: list, llm: LLM, show_stdout=False, runs=5, dims=[2, 5], budget_factor=2000, **kwargs
+    ):
+        """
+        Initializes an experiment on MA-BBOB.
+
+        Args:
+            methods (list): List of method instances.
+            llm (LLM): LLM instance to use.
+            show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
+            runs (int): Number of runs for each method.
+            dims (list): List of problem dimensions.
+            budget_factor (int): Budget factor for the problems.
+            **kwargs: Additional keyword arguments for the MA_BBOB problem.
+        """
+        super().__init__(
+            methods, [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)], llm, runs, show_stdout, log_dir="results/MA_BBOB"
+        )
+

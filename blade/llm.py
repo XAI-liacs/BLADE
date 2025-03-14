@@ -174,12 +174,7 @@ class LLM(ABC):
         if match:
             return match.group(1)
         else:
-            return """
-class NoCodeException(Exception):
-    "Could not extract generated code."
-
-    pass
-raise NoCodeException""" #trick to later raise this exception when the algorithm is evaluated.
+            return """raise Exception("Could not extract generated code. The code should be encapsulated with ``` in your response.")""" #trick to later raise this exception when the algorithm is evaluated.
 
     def extract_algorithm_description(self, message):
         """
@@ -290,7 +285,7 @@ class Gemini_LLM(LLM):
         Returns:
             str: The text content of the LLM's response.
         """
-        time.sleep(3) # Gemini has a rate limit of 15 requests per minute in the free tier
+        time.sleep(30) # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
         history = []
         last = session_messages.pop()
         for msg in session_messages:
