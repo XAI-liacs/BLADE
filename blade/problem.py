@@ -2,6 +2,29 @@ from .solution import Solution
 from abc import ABC, abstractmethod
 import numpy as np
 import traceback
+import multiprocessing
+from joblib.externals.loky import get_reusable_executor
+
+
+
+def evaluate_in_subprocess(problem, conn, solution):
+    """
+    Runs the evaluation and stores the result in a queue.
+    Args:
+        queue (multiprocessing.Queue): Queue for storing the evaluation result.
+        solution (Solution): Solution object to be evaluated.
+    """
+    try:
+        result = problem.evaluate(solution)
+        conn.send(result)  # Send result through the pipe
+    except Exception as e:
+        conn.send(e)  # Send exception for handling in the parent
+    finally:
+        conn.close()  # Ensure pipe is closed after sending data
+
+class TimeoutException(Exception):
+    """Custom exception for handling timeouts."""
+    pass
 
 
 class Problem(ABC):
@@ -9,7 +32,7 @@ class Problem(ABC):
     Abstract problem class.
     """
 
-    def __init__(self, logger=None, training_instances=None, test_instances=None, name="Problem"):
+    def __init__(self, logger=None, training_instances=None, test_instances=None, name="Problem", eval_timeout=60):
         """
         Initializes a problem instance with logging and dataset references.
 
@@ -25,6 +48,7 @@ class Problem(ABC):
         self.task_prompt = "Write the problem description part here."
         self.format_prompt = "Write the format description part here."
         self.name = name
+        self.eval_timeout = eval_timeout
 
     def __call__(self, solution: Solution, logger=None):
         """
@@ -36,10 +60,34 @@ class Problem(ABC):
         Returns:
             Solution: The evaluated solution with updated fitness and scores.
         """
+
+        # Ensure multiprocessing is using spawn mode
+        if multiprocessing.get_start_method(allow_none=True) != "spawn":
+            multiprocessing.set_start_method("spawn", force=True)
+
+        # Else create a new process for evaluation with timeout
         try:
-            solution = self.evaluate(solution)
+            parent_conn, child_conn = multiprocessing.Pipe()  # Create pipe for communication
+            process = multiprocessing.Process(target=evaluate_in_subprocess, args=(self, child_conn, solution))
+            process.start()
+            process.join(timeout=self.eval_timeout)
+
+        
+            if process.is_alive():
+                raise TimeoutException(f"Evaluation timed out after {self.eval_timeout} seconds.")
+            if parent_conn.poll():
+                result = parent_conn.recv()
+                if isinstance(result, Exception):
+                    raise result
+                else:
+                    solution = result
+            else:
+                raise Exception("Evaluation failed without an exception.")
         except Exception as e:
-            solution.set_scores(-np.Inf, feedback=f"An exception occured: {traceback.format_exc()}.")
+            solution.set_scores(-np.Inf, feedback=f"An exception occurred: {e}.")
+        finally:
+            process.terminate()
+            process.join()
 
         if self.logger is not None:
             self.logger.log_individual(solution)

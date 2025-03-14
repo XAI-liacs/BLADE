@@ -174,7 +174,12 @@ class LLM(ABC):
         if match:
             return match.group(1)
         else:
-            raise NoCodeException
+            return """
+class NoCodeException(Exception):
+    "Could not extract generated code."
+
+    pass
+raise NoCodeException""" #trick to later raise this exception when the algorithm is evaluated.
 
     def extract_algorithm_description(self, message):
         """

@@ -22,7 +22,8 @@ class MA_BBOB(Problem):
         training_instances=None,
         test_instances=None,
         name="MA_BBOB",
-        dims=[2],
+        eval_timeout=60,
+        dims=[2, 5],
         budget_factor=2000,
     ):
         """
@@ -31,13 +32,16 @@ class MA_BBOB(Problem):
             logger (RunLogger): The logger to use for logging.
             training_instances (list): The indices of training instances to use.
             test_instances (list): The indices of test instances to use.
-            HPO (bool): Whether to perform hyperparameter optimization in the loop or not.
+            name (str): The name of the problem.
+            eval_timeout (int): The evaluation timeout in seconds.
+            dims (list): The dimensionalities of the problem instances to run on.
+            budget_factor (int): The factor to multiply the dimensionality with to get the budget.
         """
         if training_instances is None:
             training_instances = range(0, 20)
         if test_instances is None:
             test_instances = range(20, 120)
-        super().__init__(logger, training_instances, test_instances, name)
+        super().__init__(logger, training_instances, test_instances, name, eval_timeout)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.task_prompt = """

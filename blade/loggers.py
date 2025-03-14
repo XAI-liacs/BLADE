@@ -169,7 +169,6 @@ class RunLogger:
             dirname = f"run-{name}-{tempi}"
             dirname = os.path.join(root_dir, dirname)
         os.mkdir(dirname)
-        os.mkdir(os.path.join(dirname, "configspace"))
         os.mkdir(os.path.join(dirname, "code"))
         return dirname
 
@@ -191,9 +190,6 @@ class RunLogger:
         with jsonlines.open(f"{self.dirname}/conversationlog.jsonl", "a") as file:
             file.write(conversation_object)
 
-    def set_attempt(self, attempt):
-        self.attempt = attempt
-
     def log_population(self, population):
         """
         Logs the given population to code, configspace and the general log file.
@@ -209,45 +205,36 @@ class RunLogger:
         Logs the given individual in a general logfile.
 
         Args:
-            individual (Individual): potential solution to be logged.
+            individual (Solution): potential solution to be logged.
         """
-        self.log_code(self.attempt, individual.name, individual.code)
-        if individual.configspace != None:
-            self.log_configspace(self.attempt, individual.name, individual.configspace)
         ind_dict = individual.to_dict()
         with jsonlines.open(f"{self.dirname}/log.jsonl", "a") as file:
             file.write(convert_to_serializable(ind_dict))
-        self.attempt += 1
 
-    def log_code(self, attempt, algorithm_name, code):
+    def log_code(self, individual):
         """
         Logs the provided code into a file, uniquely named based on the attempt number and algorithm name.
 
         Args:
-            attempt (int): The attempt number of the code execution.
-            algorithm_name (str): The name of the algorithm used.
-            code (str): The source code to be logged.
+            individual (Solution): potential solution to be logged.
         """
         with open(
-            f"{self.dirname}/code/try-{attempt}-{algorithm_name}.py", "w"
+            f"{self.dirname}/code/{individual.id}-{individual.name}.py", "w"
         ) as file:
-            file.write(code)
-        self.attempt = attempt
+            file.write(individual.code)
 
-    def log_configspace(self, attempt, algorithm_name, config_space):
+    def log_configspace(self, individual):
         """
         Logs the provided configuration space (str) into a file, uniquely named based on the attempt number and algorithm name.
 
         Args:
-            attempt (int): The attempt number of the code execution.
-            algorithm_name (str): The name of the algorithm used.
-            config_space (ConfigSpace): The Config space to be logged.
+            individual (Solution): potential solution to be logged.
         """
         with open(
-            f"{self.dirname}/configspace/try-{attempt}-{algorithm_name}.py", "w"
+            f"{self.dirname}/configspace/{individual.id}-{individual.name}.py", "w"
         ) as file:
-            if config_space != None:
-                file.write(cs_json.write(config_space))
+            if individual.config_space != None:
+                file.write(cs_json.write(individual.config_space))
             else:
                 file.write("Failed to extract config space")
         self.attempt = attempt
