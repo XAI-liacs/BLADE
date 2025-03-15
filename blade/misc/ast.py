@@ -272,7 +272,7 @@ def process_file(path, visualize):
 
 
 # Function to create graph out of AST
-def process_code(python_code, visualize):
+def process_code(python_code, visualize=False):
     """
     Processes a Python code string by:
     1. Parsing it into an AST
@@ -283,7 +283,7 @@ def process_code(python_code, visualize):
 
     Args:
         python_code (str): A string containing valid Python code.
-        visualize (bool): If True, visualizes the resulting AST graph.
+        visualize (bool, optional): If True, visualizes the resulting AST graph.
 
     Returns:
         dict: Combined statistics from graph analysis and code complexity.
@@ -390,72 +390,5 @@ def process_file_paths(file_paths, visualize):
     # aggregate_stats(results)
 
 
-def analyze_run_temp( #deprecated
-    expfolder, budget=100, label="LLaMEA", filename="ast.csv", visualize=True
-):
-    """
-    Analyzes a single LLaMEA optimization run (e.g., a log of code solutions), computing
-    AST-based metrics and code complexity for each generated solution. Logs the results
-    to a CSV file and optionally generates visualizations of the run.
-
-    Args:
-        expfolder (str): The experiment folder containing a 'log.jsonl' file.
-        budget (int): The maximum number of iterations or prompt count (unused in code).
-        label (str): A label for identification in the resulting DataFrame.
-        filename (str): Output CSV filename to store AST analysis results.
-        visualize (bool): If True, calls 'plot_optimization_graphs' to visualize the run.
-    """
-    results = []
-    alg_id = 0
-    best_ever_fitness = -np.Inf
-
-    log_file = f"{expfolder}/log.jsonl"
-    print(log_file)
-    if os.path.exists(log_file):
-        with jsonlines.open(log_file) as reader:
-            reader_i = -1
-            for obj in reader.iter(type=dict, skip_invalid=True):
-                reader_i += 1
-                stats = []
-                fitness = -np.Inf
-                code = ""
-                if "solution" in obj.keys():
-                    code = obj["solution"]
-                if "_solution" in obj.keys():  # Legacy log format
-                    code = obj["_solution"]
-                if "code" in obj.keys():  # EOH log file
-                    code = obj["code"]
-                if code == None:
-                    continue
-                if "parent_id" in obj.keys():
-                    parents = [obj["parent_id"]]
-                if "id" in obj.keys():
-                    alg_id = obj["id"]
-                if "parents" in obj.keys():
-                    parents = obj["parents"]
-                if (
-                    "objective" in obj.keys() and obj["objective"] != None
-                ):  # EOH log file
-                    fitness = obj["objective"] * -1
-                else:
-                    fitness = -np.Inf
-                try:
-                    stats = process_code(code, False)
-                except Exception as e:
-                    print(e)
-                    continue
-
-                stats["fitness"] = 0.0
-                stats["method"] = label
-                stats["exp_dir"] = expfolder.replace("/", "_")
-                stats["alg_id"] = alg_id
-                stats["gen"] = reader_i
-                stats["parent_ids"] = parents
-                stats["fitness"] = fitness
-                results.append(stats)
-        resultdf = pd.DataFrame.from_dict(results)
-        resultdf.to_csv(f"{expfolder}/{filename}", index=False)
-        #if visualize:
-        #    plot_optimization_graphs(resultdf, expfolder)
 
 
