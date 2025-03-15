@@ -8,7 +8,8 @@ api_key = os.getenv("GEMINI_API_KEY")
 ai_model = "gemini-2.0-flash"
 llm1 = Gemini_LLM(api_key, ai_model)
 llm2 = Ollama_LLM("codestral")
-llm3 = Ollama_LLM("gemma3:27b")
+llm3 = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
+llm4 = Ollama_LLM("deepseek-coder-v2:16b")
 budget = 50 #short budgets
 
 
@@ -17,7 +18,7 @@ mutation_prompts = [
     "Refine and simplify the selected algorithm to improve it.", #simplify
 ]
 
-for llm in [llm2, llm1, llm3]:
+for llm in [llm2, llm3, llm4]: #llm1
     #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
     LLaMEA_method = LLaMEA(llm, budget=budget, name=f"LLaMEA-{llm.model}", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=False) 
 
