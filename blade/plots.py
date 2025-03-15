@@ -105,7 +105,7 @@ def plot_experiment_CEG(logger: ExperimentLogger,
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
         methods = data['method_name'].unique()
-        fig, axes = plt.subplots(figsize=(6*len(methods), 6*num_seeds), nrows=len(methods), ncols=num_seeds, sharey=True, squeeze=False)
+        fig, axes = plt.subplots(figsize=(5*num_seeds, 5*len(methods)), nrows=len(methods), ncols=num_seeds, sharey=True, squeeze=False)
         
         method_i = 0
         for method in methods:
@@ -122,7 +122,7 @@ def plot_experiment_CEG(logger: ExperimentLogger,
         
         if save:
             plt.tight_layout()
-            plt.savefig(f"{logger.dirname}/CEG_{problem}.png")
+            fig.savefig(f"{logger.dirname}/CEG_{problem}.png")
         else:
             plt.show()
         plt.close()

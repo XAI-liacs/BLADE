@@ -102,7 +102,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         return self.task_prompt + self.format_prompt
 
-    def evaluate(self, solution: Solution, test=False):
+    def evaluate(self, solution: Solution, test=False, ioh_dir=""):
         """
         Evaluates a solution on the MA-BBOB benchmark using AOCC.
         """
@@ -140,6 +140,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 )
                 f_new.set_id(100)
                 f_new.set_instance(idx)
+                # add also a normal IOH logger if test = True and set the directory accordingly
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
                 f_new.attach_logger(l2)
 
@@ -165,11 +166,11 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         return solution
 
-    def test(self, solution: Solution):
+    def test(self, solution: Solution, ioh_dir = ""):
         """
         Runs the solution on test instances and returns the fitness score.
         """
-        return self.evaluate(solution, True)
+        return self.evaluate(solution, True, ioh_dir)
 
     def to_dict(self):
         """

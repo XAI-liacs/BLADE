@@ -132,6 +132,40 @@ class Solution:
             "metadata": self.metadata,
         }
 
+    def from_dict(self, data):
+        """
+        Updates the Solution instance from a dictionary.
+
+        Args:
+            data (dict): A dictionary representation of the individual.
+
+        Returns:
+            None
+        """
+        configspace = data.get("configspace", None)
+
+        if isinstance(configspace, dict):  # Deserialize if necessary
+            try:
+                configspace = ConfigSpace()  # Replace with actual class
+                configspace.from_serialized_dict(data["configspace"])
+            except Exception as e:
+                print(f"Warning: Failed to deserialize configspace - {e}")
+                configspace = None
+
+        # Update instance attributes
+        self.id = data.get("id")
+        self.fitness = data.get("fitness")
+        self.name = data.get("name")
+        self.description = data.get("description")
+        self.code = data.get("code")
+        self.configspace = configspace
+        self.generation = data.get("generation")
+        self.feedback = data.get("feedback")
+        self.error = data.get("error")
+        self.parent_ids = data.get("parent_ids", [])
+        self.operator = data.get("operator")
+        self.metadata = data.get("metadata", {})
+
     def to_json(self):
         """
         Converts the individual to a JSON string.
