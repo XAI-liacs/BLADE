@@ -31,7 +31,7 @@ def plot_convergence(
     """
     methods, problems = logger.get_methods_problems()
 
-    fig, axes = plt.subplots(figsize=(10, 6*len(problems)), nrows=1, ncols=len(problems))
+    fig, axes = plt.subplots(figsize=(10, 6*len(problems)), nrows=len(problems), ncols=1)
     problem_i = 0
     for problem in problems:
         # Ensure the data is sorted by 'id' and 'fitness'
@@ -117,6 +117,11 @@ def plot_experiment_CEG(logger: ExperimentLogger,
                 ax.set_xlim([0, budget])
                 ax.set_xticks(np.arange(0, budget+1, 10))
                 ax.set_xticklabels(np.arange(0, budget+1, 10))
+                ax.set_title(f"{method} run:{seed}")
+                if seed_i > 0:
+                    ax.set_ylabel(None)
+                if method_i < len(methods)-1:
+                    ax.set_xlabel(None)
                 seed_i += 1
             method_i += 1
         
@@ -249,3 +254,71 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
             plt.show()
         if ax is None:
             plt.close()
+
+def plot_boxplot_fitness(logger: ExperimentLogger, y_label="Fitness", x_label="Method", problems=None):
+    """
+    Plots boxplots of fitness grouped by problem_name (subplots) and method_name (categories).
+    Each problem has its own subplot, grouped by method_name.
+
+    Args:
+        logger
+        y_label
+        x_label
+        problems
+    """
+    df = logger.get_data().copy()
+    # If not already present, create a "fitness" column from the "solution" dictionary
+    if 'fitness' not in df.columns:
+        df['fitness'] = df['solution'].apply(lambda sol: sol.get('fitness', float('nan')))
+
+    if problems is None:
+        problems = sorted(df['problem_name'].unique())
+
+    # Create subplots, one per problem
+    fig, axes = plt.subplots(1, len(problems), figsize=(5 * len(problems), 5), sharey=True)
+    # In case there's only one problem, axes won't be a list
+    if len(problems) == 1:
+        axes = [axes]
+
+    for i, problem in enumerate(problems):
+        subset = df[df['problem_name'] == problem]
+        # Plot with Seaborn
+        sns.boxplot(x='method_name', y='fitness', data=subset, ax=axes[i])
+        axes[i].set_title(problem)
+        axes[i].set_xlabel(x_label)
+        if i == 0:
+            axes[i].set_ylabel(y_label)
+        else:
+            axes[i].set_ylabel("")
+        # Rotate x-axis labels a bit if needed
+        axes[i].tick_params(axis='x', rotation=45)
+    
+    plt.tight_layout()
+    plt.show()
+
+def plot_boxplot_fitness_hue(logger: ExperimentLogger, y_label="Fitness", x_label="Problem", hue="method_name", x="problem_name", problems=None):
+    """
+    Plots boxplots of fitness grouped by `hue` and method_name `x`.
+    Produces one plot with grouped boxplots per `x`.
+    Args:
+        logger
+    """
+    df = logger.get_data().copy()
+    # If not already present, create a "fitness" column from the "solution" dictionary
+    if 'fitness' not in df.columns:
+        df['fitness'] = df['solution'].apply(lambda sol: sol.get('fitness', float('nan')))
+
+    if problems is None:
+        problems = sorted(df['problem_name'].unique())
+    df_filtered = df[df["problem_name"].isin(problems)]
+
+    # Create subplots, one per problem
+    fig, axes = plt.subplots(1, 1, figsize=(2.5 * len(problems), 5))
+
+    # Plot with Seaborn
+    sns.boxplot(x=x, y='fitness', hue=hue, data=df_filtered, ax=axes)
+    axes.set_xlabel(x_label)
+    axes.set_ylabel(y_label)
+
+    plt.tight_layout()
+    plt.show()

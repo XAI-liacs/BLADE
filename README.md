@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-<h1 align="center">BLADE: Benchmarking LLM-driven Automated Design and Evolution</h1>
+<h1 align="center">IOH-BLADE: Benchmarking LLM-driven Automated Design and Evolution of Iterative Optimization Heuristics</h1>
 
 <p align="center">
   <a href="https://pypi.org/project/blade/">
@@ -35,10 +35,10 @@
 
 ## 🎁 Installation
 
-It is the easiest to use BLADE from the pypi package.
+It is the easiest to use BLADE from the pypi package (`iohblade`).
 
 ```bash
-  pip install blade
+  pip install iohblade
 ```
 > [!Important]
 > The Python version **must** be larger or equal to Python 3.10.
@@ -48,7 +48,7 @@ You can also install the package from source using Poetry (1.8.5).
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/nikivanstein/BLADE.git
+   git clone https://github.com/XAI-liacs/BLADE.git
    cd BLADE
    ```
 2. Install the required dependencies via Poetry:
@@ -59,7 +59,7 @@ You can also install the package from source using Poetry (1.8.5).
 ## 💻 Quick Start
 
 1. Set up an OpenAI API key:
-   - Obtain an API key from [OpenAI](https://openai.com/).
+   - Obtain an API key from [OpenAI](https://openai.com/) or Gemini or another LLM provider.
    - Set the API key in your environment variables:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'
@@ -70,7 +70,40 @@ You can also install the package from source using Poetry (1.8.5).
     To run a benchmarking experiment using BLADE:
 
     ```python
-    from blade import Experiment
+    from iohblade import Experiment
+
+    from iohblade.experiment import Experiment
+    from iohblade.llm import Ollama_LLM
+    from iohblade.methods import LLaMEA, RandomSearch
+    from iohblade.problems import BBOB_SBOX
+    import os
+
+    llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
+    budget = 50 #short budget for testing
+
+    RS = RandomSearch(llm, budget=budget) #Random Search baseline
+    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False) #LLamEA with 4,12 strategy
+
+    methods = [RS, LLaMEA_method]
+
+    # List containing function IDs per group
+    group_functions = [
+        [], #starting at 1
+        [1, 2, 3, 4, 5],      # Separable Functions
+        [6, 7, 8, 9],         # Functions with low or moderate conditioning
+        [10, 11, 12, 13, 14], # Functions with high conditioning and unimodal
+        [15, 16, 17, 18, 19], # Multi-modal functions with adequate global structure
+        [20, 21, 22, 23, 24]  # Multi-modal functions with weak global structure
+    ]
+    
+    problems = []
+    # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
+    training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
+    test_instances = [(f, i) for f in range(1,25) for i in range(5, 16)]
+    problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
+    # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
+    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, log_dir="results/SBOX") #normal run
+    experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
 ---
