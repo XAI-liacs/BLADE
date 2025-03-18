@@ -9,4 +9,5 @@ from .utils import (
     OverBudgetException,
     ThresholdReachedException,
     NoCodeException,
+    budget_logger,
 )

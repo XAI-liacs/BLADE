@@ -18,7 +18,7 @@ mutation_prompts = [
     "Refine and simplify the selected algorithm to improve it.", #simplify
 ]
 
-for llm in [llm2, llm3, llm4]: #llm1
+for llm in [llm3, llm4]: #llm1 , llm3, llm4
     #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
     LLaMEA_method = LLaMEA(llm, budget=budget, name=f"LLaMEA-{llm.model}", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=False) 
 
@@ -35,10 +35,11 @@ for llm in [llm2, llm3, llm4]: #llm1
     ]
     
     problems = []
-    for fid in [2, 5, 13, 15, 21]: # a selection of single functions
-        training_instances = [(fid, i) for i in range(1, 6)]
-        test_instances = [(fid, i) for i in range(5, 16)] #10 test instances
-        problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST_fid{fid}", specific_fid=fid))
+    if True:
+        for fid in [2, 5, 13, 15, 21]: # a selection of single functions
+            training_instances = [(fid, i) for i in range(1, 6)]
+            test_instances = [(fid, i) for i in range(5, 16)] #10 test instances
+            problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST_fid{fid}", specific_fid=fid))
     for group in range(1,6):
         training_instances = [(f, i) for f in group_functions[group] for i in range(1, 6)]
         test_instances = [(f, i) for f in group_functions[group] for i in range(5, 16)]

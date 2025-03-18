@@ -118,11 +118,7 @@ class LLM(ABC):
             self.logger.log_conversation(self.model, message, cost)
 
         code = self.extract_algorithm_code(message)
-        name = re.findall(
-            "class\\s*(\\w*)(?:\\(\\w*\\))?\\:",
-            code,
-            re.IGNORECASE,
-        )[0]
+        name = self.extract_classname(code)
         desc = self.extract_algorithm_description(message)
         cs = None
         if HPO:
@@ -136,6 +132,24 @@ class LLM(ABC):
         )
 
         return new_individual
+
+    def extract_classname(self, code):
+        """ Extract the Python class name from a given code string (if possible).
+
+        Args:
+            code (string): The code string to extract from.
+        
+        Returns:
+            classname (string): The Python class name or empty string.
+        """
+        try:
+            return re.findall(
+                "class\\s*(\\w*)(?:\\(\\w*\\))?\\:",
+                code,
+                re.IGNORECASE,
+            )[0]
+        except Exception as e:
+            return ""
 
     def extract_configspace(self, message):
         """

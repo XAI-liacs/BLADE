@@ -14,9 +14,6 @@
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
-  <a href="https://codecov.io/gh/nikivanstein/BLADE" > 
-    <img src="https://codecov.io/gh/nikivanstein/BLADE/graph/badge.svg?token=VKCNPWVBNM"/> 
-  </a>
 </p>
 
 ## Table of Contents
@@ -99,10 +96,4 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 ## ✨ Citation
 
-
----
-
-CodeCov test coverage
-
-<img src="https://codecov.io/gh/nikivanstein/BLADE/graphs/sunburst.svg?token=VKCNPWVBNM"/> 
 
