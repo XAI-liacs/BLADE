@@ -313,7 +313,7 @@ def plot_boxplot_fitness_hue(logger: ExperimentLogger, y_label="Fitness", x_labe
     df_filtered = df[df["problem_name"].isin(problems)]
 
     # Create subplots, one per problem
-    fig, axes = plt.subplots(1, 1, figsize=(2.5 * len(problems), 5))
+    fig, axes = plt.subplots(1, 1, figsize=(2.5 * len(problems), 4))
 
     # Plot with Seaborn
     sns.boxplot(x=x, y='fitness', hue=hue, data=df_filtered, ax=axes)
