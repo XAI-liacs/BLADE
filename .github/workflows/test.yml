@@ -48,12 +48,12 @@ jobs:
       #              run black
       #----------------------------------------------
       - name: Check black
-        run: poetry run black --check --verbose ./blade/
+        run: poetry run black --check --verbose ./iohblade/
       #----------------------------------------------
       #              run test suite
       #----------------------------------------------
       - name: Test with pytest
-        run: poetry run pytest --cov=blade --cov-report=xml tests/
+        run: poetry run pytest --cov=iohblade --cov-report=xml tests/
       #----------------------------------------------
       #             upload coverage stats
       # (requires CODECOV_TOKEN in repository secrets)
