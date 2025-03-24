@@ -2,21 +2,18 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
     <source media="(prefers-color-scheme: light)" srcset="logo.png">
-    <img alt="Shows the LLaMEA logo." src="logo.png" width="200px">
+    <img alt="Shows the BLADE logo." src="logo.png" width="200px">
   </picture>
 </p>
 
-<h1 align="center">LLaMEA: Large Language Model Evolutionary Algorithm</h1>
+<h1 align="center">IOH-BLADE: Benchmarking LLM-driven Automated Design and Evolution of Iterative Optimization Heuristics</h1>
 
 <p align="center">
-  <a href="https://pypi.org/project/llamea/">
-    <img src="https://badge.fury.io/py/llamea.svg" alt="PyPI version" height="18">
+  <a href="https://pypi.org/project/iohblade/">
+    <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
-  <a href="https://codecov.io/gh/nikivanstein/LLaMEA" > 
-    <img src="https://codecov.io/gh/nikivanstein/LLaMEA/graph/badge.svg?token=VKCNPWVBNM"/> 
-  </a>
 </p>
 
 ## Table of Contents
@@ -24,9 +21,6 @@
 - [News](#-news)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
-- [Examples](#-examples)
-  - [Running `example.py`](#running-examplepy)
-  - [Running `example_HPO.py` (LLaMEA-HPO)](#running-example_hpopy-llamea-hpo)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
@@ -34,32 +28,17 @@
 
 ## Introduction
 
-**LLaMEA** (Large Language Model Evolutionary Algorithm) is an innovative framework that leverages the power of large language models (LLMs) such as GPT-4 for the automated generation and refinement of metaheuristic optimization algorithms. The framework utilizes a novel approach to evolve and optimize algorithms iteratively based on performance metrics and runtime evaluations without requiring extensive prior algorithmic knowledge. This makes LLaMEA an ideal tool for both research and practical applications in fields where optimization is crucial.
-
-**Key Features:**
-- **Automated Algorithm Generation**: Automatically generates and refines algorithms using GPT-based or similar LLM models.
-- **Performance Evaluation**: Integrates seamlessly with the IOHexperimenter for real-time performance feedback, guiding the evolutionary process.
-- **LLaMEA-HPO**: Provides an in-the-loop hyper-parameter optimization mechanism (via SMAC) to offload numerical tuning, so that LLM queries focus on novel structural improvements.
-- **Extensible & Modular**: You can easily integrate additional models and evaluation tools.
-
-<p align="center">
-  <img src="framework.png" alt="LLaMEA framework" style="width:100%;"/>
-</p>
-
 
 ## 🔥 News 
 
-+ 2025.03 🎉🎉 **LLaMEA v1.0.0 released**!  
-
-+ 2025.01 🎉🎉 **LLaMEA paper accepted in IEEE TEVC** [“Llamea: A large language model evolutionary algorithm for automatically generating metaheuristics"](https://ieeexplore.ieee.org/abstract/document/10752628/)!  
 
 
 ## 🎁 Installation
 
-It is the easiest to use LLaMEA from the pypi package.
+It is the easiest to use BLADE from the pypi package (`iohblade`).
 
 ```bash
-  pip install llamea
+  pip install iohblade
 ```
 > [!Important]
 > The Python version **must** be larger or equal to Python 3.10.
@@ -69,8 +48,8 @@ You can also install the package from source using Poetry (1.8.5).
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/xai-liacs/LLaMEA.git
-   cd LLaMEA
+   git clone https://github.com/XAI-liacs/BLADE.git
+   cd BLADE
    ```
 2. Install the required dependencies via Poetry:
    ```bash
@@ -80,7 +59,7 @@ You can also install the package from source using Poetry (1.8.5).
 ## 💻 Quick Start
 
 1. Set up an OpenAI API key:
-   - Obtain an API key from [OpenAI](https://openai.com/).
+   - Obtain an API key from [OpenAI](https://openai.com/) or Gemini or another LLM provider.
    - Set the API key in your environment variables:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'
@@ -88,84 +67,59 @@ You can also install the package from source using Poetry (1.8.5).
 
 2. Running an Experiment
 
-    To run an optimization experiment using LLaMEA:
+    To run a benchmarking experiment using BLADE:
 
     ```python
-    from llamea import LLaMEA
+    from iohblade import Experiment
 
-    # Define your evaluation function
-    def your_evaluation_function(solution):
-        # Implementation of your function
-        # return feedback, quality score, error information
-        return "feedback for LLM", 0.1, ""
+    from iohblade.experiment import Experiment
+    from iohblade.llm import Ollama_LLM
+    from iohblade.methods import LLaMEA, RandomSearch
+    from iohblade.problems import BBOB_SBOX
+    import os
 
-    # Initialize LLaMEA with your API key and other parameters
-    optimizer = LLaMEA(f=your_evaluation_function, api_key="your_api_key_here")
+    llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
+    budget = 50 #short budget for testing
 
-    # Run the optimizer
-    best_solution, best_fitness = optimizer.run()
-    print(f"Best Solution: {best_solution}, Fitness: {best_fitness}")
+    RS = RandomSearch(llm, budget=budget) #Random Search baseline
+    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False) #LLamEA with 4,12 strategy
+
+    methods = [RS, LLaMEA_method]
+
+    # List containing function IDs per group
+    group_functions = [
+        [], #starting at 1
+        [1, 2, 3, 4, 5],      # Separable Functions
+        [6, 7, 8, 9],         # Functions with low or moderate conditioning
+        [10, 11, 12, 13, 14], # Functions with high conditioning and unimodal
+        [15, 16, 17, 18, 19], # Multi-modal functions with adequate global structure
+        [20, 21, 22, 23, 24]  # Multi-modal functions with weak global structure
+    ]
+    
+    problems = []
+    # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
+    training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
+    test_instances = [(f, i) for f in range(1,25) for i in range(5, 16)]
+    problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
+    # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
+    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, log_dir="results/SBOX") #normal run
+    experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
 ---
 
 ## 💻 Examples
 
-Below are two example scripts demonstrating LLaMEA in action for black-box optimization with a BBOB (24 noiseless) function suite. One script (`example.py`) runs basic LLaMEA, while the other (`example_HPO.py`) incorporates a **hyper-parameter optimization** pipeline—known as **LLaMEA-HPO**—that employs SMAC to tune the algorithm’s parameters in the loop.
 
-### Running `example.py`
-
-**`example.py`** showcases a straightforward use-case of LLaMEA. It:
-- Defines an evaluation function `evaluateBBOB` that runs generated algorithms on a standard set of BBOB problems (24 functions).
-- Initializes LLaMEA with a specific model (e.g., GPT-4, GPT-3.5) and prompts the LLM to generate metaheuristic code.
-- Iterates over a `(1+1)`-style evolutionary loop, refining the code until a certain budget is reached.
-
-**How to run:**
-```bash
-python example.py
-```
-
-The script will:
-1. Query the specified LLM with a prompt describing the black-box optimization task.
-2. Dynamically execute each generated algorithm on BBOB problems.
-3. Log performance data such as AOCC (Area Over the Convergence Curve).
-4. Iteratively refine the best-so-far algorithms.
-
-
-### Running `example_HPO.py` (LLaMEA-HPO)
-
-**`example_HPO.py`** extends LLaMEA with **in-the-loop hyper-parameter optimization**—termed **LLaMEA-HPO**. Instead of having the LLM guess or refine hyper-parameters directly, the code:
-- Allows the LLM to generate a Python class representing the metaheuristic **plus** a ConfigSpace dictionary describing hyper-parameters.
-- Passes these hyper-parameters to SMAC, which then searches for good parameter settings on a BBOB training set.
-- Evaluates the best hyper-parameters found by SMAC on the full BBOB suite.
-- Feeds back the final performance (and errors) to the LLM, prompting it to mutate the algorithm’s structure (rather than simply numeric settings).
-  
-**Why LLaMEA-HPO?**  
-Offloading hyper-parameter search to SMAC significantly reduces LLM query overhead and encourages the LLM to focus on novel structural improvements.
-
-**How to run:**
-```bash
-python example_HPO.py
-```
-
-**Script outline:**
-1. **Prompt & Generation**: Script sets up a role/task prompt, along with hyper-parameter config space templates.
-2. **HPO Step**: For each newly generated algorithm, SMAC tries different parameter values within a budget.
-3. **Evaluation**: The final best configuration from SMAC is tested across BBOB instances.
-4. **Refinement**: The script returns the performance to LLaMEA, prompting the LLM to mutate the algorithm design.
-
-> [!Note]
-> Adjust the model name (`ai_model`) or API key as needed in the script.
-> Changing `budget` or the HPO budget can drastically affect runtime and cost.
-> Additional arguments (e.g., logging directories) can be set if desired.
+See `run-mabbob.py`, `run-sbox.py` and `visualize_mabbob.ipynb` files for examples on experiments and visualisations.
 
 ---
 
 ## 🤖 Contributing
 
-Contributions to LLaMEA are welcome! Here are a few ways you can help:
+Contributions to BLADE are welcome! Here are a few ways you can help:
 
-- **Report Bugs**: Use [GitHub Issues](https://github.com/nikivanstein/LLaMEA/issues) to report bugs.
+- **Report Bugs**: Use [GitHub Issues](https://github.com/XAI-Liacs/BLADE/issues) to report bugs.
 - **Feature Requests**: Suggest new features or improvements.
 - **Pull Requests**: Submit PRs for bug fixes or feature additions.
 
@@ -178,47 +132,5 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 ## ✨ Citation
 
-If you use LLaMEA in your research, please consider citing the associated paper:
 
-```bibtex
-@article{van2024llamea,
-  title={Llamea: A large language model evolutionary algorithm for automatically generating metaheuristics},
-  author={van Stein, Niki and B{\"a}ck, Thomas},
-  journal={IEEE Transactions on Evolutionary Computation},
-  year={2024},
-  publisher={IEEE}
-}
-```
-
-If you only want to cite the LLaMEA-HPO variant use the folllowing:
-
-```bibtex
-@article{van2024loop,
-  title={In-the-loop hyper-parameter optimization for llm-based automated design of heuristics},
-  author={van Stein, Niki and Vermetten, Diederick and B{\"a}ck, Thomas},
-  journal={arXiv preprint arXiv:2410.16309},
-  year={2024}
-}
-```
-
----
-
-For more details, please refer to the documentation and tutorials available in the repository.
-
-```mermaid
-flowchart LR
-    A[Initialization] -->|Starting prompt| B{Stop? fa:fa-hand}
-    B -->|No| C(Generate Algorithm - LLM )
-    B --> |Yes| G{{Return best so far fa:fa-code}}
-    C --> |fa:fa-code|D(Evaluate)
-    D -->|errors, scores| E[Store session history fa:fa-database]
-    E --> F(Construct Refinement Prompt)
-    F --> B
-```
-
----
-
-CodeCov test coverage
-
-<img src="https://codecov.io/gh/nikivanstein/LLaMEA/graphs/sunburst.svg?token=VKCNPWVBNM"/> 
-
+TBA

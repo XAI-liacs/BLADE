@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "blade"
+name = "iohblade"
 version = "0.0.1"
 description = "Benchmarking Llm Assisted Design and Evolution of algorithms."
 authors = ["Niki van Stein <n.van.stein@liacs.leidenuniv.nl>"]
@@ -31,7 +31,8 @@ networkx = "^3.4.2"
 joblib = "^1.4.2"
 iohinspector = "^0.0.3"
 tokencost = "^0.1.18"
-llamea = "^1.0.1"
+llamea = "^1.0.2"
+ipykernel = "^6.29.5"
 
 
 [tool.poetry.group.dev.dependencies]
