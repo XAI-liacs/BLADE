@@ -27,7 +27,7 @@ BLADE
 🔥 News
 ----
 
-- 2025.03 ✨✨ **BLADE v0.0.1 released**!
+- 2025.03 ✨✨ **iohblade v0.0.1 released**!
 
 
 
@@ -36,7 +36,7 @@ BLADE
 
 Contributions to BLADE are welcome! Here are a few ways you can help:
 
-- **Report Bugs**: Use `GitHub Issues <https://github.com/XAI-Liacs/BLADE/issues>`_ to report bugs.
+- **Report Bugs**: Use `GitHub Issues <https://github.com/XAI-liacs/BLADE/issues>`_ to report bugs.
 - **Feature Requests**: Suggest new features or improvements.
 - **Pull Requests**: Submit PRs for bug fixes or feature additions.
 
@@ -51,17 +51,11 @@ See ``LICENSE`` for more information.
 Cite us
 --------
 
-If you use LLaMEA in your research, please consider citing the associated paper:
+If you use BLADE in your research, please consider citing the associated paper:
 
 .. code-block:: bibtex
 
-   @article{van2024llamea,
-     title={Llamea: A large language model evolutionary algorithm for automatically generating metaheuristics},
-     author={van Stein, Niki and B{\"a}ck, Thomas},
-     journal={IEEE Transactions on Evolutionary Computation},
-     year={2024},
-     publisher={IEEE}
-   }
+   TBA
 
 
 .. toctree::

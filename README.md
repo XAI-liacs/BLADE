@@ -14,23 +14,78 @@
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
+  <img stc="https://codecov.io/gh/XAI-Liacs/blade/graph/badge.svg?token=VKCNPWVBNM" alt="CodeCov" height="18">
 </p>
 
 ## Table of Contents
-- [Introduction](#introduction)
 - [News](#-news)
+- [Introduction](#introduction)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
 
-
-## Introduction
-
-
 ## 🔥 News 
 
+- 2025.03 ✨✨ **BLADE v0.0.1 released**!
+
+
+## Introduction
+**BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs). It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
+
+
+### Features
+
+- **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
+- **LLM-Driven Evaluation:** Supports algorithm evolution and design using large language models.
+- **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
+- **Automatic Logging & Visualization:** Integrated with **IOHprofiler** for performance tracking.
+
+#### Included Benchmark Function Sets
+
+BLADE incorporates several benchmark function sets to provide a comprehensive evaluation environment:
+
+| Name                               | Short Description                                                                                                                         | Number of Functions | Multiple Instances |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|---------------------|--------------------|
+| **BBOB** (Black-Box Optimization Benchmarking) | A suite of 24 noiseless functions designed for benchmarking continuous optimization algorithms. [Reference](https://arxiv.org/pdf/1903.06396) | 24                  | Yes                |
+| **SBOX-COST**                      | A set of 24 boundary-constrained functions focusing on strict box-constraint optimization scenarios. [Reference](https://inria.hal.science/hal-04403658/file/sboxcost-cmacomparison-authorversion.pdf) | 24                  | Yes                |
+| **MA-BBOB** (Many-Affine BBOB)     | An extension of the BBOB suite, generating functions through affine combinations and shifts. [Reference](https://dl.acm.org/doi/10.1145/3673908) | Generator-Based     | Yes                |
+| **GECCO MA-BBOB Competition Instances** | A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. [Reference](https://iohprofiler.github.io/competitions) | 1,000               | Yes                |
+
+In addition, several real-world applications are included such as several photonics problems.
+
+### Included Search Methods
+
+The suite contains the state-of-the-art LLM-assisted search algorithms:
+
+| Algorithm           | Description                                        | Link
+|--------------------------|-------------------------------------------------|--------------|
+| **LLaMEA** | Large Langugage Model Evolutionary Algorithm                 | [code](https://github.com/nikivanstein/LLaMEA) [paper](https://arxiv.org/abs/2405.20132) |
+| **EoH** | Evolution of Heuristics         | [code](https://github.com/FeiLiu36/EoH) [paper](https://arxiv.org/abs/2401.02051) |
+| **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
+| **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
+
+> Note, some of these algorithms are currently not yet integrated, but they are planned for integration soonn.
+
+### Supported LLM APIs
+
+BLADE supports integration with various LLM APIs to facilitate automated design of algorithms:
+
+| LLM Provider | Description                                                                                                         | Integration Notes                                                                                             |
+|--------------|---------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
+| **Gemini**   | Google's multimodal LLM designed to process text, images, audio, and more. [Reference](https://en.wikipedia.org/wiki/Gemini_%28language_model%29) | Accessible via the Gemini API, compatible with OpenAI libraries. [Reference](https://ai.google.dev/gemini-api/docs/openai) |
+| **OpenAI**   | Developer of GPT series models, including GPT-4, widely used for natural language understanding and generation. [Reference](https://openai.com/) | Integration through OpenAI's REST API and client libraries.                                                    |
+| **Ollama**   | A platform offering access to various LLMs, enabling local and cloud-based model deployment. [Reference](https://www.ollama.ai/) | Integration details can be found in their official documentation.                                             |
+
+
+### Evaluating against Human Designed baselines
+
+An important part of BLADE is the final evaluation of generated algorithms against state-of-the-art human designed algorithms.
+In the `iohblade.baselines` part of the package, several well known SOTA black-box optimizers are imolemented to compare against.
+Including but not limited to CMA-ES and DE variants.
+
+For the final validation **BLADE** uses **IOHprofiler**, providing detailed tracking and visualization of performance metrics.
 
 
 ## 🎁 Installation
@@ -134,3 +189,6 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 
 TBA
+
+-----
+Happy Benchmarking with IOH-BLADE! 🚀

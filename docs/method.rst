@@ -1,7 +1,7 @@
 Method
 ==========
 
-.. automodule:: blade.method
+.. automodule:: iohblade.method
    :members:
    :undoc-members:
    :show-inheritance:
