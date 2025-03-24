@@ -35,6 +35,7 @@ class Experiment(ABC):
             budget (int): Number of evaluations per run for each method.
             seeds (list, optional): The exact seeds to use for the runs, len(seeds) overwrites the number of runs if set.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
+            log_dir (str): The folder location to store the logs.
         """
         self.methods = methods
         self.problems = problems
@@ -50,9 +51,6 @@ class Experiment(ABC):
         self.exp_logger = ExperimentLogger(log_dir)
 
     def __call__(self):
-        """
-        Runs the experiment by executing each method on each problem.
-        """
         """
         Runs the experiment by executing each method on each problem.
         """
@@ -96,6 +94,7 @@ class MA_BBOB_Experiment(Experiment):
         seeds=None,
         dims=[2, 5],
         budget_factor=2000,
+        log_dir="results/MA_BBOB",
         **kwargs,
     ):
         """
@@ -111,6 +110,7 @@ class MA_BBOB_Experiment(Experiment):
             dims (list): List of problem dimensions.
             budget_factor (int): Budget factor for the problems.
             **kwargs: Additional keyword arguments for the MA_BBOB problem.
+            log_dir (str): The folder location to store the logs.
         """
         super().__init__(
             methods,
@@ -120,5 +120,5 @@ class MA_BBOB_Experiment(Experiment):
             budget=budget,
             seeds=seeds,
             show_stdout=show_stdout,
-            log_dir="results/MA_BBOB",
+            log_dir=log_dir,
         )
