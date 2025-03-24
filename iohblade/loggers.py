@@ -48,7 +48,15 @@ class ExperimentLogger:
         os.mkdir(dirname)
         return dirname
 
-    def add_run(self, method: Method, problem: Problem, llm: LLM, solution: Solution, log_dir="", seed=None):
+    def add_run(
+        self,
+        method: Method,
+        problem: Problem,
+        llm: LLM,
+        solution: Solution,
+        log_dir="",
+        seed=None,
+    ):
         """
         Adds a run to the experiment log.
 
@@ -100,7 +108,7 @@ class ExperimentLogger:
             for line in file:
                 if line["problem_name"] == problem_name:
                     logdir = line["log_dir"]
-                    #now process the logdirs into one combined PandasDataframe
+                    # now process the logdirs into one combined PandasDataframe
                     if os.path.exists(f"{logdir}/log.jsonl"):
                         df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
                         df["method_name"] = line["method_name"]
@@ -164,7 +172,7 @@ class RunLogger:
         dirname = os.path.join(root_dir, dirname)
         if not os.path.exists(root_dir):
             os.mkdir(root_dir)
-        
+
         tempi = 0
         while os.path.exists(dirname):
             tempi += 1
@@ -180,11 +188,11 @@ class RunLogger:
         """
         count = 0
         if not os.path.isfile(f"{self.dirname}/log.jsonl"):
-            return False #there is no log file yet
+            return False  # there is no log file yet
         with open(f"{self.dirname}/log.jsonl", "r") as f:
             for _ in f:
                 count += 1
-        
+
         return count >= self.budget
 
     def log_conversation(self, role, content, cost=0.0):

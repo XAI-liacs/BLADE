@@ -1,12 +1,13 @@
 import numpy as np
 from modcma import c_maes
 
+
 class ModularCMAES:
     """
     Baseline implementation of CMA-ES with active update.
     Can be extended later to cover all Modular CMAES options.
     """
-    
+
     def __init__(self, budget=10000, dim=10, **kwargs):
         self.budget = budget
         self.dim = dim
@@ -20,7 +21,6 @@ class ModularCMAES:
         self.parameters = c_maes.Parameters(self.settings)
         # Pass the parameters object to the ModularCMAES optimizer class
         self.cma = c_maes.ModularCMAES(self.parameters)
-        
 
     def __call__(self, func):
         return self.cma.run(func)

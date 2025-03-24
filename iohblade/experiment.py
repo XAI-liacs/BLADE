@@ -7,12 +7,23 @@ import numpy as np
 from tqdm import tqdm
 import contextlib
 
+
 class Experiment(ABC):
     """
     Abstract class for an entire experiment, running multiple algorithms on multiple problems.
     """
 
-    def __init__(self, methods: list, problems: list, llm: LLM, runs=5, budget=100, seeds=None, show_stdout=False, log_dir="results/experiment"):
+    def __init__(
+        self,
+        methods: list,
+        problems: list,
+        llm: LLM,
+        runs=5,
+        budget=100,
+        seeds=None,
+        show_stdout=False,
+        log_dir="results/experiment",
+    ):
         """
         Initializes an experiment with multiple methods and problems.
 
@@ -49,11 +60,11 @@ class Experiment(ABC):
             for method in tqdm(self.methods, leave=False, desc="Methods"):
                 for i in tqdm(self.seeds, leave=False, desc="Runs"):
                     np.random.seed(i)
-                    
+
                     logger = RunLogger(
                         name=f"{method.name}-{problem.name}-{i}",
                         root_dir=self.exp_logger.dirname,
-                        budget=self.budget
+                        budget=self.budget,
                     )
                     problem.set_logger(logger)
                     self.llm.set_logger(logger)
@@ -63,13 +74,29 @@ class Experiment(ABC):
                         with contextlib.redirect_stdout(None):
                             with contextlib.redirect_stderr(None):
                                 solution = method(problem)
-                    self.exp_logger.add_run(method, problem, self.llm, solution, log_dir=logger.dirname, seed=i)
+                    self.exp_logger.add_run(
+                        method,
+                        problem,
+                        self.llm,
+                        solution,
+                        log_dir=logger.dirname,
+                        seed=i,
+                    )
         return
 
 
 class MA_BBOB_Experiment(Experiment):
     def __init__(
-        self, methods: list, llm: LLM, show_stdout=False, runs=5, budget=100, seeds=None, dims=[2, 5], budget_factor=2000, **kwargs
+        self,
+        methods: list,
+        llm: LLM,
+        show_stdout=False,
+        runs=5,
+        budget=100,
+        seeds=None,
+        dims=[2, 5],
+        budget_factor=2000,
+        **kwargs,
     ):
         """
         Initializes an experiment on MA-BBOB.
@@ -86,6 +113,12 @@ class MA_BBOB_Experiment(Experiment):
             **kwargs: Additional keyword arguments for the MA_BBOB problem.
         """
         super().__init__(
-            methods, [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)], llm=llm, runs=runs, budget=budget, seeds=seeds, show_stdout=show_stdout, log_dir="results/MA_BBOB"
+            methods,
+            [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)],
+            llm=llm,
+            runs=runs,
+            budget=budget,
+            seeds=seeds,
+            show_stdout=show_stdout,
+            log_dir="results/MA_BBOB",
         )
-

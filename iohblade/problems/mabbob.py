@@ -149,7 +149,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                         folder_name=algorithm_name,
                         algorithm_name=algorithm_name,
                     )
-                    combined_logger = ioh.logger.Combine([l1,l2])
+                    combined_logger = ioh.logger.Combine([l1, l2])
                     f_new.attach_logger(combined_logger)
                 else:
                     f_new.attach_logger(l2)
@@ -178,7 +178,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         return solution
 
-    def test(self, solution: Solution, ioh_dir = ""):
+    def test(self, solution: Solution, ioh_dir=""):
         """
         Runs the solution on test instances and returns the fitness score.
         """

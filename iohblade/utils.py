@@ -4,16 +4,17 @@ from ioh import LogInfo, logger
 import json
 import difflib
 
+
 def code_compare(code1, code2):
     # Parse the Python code into ASTs
     # Use difflib to find differences
     diff = difflib.ndiff(code1.splitlines(), code2.splitlines())
     # Count the number of differing lines
-    diffs = sum(1 for x in diff if x.startswith('- ') or x.startswith('+ '))
+    diffs = sum(1 for x in diff if x.startswith("- ") or x.startswith("+ "))
     # Calculate total lines for the ratio
     total_lines = max(len(code1.splitlines()), len(code2.splitlines()))
     similarity_ratio = (total_lines - diffs) / total_lines if total_lines else 1
-    return 1-similarity_ratio
+    return 1 - similarity_ratio
 
 
 def is_jsonable(x):
@@ -22,6 +23,7 @@ def is_jsonable(x):
         return True
     except (TypeError, OverflowError):
         return False
+
 
 def convert_to_serializable(data):
     if isinstance(data, dict):

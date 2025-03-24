@@ -6,7 +6,6 @@ import multiprocessing
 from joblib.externals.loky import get_reusable_executor
 
 
-
 def evaluate_in_subprocess(problem, conn, solution):
     """
     Runs the evaluation and stores the result in a queue.
@@ -22,8 +21,10 @@ def evaluate_in_subprocess(problem, conn, solution):
     finally:
         conn.close()  # Ensure pipe is closed after sending data
 
+
 class TimeoutException(Exception):
     """Custom exception for handling timeouts."""
+
     pass
 
 
@@ -32,7 +33,14 @@ class Problem(ABC):
     Abstract problem class.
     """
 
-    def __init__(self, logger=None, training_instances=None, test_instances=None, name="Problem", eval_timeout=60):
+    def __init__(
+        self,
+        logger=None,
+        training_instances=None,
+        test_instances=None,
+        name="Problem",
+        eval_timeout=60,
+    ):
         """
         Initializes a problem instance with logging and dataset references.
 
@@ -74,14 +82,20 @@ class Problem(ABC):
 
         # Else create a new process for evaluation with timeout
         try:
-            parent_conn, child_conn = multiprocessing.Pipe()  # Create pipe for communication
-            process = multiprocessing.Process(target=evaluate_in_subprocess, args=(self, child_conn, solution))
+            (
+                parent_conn,
+                child_conn,
+            ) = multiprocessing.Pipe()  # Create pipe for communication
+            process = multiprocessing.Process(
+                target=evaluate_in_subprocess, args=(self, child_conn, solution)
+            )
             process.start()
             process.join(timeout=self.eval_timeout)
 
-        
             if process.is_alive():
-                raise TimeoutException(f"Evaluation timed out after {self.eval_timeout} seconds.")
+                raise TimeoutException(
+                    f"Evaluation timed out after {self.eval_timeout} seconds."
+                )
             if parent_conn.poll():
                 result = parent_conn.recv()
                 if isinstance(result, Exception):

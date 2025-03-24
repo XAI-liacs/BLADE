@@ -12,6 +12,7 @@ from ConfigSpace import ConfigurationSpace
 from tokencost import calculate_prompt_cost, calculate_completion_cost
 import time
 
+
 class LLM(ABC):
     def __init__(
         self,
@@ -134,11 +135,11 @@ class LLM(ABC):
         return new_individual
 
     def extract_classname(self, code):
-        """ Extract the Python class name from a given code string (if possible).
+        """Extract the Python class name from a given code string (if possible).
 
         Args:
             code (string): The code string to extract from.
-        
+
         Returns:
             classname (string): The Python class name or empty string.
         """
@@ -188,7 +189,7 @@ class LLM(ABC):
         if match:
             return match.group(1)
         else:
-            return """raise Exception("Could not extract generated code. The code should be encapsulated with ``` in your response.")""" #trick to later raise this exception when the algorithm is evaluated.
+            return """raise Exception("Could not extract generated code. The code should be encapsulated with ``` in your response.")"""  # trick to later raise this exception when the algorithm is evaluated.
 
     def extract_algorithm_description(self, message):
         """
@@ -219,7 +220,7 @@ class LLM(ABC):
             "code_pattern": self.code_pattern,
             "name_pattern": self.name_pattern,
             "desc_pattern": self.desc_pattern,
-            "cs_pattern": self.cs_pattern
+            "cs_pattern": self.cs_pattern,
         }
 
 
@@ -299,7 +300,9 @@ class Gemini_LLM(LLM):
         Returns:
             str: The text content of the LLM's response.
         """
-        time.sleep(30) # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
+        time.sleep(
+            30
+        )  # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
         history = []
         last = session_messages.pop()
         for msg in session_messages:

@@ -6,7 +6,7 @@ from ..method import Method
 
 
 class funsearch(Method):
-    def __init__(self, llm: LLM, budget:int, name="funsearch", **kwargs):
+    def __init__(self, llm: LLM, budget: int, name="funsearch", **kwargs):
         """
         Initializes the funsearch algorithm within the benchmarking framework.
 

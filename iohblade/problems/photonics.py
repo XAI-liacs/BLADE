@@ -7,7 +7,11 @@ from ..utils import aoc_logger, correct_aoc, OverBudgetException
 import pandas as pd
 import traceback
 from ..problem import Problem
-from .photonic_instances import get_photonic_instance, problem_descriptions, algorithmic_insights
+from .photonic_instances import (
+    get_photonic_instance,
+    problem_descriptions,
+    algorithmic_insights,
+)
 
 
 class Photonics(Problem):
@@ -36,8 +40,10 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if problem_type not in ["bragg", "ellipsometry", "photovoltaic"]:
-            raise Exception("problem_type should be either 'bragg', 'ellipsometry' or 'photovoltaic'.")
-        
+            raise Exception(
+                "problem_type should be either 'bragg', 'ellipsometry' or 'photovoltaic'."
+            )
+
         self.problem_type = problem_type
         self.problem = get_photonic_instance(self.problem_type)
 
@@ -88,7 +94,12 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         Returns the problem description and answer format.
         """
-        return self.task_prompt + self.description_prompt + self.extra_prompt + self.format_prompt
+        return (
+            self.task_prompt
+            + self.description_prompt
+            + self.extra_prompt
+            + self.format_prompt
+        )
 
     def evaluate(self, solution: Solution, test=False, ioh_dir=""):
         """
@@ -96,16 +107,16 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         if self.problem_type == "bragg":
             auc_lower = 0.1648
-            auc_upper = 1.
+            auc_upper = 1.0
         elif self.problem_type == "ellipsometry":
             auc_lower = 1e-8
-            auc_upper = 40.
+            auc_upper = 40.0
         elif self.problem_type == "photovoltaic":
             auc_lower = 0.1
-            auc_upper = 1.
+            auc_upper = 1.0
         auc_mean = 0
         auc_std = 0
-        
+
         dim = self.problem.meta_data.n_variables
 
         code = solution.code
@@ -127,7 +138,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             pass
 
         # Final validation
-        
+
         aucs = []
         l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
         # add also a normal IOH logger if test = True and set the directory accordingly
@@ -137,7 +148,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 folder_name=algorithm_name,
                 algorithm_name=algorithm_name,
             )
-            combined_logger = ioh.logger.Combine([l1,l2])
+            combined_logger = ioh.logger.Combine([l1, l2])
             self.problem.attach_logger(combined_logger)
         else:
             self.problem.attach_logger(l2)
@@ -167,7 +178,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         )
         return solution
 
-    def test(self, solution: Solution, ioh_dir = ""):
+    def test(self, solution: Solution, ioh_dir=""):
         """
         Runs the solution on test instances and returns the fitness score.
         """
@@ -183,4 +194,3 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "problem_type": self.problem_type,
             "budget_factor": self.budget_factor,
         }
-

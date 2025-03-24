@@ -6,7 +6,7 @@ from ..method import Method
 
 
 class EoH(Method):
-    def __init__(self, llm: LLM, budget:int, name="EoH", **kwargs):
+    def __init__(self, llm: LLM, budget: int, name="EoH", **kwargs):
         """
         Initializes the EoH algorithm within the benchmarking framework.
 

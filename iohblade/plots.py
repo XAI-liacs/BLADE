@@ -15,6 +15,7 @@ import pandas as pd
 from .loggers import ExperimentLogger
 from .misc.ast import process_code, analyse_complexity
 
+
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
@@ -31,42 +32,57 @@ def plot_convergence(
     """
     methods, problems = logger.get_methods_problems()
 
-    fig, axes = plt.subplots(figsize=(10, 6*len(problems)), nrows=len(problems), ncols=1)
+    fig, axes = plt.subplots(
+        figsize=(10, 6 * len(problems)), nrows=len(problems), ncols=1
+    )
     problem_i = 0
     for problem in problems:
         # Ensure the data is sorted by 'id' and 'fitness'
-        data = logger.get_problem_data(problem_name=problem).drop(columns=['code']) # for efficiency we drop code for now
+        data = logger.get_problem_data(problem_name=problem).drop(
+            columns=["code"]
+        )  # for efficiency we drop code for now
         data.replace([-np.Inf, np.Inf], 0, inplace=True)
         data.fillna(0, inplace=True)
-        
+
         # Get unique method names
-        methods = data['method_name'].unique()
+        methods = data["method_name"].unique()
         ax = axes[problem_i] if len(problems) > 1 else axes
         for method in methods:
-            method_data = data[data['method_name'] == method].copy()
-            method_data = method_data.sort_values(by=['seed', '_id'])
+            method_data = data[data["method_name"] == method].copy()
+            method_data = method_data.sort_values(by=["seed", "_id"])
 
             # Group by 'seed' and calculate the cumulative max fitness
-            method_data['cummax_fitness'] = method_data.groupby('seed')['fitness'].cummax()
-            
+            method_data["cummax_fitness"] = method_data.groupby("seed")[
+                "fitness"
+            ].cummax()
+
             # Calculate mean and std deviation of the cumulative max fitness
-            summary = method_data.groupby('_id')['cummax_fitness'].agg(['mean', 'std']).reset_index()
-            
+            summary = (
+                method_data.groupby("_id")["cummax_fitness"]
+                .agg(["mean", "std"])
+                .reset_index()
+            )
+
             # Shift X-axis so that _id starts at 1
-            summary['_id'] += 1  # Ensures _id starts at 1 instead of 0
+            summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
 
             # Plot the mean fitness
-            ax.plot(summary['_id'], summary['mean'], label=method)
-            
+            ax.plot(summary["_id"], summary["mean"], label=method)
+
             # Plot the shaded error region
-            ax.fill_between(summary['_id'], summary['mean'] - summary['std'], summary['mean'] + summary['std'], alpha=0.2)
-        
+            ax.fill_between(
+                summary["_id"],
+                summary["mean"] - summary["std"],
+                summary["mean"] + summary["std"],
+                alpha=0.2,
+            )
+
         # Add labels and legend
-        ax.set_xlabel('Number of Evaluations')
+        ax.set_xlabel("Number of Evaluations")
         if budget is not None:
             ax.set_xlim(1, budget)
-        ax.set_ylabel(f'Mean Best {metric}')
-        ax.legend(title='Algorithm')
+        ax.set_ylabel(f"Mean Best {metric}")
+        ax.legend(title="Algorithm")
         ax.grid(True)
         ax.set_title(problem)
         problem_i += 1
@@ -77,11 +93,14 @@ def plot_convergence(
         plt.show()
     plt.close()
 
-def plot_experiment_CEG(logger: ExperimentLogger, 
+
+def plot_experiment_CEG(
+    logger: ExperimentLogger,
     metric: str = "total_token_count",
     budget: int = 100,
     save: bool = True,
-    max_seeds = 5):
+    max_seeds=5,
+):
     """
     Plot the Code evolution graphs for each run in an experiment, splitted by problem.
 
@@ -92,7 +111,7 @@ def plot_experiment_CEG(logger: ExperimentLogger,
         max_seeds (int, optional): The maximum number of runs to plot.
     """
     methods, problems = logger.get_methods_problems()
-    
+
     problem_i = 0
     for problem in problems:
         # Ensure the data is sorted by 'id' and 'fitness'
@@ -104,27 +123,41 @@ def plot_experiment_CEG(logger: ExperimentLogger,
         seeds = data["seed"].unique()
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
-        methods = data['method_name'].unique()
-        fig, axes = plt.subplots(figsize=(5*num_seeds, 5*len(methods)), nrows=len(methods), ncols=num_seeds, sharey=True, squeeze=False)
-        
+        methods = data["method_name"].unique()
+        fig, axes = plt.subplots(
+            figsize=(5 * num_seeds, 5 * len(methods)),
+            nrows=len(methods),
+            ncols=num_seeds,
+            sharey=True,
+            squeeze=False,
+        )
+
         method_i = 0
         for method in methods:
             seed_i = 0
             for seed in seeds[:num_seeds]:
                 ax = axes[method_i, seed_i]
-                run_data = data[(data['method_name'] == method) & (data['seed'] == seed)].copy()
-                plot_code_evolution_graphs(run_data, logger.dirname, plot_features=["total_token_count"], save=False, ax=ax)
+                run_data = data[
+                    (data["method_name"] == method) & (data["seed"] == seed)
+                ].copy()
+                plot_code_evolution_graphs(
+                    run_data,
+                    logger.dirname,
+                    plot_features=["total_token_count"],
+                    save=False,
+                    ax=ax,
+                )
                 ax.set_xlim([0, budget])
-                ax.set_xticks(np.arange(0, budget+1, 10))
-                ax.set_xticklabels(np.arange(0, budget+1, 10))
+                ax.set_xticks(np.arange(0, budget + 1, 10))
+                ax.set_xticklabels(np.arange(0, budget + 1, 10))
                 ax.set_title(f"{method} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)
-                if method_i < len(methods)-1:
+                if method_i < len(methods) - 1:
                     ax.set_xlabel(None)
                 seed_i += 1
             method_i += 1
-        
+
         if save:
             plt.tight_layout()
             fig.savefig(f"{logger.dirname}/CEG_{problem}.png")
@@ -132,7 +165,10 @@ def plot_experiment_CEG(logger: ExperimentLogger,
             plt.show()
         plt.close()
 
-def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, save=True, ax=None):
+
+def plot_code_evolution_graphs(
+    run_data, expfolder=None, plot_features=None, save=True, ax=None
+):
     """
     Plots optimization progress and relationships between successive solutions in an
     evolutionary run based on AST metrics. Can plot multiple features or a single feature on a provided axis.
@@ -145,27 +181,30 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
         ax (matplotlib.axes.Axes, optional): The axis to plot on. If None, creates new plots.
     """
     if ax is not None and (plot_features is None or len(plot_features) > 1):
-        raise ValueError("If an axis is provided, the length of plot_features must be 1.")
+        raise ValueError(
+            "If an axis is provided, the length of plot_features must be 1."
+        )
 
     data = run_data.copy()
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
 
-    complexity_features = ["mean_complexity",
+    complexity_features = [
+        "mean_complexity",
         "total_complexity",
         "mean_token_count",
         "total_token_count",
         "mean_parameter_count",
-        "total_parameter_count"
+        "total_parameter_count",
     ]
 
     # Compute AST or complexity-based statistics
     if len(plot_features) == 1 and plot_features[0] in complexity_features:
         analyse_complexity
-        df_stats = data['code'].apply(analyse_complexity).apply(pd.Series)
+        df_stats = data["code"].apply(analyse_complexity).apply(pd.Series)
     else:
-        df_stats = data['code'].apply(process_code).apply(pd.Series)
+        df_stats = data["code"].apply(process_code).apply(pd.Series)
     stat_features = df_stats.columns
 
     # Merge statistics into the dataframe
@@ -182,7 +221,7 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
         ]
     else:
         plot_features = plot_features
-    
+
     # Standardize features
     features = data[stat_features].copy()
     scaler = StandardScaler()
@@ -206,7 +245,7 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
     parent_counts = Counter(
         parent_id for parent_ids in data["parent_ids"] for parent_id in parent_ids
     )
-    
+
     data["parent_size"] = data["id"].map(lambda x: parent_counts.get(x, 1) * 2)
 
     no_axis = False
@@ -225,7 +264,7 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
                         [parent_row[x_data], row[x_data]],
                         "-o",
                         markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"]))
+                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
                     )
                 else:
                     ax.plot(
@@ -233,10 +272,9 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
                         row[x_data],
                         "o",
                         markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"]))
+                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
                     )
-        
-        
+
         ax.set_xlabel("Evaluation")
         ax.set_ylabel(x_data.replace("_", " "))
         if no_axis:
@@ -255,7 +293,10 @@ def plot_code_evolution_graphs(run_data, expfolder=None, plot_features=None, sav
         if ax is None:
             plt.close()
 
-def plot_boxplot_fitness(logger: ExperimentLogger, y_label="Fitness", x_label="Method", problems=None):
+
+def plot_boxplot_fitness(
+    logger: ExperimentLogger, y_label="Fitness", x_label="Method", problems=None
+):
     """
     Plots boxplots of fitness grouped by problem_name (subplots) and method_name (categories).
     Each problem has its own subplot, grouped by method_name.
@@ -268,22 +309,26 @@ def plot_boxplot_fitness(logger: ExperimentLogger, y_label="Fitness", x_label="M
     """
     df = logger.get_data().copy()
     # If not already present, create a "fitness" column from the "solution" dictionary
-    if 'fitness' not in df.columns:
-        df['fitness'] = df['solution'].apply(lambda sol: sol.get('fitness', float('nan')))
+    if "fitness" not in df.columns:
+        df["fitness"] = df["solution"].apply(
+            lambda sol: sol.get("fitness", float("nan"))
+        )
 
     if problems is None:
-        problems = sorted(df['problem_name'].unique())
+        problems = sorted(df["problem_name"].unique())
 
     # Create subplots, one per problem
-    fig, axes = plt.subplots(1, len(problems), figsize=(5 * len(problems), 5), sharey=True)
+    fig, axes = plt.subplots(
+        1, len(problems), figsize=(5 * len(problems), 5), sharey=True
+    )
     # In case there's only one problem, axes won't be a list
     if len(problems) == 1:
         axes = [axes]
 
     for i, problem in enumerate(problems):
-        subset = df[df['problem_name'] == problem]
+        subset = df[df["problem_name"] == problem]
         # Plot with Seaborn
-        sns.boxplot(x='method_name', y='fitness', data=subset, ax=axes[i])
+        sns.boxplot(x="method_name", y="fitness", data=subset, ax=axes[i])
         axes[i].set_title(problem)
         axes[i].set_xlabel(x_label)
         if i == 0:
@@ -291,12 +336,20 @@ def plot_boxplot_fitness(logger: ExperimentLogger, y_label="Fitness", x_label="M
         else:
             axes[i].set_ylabel("")
         # Rotate x-axis labels a bit if needed
-        axes[i].tick_params(axis='x', rotation=45)
-    
+        axes[i].tick_params(axis="x", rotation=45)
+
     plt.tight_layout()
     plt.show()
 
-def plot_boxplot_fitness_hue(logger: ExperimentLogger, y_label="Fitness", x_label="Problem", hue="method_name", x="problem_name", problems=None):
+
+def plot_boxplot_fitness_hue(
+    logger: ExperimentLogger,
+    y_label="Fitness",
+    x_label="Problem",
+    hue="method_name",
+    x="problem_name",
+    problems=None,
+):
     """
     Plots boxplots of fitness grouped by `hue` and method_name `x`.
     Produces one plot with grouped boxplots per `x`.
@@ -305,18 +358,20 @@ def plot_boxplot_fitness_hue(logger: ExperimentLogger, y_label="Fitness", x_labe
     """
     df = logger.get_data().copy()
     # If not already present, create a "fitness" column from the "solution" dictionary
-    if 'fitness' not in df.columns:
-        df['fitness'] = df['solution'].apply(lambda sol: sol.get('fitness', float('nan')))
+    if "fitness" not in df.columns:
+        df["fitness"] = df["solution"].apply(
+            lambda sol: sol.get("fitness", float("nan"))
+        )
 
     if problems is None:
-        problems = sorted(df['problem_name'].unique())
+        problems = sorted(df["problem_name"].unique())
     df_filtered = df[df["problem_name"].isin(problems)]
 
     # Create subplots, one per problem
     fig, axes = plt.subplots(1, 1, figsize=(2.5 * len(problems), 4))
 
     # Plot with Seaborn
-    sns.boxplot(x=x, y='fitness', hue=hue, data=df_filtered, ax=axes)
+    sns.boxplot(x=x, y="fitness", hue=hue, data=df_filtered, ax=axes)
     axes.set_xlabel(x_label)
     axes.set_ylabel(y_label)
 

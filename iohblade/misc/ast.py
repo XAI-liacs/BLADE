@@ -388,7 +388,3 @@ def process_file_paths(file_paths, visualize):
         results.append(stats)
         print_results(stats, file_path)
     # aggregate_stats(results)
-
-
-
-

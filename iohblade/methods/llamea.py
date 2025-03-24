@@ -8,7 +8,7 @@ from llamea import LLaMEA as LLAMEA_Algorithm
 
 
 class LLaMEA(Method):
-    def __init__(self, llm: LLM, budget:int, name="LLaMEA", **kwargs):
+    def __init__(self, llm: LLM, budget: int, name="LLaMEA", **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.
 

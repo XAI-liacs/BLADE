@@ -10,6 +10,7 @@ import pandas as pd
 import traceback
 from ..problem import Problem
 
+
 class BBOB_SBOX(Problem):
     """
     Problem class for evaluating optimization algorithms on the SBOX-COST or BBOB benchmark. See also https://github.com/sbox-cost/Examples
@@ -34,9 +35,9 @@ class BBOB_SBOX(Problem):
         eval_timeout=60,
         dims=[2, 5],
         budget_factor=2000,
-        specific_fid = None,
-        specific_group = None,
-        problem_type = ioh.ProblemClass.SBOX
+        specific_fid=None,
+        specific_group=None,
+        problem_type=ioh.ProblemClass.SBOX,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -55,7 +56,9 @@ class BBOB_SBOX(Problem):
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
         if test_instances is None:
-            test_instances = [(f, i) for f in range(1, 25) for i in range(5, 16)] #10 test instances
+            test_instances = [
+                (f, i) for f in range(1, 25) for i in range(5, 16)
+            ]  # 10 test instances
         super().__init__(logger, training_instances, test_instances, name, eval_timeout)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
@@ -68,7 +71,7 @@ class BBOB_SBOX(Problem):
             "Functions with low or moderate conditioning",
             "Functions with high conditioning and unimodal",
             "Multi-modal functions with adequate global structure",
-            "Multi-modal functions with weak global structure"
+            "Multi-modal functions with weak global structure",
         ]
 
         # List containing information for all 24 functions
@@ -96,15 +99,31 @@ class BBOB_SBOX(Problem):
             "f21: Gallagher's Gaussian 101-me Peaks Function",
             "f22: Gallagher's Gaussian 21-hi Peaks Function",
             "f23: Katsuura Function",
-            "f24: Lunacek bi-Rastrigin Function"
+            "f24: Lunacek bi-Rastrigin Function",
         ]
         self.problem_type = problem_type
-        self.benchmark_name = "SBOX-COST test suite of noiseless box-constrained functions." if problem_type == ioh.ProblemClass.SBOX else "BBOB test suite of noiseless functions."
-        box_constrained = "box-constrained" if problem_type == ioh.ProblemClass.SBOX else "unconstrained"
+        self.benchmark_name = (
+            "SBOX-COST test suite of noiseless box-constrained functions."
+            if problem_type == ioh.ProblemClass.SBOX
+            else "BBOB test suite of noiseless functions."
+        )
+        box_constrained = (
+            "box-constrained"
+            if problem_type == ioh.ProblemClass.SBOX
+            else "unconstrained"
+        )
         extra_prompt = f"The optimization algorithm should handle a wide range of tasks, which is evaluated on the {self.benchmark_name}"
-        if self.specific_fid is not None and self.specific_fid < 25 and self.specific_fid > 0:
+        if (
+            self.specific_fid is not None
+            and self.specific_fid < 25
+            and self.specific_fid > 0
+        ):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically function: {functions[self.specific_fid-1]}."
-        elif self.specific_group is not None and self.specific_group < 6 and self.specific_group > 0:
+        elif (
+            self.specific_group is not None
+            and self.specific_group < 6
+            and self.specific_group > 0
+        ):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically it should work well for {function_groups[self.specific_group-1]}."
 
         self.task_prompt = f"""
@@ -170,7 +189,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         # Small test run to catch code errors
         try:
             l2_temp = aoc_logger(100, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-            problem = get_problem(1, instance=1, dimension=2, problem_class=self.problem_type)
+            problem = get_problem(
+                1, instance=1, dimension=2, problem_class=self.problem_type
+            )
             problem.attach_logger(l2_temp)
             algorithm = local_env[algorithm_name](budget=100, dim=2)
             algorithm(problem)
@@ -182,9 +203,11 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         aucs = []
         for dim in self.dims:
             for instance in instances:
-                fid, iid = instance #we expact a tuple of (fid, iid)
+                fid, iid = instance  # we expact a tuple of (fid, iid)
                 budget = self.budget_factor * dim
-                f_new = get_problem(fid, instance=iid, dimension=dim, problem_class=self.problem_type)
+                f_new = get_problem(
+                    fid, instance=iid, dimension=dim, problem_class=self.problem_type
+                )
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
                 if test:
                     l1 = ioh.logger.Analyzer(
@@ -192,7 +215,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                         folder_name=algorithm_name,
                         algorithm_name=algorithm_name,
                     )
-                    combined_logger = ioh.logger.Combine([l1,l2])
+                    combined_logger = ioh.logger.Combine([l1, l2])
                     f_new.attach_logger(combined_logger)
                 else:
                     f_new.attach_logger(l2)
@@ -236,7 +259,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
-            "problem_type": "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB",
+            "problem_type": "SBOX"
+            if self.problem_type == ioh.ProblemClass.SBOX
+            else "BBOB",
             "specific_fid": self.specific_fid,
             "specific_group": self.specific_group,
         }
