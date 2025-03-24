@@ -153,7 +153,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         return self.task_prompt + self.format_prompt
 
-    def evaluate(self, solution: Solution, test=False):
+    def evaluate(self, solution: Solution, test=False, ioh_dir=""):
         """
         Evaluates a solution on the SBOX or BBOB benchmark using AOCC.
         """
@@ -186,7 +186,16 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 budget = self.budget_factor * dim
                 f_new = get_problem(fid, instance=iid, dimension=dim, problem_class=self.problem_type)
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-                f_new.attach_logger(l2)
+                if test:
+                    l1 = ioh.logger.Analyzer(
+                        root=ioh_dir,
+                        folder_name=algorithm_name,
+                        algorithm_name=algorithm_name,
+                    )
+                    combined_logger = ioh.logger.Combine([l1,l2])
+                    f_new.attach_logger(combined_logger)
+                else:
+                    f_new.attach_logger(l2)
 
                 try:
                     algorithm = local_env[algorithm_name](budget=budget, dim=dim)
@@ -196,6 +205,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
                 aucs.append(correct_aoc(f_new, l2, budget))
                 l2.reset(f_new)
+                if test:
+                    l1.reset(f_new)
                 f_new.reset()
 
         auc_mean = np.mean(aucs)

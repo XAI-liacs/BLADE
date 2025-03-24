@@ -35,8 +35,8 @@ def plot_convergence(
     problem_i = 0
     for problem in problems:
         # Ensure the data is sorted by 'id' and 'fitness'
-        data = logger.get_problem_data(problem_name=problem).drop(columns=['code'])
-        data.replace([-np.Inf], 0, inplace=True)
+        data = logger.get_problem_data(problem_name=problem).drop(columns=['code']) # for efficiency we drop code for now
+        data.replace([-np.Inf, np.Inf], 0, inplace=True)
         data.fillna(0, inplace=True)
         
         # Get unique method names

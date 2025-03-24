@@ -9,8 +9,8 @@
 <h1 align="center">IOH-BLADE: Benchmarking LLM-driven Automated Design and Evolution of Iterative Optimization Heuristics</h1>
 
 <p align="center">
-  <a href="https://pypi.org/project/blade/">
-    <img src="https://badge.fury.io/py/blade.svg" alt="PyPI version" height="18">
+  <a href="https://pypi.org/project/iohblade/">
+    <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
@@ -110,13 +110,16 @@ You can also install the package from source using Poetry (1.8.5).
 
 ## 💻 Examples
 
+
+See `run-mabbob.py`, `run-sbox.py` and `visualize_mabbob.ipynb` files for examples on experiments and visualisations.
+
 ---
 
 ## 🤖 Contributing
 
 Contributions to BLADE are welcome! Here are a few ways you can help:
 
-- **Report Bugs**: Use [GitHub Issues](https://github.com/nikivanstein/BLADE/issues) to report bugs.
+- **Report Bugs**: Use [GitHub Issues](https://github.com/XAI-Liacs/BLADE/issues) to report bugs.
 - **Feature Requests**: Suggest new features or improvements.
 - **Pull Requests**: Submit PRs for bug fixes or feature additions.
 
@@ -130,3 +133,4 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 ## ✨ Citation
 
 
+TBA

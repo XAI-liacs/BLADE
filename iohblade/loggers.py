@@ -133,7 +133,7 @@ class RunLogger:
     Logs an LLM-driven optimization run.
     """
 
-    def __init__(self, name="", root_dir=""):
+    def __init__(self, name="", root_dir="", budget=100):
         """
         Initializes an instance of the RunLogger.
         Sets up a new logging directory named with the current date and time.
@@ -141,9 +141,11 @@ class RunLogger:
         Args:
             name (str): The name of the experiment.
             root_dir (str): The directory to create the log folder in.
+            budget (int): The evaluation budget (how many algorithms can be generated and evaluated per run).
         """
         self.dirname = self.create_log_dir(name, root_dir)
         self.attempt = 0
+        self.budget = budget
 
     def create_log_dir(self, name="", root_dir=""):
         """
@@ -171,6 +173,19 @@ class RunLogger:
         os.mkdir(dirname)
         os.mkdir(os.path.join(dirname, "code"))
         return dirname
+
+    def budget_exhausted(self):
+        """
+        Get the number of lines in the log file and return True if the number of lines matches or exceeded the budget.
+        """
+        count = 0
+        if not os.path.isfile(f"{self.dirname}/log.jsonl"):
+            return False #there is no log file yet
+        with open(f"{self.dirname}/log.jsonl", "r") as f:
+            for _ in f:
+                count += 1
+        
+        return count >= self.budget
 
     def log_conversation(self, role, content, cost=0.0):
         """

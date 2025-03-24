@@ -37,6 +37,7 @@ Include the dev and docs dependencies: `poetry install --with dev, docs`
 
 Update and write additional tests in the `/tests/` folder of the repository. 
 We aim to maintenance a 80% test coverage.
+Run `poetry run pytest --cov=iohblade --cov-report=xml tests/` to execute the tests.
 
 ## Update Documentation
 ---------------------
@@ -44,7 +45,7 @@ We aim to maintenance a 80% test coverage.
 Be sure to also update any affected documentation. We use `Sphinx` and you can automatically update the API documentation by running:
 
 ```bash
-poetry run sphinx-apidoc -o docs/ llamea/
+poetry run sphinx-apidoc -o docs/ iohblade/
 ```
 
 Also update any of the static files in the `docs` folder if needed.

@@ -41,6 +41,8 @@ class Problem(ABC):
             training_instances (list, optional): List of training problem instances.
             test_instances (list, optional): List of test problem instances.
             name (str, optional): Name of the problem.
+            eval_timeout (int, optional): Number of seconds before a timeout error is raised.
+            budget (int): number of algorithms are allowed to be generated per run.
         """
         self.logger = logger
         self.training_instances = training_instances if training_instances else []
@@ -56,10 +58,15 @@ class Problem(ABC):
 
         Args:
             solution (Solution): Solution object to be evaluated.
+            logger (RunLogger, optional): The RunLogger object attached to the problem to keep track of evaluations.
 
         Returns:
             Solution: The evaluated solution with updated fitness and scores.
         """
+
+        if self.logger != None:
+            if self.logger.budget_exhausted():
+                raise Exception("Evaluation failed because budget is exhausted.")
 
         # Ensure multiprocessing is using spawn mode
         if multiprocessing.get_start_method(allow_none=True) != "spawn":
@@ -86,8 +93,11 @@ class Problem(ABC):
         except Exception as e:
             solution.set_scores(-np.Inf, feedback=f"An exception occurred: {e}.")
         finally:
-            process.terminate()
-            process.join()
+            try:
+                process.terminate()
+                process.join()
+            except Exception:
+                pass
 
         if self.logger is not None:
             self.logger.log_individual(solution)

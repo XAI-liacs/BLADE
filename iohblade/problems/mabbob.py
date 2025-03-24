@@ -140,9 +140,19 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 )
                 f_new.set_id(100)
                 f_new.set_instance(idx)
-                # add also a normal IOH logger if test = True and set the directory accordingly
+
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-                f_new.attach_logger(l2)
+                # add also a normal IOH logger if test = True and set the directory accordingly
+                if test:
+                    l1 = ioh.logger.Analyzer(
+                        root=ioh_dir,
+                        folder_name=algorithm_name,
+                        algorithm_name=algorithm_name,
+                    )
+                    combined_logger = ioh.logger.Combine([l1,l2])
+                    f_new.attach_logger(combined_logger)
+                else:
+                    f_new.attach_logger(l2)
 
                 try:
                     algorithm = local_env[algorithm_name](budget=budget, dim=dim)
@@ -153,6 +163,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
                 aucs.append(correct_aoc(f_new, l2, budget))
                 l2.reset(f_new)
+                if test:
+                    l1.reset(f_new)
                 f_new.reset()
 
         auc_mean = np.mean(aucs)
