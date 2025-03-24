@@ -5,7 +5,7 @@ It is easiest to use BLADE from the PyPI package:
 
 .. code-block:: bash
 
-   pip install blade
+   pip install iohblade
 
 .. important::
    The Python version **must** be >= 3.10.
@@ -17,7 +17,7 @@ You can also install the package from source using Poetry (1.8.5).
 
    .. code-block:: bash
 
-      git clone https://github.com/xai-liacs/BLADE.git
+      git clone https://github.com/XAI-liacs/BLADE.git
       cd BLADE
 
 2. Install the required dependencies via Poetry:

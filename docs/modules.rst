@@ -1,9 +1,9 @@
-LLaMEA API
+BLADE API
 ======
 
 .. toctree::
    :titlesonly:
-   :caption: LLaMEA Modules
+   :caption: BLADE Modules
 
    experiment
    llm
@@ -11,5 +11,7 @@ LLaMEA API
    method
    problem
    solution
+   plots
    utils
+   baselines
 

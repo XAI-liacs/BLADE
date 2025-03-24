@@ -1,7 +1,7 @@
 LLM
 ==========
 
-.. automodule:: blade.llm
+.. automodule:: iohblade.llm
    :members:
    :undoc-members:
    :show-inheritance:

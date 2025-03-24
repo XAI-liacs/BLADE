@@ -1,7 +1,7 @@
 Loggers
 ==========
 
-.. automodule:: blade.loggers
+.. automodule:: iohblade.loggers
    :members:
    :undoc-members:
    :show-inheritance:

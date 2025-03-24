@@ -1,8 +1,7 @@
-Problem
+Plotting functions
 ==========
 
-.. automodule:: iohblade.problem
+.. automodule:: iohblade.plots
    :members:
    :undoc-members:
    :show-inheritance:
-

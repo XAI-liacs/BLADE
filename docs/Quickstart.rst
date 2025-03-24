@@ -14,96 +14,30 @@ Quick Start
 
    .. code-block:: python
 
-      from llamea import LLaMEA
+      from iohblade import Experiment
+      from iohblade.experiment import Experiment
+      from iohblade.llm import Ollama_LLM
+      from iohblade.methods import LLaMEA, RandomSearch
+      from iohblade.problems import BBOB_SBOX
+      import os
 
-      # Define your evaluation function
-      def your_evaluation_function(individual, explogger=None):
-          # Implementation of your function
-          print(individual.solution, individual.name) #the code and name generated.
-          # Set fitness and feedback
-          solution.set_scores(1.0, "Great solution, with score 1.0")
-          return solution
+      llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
+      budget = 50 #short budget for testing
 
-      # Initialize LLaMEA with your API key and other parameters
-      optimizer = LLaMEA(f=your_evaluation_function, api_key="your_api_key_here")
+      RS = RandomSearch(llm, budget=budget) #Random Search baseline
+      LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False) #LLamEA with 4,12 strategy
 
-      # Run the optimizer
-      best_solution = optimizer.run()
-      print(f"Best Solution: {best_solution.solution}, Fitness: {best_solution.fitness}")
+      methods = [RS, LLaMEA_method]
+      problems = []
+      # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
+      training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
+      test_instances = [(f, i) for f in range(1,25) for i in range(5, 16)]
+      problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
+      # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
+      experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, log_dir="results/SBOX") #normal run
+      experiment() #run the experiment, all data is logged in the folder results/SBOX/
 
 Examples
 --------
 
-Below are two example scripts demonstrating LLaMEA in action for black-box
-optimization with a BBOB (24 noiseless) function suite. One script
-(`example.py`) runs basic LLaMEA, while the other (`example_HPO.py`) incorporates
-a **hyper-parameter optimization** pipeline—known as **LLaMEA-HPO**—that employs
-SMAC to tune the algorithm’s parameters in the loop.
-
-Running ``example.py``
-~~~~~~~~~~~~~~~~~~~~~~
-
-**example.py** showcases a straightforward use-case of LLaMEA. It:
-
-- Defines an evaluation function ``evaluateBBOB`` that runs generated algorithms
-  on a standard set of BBOB problems (24 functions).
-- Initializes LLaMEA with a specific model (e.g., GPT-4, GPT-3.5) and prompts the
-  LLM to generate metaheuristic code.
-- Iterates over a (1+1)-style evolutionary loop, refining the code until a certain
-  budget is reached.
-
-How to run:
-
-.. code-block:: bash
-
-   python example.py
-
-The script will:
-
-1. Query the specified LLM with a prompt describing the black-box optimization task.
-2. Dynamically execute each generated algorithm on BBOB problems.
-3. Log performance data such as AOCC (Area Over the Convergence Curve).
-4. Iteratively refine the best-so-far algorithms.
-
-Running ``example_HPO.py`` (LLaMEA-HPO)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-**example_HPO.py** extends LLaMEA with **in-the-loop hyper-parameter optimization**—
-termed **LLaMEA-HPO**. Instead of having the LLM guess or refine hyper-parameters
-directly, the code:
-
-- Allows the LLM to generate a Python class representing the metaheuristic
-  **plus** a ConfigSpace dictionary describing hyper-parameters.
-- Passes these hyper-parameters to SMAC, which then searches for good parameter
-  settings on a BBOB training set.
-- Evaluates the best hyper-parameters found by SMAC on the full BBOB suite.
-- Feeds back the final performance (and errors) to the LLM, prompting it to
-  mutate the algorithm’s structure (rather than simply numeric settings).
-
-Why LLaMEA-HPO?
-***************
-
-Offloading hyper-parameter search to SMAC significantly reduces LLM query
-overhead and encourages the LLM to focus on novel structural improvements.
-
-How to run:
-
-.. code-block:: bash
-
-   python example_HPO.py
-
-Script outline:
-
-1. Prompt & Generation: Script sets up a role/task prompt, along with hyper-parameter
-   config space templates.
-2. HPO Step: For each newly generated algorithm, SMAC tries different parameter values
-   within a budget.
-3. Evaluation: The final best configuration from SMAC is tested across BBOB instances.
-4. Refinement: The script returns the performance to LLaMEA, prompting the LLM to
-   mutate the algorithm design.
-
-.. note::
-
-   Adjust the model name (``ai_model``) or API key as needed in the script.
-   Changing ``budget`` or the HPO budget can drastically affect runtime and cost.
-   Additional arguments (e.g., logging directories) can be set if desired.
+Additional examples can be founnd in our `examples` folder on Github.

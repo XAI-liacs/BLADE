@@ -11,6 +11,7 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, minmax_scale
 import pandas as pd
+from scipy.stats import ttest_ind
 
 from .loggers import ExperimentLogger
 from .misc.ast import process_code, analyse_complexity
@@ -377,3 +378,92 @@ def plot_boxplot_fitness_hue(
 
     plt.tight_layout()
     plt.show()
+
+
+def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False):
+    """
+    Creates a LaTeX table with rows = methods, columns = problems.
+    Each cell shows mean ± std (p=...).
+    Cells are bolded if that method is significantly better than all others (p < alpha)
+    for the given problem.
+
+    Args:
+        logger (ExperimentLogger): the experiment logger to process.
+        alpha (float): Significance level for p-value cutoff.
+        smaller_is_better (bool): If True, we treat lower fitness as “better.” Otherwise, higher is “better.”
+    """
+    # Ensure there's a 'fitness' column
+    df = logger.get_data().copy()
+    if "fitness" not in df.columns:
+        df["fitness"] = df["solution"].apply(
+            lambda sol: sol.get("fitness", float("nan"))
+        )
+
+    # Group data by (problem_name, method_name)
+    # We'll store the runs for each combination so we can compute stats and pairwise tests
+    grouped = df.groupby(["problem_name", "method_name"])["fitness"]
+    stats_dict = {(p, m): grouped.get_group((p, m)).values for p, m in grouped.groups}
+
+    problems = sorted(df["problem_name"].unique())
+    methods = sorted(df["method_name"].unique())
+
+    # Prepare a 2D structure for the table: rows=methods, cols=problems
+    table_values = []
+
+    for method in methods:
+        row_entries = []
+        for problem in problems:
+            # Retrieve all runs for (problem, method)
+            arr = stats_dict.get((problem, method), np.array([]))
+            if len(arr) == 0:
+                row_entries.append("N/A")
+                continue
+
+            mean_val = np.mean(arr)
+            std_val = np.std(arr)
+
+            # Compare this method’s distribution to each other method
+            # We'll do a t-test and check p-value
+            # For "significantly better than all others" we need:
+            # 1) The comparison with each other method's distribution has p < alpha
+            # 2) The mean is "better" (depending on smaller_is_better).
+            all_better = True
+            pvals = []
+            for other_method in methods:
+                if other_method == method:
+                    continue
+                other_arr = stats_dict.get((problem, other_method), np.array([]))
+                if len(other_arr) == 0:
+                    # If there’s no data for the other method, skip
+                    continue
+
+                # Mean comparison
+                other_mean = np.mean(other_arr)
+                is_better = (
+                    (mean_val < other_mean)
+                    if smaller_is_better
+                    else (mean_val > other_mean)
+                )
+                if not is_better:
+                    all_better = False
+
+                # Significance test
+                # (We could use ttest_ind, Mann-Whitney U, etc. Here we do ttest_ind.)
+                _, pval = ttest_ind(arr, other_arr, equal_var=False)
+                pvals.append(pval)
+
+            # We'll store the *maximum* p-value among all pairwise comparisons,
+            # because for the method to be "significantly better than all others",
+            # *every* p-value must be below alpha.
+            max_p = max(pvals) if pvals else 1.0
+
+            cell_str = f"{mean_val:.2f} ± {std_val:.2f} (p={max_p:.3f})"
+            if all_better and (max_p < alpha):
+                cell_str = "\\textbf{" + cell_str + "}"
+            row_entries.append(cell_str)
+        table_values.append(row_entries)
+
+    # Create a DataFrame of the final strings so we can export to LaTeX nicely
+    table_df = pd.DataFrame(table_values, index=methods, columns=problems)
+
+    return table_df

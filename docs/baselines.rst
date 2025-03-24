@@ -1,7 +1,7 @@
-Problem
+Baselines
 ==========
 
-.. automodule:: iohblade.problem
+.. automodule:: iohblade.baselines
    :members:
    :undoc-members:
    :show-inheritance:
