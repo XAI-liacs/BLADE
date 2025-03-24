@@ -380,14 +380,13 @@ def plot_boxplot_fitness_hue(
     plt.show()
 
 
-
 def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False):
     """
     Creates a LaTeX table with rows = methods, columns = problems.
     Each cell shows mean ± std (p=...).
     Cells are bolded if that method is significantly better than all others (p < alpha)
     for the given problem.
-    
+
     Args:
         logger (ExperimentLogger): the experiment logger to process.
         alpha (float): Significance level for p-value cutoff.
@@ -395,17 +394,18 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
     """
     # Ensure there's a 'fitness' column
     df = logger.get_data().copy()
-    if 'fitness' not in df.columns:
-        df['fitness'] = df['solution'].apply(lambda sol: sol.get('fitness', float('nan')))
+    if "fitness" not in df.columns:
+        df["fitness"] = df["solution"].apply(
+            lambda sol: sol.get("fitness", float("nan"))
+        )
 
     # Group data by (problem_name, method_name)
     # We'll store the runs for each combination so we can compute stats and pairwise tests
-    grouped = df.groupby(['problem_name', 'method_name'])['fitness']
-    stats_dict = { (p, m): grouped.get_group((p, m)).values 
-                   for p, m in grouped.groups }
+    grouped = df.groupby(["problem_name", "method_name"])["fitness"]
+    stats_dict = {(p, m): grouped.get_group((p, m)).values for p, m in grouped.groups}
 
-    problems = sorted(df['problem_name'].unique())
-    methods = sorted(df['method_name'].unique())
+    problems = sorted(df["problem_name"].unique())
+    methods = sorted(df["method_name"].unique())
 
     # Prepare a 2D structure for the table: rows=methods, cols=problems
     table_values = []
@@ -421,7 +421,7 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
 
             mean_val = np.mean(arr)
             std_val = np.std(arr)
-            
+
             # Compare this method’s distribution to each other method
             # We'll do a t-test and check p-value
             # For "significantly better than all others" we need:
@@ -439,7 +439,11 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
 
                 # Mean comparison
                 other_mean = np.mean(other_arr)
-                is_better = (mean_val < other_mean) if smaller_is_better else (mean_val > other_mean)
+                is_better = (
+                    (mean_val < other_mean)
+                    if smaller_is_better
+                    else (mean_val > other_mean)
+                )
                 if not is_better:
                     all_better = False
 
@@ -448,7 +452,7 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
                 _, pval = ttest_ind(arr, other_arr, equal_var=False)
                 pvals.append(pval)
 
-            # We'll store the *maximum* p-value among all pairwise comparisons, 
+            # We'll store the *maximum* p-value among all pairwise comparisons,
             # because for the method to be "significantly better than all others",
             # *every* p-value must be below alpha.
             max_p = max(pvals) if pvals else 1.0
