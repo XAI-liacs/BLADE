@@ -1,6 +1,7 @@
 from iohblade.experiment import MA_BBOB_Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA, RandomSearch
+from iohblade.loggers import ExperimentLogger
 import numpy as np
 import os
 
@@ -39,7 +40,8 @@ for llm in [llm1]:#, llm2]:
     LLaMEA_method5 = LLaMEA(llm, budget=budget, name="LLaMEA-5", mutation_prompts=mutation_prompts5, n_parents=4, n_offspring=12, elitism=False) 
 
     methods = [LLaMEA_method1] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
-    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=2, seeds=[4,7], dims=[5], budget_factor=2000, budget=100, eval_timeout=60, show_stdout=True) #normal run
+    logger = ExperimentLogger("results/MA-BBOB")
+    experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=2, seeds=[4,7], dims=[5], budget_factor=2000, budget=100, eval_timeout=60, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment
 
 
