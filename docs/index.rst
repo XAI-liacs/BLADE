@@ -17,9 +17,10 @@ BLADE
 .. image:: https://img.shields.io/badge/Python-3.10+-blue.svg
    :alt: Python 3.10+
    :height: 18
-.. image:: https://codecov.io/gh/XAI-Liacs/blade/graph/badge.svg?token=VKCNPWVBNM
-   :target: https://codecov.io/gh/XAI-Liacs/BLADE
+.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7 
+   :target: https://codecov.io/gh/XAI-liacs/BLADE
    :alt: Codecov
+   :height: 18
 
 
 .. image:: blade-framework.png

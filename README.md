@@ -14,7 +14,9 @@
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
-  <img stc="https://codecov.io/gh/XAI-Liacs/blade/graph/badge.svg?token=VKCNPWVBNM" alt="CodeCov" height="18">
+  <a href="https://codecov.io/gh/XAI-liacs/BLADE" > 
+    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/> 
+  </a>
 </p>
 
 ## Table of Contents
