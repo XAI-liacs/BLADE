@@ -21,11 +21,9 @@ def mock_wandb():
     Fixture to patch 'wandb.init', 'wandb.log', and 'wandb.finish'
     for the duration of each test.
     """
-    with patch("wandb.init") as mock_init, \
-         patch("wandb.log") as mock_log, \
-         patch("wandb.config") as mock_config, \
-         patch("wandb.finish") as mock_finish:
-        
+    with patch("wandb.init") as mock_init, patch("wandb.log") as mock_log, patch(
+        "wandb.config"
+    ) as mock_config, patch("wandb.finish") as mock_finish:
         # Create a mock "run" object that has a config property
         mock_run = MagicMock()
         mock_run.config = MagicMock()
@@ -62,7 +60,9 @@ def mock_experiment_logger(tmp_path):
     by the parent constructor for file-based logs.
     """
     name = str(tmp_path / "test_experiment")
-    logger = WAndBExperimentLogger(name=name, entity="dummy_entity", project="dummy_project", read=False)
+    logger = WAndBExperimentLogger(
+        name=name, entity="dummy_entity", project="dummy_project", read=False
+    )
     return logger
 
 
@@ -71,7 +71,9 @@ def test_experiment_logger_init_file_dir(mock_experiment_logger):
     Verify that the parent constructor created a logging directory
     (file-based) and that wandb was not automatically started.
     """
-    assert os.path.exists(mock_experiment_logger.dirname), "Directory should be created by super().__init__"
+    assert os.path.exists(
+        mock_experiment_logger.dirname
+    ), "Directory should be created by super().__init__"
     # W&B run should not be active until open_run() is called
     assert not mock_experiment_logger._wandb_run_active
 
@@ -80,19 +82,24 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_wandb):
     """
     Ensure open_run() calls wandb.init and sets _wandb_run_active to True.
     """
+
     class DummyMethod(Method):
         def __call__(self, problem):
             pass
+
         def to_dict(self):
             return {"type": "DummyMethod"}
 
     class DummyProblem(Problem):
         def get_prompt(self):
             return "prompt"
+
         def evaluate(self, s):
             return s
+
         def test(self, s):
             return s
+
         def to_dict(self):
             return {"type": "DummyProblem"}
 
@@ -111,26 +118,32 @@ def test_experiment_logger_add_run_file_and_wandb(mock_experiment_logger, mock_w
       3. Finish the run.
       4. Also call super().add_run() for file-based logs.
     """
+
     # Create sample method/problem/llm/solution
     class DummyMethod(Method):
         def __call__(self, problem):
             pass
+
         def to_dict(self):
             return {"type": "DummyMethod"}
 
     class DummyProblem(Problem):
         def get_prompt(self):
             return "prompt"
+
         def evaluate(self, s):
             return s
+
         def test(self, s):
             return s
+
         def to_dict(self):
             return {"type": "DummyProblem"}
-    
+
     class DummyLLM(LLM):
         def query(self, s):
             return "dummy response"
+
         def to_dict(self):
             return {"model": "dummy_LLM"}
 
@@ -146,12 +159,7 @@ def test_experiment_logger_add_run_file_and_wandb(mock_experiment_logger, mock_w
 
     # Call add_run
     mock_experiment_logger.add_run(
-        method=dm,
-        problem=dp,
-        llm=dl,
-        solution=sol,
-        log_dir="some_log_dir",
-        seed=123
+        method=dm, problem=dp, llm=dl, solution=sol, log_dir="some_log_dir", seed=123
     )
 
     # wandb.init should have been called automatically (since no run was active)
@@ -180,7 +188,7 @@ def test_experiment_logger_add_run_file_and_wandb(mock_experiment_logger, mock_w
 
 def test_run_logger_init_file_dirs(mock_run_logger):
     """
-    Confirm that the run logger (inheriting from WAndBRunLogger) 
+    Confirm that the run logger (inheriting from WAndBRunLogger)
     created directories for local logs.
     """
     assert os.path.exists(mock_run_logger.dirname)
@@ -189,7 +197,7 @@ def test_run_logger_init_file_dirs(mock_run_logger):
 
 def test_run_logger_log_individual(mock_run_logger, mock_wandb):
     """
-    log_individual() should call super() (writing to log.jsonl) 
+    log_individual() should call super() (writing to log.jsonl)
     and also log to wandb.
     """
     sol = Solution(name="test_sol")
@@ -250,8 +258,6 @@ def test_run_logger_log_code(mock_run_logger, mock_wandb):
     # Check local file
     code_dir = os.path.join(mock_run_logger.dirname, "code")
     matching_files = [
-        f for f in os.listdir(code_dir) 
-        if f.endswith(".py") and sol.name in f
+        f for f in os.listdir(code_dir) if f.endswith(".py") and sol.name in f
     ]
     assert len(matching_files) == 1, "A .py file should be created for the code"
-

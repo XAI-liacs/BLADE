@@ -22,7 +22,7 @@ class Experiment(ABC):
         budget=100,
         seeds=None,
         show_stdout=False,
-        exp_logger = None,
+        exp_logger=None,
     ):
         """
         Initializes an experiment with multiple methods and problems.

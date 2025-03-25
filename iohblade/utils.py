@@ -4,8 +4,10 @@ from ioh import LogInfo, logger
 import json
 import difflib
 
+
 class TimeoutException(Exception):
     """Custom exception for handling timeouts."""
+
     pass
 
 

@@ -2,8 +2,8 @@ from .solution import Solution
 from .method import Method
 from .problem import Problem
 from .llm import (
-    Ollama_LLM, 
-    OpenAI_LLM, 
+    Ollama_LLM,
+    OpenAI_LLM,
     Gemini_LLM,
     LLM,
 )

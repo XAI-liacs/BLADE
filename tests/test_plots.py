@@ -5,6 +5,7 @@ import pandas as pd
 
 # Use a non-interactive backend for CI
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -31,32 +32,41 @@ class MockExperimentLogger:
 
     def __init__(self):
         # Some dummy data with the columns your plot functions expect
-        self.mock_data = pd.DataFrame({
-            "method_name": ["m1", "m1", "m2", "m2"],
-            "problem_name": ["p1", "p1", "p1", "p1"],
-            "seed": [0, 0, 1, 1],
-            "_id": [0, 1, 2, 3],
-            "id": ["0", "1", "2", "3"],
-            "fitness": [0.0, 1.5, 0.5, 2.0],
-            "code": ["print('hello')", "def f(): pass", "def g(): pass", """
+        self.mock_data = pd.DataFrame(
+            {
+                "method_name": ["m1", "m1", "m2", "m2"],
+                "problem_name": ["p1", "p1", "p1", "p1"],
+                "seed": [0, 0, 1, 1],
+                "_id": [0, 1, 2, 3],
+                "id": ["0", "1", "2", "3"],
+                "fitness": [0.0, 1.5, 0.5, 2.0],
+                "code": [
+                    "print('hello')",
+                    "def f(): pass",
+                    "def g(): pass",
+                    """
 def run(budget=100, dim=5):
     for i in range(budget):
         print(i)
     return i+1
-"""],
-            "parent_ids": ["[]", "[\"0\"]", "[\"1\",\"0\"]", "[\"2\"]"],
-        })
+""",
+                ],
+                "parent_ids": ["[]", '["0"]', '["1","0"]', '["2"]'],
+            }
+        )
         # Additional problems, if you want to test multi-problem plotting
-        self.mock_data2 = pd.DataFrame({
-            "method_name": ["m1", "m2", "m1", "m2"],
-            "problem_name": ["p2", "p2", "p2", "p2"],
-            "seed": [0, 0, 1, 1],
-            "_id": [0, 1, 2, 3],
-            "id": ["0", "1", "2", "3"],
-            "fitness": [1.0, 2.0, 3.0, 4.0],
-            "code": ["code e", "code f", "code g", "code h"],
-            "parent_ids": ["[]", "[]", "[]", "[]"],
-        })
+        self.mock_data2 = pd.DataFrame(
+            {
+                "method_name": ["m1", "m2", "m1", "m2"],
+                "problem_name": ["p2", "p2", "p2", "p2"],
+                "seed": [0, 0, 1, 1],
+                "_id": [0, 1, 2, 3],
+                "id": ["0", "1", "2", "3"],
+                "fitness": [1.0, 2.0, 3.0, 4.0],
+                "code": ["code e", "code f", "code g", "code h"],
+                "parent_ids": ["[]", "[]", "[]", "[]"],
+            }
+        )
 
     @property
     def dirname(self):
@@ -65,8 +75,10 @@ def run(budget=100, dim=5):
     def get_methods_problems(self):
         """Return the unique methods and problems in the log."""
         methods = self.mock_data["method_name"].unique().tolist()
-        problems = list(set(self.mock_data["problem_name"].unique()) |
-                        set(self.mock_data2["problem_name"].unique()))
+        problems = list(
+            set(self.mock_data["problem_name"].unique())
+            | set(self.mock_data2["problem_name"].unique())
+        )
         return (methods, sorted(problems))
 
     def get_problem_data(self, problem_name):
@@ -101,7 +113,13 @@ def test_plot_convergence(mock_logger):
 
 def test_plot_experiment_CEG(mock_logger):
     # Ensure the function runs. It creates multiple subplots for multiple problems.
-    plot_experiment_CEG(logger=mock_logger, metric="total_token_count", budget=3, save=False, max_seeds=2)
+    plot_experiment_CEG(
+        logger=mock_logger,
+        metric="total_token_count",
+        budget=3,
+        save=False,
+        max_seeds=2,
+    )
     fig = plt.gcf()
     assert isinstance(fig, plt.Figure)
     plt.close(fig)
@@ -109,28 +127,34 @@ def test_plot_experiment_CEG(mock_logger):
 
 def test_plot_code_evolution_graphs_single_feature():
     # Minimal run_data
-    df = pd.DataFrame({
-        "id": [0, 1, 2],
-        "parent_ids": ["[]", "[0]", "[1]"],
-        "fitness": [1.0, 2.0, 3.0],
-        "code": ["""
+    df = pd.DataFrame(
+        {
+            "id": [0, 1, 2],
+            "parent_ids": ["[]", "[0]", "[1]"],
+            "fitness": [1.0, 2.0, 3.0],
+            "code": [
+                """
 def runa(budget=2, dim=5):
     for i in range(budget):
         print(i)
         print(i+1)
     return i+3
-""", """
+""",
+                """
 def runb(budget=100, dim=5):
     for i in range(budget):
         print(i)
     return i+1
-""", """
+""",
+                """
 def runc(budget=100, dim=5):
     for j in range(dim):
         print(j)
     return j
-"""]
-    })
+""",
+            ],
+        }
+    )
     # We pass a single feature
     fig, ax = plt.subplots()
     plot_code_evolution_graphs(
@@ -138,7 +162,7 @@ def runc(budget=100, dim=5):
         expfolder=None,
         plot_features=["total_token_count"],  # single feature
         save=False,
-        ax=ax
+        ax=ax,
     )
     # If the function runs, we have a figure
     assert isinstance(plt.gcf(), plt.Figure)
@@ -147,34 +171,40 @@ def runc(budget=100, dim=5):
 
 def test_plot_code_evolution_graphs_multiple_features():
     # If we pass multiple features, we must not pass an external ax
-    df = pd.DataFrame({
-        "id": ["0", "1", "2"],
-        "parent_ids": ["[]", "[\"0\"]", "[\"1\"]"],
-        "fitness": [1.0, 2.0, 3.0],
-        "code": ["print('hello')", "def f(): pass", "def g(): print('C')"]
-    })
+    df = pd.DataFrame(
+        {
+            "id": ["0", "1", "2"],
+            "parent_ids": ["[]", '["0"]', '["1"]'],
+            "fitness": [1.0, 2.0, 3.0],
+            "code": ["print('hello')", "def f(): pass", "def g(): print('C')"],
+        }
+    )
     plot_code_evolution_graphs(
         run_data=df,
         expfolder=None,
         plot_features=["pca", "tsne"],  # multiple features
         save=False,
-        ax=None
+        ax=None,
     )
     assert isinstance(plt.gcf(), plt.Figure)
-    plt.close('all')
+    plt.close("all")
 
 
 def test_plot_boxplot_fitness(mock_logger):
     # The code references the "fitness" column, so we just run it:
-    plot_boxplot_fitness(logger=mock_logger, y_label="Fitness", x_label="Method", problems=["p1", "p2"])
+    plot_boxplot_fitness(
+        logger=mock_logger, y_label="Fitness", x_label="Method", problems=["p1", "p2"]
+    )
     assert isinstance(plt.gcf(), plt.Figure)
-    plt.close('all')
+    plt.close("all")
 
 
 def test_plot_boxplot_fitness_hue(mock_logger):
-    plot_boxplot_fitness_hue(logger=mock_logger, x_label="Problem", hue="method_name", x="problem_name")
+    plot_boxplot_fitness_hue(
+        logger=mock_logger, x_label="Problem", hue="method_name", x="problem_name"
+    )
     assert isinstance(plt.gcf(), plt.Figure)
-    plt.close('all')
+    plt.close("all")
 
 
 def test_fitness_table(mock_logger):

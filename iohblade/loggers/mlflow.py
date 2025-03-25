@@ -29,7 +29,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
         Args:
             name (str): The name of the experiment (used as the MLflow experiment name).
             read (bool): If True, read the existing log directory for file-based logs only.
-            mlflow_tracking_uri (str): The MLflow Tracking URI (e.g. 'file:/tmp/mlruns', 
+            mlflow_tracking_uri (str): The MLflow Tracking URI (e.g. 'file:/tmp/mlruns',
                                        or your remote server).
         """
         super().__init__(name=name, read=read)
@@ -49,7 +49,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
 
     def open_run(self, method, problem, budget=100, seed=0):
         """
-        Opens (starts) a new MLflow run for logging. 
+        Opens (starts) a new MLflow run for logging.
         Typically call this right before your run, so that the RunLogger can log step data.
         """
         if self._mlflow_run_active:
@@ -57,10 +57,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
             return
         run_name = f"{method.name}-{problem.name}-{seed}"
 
-        run = mlflow.start_run(
-            experiment_id=self.experiment_id,
-            run_name=run_name
-        )
+        run = mlflow.start_run(experiment_id=self.experiment_id, run_name=run_name)
         self._mlflow_run_active = True
         self._current_run_id = run.info.run_id
 
@@ -82,20 +79,17 @@ class MLFlowExperimentLogger(ExperimentLogger):
         seed=None,
     ):
         """
-        Normally called at the end of a run. 
+        Normally called at the end of a run.
         1) Logs final run metadata to MLflow
         2) Ends the MLflow run
         3) Calls super().add_run(...) so we keep the file-based logs
         """
         # --- MLflow logging ---
         if not self._mlflow_run_active:
-            # If there's no open run, you could open one automatically 
+            # If there's no open run, you could open one automatically
             # or simply warn. We'll open one just in case:
             run_name = f"{method.name}_{problem.name}_seed{seed}"
-            run = mlflow.start_run(
-                experiment_id=self.experiment_id,
-                run_name=run_name
-            )
+            run = mlflow.start_run(experiment_id=self.experiment_id, run_name=run_name)
             self._mlflow_run_active = True
             self._current_run_id = run.info.run_id
 
@@ -107,7 +101,9 @@ class MLFlowExperimentLogger(ExperimentLogger):
             mlflow.log_param("seed", seed)
 
         # Log final fitness as a metric
-        final_fitness = solution.fitness if solution.fitness is not None else float("nan")
+        final_fitness = (
+            solution.fitness if solution.fitness is not None else float("nan")
+        )
         mlflow.log_metric("final_fitness", final_fitness)
 
         # Log a serialized object as an artifact
@@ -124,7 +120,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
         }
         mlflow.log_text(
             json.dumps(convert_to_serializable(run_object), indent=2),
-            artifact_file="final_run_object.json"
+            artifact_file="final_run_object.json",
         )
 
         # End the MLflow run
@@ -142,14 +138,14 @@ class MLFlowExperimentLogger(ExperimentLogger):
             seed=seed,
         )
 
-    # Optionally override get_data and get_problem_data to *also* 
-    # combine data from MLflow runs. Right now, we leave them alone 
+    # Optionally override get_data and get_problem_data to *also*
+    # combine data from MLflow runs. Right now, we leave them alone
     # so they read from your local experimentlog.jsonl as before.
 
 
 class MLFlowRunLogger(RunLogger):
     """
-    A RunLogger subclass that logs data to MLflow *and* to file, 
+    A RunLogger subclass that logs data to MLflow *and* to file,
     relying on the fact that the MLFlowExperimentLogger has opened a run.
     """
 
@@ -170,12 +166,11 @@ class MLFlowRunLogger(RunLogger):
         }
         # Example: We can log each conversation snippet as a text artifact
         mlflow.log_text(
-            json.dumps(conversation),
-            artifact_file=f"conversation_{self.attempt}.json"
+            json.dumps(conversation), artifact_file=f"conversation_{self.attempt}.json"
         )
         self.attempt += 1
 
-        # Also do the usual file-based logs or any other logic you have in the parent 
+        # Also do the usual file-based logs or any other logic you have in the parent
         # (You may have to define such a method if you want to keep conversation logs in a file.)
         super().log_conversation(role, content, cost)
 
@@ -192,7 +187,7 @@ class MLFlowRunLogger(RunLogger):
         # Store the entire solution as a JSON artifact
         mlflow.log_text(
             json.dumps(convert_to_serializable(ind_dict)),
-            artifact_file=f"solution_{individual.id}.json"
+            artifact_file=f"solution_{individual.id}.json",
         )
 
         # Keep file-based logging
@@ -219,7 +214,7 @@ class MLFlowRunLogger(RunLogger):
 
     def budget_exhausted(self):
         """
-        Optionally still rely on the file-based approach for counting lines in log.jsonl 
+        Optionally still rely on the file-based approach for counting lines in log.jsonl
         or store a separate counter. For now, we call super() to preserve the old logic.
         """
         return super().budget_exhausted()

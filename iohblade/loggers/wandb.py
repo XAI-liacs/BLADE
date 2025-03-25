@@ -18,7 +18,7 @@ class WAndBExperimentLogger(ExperimentLogger):
     The flow is:
       1. Call open_run() to start a W&B run (wandb.init()).
       2. Perform your optimization (the RunLogger logs intermediate data).
-      3. Call add_run() to log final info and finish the W&B run, 
+      3. Call add_run() to log final info and finish the W&B run,
          plus the original file-based logging.
     """
 
@@ -38,7 +38,7 @@ class WAndBExperimentLogger(ExperimentLogger):
 
     def open_run(self, method, problem, budget=100, seed=0):
         """
-        Opens (starts) a new MLflow run for logging. 
+        Opens (starts) a new MLflow run for logging.
         Typically call this right before your run, so that the RunLogger can log step data.
         """
         if self._wandb_run_active:
@@ -90,7 +90,9 @@ class WAndBExperimentLogger(ExperimentLogger):
             wandb.config.update({"seed": seed}, allow_val_change=True)
 
         # Log final fitness as a metric
-        final_fitness = solution.fitness if solution.fitness is not None else float("nan")
+        final_fitness = (
+            solution.fitness if solution.fitness is not None else float("nan")
+        )
         wandb.log({"final_fitness": final_fitness})
 
         # Log a serialized run object
@@ -125,7 +127,7 @@ class WAndBExperimentLogger(ExperimentLogger):
 
 class WAndBRunLogger(RunLogger):
     """
-    A RunLogger subclass that logs intermediate data to Weights & Biases while 
+    A RunLogger subclass that logs intermediate data to Weights & Biases while
     preserving the original file-based logs.
     """
 
@@ -147,13 +149,13 @@ class WAndBRunLogger(RunLogger):
         }
         # wandb.log can be repeated, but if content is large, consider an artifact
         wandb.log({"conversation": conversation})
-        
+
         # Also do file-based logging
         super().log_conversation(role, content, cost)
 
     def log_individual(self, individual: Solution):
         """
-        Log an individual solution's data/fitness to W&B. 
+        Log an individual solution's data/fitness to W&B.
         Then call super() for file-based logging.
         """
         ind_dict = individual.to_dict()

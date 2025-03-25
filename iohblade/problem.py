@@ -23,7 +23,6 @@ def evaluate_in_subprocess(problem, conn, solution):
         conn.close()  # Ensure pipe is closed after sending data
 
 
-
 class Problem(ABC):
     """
     Abstract problem class.

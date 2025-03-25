@@ -14,21 +14,28 @@ from iohblade import Problem
 from iohblade import LLM
 from iohblade import Solution
 
+
 @pytest.fixture
 def mock_mlflow():
     """
     Fixture that patches common mlflow calls for the duration of a test.
     Yields a dict of the mocks for easy inspection.
     """
-    with patch("mlflow.set_tracking_uri") as mock_set_uri,\
-         patch("mlflow.create_experiment") as mock_create_experiment,\
-         patch("mlflow.get_experiment_by_name") as mock_get_experiment_by_name,\
-         patch("mlflow.start_run") as mock_start_run,\
-         patch("mlflow.end_run") as mock_end_run,\
-         patch("mlflow.log_param") as mock_log_param,\
-         patch("mlflow.log_metric") as mock_log_metric,\
-         patch("mlflow.log_text") as mock_log_text:
-
+    with patch("mlflow.set_tracking_uri") as mock_set_uri, patch(
+        "mlflow.create_experiment"
+    ) as mock_create_experiment, patch(
+        "mlflow.get_experiment_by_name"
+    ) as mock_get_experiment_by_name, patch(
+        "mlflow.start_run"
+    ) as mock_start_run, patch(
+        "mlflow.end_run"
+    ) as mock_end_run, patch(
+        "mlflow.log_param"
+    ) as mock_log_param, patch(
+        "mlflow.log_metric"
+    ) as mock_log_metric, patch(
+        "mlflow.log_text"
+    ) as mock_log_text:
         # Provide default behaviors for the experiment calls
         mock_create_experiment.return_value = "12345"  # some fake experiment_id
         fake_experiment = MagicMock()
@@ -50,12 +57,14 @@ def mock_mlflow():
 @pytest.fixture
 def mock_experiment_logger(tmp_path, mock_mlflow):
     """
-    Create a MLFlowExperimentLogger object, pointing to a temp path 
+    Create a MLFlowExperimentLogger object, pointing to a temp path
     (for file-based logs). The MLflow calls are mocked.
     """
     # We'll pass a made-up tracking URI
     name = str(tmp_path / "my_experiment")
-    logger = MLFlowExperimentLogger(name=name, read=False, mlflow_tracking_uri="file:/fake_tracking")
+    logger = MLFlowExperimentLogger(
+        name=name, read=False, mlflow_tracking_uri="file:/fake_tracking"
+    )
     return logger
 
 
@@ -70,7 +79,7 @@ def mock_run_logger(tmp_path):
 
 def test_experiment_logger_init(mock_experiment_logger, mock_mlflow):
     """
-    On init, it should call mlflow.set_tracking_uri(...) 
+    On init, it should call mlflow.set_tracking_uri(...)
     and either create or get an experiment.
     """
     # mlflow.set_tracking_uri should have been called
@@ -87,22 +96,27 @@ def test_experiment_logger_init(mock_experiment_logger, mock_mlflow):
 
 def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
     """
-    open_run() should start an mlflow run. 
+    open_run() should start an mlflow run.
     """
     assert not mock_experiment_logger._mlflow_run_active
+
     class DummyMethod(Method):
         def __call__(self, problem):
             pass
+
         def to_dict(self):
             return {"type": "DummyMethod"}
 
     class DummyProblem(Problem):
         def get_prompt(self):
             return "prompt"
+
         def evaluate(self, s):
             return s
+
         def test(self, s):
             return s
+
         def to_dict(self):
             return {"type": "DummyProblem"}
 
@@ -117,30 +131,36 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
 
 def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
     """
-    add_run() is normally called at the end of a run. 
-    If no run is active, it opens one automatically. 
+    add_run() is normally called at the end of a run.
+    If no run is active, it opens one automatically.
     Then it logs params, metric, an artifact, ends the run,
     and calls super().add_run(...) for file-based logging.
     """
+
     class DummyMethod(Method):
         def __call__(self, problem):
             pass
+
         def to_dict(self):
             return {"type": "DummyMethod"}
 
     class DummyProblem(Problem):
         def get_prompt(self):
             return "prompt"
+
         def evaluate(self, s):
             return s
+
         def test(self, s):
             return s
+
         def to_dict(self):
             return {"type": "DummyProblem"}
 
     class DummyLLM(LLM):
         def query(self, s):
             return "dummy response"
+
         def to_dict(self):
             return {"model": "dummy_LLM"}
 
@@ -160,7 +180,7 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
         llm=llm,
         solution=solution,
         log_dir="fake_log_dir",
-        seed=42
+        seed=42,
     )
 
     # mlflow.start_run should be called because no run was active
@@ -181,7 +201,9 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
     # Check file-based logs
     exp_log_path = os.path.join(mock_experiment_logger.dirname, "experimentlog.jsonl")
-    assert os.path.isfile(exp_log_path), "super().add_run should write to experimentlog.jsonl"
+    assert os.path.isfile(
+        exp_log_path
+    ), "super().add_run should write to experimentlog.jsonl"
     with open(exp_log_path, "r") as f:
         content = f.read()
     assert "myMethod" in content
@@ -198,7 +220,7 @@ def test_run_logger_init_file_structure(mock_run_logger):
 
 def test_run_logger_log_conversation(mock_run_logger, mock_mlflow):
     """
-    log_conversation() in MLFlowRunLogger should log an artifact or some text to mlflow 
+    log_conversation() in MLFlowRunLogger should log an artifact or some text to mlflow
     plus call the parent's file-based logs.
     """
     with patch("mlflow.log_text") as mock_log_text:
@@ -223,14 +245,14 @@ def test_run_logger_log_conversation(mock_run_logger, mock_mlflow):
 
 def test_run_logger_log_individual(mock_run_logger, mock_mlflow):
     """
-    log_individual() should log fitness and solution as text to mlflow 
+    log_individual() should log fitness and solution as text to mlflow
     plus add to local log.jsonl.
     """
     sol = Solution(name="test_solution")
     sol.set_scores(3.14)
-    with patch("mlflow.log_metric") as mock_log_metric, \
-        patch("mlflow.log_text") as mock_log_text:
-
+    with patch("mlflow.log_metric") as mock_log_metric, patch(
+        "mlflow.log_text"
+    ) as mock_log_text:
         mock_run_logger.log_individual(sol)
 
         mock_log_metric.assert_called_once_with("fitness", 3.14)
@@ -266,4 +288,3 @@ def test_run_logger_log_code(mock_run_logger, mock_mlflow):
     code_files = os.listdir(code_dir)
     matched = [f for f in code_files if "code_sol" in f and f.endswith(".py")]
     assert len(matched) == 1, "We should have a .py file containing code_sol"
-

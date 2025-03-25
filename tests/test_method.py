@@ -14,6 +14,7 @@ def test_random_search_calls_llm():
     class DummyProblem:
         def get_prompt(self):
             return "some prompt"
+
         def __call__(self, sol):
             # Evaluate solution with random fitness
             sol.set_scores(42.0)

@@ -50,7 +50,7 @@ class ExperimentLogger:
 
     def open_run(self, method, problem, budget=100, seed=0):
         """
-        Opens (starts) a new run for logging. 
+        Opens (starts) a new run for logging.
         Typically call this right before your run, so that the RunLogger can log step data.
         """
         run_name = f"{method.name}-{problem.name}-{seed}"

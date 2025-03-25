@@ -141,7 +141,7 @@ def plot_experiment_CEG(
                 run_data = data[
                     (data["method_name"] == method) & (data["seed"] == seed)
                 ].copy()
-                if (len(run_data) == 0):
+                if len(run_data) == 0:
                     continue
                 plot_code_evolution_graphs(
                     run_data,
@@ -240,9 +240,9 @@ def plot_code_evolution_graphs(
         tsne = TSNE(n_components=1, random_state=42)
         tsne_projection = tsne.fit_transform(features_scaled)
     except Exception:
-        #TNSE did not work, probably too small data, just use pca
+        # TNSE did not work, probably too small data, just use pca
         tsne_projection = pca_projection
-    
+
     data["tsne"] = tsne_projection[:, 0]
 
     # Convert parent IDs from string to list
