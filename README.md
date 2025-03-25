@@ -85,7 +85,7 @@ An important part of BLADE is the final evaluation of generated algorithms again
 In the `iohblade.baselines` part of the package, several well known SOTA black-box optimizers are imolemented to compare against.
 Including but not limited to CMA-ES and DE variants.
 
-For the final validation **BLADE** uses **IOHprofiler**, providing detailed tracking and visualization of performance metrics.
+For the final validation **BLADE** uses [**IOHprofiler**](https://iohprofiler.github.io/), providing detailed tracking and visualization of performance metrics.
 
 
 ## 🎁 Installation
