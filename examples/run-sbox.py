@@ -1,7 +1,8 @@
-from blade.experiment import Experiment
-from blade.llm import Gemini_LLM, Ollama_LLM
-from blade.methods import LLaMEA, RandomSearch
-from blade.problems import BBOB_SBOX
+from iohblade.experiment import Experiment
+from iohblade import Gemini_LLM, Ollama_LLM
+from iohblade.methods import LLaMEA, RandomSearch
+from iohblade.problems import BBOB_SBOX
+from iohblade.loggers import ExperimentLogger
 import os
 
 api_key = os.getenv("GEMINI_API_KEY")
@@ -45,5 +46,6 @@ for llm in [llm1, llm2, llm3, llm4, llm5]: #llm1 , llm3, llm4
         test_instances = [(f, i) for f in group_functions[group] for i in range(5, 16)]
         problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST_group{group}", specific_group=group))
 
-    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, log_dir="results/SBOX") #normal run
+    logger = ExperimentLogger("results/SBOX")
+    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment
