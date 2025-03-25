@@ -76,6 +76,7 @@ class Solution:
         self.fitness = fitness
         self.feedback = feedback
         self.error = error
+        return self
 
     def get_summary(self):
         """

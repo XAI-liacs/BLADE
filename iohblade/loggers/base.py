@@ -3,11 +3,11 @@ from datetime import datetime
 
 import jsonlines
 import numpy as np
-from .utils import convert_to_serializable
-from .method import Method
-from .problem import Problem
-from .llm import LLM
-from .solution import Solution
+from ..utils import convert_to_serializable
+from ..method import Method
+from ..problem import Problem
+from ..llm import LLM
+from ..solution import Solution
 from ConfigSpace.read_and_write import json as cs_json
 import pandas as pd
 
@@ -47,6 +47,21 @@ class ExperimentLogger:
 
         os.mkdir(dirname)
         return dirname
+
+    def open_run(self, method, problem, budget=100, seed=0):
+        """
+        Opens (starts) a new run for logging. 
+        Typically call this right before your run, so that the RunLogger can log step data.
+        """
+        run_name = f"{method.name}-{problem.name}-{seed}"
+
+        self.run_logger = RunLogger(
+            name=run_name,
+            root_dir=self.dirname,
+            budget=self.budget,
+        )
+        problem.set_logger(self.run_logger)
+        return self.run_logger
 
     def add_run(
         self,
@@ -256,8 +271,8 @@ class RunLogger:
         with open(
             f"{self.dirname}/configspace/{individual.id}-{individual.name}.py", "w"
         ) as file:
-            if individual.config_space != None:
-                file.write(cs_json.write(individual.config_space))
+            if individual.configspace != None:
+                file.write(cs_json.write(individual.configspace))
             else:
                 file.write("Failed to extract config space")
         self.attempt = attempt

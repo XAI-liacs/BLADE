@@ -22,7 +22,7 @@ class Experiment(ABC):
         budget=100,
         seeds=None,
         show_stdout=False,
-        log_dir="results/experiment",
+        exp_logger = None,
     ):
         """
         Initializes an experiment with multiple methods and problems.
@@ -35,7 +35,7 @@ class Experiment(ABC):
             budget (int): Number of evaluations per run for each method.
             seeds (list, optional): The exact seeds to use for the runs, len(seeds) overwrites the number of runs if set.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
-            log_dir (str): The folder location to store the logs.
+            exp_logger (ExperimentLogger, optiona): The logger object, can be a standard file logger or a WandB or MLFlow logger.
         """
         self.methods = methods
         self.problems = problems
@@ -48,7 +48,9 @@ class Experiment(ABC):
             self.runs = len(seeds)
         self.llm = llm
         self.show_stdout = show_stdout
-        self.exp_logger = ExperimentLogger(log_dir)
+        if exp_logger is None:
+            exp_logger = ExperimentLogger("results/experiment")
+        self.exp_logger = exp_logger
 
     def __call__(self):
         """
@@ -59,13 +61,9 @@ class Experiment(ABC):
                 for i in tqdm(self.seeds, leave=False, desc="Runs"):
                     np.random.seed(i)
 
-                    logger = RunLogger(
-                        name=f"{method.name}-{problem.name}-{i}",
-                        root_dir=self.exp_logger.dirname,
-                        budget=self.budget,
-                    )
-                    problem.set_logger(logger)
+                    logger = self.exp_logger.open_run(method, problem, self.budget, i)
                     self.llm.set_logger(logger)
+
                     if self.show_stdout:
                         solution = method(problem)
                     else:
@@ -94,7 +92,7 @@ class MA_BBOB_Experiment(Experiment):
         seeds=None,
         dims=[2, 5],
         budget_factor=2000,
-        log_dir="results/MA_BBOB",
+        exp_logger=None,
         **kwargs,
     ):
         """
@@ -110,7 +108,7 @@ class MA_BBOB_Experiment(Experiment):
             dims (list): List of problem dimensions.
             budget_factor (int): Budget factor for the problems.
             **kwargs: Additional keyword arguments for the MA_BBOB problem.
-            log_dir (str): The folder location to store the logs.
+            exp_logger (ExperimentLogger): The logger to store the data.
         """
         super().__init__(
             methods,
@@ -120,5 +118,5 @@ class MA_BBOB_Experiment(Experiment):
             budget=budget,
             seeds=seeds,
             show_stdout=show_stdout,
-            log_dir=log_dir,
+            exp_logger=exp_logger,
         )

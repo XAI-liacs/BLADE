@@ -1,8 +1,9 @@
 import pytest
 from unittest.mock import MagicMock
 import numpy as np
-from iohblade.problem import Problem, TimeoutException, TimeoutException, evaluate_in_subprocess
-from iohblade.solution import Solution
+from iohblade import Problem, TimeoutException
+from iohblade.problem import evaluate_in_subprocess
+from iohblade import Solution
 import time
 
 class SlowProblem(Problem):

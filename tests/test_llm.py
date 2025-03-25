@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from iohblade.llm import LLM, OpenAI_LLM, Ollama_LLM, Gemini_LLM, NoCodeException
+from iohblade import LLM, OpenAI_LLM, Ollama_LLM, Gemini_LLM, NoCodeException
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from iohblade.solution import Solution
+from iohblade import Solution
 
 def test_solution_initialization():
     s = Solution(code="print('Hello')", name="MyAlgo", description="A test algo")

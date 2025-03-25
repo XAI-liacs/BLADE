@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
-from iohblade.llm import LLM
-from iohblade.solution import Solution
-from iohblade.method import Method
+from iohblade import LLM
+from iohblade import Solution
+from iohblade import Method
 from iohblade.methods.random_search import RandomSearch
 
 

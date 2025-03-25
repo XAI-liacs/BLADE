@@ -2,7 +2,7 @@ import pytest
 import os
 import shutil
 from iohblade.loggers import ExperimentLogger, RunLogger
-from iohblade.solution import Solution
+from iohblade import Solution
 
 @pytest.fixture
 def cleanup_tmp_dir():
