@@ -2,7 +2,8 @@ import pytest
 import os
 import shutil
 from iohblade.loggers import ExperimentLogger, RunLogger
-from iohblade.solution import Solution
+from iohblade import Solution
+
 
 @pytest.fixture
 def cleanup_tmp_dir():
@@ -15,6 +16,7 @@ def cleanup_tmp_dir():
     if os.path.exists(dirname):
         shutil.rmtree(dirname)
 
+
 def test_experiment_logger_add_run(cleanup_tmp_dir):
     exp_logger = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "my_experiment"))
     from iohblade.method import Method
@@ -24,23 +26,27 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
     class DummyMethod(Method):
         def __call__(self, problem):
             pass
+
         def to_dict(self):
             return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
             return "prompt"
+
         def evaluate(self, s):
             return s
+
         def test(self, s):
             return s
+
         def to_dict(self):
             return {}
 
     class DummyLLM(LLM):
         def query(self, s):
             return "res"
-    
+
     method = DummyMethod(None, 100, name="dummy_method")
     problem = DummyProblem()
     llm = DummyLLM("", "")
@@ -55,6 +61,7 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
     assert "dummy_dir" in contents
     assert '"seed": 42' in contents
 
+
 def test_run_logger_log_individual(cleanup_tmp_dir):
     run_logger = RunLogger(name="test_run", root_dir=cleanup_tmp_dir)
     sol = Solution(name="test_solution")
@@ -66,14 +73,18 @@ def test_run_logger_log_individual(cleanup_tmp_dir):
         contents = f.read()
     assert "test_solution" in contents
 
+
 def test_run_logger_budget_exhausted(cleanup_tmp_dir):
     run_logger = RunLogger(name="test_run", root_dir=cleanup_tmp_dir, budget=1)
     sol = Solution(name="test_solution")
     run_logger.log_individual(sol)
     assert run_logger.budget_exhausted() is True
 
+
 def test_experiment_logger_get_data(cleanup_tmp_dir):
-    exp_logger = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "my_experiment_data"))
+    exp_logger = ExperimentLogger(
+        name=os.path.join(cleanup_tmp_dir, "my_experiment_data")
+    )
     # Write a dummy JSON line
     log_file = os.path.join(exp_logger.dirname, "experimentlog.jsonl")
     with open(log_file, "w") as f:

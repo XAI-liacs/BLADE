@@ -10,15 +10,18 @@ from iohblade.utils import (
 )
 import ioh
 
+
 def test_code_compare():
     code1 = "print('Hello')"
     code2 = "print('Hello')\nprint('One more line')"
     distance = code_compare(code1, code2)
     assert 0.0 <= distance <= 1.0
 
+
 def test_is_jsonable():
     assert is_jsonable({"a": 1})
     assert not is_jsonable(set([1, 2, 3]))
+
 
 def test_convert_to_serializable():
     data = {
@@ -32,6 +35,7 @@ def test_convert_to_serializable():
     assert s["b"] == 3.14
     assert s["arr"] == [1, 2, 3]
     assert s["normal"] == "string"
+
 
 def test_correct_aoc():
     class MockLogger:
@@ -53,10 +57,41 @@ def test_correct_aoc():
     # The math ends up just a small difference. We'll just assert it doesn't error out.
     assert 0 <= aoc_val <= 1
 
+
 def test_aoc_logger():
-    logger_instance = aoc_logger(budget=5, upper=1e2, triggers=[ioh.logger.trigger.ALWAYS])
-    log_info = ioh.LogInfo(evaluations=1, raw_y=0.0, raw_y_best=0.0, transformed_y=0.0, transformed_y_best=0.0, y=0.0, y_best=0.0, x=[0.0], violations=[], penalties=[], optimum=ioh.iohcpp.RealSolution([1.0],-1.0), has_improved = False)
+    logger_instance = aoc_logger(
+        budget=5, upper=1e2, triggers=[ioh.logger.trigger.ALWAYS]
+    )
+    log_info = ioh.LogInfo(
+        evaluations=1,
+        raw_y=0.0,
+        raw_y_best=0.0,
+        transformed_y=0.0,
+        transformed_y_best=0.0,
+        y=0.0,
+        y_best=0.0,
+        x=[0.0],
+        violations=[],
+        penalties=[],
+        optimum=ioh.iohcpp.RealSolution([1.0], -1.0),
+        has_improved=False,
+    )
 
     # If evaluations > budget => OverBudgetException
     with pytest.raises(OverBudgetException):
-        logger_instance(ioh.LogInfo(evaluations=6, raw_y=0.0, raw_y_best=0.0, transformed_y=0.0, transformed_y_best=0.0, y=0.0, y_best=0.0, x=[0.0], violations=[], penalties=[], optimum=ioh.iohcpp.RealSolution([1.0],-1.0), has_improved = False))
+        logger_instance(
+            ioh.LogInfo(
+                evaluations=6,
+                raw_y=0.0,
+                raw_y_best=0.0,
+                transformed_y=0.0,
+                transformed_y_best=0.0,
+                y=0.0,
+                y_best=0.0,
+                x=[0.0],
+                violations=[],
+                penalties=[],
+                optimum=ioh.iohcpp.RealSolution([1.0], -1.0),
+                has_improved=False,
+            )
+        )

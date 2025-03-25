@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
-from iohblade.solution import Solution
+from iohblade import Solution
+
 
 def test_solution_initialization():
     s = Solution(code="print('Hello')", name="MyAlgo", description="A test algo")
@@ -9,6 +10,7 @@ def test_solution_initialization():
     assert s.description == "A test algo"
     assert s.fitness == -np.inf
 
+
 def test_solution_set_scores():
     s = Solution()
     s.set_scores(42.0, feedback="OK", error="None")
@@ -16,12 +18,14 @@ def test_solution_set_scores():
     assert s.feedback == "OK"
     assert s.error == "None"
 
+
 def test_solution_copy():
     s = Solution(name="Original")
     s2 = s.copy()
     assert s2.name == s.name
     assert s2.id != s.id
     assert s2.parent_ids == [s.id]
+
 
 def test_solution_to_dict():
     s = Solution(
@@ -34,6 +38,7 @@ def test_solution_to_dict():
     assert d["name"] == "TestName"
     assert d["description"] == "TestDesc"
     assert "fitness" in d
+
 
 def test_solution_from_dict():
     data = {

@@ -4,6 +4,7 @@ import numpy as np
 import traceback
 import multiprocessing
 from joblib.externals.loky import get_reusable_executor
+from .utils import TimeoutException
 
 
 def evaluate_in_subprocess(problem, conn, solution):
@@ -20,12 +21,6 @@ def evaluate_in_subprocess(problem, conn, solution):
         conn.send(e)  # Send exception for handling in the parent
     finally:
         conn.close()  # Ensure pipe is closed after sending data
-
-
-class TimeoutException(Exception):
-    """Custom exception for handling timeouts."""
-
-    pass
 
 
 class Problem(ABC):

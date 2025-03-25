@@ -5,6 +5,12 @@ import json
 import difflib
 
 
+class TimeoutException(Exception):
+    """Custom exception for handling timeouts."""
+
+    pass
+
+
 def code_compare(code1, code2):
     # Parse the Python code into ASTs
     # Use difflib to find differences
