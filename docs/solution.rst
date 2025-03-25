@@ -1,7 +1,7 @@
 Solution
 ==========
 
-.. automodule:: blade.solution
+.. automodule:: iohblade.solution
    :members:
    :undoc-members:
    :show-inheritance:
