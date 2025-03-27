@@ -19,7 +19,8 @@
   </a>
 </p>
 
-> Important, see also the [Documentation](https://xai-liacs.github.io/BLADE/).
+> [!TIP]
+> See also the [Documentation](https://xai-liacs.github.io/BLADE/).
 
 ## Table of Contents
 - [News](#-news)
