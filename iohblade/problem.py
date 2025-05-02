@@ -34,7 +34,7 @@ class Problem(ABC):
         training_instances=None,
         test_instances=None,
         name="Problem",
-        eval_timeout=60,
+        eval_timeout=600,
     ):
         """
         Initializes a problem instance with logging and dataset references.
@@ -66,14 +66,15 @@ class Problem(ABC):
         Returns:
             Solution: The evaluated solution with updated fitness and scores.
         """
+        if logger != None:
+            print("LOGGER is NOT NONE (UNEXPECTED)")
+            self.logger = logger
 
         if self.logger != None:
             if self.logger.budget_exhausted():
                 raise Exception("Evaluation failed because budget is exhausted.")
 
-        # Ensure multiprocessing is using spawn mode
-        if multiprocessing.get_start_method(allow_none=True) != "spawn":
-            multiprocessing.set_start_method("spawn", force=True)
+        # solution = problem.evaluate(solution) #old fashioned way
 
         # Else create a new process for evaluation with timeout
         try:

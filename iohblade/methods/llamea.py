@@ -35,6 +35,7 @@ class LLaMEA(Method):
             task_prompt=problem.get_prompt(),
             log=None,  # We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
             budget=self.budget,
+            max_workers=1,
             **self.kwargs,
         )
         return self.llamea_instance.run()

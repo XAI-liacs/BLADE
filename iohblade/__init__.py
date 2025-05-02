@@ -25,3 +25,21 @@ from .utils import (
     TimeoutException,
     budget_logger,
 )
+
+import multiprocessing
+
+def ensure_spawn_start_method():
+    try:
+        if multiprocessing.get_start_method(allow_none=True) != "spawn":
+            multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        # Already set
+        if multiprocessing.get_start_method(allow_none=True) != "spawn":
+            raise RuntimeError(
+                "Multiprocessing start method is not 'spawn'. "
+                "Set it at the top of your main script:\n"
+                "import multiprocessing\n"
+                "multiprocessing.set_start_method('spawn', force=True)"
+            )
+            
+ensure_spawn_start_method()
