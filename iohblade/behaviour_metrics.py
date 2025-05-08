@@ -137,44 +137,61 @@ def average_distance_to_best_so_far(df: pd.DataFrame) -> float:
         dists.append(np.linalg.norm(X[k] - X[best_idx]))
     return float(np.mean(dists))
 
-def exploitation_percentage_via_diversity(df: pd.DataFrame, step:int = 100) -> pd.DataFrame:
-    """
-    Returns DataFrame with exploration% and exploitation% over time based
-    on pairwise diversity. Diversity is rescaled to 0-100 using max diversity
-    observed during the run.
+def closed_form_random_search_diversity(bounds: Sequence[Tuple[float, float]]) -> float:
+    bounds = np.asarray(bounds, dtype=float)
+    widths = bounds[:, 1] - bounds[:, 0]
+    d = len(bounds)
+    w = np.mean(widths)  # assume roughly cubic
+    return w * np.sqrt(d / 6)
 
-    Parameters:
-    - df: DataFrame containing the data.
-    - step: Interval at which to compute pairwise distances (default is 1, i.e., every step).
-    """
-    X_full = get_coordinates(df)
-    X = X_full[::step]
-    n = len(X)
+def estimate_random_search_diversity(
+    bounds: Sequence[Tuple[float, float]], 
+    n: int = 500, 
+    samples: int = 10_000,
+    rng: Optional[np.random.Generator] = None
+) -> float:
+    if rng is None:
+        rng = np.random.default_rng()
+    d = len(bounds)
+    bounds = np.asarray(bounds)
+    rand_points = rng.uniform(bounds[:, 0], bounds[:, 1], size=(samples, d))
+    return pdist(rand_points[:n]).mean()
 
-    # Compute the full pairwise distance matrix once
-    D = squareform(pdist(X))
+def avg_exploration_exploitation_chunked(
+    df: pd.DataFrame,
+    chunk_size: int = 500,
+    bounds: Optional[Sequence[Tuple[float, float]]] = None,
+    rng: Optional[np.random.Generator] = None
+) -> Tuple[float, float]:
+    X = get_coordinates(df)
+    n, d = X.shape
+    
+    if bounds is None:
+        bounds = [(-5.0, 5.0)] * d
 
-    # Determine the indices at which to compute diversity
-    ks = np.arange(2, n + 1)
-    if ks[-1] != n:
-        ks = np.append(ks, n)  # Ensure the final iteration is included
+    if rng is None:
+        rng = np.random.default_rng()
+        
+    # Estimate diversity baseline from random sampling
+    max_div = closed_form_random_search_diversity(bounds=bounds)
 
-    diversities = []
-    for k in ks:
-        sub_D = D[:k, :k]
-        # Extract the upper triangle (excluding the diagonal) to compute mean pairwise distance
-        triu = sub_D[np.triu_indices(k, k=1)]
-        diversities.append(triu.mean())
+    chunk_diversities = []
+    for i in range(0, n, chunk_size):
+        chunk = X[i:i + chunk_size]
+        if len(chunk) < 2:
+            continue
+        chunk_div = pdist(chunk).mean()
+        chunk_diversities.append(chunk_div)
 
-    max_div = max(diversities) if diversities else 1.0
-    exploration = 100 * np.array(diversities) / max_div
+    if not chunk_diversities:
+        return 0.0, 100.0  # no meaningful data
+
+    normalized_explorations = 100 * np.array(chunk_diversities) / max_div
+    normalized_explorations = np.clip(normalized_explorations, 0, 100)
+    exploration = normalized_explorations.mean()
     exploitation = 100 - exploration
 
-    return pd.DataFrame({
-        "iteration": ks,
-        "exploration_pct": exploration,
-        "exploitation_pct": exploitation,
-    })
+    return float(exploration), float(exploitation)
 
 
 
@@ -280,9 +297,7 @@ def compute_behavior_metrics(
         radius = 0.1 * (bounds[0][1] - bounds[0][0])
 
     # time‑series based exploration/exploitation percentages (averaged)
-    exp_expl_df = exploitation_percentage_via_diversity(df)
-    avg_exploration_pct = float(exp_expl_df["exploration_pct"].mean()) if not exp_expl_df.empty else 0.0
-    avg_exploitation_pct = float(exp_expl_df["exploitation_pct"].mean()) if not exp_expl_df.empty else 0.0
+    avg_exploration_pct, avg_exploitation_pct  = avg_exploration_exploitation_chunked(df)
 
     # improvement stats
     avg_imp, success_rate = improvement_statistics(df)
