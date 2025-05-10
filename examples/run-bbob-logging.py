@@ -10,10 +10,11 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key = os.getenv("OPENAI_API_KEY")
     api_key_gemini = os.getenv("GEMINI_API_KEY")
 
-    llm1 = OpenAI_LLM(api_key,"gpt-4.1-2025-04-14")
-    llm2 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash")
-    llm3 = Ollama_LLM("qwen2.5-coder:32b") #TODO
-    llm4 = Ollama_LLM("gemma3:27b") #TODO
+    llm1 = OpenAI_LLM(api_key,"gpt-4.1-2025-04-14") #Done
+    llm2 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash") #Failed partly
+    llm3 = Ollama_LLM("qwen2.5-coder:32b") #Failed
+    llm4 = Ollama_LLM("gemma3:27b") #Done
+    llm5 = OpenAI_LLM(api_key,"gpt-4o")
     #llm2 = Ollama_LLM("codestral")
     #llm3 = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
     #llm4 = Ollama_LLM("deepseek-coder-v2:16b")
@@ -35,7 +36,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     ]
 
 
-    for llm in [llm2,llm3,llm4]: #, llm2, llm3, llm4, llm5, llm2
+    for llm in [llm5]: #, llm2, llm3, llm4, llm5, llm2
         #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
         LLaMEA_method1 = LLaMEA(llm, budget=budget, name=f"LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=12, elitism=False) 
         LLaMEA_method2 = LLaMEA(llm, budget=budget, name=f"LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False) 
