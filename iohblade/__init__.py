@@ -28,6 +28,7 @@ from .utils import (
 
 import multiprocessing
 
+
 def ensure_spawn_start_method():
     try:
         if multiprocessing.get_start_method(allow_none=True) != "spawn":
@@ -41,5 +42,6 @@ def ensure_spawn_start_method():
                 "import multiprocessing\n"
                 "multiprocessing.set_start_method('spawn', force=True)"
             )
-            
+
+
 ensure_spawn_start_method()

@@ -11,10 +11,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_gemini = os.getenv("GEMINI_API_KEY")
 
     llm1 = OpenAI_LLM(api_key,"gpt-4.1-2025-04-14") #Done
-    llm2 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash") #Failed partly
+    llm2 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash") #Failed partly #running 3/4 in BBOB-4, rest is in 1/2 BBOB-1 folder.
     llm3 = Ollama_LLM("qwen2.5-coder:32b") #Failed
     llm4 = Ollama_LLM("gemma3:27b") #Done
-    llm5 = OpenAI_LLM(api_key,"gpt-4o")
+    llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0)
     #llm2 = Ollama_LLM("codestral")
     #llm3 = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
     #llm4 = Ollama_LLM("deepseek-coder-v2:16b")
@@ -36,7 +36,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     ]
 
 
-    for llm in [llm5]: #, llm2, llm3, llm4, llm5, llm2
+    for llm in [llm2]: #, llm2, llm3, llm4, llm5, llm2
         #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
         LLaMEA_method1 = LLaMEA(llm, budget=budget, name=f"LLaMEA-1", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=12, elitism=False) 
         LLaMEA_method2 = LLaMEA(llm, budget=budget, name=f"LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False) 
@@ -45,7 +45,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         LLaMEA_method5 = LLaMEA(llm, budget=budget, name=f"LLaMEA-5", mutation_prompts=None, adaptive_mutation=True, n_parents=4, n_offspring=12, elitism=False) 
         LLaMEA_method6 = LLaMEA(llm, budget=budget, name=f"LLaMEA-6", mutation_prompts=None, adaptive_mutation=True, n_parents=1, n_offspring=1, elitism=True) 
 
-        methods =  [LLaMEA_method1, LLaMEA_method2, LLaMEA_method3, LLaMEA_method4, LLaMEA_method5, LLaMEA_method6] #
+        methods =  [LLaMEA_method3, LLaMEA_method4] # LLaMEA_method1, LLaMEA_method2, , LLaMEA_method5, LLaMEA_method6
 
         # List containing function IDs we consider
         fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]

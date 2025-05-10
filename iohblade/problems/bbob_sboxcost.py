@@ -39,7 +39,7 @@ class BBOB_SBOX(Problem):
         specific_group=None,
         problem_type=ioh.ProblemClass.SBOX,
         full_ioh_log=False,
-        ioh_dir=''
+        ioh_dir="",
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -68,7 +68,7 @@ class BBOB_SBOX(Problem):
         self.specific_fid = specific_fid
         self.specific_group = specific_group
         self.full_ioh_log = full_ioh_log
-        self.ioh_dir=ioh_dir
+        self.ioh_dir = ioh_dir
 
         # List containing descriptions of each function group
         function_groups = [
@@ -132,7 +132,7 @@ class BBOB_SBOX(Problem):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically it should work well for {function_groups[self.specific_group-1]}."
         else:
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions."
-        
+
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
@@ -223,7 +223,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                         folder_name=algorithm_id,
                         algorithm_name=algorithm_id,
                         store_positions=True,
-                        triggers=[ioh_logger.trigger.ALWAYS]
+                        triggers=[ioh_logger.trigger.ALWAYS],
                     )
                     combined_logger = ioh.logger.Combine([l1, l2])
                     f_new.attach_logger(combined_logger)

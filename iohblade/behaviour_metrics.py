@@ -1,4 +1,3 @@
-
 """
 behavior_metrics.py
 
@@ -37,6 +36,7 @@ from sklearn.neighbors import NearestNeighbors
 # helpers
 # ---------------------------------------------------------------------
 
+
 def get_coordinates(df: pd.DataFrame) -> np.ndarray:
     """Return (N, d) array with decision variables extracted from x-columns."""
     x_cols = [c for c in df.columns if c.startswith("x")]
@@ -57,6 +57,7 @@ def _pairwise_distances(X: np.ndarray) -> np.ndarray:
 # Exploration metrics
 # ---------------------------------------------------------------------
 
+
 def average_nearest_neighbor_distance(df: pd.DataFrame, step=10, history=1000) -> float:
     """
     Average Euclidean distance from each point (except the first) to its
@@ -67,13 +68,15 @@ def average_nearest_neighbor_distance(df: pd.DataFrame, step=10, history=1000) -
         return 0.0
     dists = []
     for k in range(1, len(X), step):
-        prev = X[max(0,k-history):k]
+        prev = X[max(0, k - history) : k]
         dmin = np.min(np.linalg.norm(X[k] - prev, axis=1))
         dists.append(dmin)
     return float(np.mean(dists))
 
-#1 4608790451.0    5e+09     58.5          "dispersion": coverage_dispersion(df, bounds, disp_samples),
+
+# 1 4608790451.0    5e+09     58.5          "dispersion": coverage_dispersion(df, bounds, disp_samples),
 #   285         1 3133208393.0    3e+09     39.8          "spatial_entropy": spatial_entropy(df),
+
 
 def coverage_dispersion(
     df: pd.DataFrame,
@@ -93,16 +96,15 @@ def coverage_dispersion(
         bounds = [(-5.0, 5.0)] * d
     bounds = np.asarray(bounds, dtype=float)
     assert bounds.shape == (d, 2), "bounds should be shape (d, 2)"
-    
+
     rand_points = rng.uniform(bounds[:, 0], bounds[:, 1], size=(n_samples, d))
-    
+
     # Use k-d tree for fast nearest neighbor search
-    nn = NearestNeighbors(n_neighbors=1, algorithm='kd_tree')
+    nn = NearestNeighbors(n_neighbors=1, algorithm="kd_tree")
     nn.fit(X)
     distances, _ = nn.kneighbors(rand_points)
-    
-    return float(distances.max())
 
+    return float(distances.max())
 
 
 def spatial_entropy(df: pd.DataFrame, bandwidth: str | float = "scott") -> float:
@@ -120,6 +122,7 @@ def spatial_entropy(df: pd.DataFrame, bandwidth: str | float = "scott") -> float
 # Exploitation metrics
 # ---------------------------------------------------------------------
 
+
 def average_distance_to_best_so_far(df: pd.DataFrame) -> float:
     """
     For each evaluation k>0, compute distance to best point found up to k-1.
@@ -133,9 +136,10 @@ def average_distance_to_best_so_far(df: pd.DataFrame) -> float:
     for k in range(1, len(X)):
         if y[k] < y[best_idx]:
             best_idx = k
-        
+
         dists.append(np.linalg.norm(X[k] - X[best_idx]))
     return float(np.mean(dists))
+
 
 def closed_form_random_search_diversity(bounds: Sequence[Tuple[float, float]]) -> float:
     bounds = np.asarray(bounds, dtype=float)
@@ -144,11 +148,12 @@ def closed_form_random_search_diversity(bounds: Sequence[Tuple[float, float]]) -
     w = np.mean(widths)  # assume roughly cubic
     return w * np.sqrt(d / 6)
 
+
 def estimate_random_search_diversity(
-    bounds: Sequence[Tuple[float, float]], 
-    n: int = 500, 
+    bounds: Sequence[Tuple[float, float]],
+    n: int = 500,
     samples: int = 10_000,
-    rng: Optional[np.random.Generator] = None
+    rng: Optional[np.random.Generator] = None,
 ) -> float:
     if rng is None:
         rng = np.random.default_rng()
@@ -157,27 +162,28 @@ def estimate_random_search_diversity(
     rand_points = rng.uniform(bounds[:, 0], bounds[:, 1], size=(samples, d))
     return pdist(rand_points[:n]).mean()
 
+
 def avg_exploration_exploitation_chunked(
     df: pd.DataFrame,
     chunk_size: int = 500,
     bounds: Optional[Sequence[Tuple[float, float]]] = None,
-    rng: Optional[np.random.Generator] = None
+    rng: Optional[np.random.Generator] = None,
 ) -> Tuple[float, float]:
     X = get_coordinates(df)
     n, d = X.shape
-    
+
     if bounds is None:
         bounds = [(-5.0, 5.0)] * d
 
     if rng is None:
         rng = np.random.default_rng()
-        
+
     # Estimate diversity baseline from random sampling
     max_div = closed_form_random_search_diversity(bounds=bounds)
 
     chunk_diversities = []
     for i in range(0, n, chunk_size):
-        chunk = X[i:i + chunk_size]
+        chunk = X[i : i + chunk_size]
         if len(chunk) < 2:
             continue
         chunk_div = pdist(chunk).mean()
@@ -192,7 +198,6 @@ def avg_exploration_exploitation_chunked(
     exploitation = 100 - exploration
 
     return float(exploration), float(exploitation)
-
 
 
 def intensification_ratio(df: pd.DataFrame, radius: float) -> float:
@@ -210,7 +215,6 @@ def intensification_ratio(df: pd.DataFrame, radius: float) -> float:
 # ---------------------------------------------------------------------
 # Convergence metrics
 # ---------------------------------------------------------------------
-
 
 
 def average_convergence_rate(df: pd.DataFrame, optimum: float | None = None) -> float:
@@ -253,6 +257,7 @@ def improvement_statistics(df: pd.DataFrame) -> Tuple[float, float]:
 # Stagnation metrics
 # ---------------------------------------------------------------------
 
+
 def longest_no_improvement_streak(df: pd.DataFrame) -> int:
     """Return the length of the longest consecutive streak with no improvement."""
     y = get_objective(df)
@@ -275,10 +280,12 @@ def last_improvement_fraction(df: pd.DataFrame) -> float:
     last_imp_idx = last_imp_idx.max() + 1 if last_imp_idx.size else 0
     return (len(best_so_far) - 1 - last_imp_idx) / (len(best_so_far) - 1)
 
+
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------
 # Unified summary function
 # ---------------------------------------------------------------------
+
 
 def compute_behavior_metrics(
     df: pd.DataFrame,
@@ -297,7 +304,7 @@ def compute_behavior_metrics(
         radius = 0.1 * (bounds[0][1] - bounds[0][0])
 
     # time‑series based exploration/exploitation percentages (averaged)
-    avg_exploration_pct, avg_exploitation_pct  = avg_exploration_exploitation_chunked(df)
+    avg_exploration_pct, avg_exploitation_pct = avg_exploration_exploitation_chunked(df)
 
     # improvement stats
     avg_imp, success_rate = improvement_statistics(df)
@@ -306,7 +313,7 @@ def compute_behavior_metrics(
         # Exploration & diversity
         "avg_nearest_neighbor_distance": average_nearest_neighbor_distance(df),
         "dispersion": coverage_dispersion(df, bounds, disp_samples),
-        #"spatial_entropy": spatial_entropy(df),
+        # "spatial_entropy": spatial_entropy(df),
         "avg_exploration_pct": avg_exploration_pct,
         # Exploitation
         "avg_distance_to_best": average_distance_to_best_so_far(df),

@@ -229,7 +229,7 @@ class OpenAI_LLM(LLM):
     A manager class for handling requests to OpenAI's GPT models.
     """
 
-    def __init__(self, api_key, model="gpt-4-turbo", **kwargs):
+    def __init__(self, api_key, model="gpt-4-turbo", temperature=0.8, **kwargs):
         """
         Initializes the LLM manager with an API key and model name.
 
@@ -240,6 +240,7 @@ class OpenAI_LLM(LLM):
         """
         super().__init__(api_key, model, None, **kwargs)
         self.client = openai.OpenAI(api_key=api_key)
+        self.temperature = temperature
 
     def query(self, session_messages):
         """
@@ -254,7 +255,7 @@ class OpenAI_LLM(LLM):
         """
 
         response = self.client.chat.completions.create(
-            model=self.model, messages=session_messages, temperature=0.8
+            model=self.model, messages=session_messages, temperature=self.temperature
         )
         return response.choices[0].message.content
 
