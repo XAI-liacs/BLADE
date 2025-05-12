@@ -8,7 +8,9 @@ from iohblade.loggers import ExperimentLogger
 from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
 
-logger = ExperimentLogger('/data/neocortex/BBOB-3', True)
+data_dir = "/data/neocortex/BBOB-3"
+
+logger = ExperimentLogger(data_dir, True)
 
 data = logger.get_data()
 
@@ -29,7 +31,7 @@ def avg_auc_for_fid(aucs: list[float], fid: int, runs_per_func=5, func_ids=[1, 3
     slice_ = aucs[block : block + runs_per_func]
     return float(np.mean(slice_))
 
-def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_func=5, root="/data/neocortex/BBOB/ioh/"):
+def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_func=5, root=f"{data_dir}/ioh/"):
     rows = []
     # each algorithm has 50 different runs = 50 different directories we need to process
     algid = row['id']
@@ -82,7 +84,8 @@ print(problems)
 
 for problem in problems:
     print(f"Problem: {problem}")
-    df = logger.get_problem_data(problem_name='BBOB')
+    df = logger.get_problem_data(problem_name=problem)
+    print(df.columns)
 
     df["aucs_list"] = df["metadata"].apply(get_aucs)
 
