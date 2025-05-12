@@ -8,7 +8,7 @@ from iohblade.loggers import ExperimentLogger
 from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
 
-logger = ExperimentLogger('/data/neocortex/BBOB', True)
+logger = ExperimentLogger('/data/neocortex/BBOB-3', True)
 
 data = logger.get_data()
 
@@ -35,6 +35,8 @@ def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_fu
     algid = row['id']
     fitness = row['fitness']
     aucs = row['aucs_list']
+    method_name = row['method_name']
+    problem_name = row['problem_name']
 
     counter = 0
     for fid in func_ids:
@@ -59,18 +61,12 @@ def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_fu
                     "id":           algid,
                     "fid":          fid,
                     "fitness_fid":  f_fid,
+                    "method_name":  method_name,
+                    "problem_name": problem_name,
                 }
             )
             rows.append(metrics)
     return pd.DataFrame(rows)
-
-
-
-methods, problems = logger.get_methods_problems()
-print(methods)
-print(problems)
-
-df = logger.get_problem_data(problem_name='BBOB')
 
 def get_aucs(d):
     """Return the list under key 'aucs' (or [] if anything is wrong)."""
@@ -79,23 +75,32 @@ def get_aucs(d):
     except (ValueError, SyntaxError):
         return []
 
-df["aucs_list"] = df["metadata"].apply(get_aucs)
+
+methods, problems = logger.get_methods_problems()
+print(methods)
+print(problems)
+
+for problem in problems:
+    print(f"Problem: {problem}")
+    df = logger.get_problem_data(problem_name='BBOB')
+
+    df["aucs_list"] = df["metadata"].apply(get_aucs)
 
 
-frames = []
+    frames = []
 
-for _, algo_row in tqdm(df.iterrows(),  # <‑‑ your dataframe of algorithms
-                        total=len(df),
-                        desc="algorithms"):
-    try:
-        df_runs = process_run(algo_row)      # your function above
-        frames.append(df_runs)
-    except Exception as e:
-        print(f"⚠︎  {algo_row['id']} skipped ({e})")
+    for _, algo_row in tqdm(df.iterrows(),  # <‑‑ your dataframe of algorithms
+                            total=len(df),
+                            desc="algorithms"):
+        try:
+            df_runs = process_run(algo_row)      # your function above
+            frames.append(df_runs)
+        except Exception as e:
+            print(f"⚠︎  {algo_row['id']} skipped ({e})")
 
-all_runs = pd.concat(frames, ignore_index=True)
+    all_runs = pd.concat(frames, ignore_index=True)
 
-print(f"✅  built dataframe with {len(all_runs)} runs")
+    print(f"✅  built dataframe with {len(all_runs)} runs")
 
-print(all_runs.columns)
-all_runs.to_pickle("./BBOB0.pkl")
+    print(all_runs.columns)
+    all_runs.to_pickle(f"./{problem}3.pkl")
