@@ -8,7 +8,7 @@ from iohblade.loggers import ExperimentLogger
 from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
 
-data_dir = "/data/neocortex/BBOB-3"
+data_dir = "/data/neocortex/BBOB-1"
 
 logger = ExperimentLogger(data_dir, True)
 
@@ -65,6 +65,8 @@ def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_fu
                     "fitness_fid":  f_fid,
                     "method_name":  method_name,
                     "problem_name": problem_name,
+                    "seed" :        row['seed'], 
+                    "_id" :         row['_id'],
                 }
             )
             rows.append(metrics)
@@ -106,4 +108,4 @@ for problem in problems:
     print(f"✅  built dataframe with {len(all_runs)} runs")
 
     print(all_runs.columns)
-    all_runs.to_pickle(f"./{problem}3.pkl")
+    all_runs.to_pickle(f"./{problem}1.pkl")
