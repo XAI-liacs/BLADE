@@ -18,7 +18,9 @@ from ..problem import Problem
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import accuracy_score
 import sklearn
-#import autosklearn.classification
+
+# import autosklearn.classification
+
 
 class AutoML(Problem):
     """
@@ -27,18 +29,23 @@ class AutoML(Problem):
     """
 
     def __init__(
-        self,
-        logger=None,
-        datasets=None,
-        name="AutoML-breast_cancer",
-        eval_timeout=360
+        self, logger=None, datasets=None, name="AutoML-breast_cancer", eval_timeout=360
     ):
         X, y = load_breast_cancer(return_X_y=True)
-        self.X_train, self.X_test, self.y_train, self.y_test = sklearn.model_selection.train_test_split(
-            X, y, random_state=1
-        )
+        (
+            self.X_train,
+            self.X_test,
+            self.y_train,
+            self.y_test,
+        ) = sklearn.model_selection.train_test_split(X, y, random_state=1)
 
-        super().__init__(logger, [(self.X_train, self.y_train)], [(self.X_test, self.y_test)], name, eval_timeout)
+        super().__init__(
+            logger,
+            [(self.X_train, self.y_train)],
+            [(self.X_test, self.y_test)],
+            name,
+            eval_timeout,
+        )
         self.task_prompt = f"""
 You are a highly skilled computer scientist in the field machine learning. Your task is to design novel machine learning pipelines for a given dataset and task.
 The pipeline in this case should handle a breast cancer classification task. Your task is to write the Python code. The code should contain an `__init__(self, X, y)` function that trains a machine learning model and the function `def __call__(self, X)`, which should predict the samples in X and return the predictions.
@@ -81,7 +88,6 @@ Give an excellent and novel ML pipeline to solve this task and also give it a on
 <code>
 ```
 """
-
 
     def get_prompt(self):
         """

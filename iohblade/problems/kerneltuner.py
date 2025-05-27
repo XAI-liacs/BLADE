@@ -21,10 +21,12 @@ from kernel_tuner.strategies.common import CostFunc
 from kernel_tuner import tune_kernel_T1
 from pathlib import Path
 
+
 class OverBudgetException(Exception):
     """The algorithm tried to do more evaluations than allowed."""
 
     pass
+
 
 class problem_wrapper:
     def __init__(self, f, budget, optimum, scale_log=True):
@@ -38,11 +40,11 @@ class problem_wrapper:
         self.raw_y_best = self.upper
         self.global_best = optimum
         self.transform = lambda x: np.log10(x) if scale_log else (lambda x: x)
-    
+
     def __call__(self, x):
         if self.eval_count > self.budget:
             raise OverBudgetException("Budget exceeded")
-        y = self.f(x) - self.global_best #so optimum at 0
+        y = self.f(x) - self.global_best  # so optimum at 0
         if y < self.raw_y_best:
             self.raw_y_best = y
         y_value = np.clip(self.raw_y_best, self.lower, self.upper)
@@ -60,7 +62,7 @@ class problem_wrapper:
             )
             self.eval_count += 1
         return 1 - (self.aoc / self.budget)
-    
+
 
 class OptAlgWrapper:
     """Wrapper class for user-defined optimization algorithms"""
@@ -72,15 +74,14 @@ class OptAlgWrapper:
         self.aoc = 0
         self.optimum = optimum
 
-
     def tune(self, searchspace: Searchspace, runner, tuning_options):
         cost_func = CostFunc(searchspace, tuning_options, runner, scaling=self.scaling)
 
         # l2 = aoc_logger(
         #     self.budget, upper=1e2, lower=1e-1, scale_log=True, triggers=[logger.trigger.ALWAYS]
         # )
-        #problem = get_problem(f"{application}-{gpu}", instance=0, problem_class=ioh.ProblemClass.INTEGER, dimension=len(tuning_options))
-        #problem.attach_logger(l2)
+        # problem = get_problem(f"{application}-{gpu}", instance=0, problem_class=ioh.ProblemClass.INTEGER, dimension=len(tuning_options))
+        # problem.attach_logger(l2)
 
         problem = problem_wrapper(cost_func, self.budget, self.optimum)
 
@@ -99,7 +100,7 @@ class OptAlgWrapper:
             if tuning_options.verbose:
                 print(e)
 
-        self.aoc = problem.get_aoc() #correct_aoc(problem, l2, self.budget)
+        self.aoc = problem.get_aoc()  # correct_aoc(problem, l2, self.budget)
         return problem.f.results
 
 
@@ -132,8 +133,6 @@ class Kerneltuner(Problem):
             cache_dir (str): The directory that contains the kernel tuner data files.
         """
 
-
-
         self.applications = ["gemm", "convolution", "dedispersion", "hotspot"]
         if gpus is None:
             self.gpus = ["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"]
@@ -148,37 +147,41 @@ class Kerneltuner(Problem):
         self.test_instances = []
         for gpu in self.gpus:
             for kernel in self.kernels:
-                #for now we add them all to both training and test instances.
+                # for now we add them all to both training and test instances.
                 self.training_instances.append(f"{kernel}-{gpu}")
                 self.test_instances.append(f"{kernel}-{gpu}")
-        
-        self.optima = {'gemm-A100': 8.01820807158947, 
-            'convolution-A100': 0.5536000076681376, 
-            'dedispersion-A100': 68.1165759563446, 
-            'hotspot-A100': 0.1966720037162304, 
-            'gemm-A4000': 13.089913964271545, 
-            'convolution-A4000': 1.021171996369958, 
-            'dedispersion-A4000': 147.6977825164795, 
-            'hotspot-A4000': 1.4143739938735962, 
-            'gemm-A6000': 6.123518988490105, 
-            'convolution-A6000': 0.6030377962291835, 
-            'dedispersion-A6000': 84.21807646751404, 
-            'hotspot-A6000': 0.8206389956176281, 
-            'gemm-MI250X': 6.940651074051857, 
-            'convolution-MI250X': 0.6587962452322245, 
-            'dedispersion-MI250X': 49.5724800825119, 
-            'hotspot-MI250X': 0.2868224401026964, 
-            'gemm-W6600': 22.872174671718053, 
-            'convolution-W6600': 1.7276193872094154, 
-            'dedispersion-W6600': 135.0808186531067, 
-            'hotspot-W6600': 1.3389952592551708, 
-            'gemm-W7800': 6.276454776525497, 
-            'convolution-W7800': 0.8161421902477741, 
-            'dedispersion-W7800': 50.36081421375275, 
-            'hotspot-W7800': 0.805098531767726}
+
+        self.optima = {
+            "gemm-A100": 8.01820807158947,
+            "convolution-A100": 0.5536000076681376,
+            "dedispersion-A100": 68.1165759563446,
+            "hotspot-A100": 0.1966720037162304,
+            "gemm-A4000": 13.089913964271545,
+            "convolution-A4000": 1.021171996369958,
+            "dedispersion-A4000": 147.6977825164795,
+            "hotspot-A4000": 1.4143739938735962,
+            "gemm-A6000": 6.123518988490105,
+            "convolution-A6000": 0.6030377962291835,
+            "dedispersion-A6000": 84.21807646751404,
+            "hotspot-A6000": 0.8206389956176281,
+            "gemm-MI250X": 6.940651074051857,
+            "convolution-MI250X": 0.6587962452322245,
+            "dedispersion-MI250X": 49.5724800825119,
+            "hotspot-MI250X": 0.2868224401026964,
+            "gemm-W6600": 22.872174671718053,
+            "convolution-W6600": 1.7276193872094154,
+            "dedispersion-W6600": 135.0808186531067,
+            "hotspot-W6600": 1.3389952592551708,
+            "gemm-W7800": 6.276454776525497,
+            "convolution-W7800": 0.8161421902477741,
+            "dedispersion-W7800": 50.36081421375275,
+            "hotspot-W7800": 0.805098531767726,
+        }
         self.cache_dir = cache_dir
 
-        super().__init__(logger, self.training_instances, self.test_instances, name, eval_timeout)
+        super().__init__(
+            logger, self.training_instances, self.test_instances, name, eval_timeout
+        )
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """
 You are a highly skilled computer scientist in the field of natural computing and hardware kernel tuning. Your task is to design novel metaheuristic algorithms to solve kernel tuner problems (integer, variable dimension, contraint).
@@ -292,9 +295,11 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 "max_fevals": budget,
                 "time_limit": 60,
             }
-            iterations = 1 #number of kernel runs (1 because we use cached results anyways, by default 7)
+            iterations = 1  # number of kernel runs (1 because we use cached results anyways, by default 7)
             input_filepath = Path(f"{self.cache_dir}kernels/{application}_milo.json")
-            cache_filepath = Path(f"{self.cache_dir}cachefiles/{application}_milo/{gpu}.json")
+            cache_filepath = Path(
+                f"{self.cache_dir}cachefiles/{application}_milo/{gpu}.json"
+            )
 
             try:
                 optimizer = local_env[algorithm_name](budget=budget)
