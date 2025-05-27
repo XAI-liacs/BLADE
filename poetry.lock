@@ -2579,13 +2579,13 @@ files = [
 
 [[package]]
 name = "jsonschema"
-version = "4.23.0"
+version = "4.24.0"
 description = "An implementation of JSON Schema validation for Python"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "jsonschema-4.23.0-py3-none-any.whl", hash = "sha256:fbadb6f8b144a8f8cf9f0b89ba94501d143e50411a1278633f56a7acf7fd5566"},
-    {file = "jsonschema-4.23.0.tar.gz", hash = "sha256:d71497fef26351a33265337fa77ffeb82423f3ea21283cd9467bb03999266bc4"},
+    {file = "jsonschema-4.24.0-py3-none-any.whl", hash = "sha256:a462455f19f5faf404a7902952b6f0e3ce868f3ee09a359b05eca6673bd8412d"},
+    {file = "jsonschema-4.24.0.tar.gz", hash = "sha256:0b4e8069eb12aedfa881333004bccaec24ecef5a8a6a4b6df142b2cc9599d196"},
 ]
 
 [package.dependencies]
@@ -2880,6 +2880,19 @@ files = [
     {file = "jupyterlab_widgets-3.0.13-py3-none-any.whl", hash = "sha256:e3cda2c233ce144192f1e29914ad522b2f4c40e77214b0cc97377ca3d323db54"},
     {file = "jupyterlab_widgets-3.0.13.tar.gz", hash = "sha256:a2966d385328c1942b683a8cd96b89b8dd82c8b8f81dda902bb2bc06d46f5bed"},
 ]
+
+[[package]]
+name = "kernel-tuner"
+version = "1.3.0"
+description = "An easy to use CUDA/OpenCL kernel tuner in Python"
+optional = false
+python-versions = "^3.10"
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "lib/autotuner/kernel_tuner"
 
 [[package]]
 name = "kiwisolver"
@@ -5066,6 +5079,36 @@ pytest = ">=6.2.5"
 
 [package.extras]
 dev = ["pre-commit", "pytest-asyncio", "tox"]
+
+[[package]]
+name = "python-constraint2"
+version = "2.2.3"
+description = "python-constraint is a module for efficiently solving CSPs (Constraint Solving Problems) over finite domains."
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "python_constraint2-2.2.3-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:a831cf6c8f856986890584079460d8dc77092aacd68b1e2fbdc5755b2774ec8d"},
+    {file = "python_constraint2-2.2.3-cp310-cp310-manylinux_2_35_x86_64.whl", hash = "sha256:19e82e23e7edac14c583631c4b3b81d032d581446b9aec3113213242eae3bd10"},
+    {file = "python_constraint2-2.2.3-cp310-cp310-manylinux_2_39_x86_64.whl", hash = "sha256:65505070ce434c7244687e5416ed5e3574796d819bf530b21b087211bd53bbd7"},
+    {file = "python_constraint2-2.2.3-cp310-cp310-win_amd64.whl", hash = "sha256:5b257098ed53fc103a22347d4808ef0d1d393978030e7ee7d678e2c9fc4dff81"},
+    {file = "python_constraint2-2.2.3-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:80636a9ee4a2d7dab0ae4604c334047d8063be308bfa74973b84aa40febe7737"},
+    {file = "python_constraint2-2.2.3-cp311-cp311-manylinux_2_35_x86_64.whl", hash = "sha256:882799b95798aeceabef58648544a7bd3d6d35706de55136da1a2c37a6515639"},
+    {file = "python_constraint2-2.2.3-cp311-cp311-manylinux_2_39_x86_64.whl", hash = "sha256:08dbdc3a217fcc556f85748fb452b8f5e5bc34d50ec783c12e66f12984008c70"},
+    {file = "python_constraint2-2.2.3-cp311-cp311-win_amd64.whl", hash = "sha256:eb41222f999cb3b56e1d23be7f5ec233f4ee932f620709e483fb6efd11597e52"},
+    {file = "python_constraint2-2.2.3-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:4435ba5cbbb5feb8710d85b4c91bf2aa24ffbeb7bcf0d2a039522a3cb082c72d"},
+    {file = "python_constraint2-2.2.3-cp312-cp312-manylinux_2_35_x86_64.whl", hash = "sha256:c607c3cb7ed699d062044ae582ac8fad97489a679d8df11f4cfb0ba7bd80f73f"},
+    {file = "python_constraint2-2.2.3-cp312-cp312-manylinux_2_39_x86_64.whl", hash = "sha256:970eec3616a0dcfc8858d3cf5187e90014e288819f917df49eaf4b7418671c82"},
+    {file = "python_constraint2-2.2.3-cp312-cp312-win_amd64.whl", hash = "sha256:298ef22a3217632023102e51a42d24d6c48e6bdb154d04b46118357cc8351534"},
+    {file = "python_constraint2-2.2.3-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:3aaba08d246177f0abb5fb7958dbf3d674d9ab243d8e23d7c75f104a1e752717"},
+    {file = "python_constraint2-2.2.3-cp313-cp313-manylinux_2_35_x86_64.whl", hash = "sha256:f329f141dbd74fc16147c17c1295578afdfda199be49bffb7f5bd809a1de3ef7"},
+    {file = "python_constraint2-2.2.3-cp313-cp313-manylinux_2_39_x86_64.whl", hash = "sha256:adf90503a38226fc14c250a13b4df24fc4ff1281826f937a446c8cc861229034"},
+    {file = "python_constraint2-2.2.3-cp313-cp313-win_amd64.whl", hash = "sha256:bbd57926c1625099d34123aad5af57d02eea05f8876a14569cb406757d5aa938"},
+    {file = "python_constraint2-2.2.3-cp39-cp39-macosx_14_0_arm64.whl", hash = "sha256:fbb0fc704a4a1dae517b31e64b3b133a85cbc0c2c170ceeb92d5fd7d11ed2bdc"},
+    {file = "python_constraint2-2.2.3-cp39-cp39-manylinux_2_35_x86_64.whl", hash = "sha256:bd4ae28e244b894fa553c1e1abab8985ba969dfe8b4427e441f21bd36ef4afb9"},
+    {file = "python_constraint2-2.2.3-cp39-cp39-manylinux_2_39_x86_64.whl", hash = "sha256:a2e0632725802bd4d611c1a59ebab0680ae4d245ac9ab8ac5ab9f28f88995df2"},
+    {file = "python_constraint2-2.2.3-cp39-cp39-win_amd64.whl", hash = "sha256:24eaff6dcd6c0d432b0cfca461e503755c2adf2c041cd115b01fc1f93b7fd47b"},
+    {file = "python_constraint2-2.2.3.tar.gz", hash = "sha256:52330ada17828403a51eb31373cc06891533f53acc0b00397d31fd046f88ce28"},
+]
 
 [[package]]
 name = "python-dateutil"
@@ -7277,6 +7320,17 @@ files = [
 h11 = ">=0.9.0,<1"
 
 [[package]]
+name = "xmltodict"
+version = "0.14.2"
+description = "Makes working with XML feel like you are working with JSON"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "xmltodict-0.14.2-py2.py3-none-any.whl", hash = "sha256:20cc7d723ed729276e808f26fb6b3599f786cbc37e06c65e192ba77c40f20aac"},
+    {file = "xmltodict-0.14.2.tar.gz", hash = "sha256:201e7c28bb210e374999d1dde6382923ab0ed1a8a5faeece48ab525b7810a553"},
+]
+
+[[package]]
 name = "yarl"
 version = "1.18.3"
 description = "Yet another URL library"
@@ -7418,4 +7472,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "634774fe53eb43848c17216aecba73fb7b827c03d0dec31d26e58de573684159"
+content-hash = "69e805563ef535a5b4ba8fc773d7a7addc9eed0759db6fe3c82e7704b6e23d74"

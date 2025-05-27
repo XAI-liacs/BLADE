@@ -35,6 +35,10 @@ llamea = "^1.0.2"
 ipykernel = "^6.29.5"
 wandb = "^0.19.8"
 mlflow = "^2.21.0"
+kernel-tuner = {path = "lib/autotuner/kernel_tuner", develop = true}
+python-constraint2 = "^2.2.3"
+xmltodict = "^0.14.2"
+jsonschema = "^4.24.0"
 
 
 [tool.poetry.group.dev.dependencies]
