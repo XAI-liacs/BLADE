@@ -20,30 +20,31 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         "Refine and simplify the selected algorithm to improve it.", #simplify
     ]
 
-    for llm in [llm5]:
+    for llm in [llm5]: #, llm1
         LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=True)
 
         methods = [LLaMEA_method]
         logger = ExperimentLogger("results/kerneltuner-all")
-        problems = [Kerneltuner(
-                gpus=["A100"],
-                kernels=["gemm", "convolution", "dedispersion", "hotspot"],
-                name="kerneltuner-A100",
-                eval_timeout=60,
-                budget=100,
-                cache_dir="/data/neocortex/repos/benchmark_hub/"),
-            Kerneltuner(
-                gpus=["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"],
-                kernels=["gemm"],
-                name="kerneltuner-gemm",
-                eval_timeout=60,
-                budget=100,
-                cache_dir="/data/neocortex/repos/benchmark_hub/"),
+        problems = [
+            # Kerneltuner(
+            #     gpus=["A100"],
+            #     kernels=["gemm", "convolution", "dedispersion", "hotspot"],
+            #     name="kerneltuner-A100",
+            #     eval_timeout=120,
+            #     budget=100,
+            #     cache_dir="/data/neocortex/repos/benchmark_hub/"),
+            # Kerneltuner(
+            #     gpus=["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"],
+            #     kernels=["gemm"],
+            #     name="kerneltuner-gemm",
+            #     eval_timeout=160,
+            #     budget=100,
+            #     cache_dir="/data/neocortex/repos/benchmark_hub/"),
             Kerneltuner(
                 gpus=["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"],
                 kernels=["gemm", "convolution", "dedispersion", "hotspot"],
                 name="kerneltuner-general",
-                eval_timeout=60,
+                eval_timeout=360,
                 budget=100,
                 cache_dir="/data/neocortex/repos/benchmark_hub/")
             ]

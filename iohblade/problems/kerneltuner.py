@@ -277,8 +277,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "math": math,
             "random": random,
         }
-        local_env = {}
-        exec(code, safe_globals, local_env)
+        exec(code, globals())
 
         algorithm = None
 
@@ -302,7 +301,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             )
 
             try:
-                optimizer = local_env[algorithm_name](budget=budget)
+                optimizer = globals()[algorithm_name](budget=budget)
                 # Wrap the algorithm class in the OptAlgWrapper
                 # for use in Kernel Tuner
                 strategy = OptAlgWrapper(optimizer, budget=budget, optimum=optimum)
