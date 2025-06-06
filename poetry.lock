@@ -3102,13 +3102,13 @@ pygments = "*"
 
 [[package]]
 name = "llamea"
-version = "1.0.3"
+version = "1.0.4"
 description = "LLaMEA is a Python framework for automatically generating and refining metaheuristic optimization algorithms using large language models, featuring optional in-the-loop hyper-parameter optimization."
 optional = false
 python-versions = "<4.0,>=3.10"
 files = [
-    {file = "llamea-1.0.3-py3-none-any.whl", hash = "sha256:208587c9dc9b1ced1cf6a5a8129306228e0c4d10c61031e3938ca9e47236c138"},
-    {file = "llamea-1.0.3.tar.gz", hash = "sha256:b47e0582814a1df6c0403742e7e3839bb3a60d2d9c980c1ffdafa2a324e362db"},
+    {file = "llamea-1.0.4-py3-none-any.whl", hash = "sha256:da095a2bc62c8e98398d0febb9504cc8b63cc19d98392db4d46c889e4b22b7df"},
+    {file = "llamea-1.0.4.tar.gz", hash = "sha256:68fde249f5e9e781c78781aadf00d4eeffc8948e968cc11eb735a24963e1dee4"},
 ]
 
 [package.dependencies]

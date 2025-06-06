@@ -138,10 +138,10 @@ You are a Python expert working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 {extra_prompt} Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
-"""
-        self.format_prompt = """
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
 The func() can only be called as many times as the budget allows, not more. 
+"""
+        self.example_prompt = """
 An example of such code (a simple random search), is as follows:
 ```python
 import numpy as np
@@ -164,7 +164,8 @@ class RandomSearch:
             
         return self.f_opt, self.x_opt
 ```
-
+        """
+        self.format_prompt = """
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
 # Code: 
@@ -177,7 +178,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         Returns the problem description and answer format.
         """
-        return self.task_prompt + self.format_prompt
+        return self.task_prompt + self.example_prompt + self.format_prompt
 
     def evaluate(self, solution: Solution, test=False):
         """

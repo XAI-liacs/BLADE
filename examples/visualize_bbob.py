@@ -14,7 +14,21 @@ from pandas.plotting import parallel_coordinates
 from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
 import tqdm
+from sklearn.preprocessing import RobustScaler, MinMaxScaler
 
+
+# ── 2. HELPER FUNCTION (drop it right after `behaviour_feats` is first defined) ─
+def robust_minmax(df, cols, q=(0.01, 0.99)):
+    """
+    Robust [0-1] scaling that flattens outliers.
+
+    • Clips each feature to the q-th and (1-q)-th quantile.  
+    • Then rescales the clipped values to the 0-1 interval.
+    """
+    lo = df[cols].quantile(q[0])
+    hi = df[cols].quantile(q[1])
+    df[cols] = df[cols].clip(lo, hi, axis=1)
+    return (df[cols] - lo) / (hi - lo)
 
 """
     mutation_prompts1 = [
@@ -68,12 +82,24 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
     llm_name = llm_per_folder[folder]
 
-    df = pd.read_pickle(f"../{folder}.pkl")  
-    img_dir = f"img/"
+    df = pd.read_pickle(f"{folder}.pkl")  
+    img_dir = f"examples/img/"
     #df.describe()
 
-    num_cols = df.select_dtypes('number').columns          # all numeric columns
-    agg_map  = {c: 'mean' for c in num_cols} | {           # mean for numbers
+    # Some columns you’ll want handy later
+    behaviour_feats = [
+        "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
+        "avg_distance_to_best", 
+        "average_convergence_rate", "avg_improvement", "success_rate",
+        "longest_no_improvement_streak", 
+    ]
+    #leave out: "intensification_ratio", "avg_exploitation_pct", "last_improvement_fraction",
+    agg_map  = {c: 'mean' for c in behaviour_feats} | {           # mean for numbers
+                'id': 'first',                              # keep id constant
+                'fitness_fid': 'mean',                     # average fitness per id
+                'fid': 'first',                             
+                '_id': 'first',
+                'seed': 'first',
                 'method_name': 'first',                    # keep one value
                 'problem_name': 'first'}                   #  – they should be constant per id
 
@@ -99,13 +125,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             .transform(lambda s: (s - s.min()) / (s.max() - s.min()))
     )
 
-    # Some columns you’ll want handy later
-    behaviour_feats = [
-        "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
-        "avg_distance_to_best", "intensification_ratio", "avg_exploitation_pct",
-        "average_convergence_rate", "avg_improvement", "success_rate",
-        "longest_no_improvement_streak", "last_improvement_fraction",
-    ]
+    
     nice_names = {
         "avg_nearest_neighbor_distance":  "NN-dist",
         "dispersion":                     "Disp",
@@ -119,6 +139,32 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         "longest_no_improvement_streak":  "No-imp streak",
         "last_improvement_fraction":      "Last-imp frac",
     }
+
+    # ── NEW BLOCK — STN-style export (drop this *after* `behaviour_feats` is defined
+    #    and `data` has been assembled for the current folder) ──────────────────────
+    stn_dir = "stn/"
+    os.makedirs(stn_dir, exist_ok=True)
+
+    feature_cols = [
+        "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
+        "avg_distance_to_best", "avg_improvement",
+        "longest_no_improvement_streak",
+    ]  # the columns that go into the STN feature list (subset)
+
+
+    data_stn = data.copy()
+    data_stn[behaviour_feats] = robust_minmax(data_stn, behaviour_feats)
+    for method, g in data_stn.groupby("method_name", sort=False):
+        lines = []
+        # one file line per evaluation, ordered by run (seed) then _id
+        for seed, sg in g.groupby("seed", sort=False):
+            for _, row in sg.sort_values("_id").iterrows():
+                feat_str = ",".join(f"{row[c]:.12g}" for c in feature_cols)
+                lines.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
+
+        fname = f"{llm_name}_{method}.csv".replace(" ", "_")
+        with open(os.path.join(stn_dir, fname), "w") as fh:
+            fh.write("\n".join(lines))
 
     # ------------------------------------------------------------------
     # 1  Behaviour features over evaluations
@@ -231,9 +277,10 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
     pc = data[behaviour_feats + ["fitness_norm"]].copy()
 
     # 2‑a.  Min‑max scale features (parallel plots hate disparate ranges)
-    pc[behaviour_feats] = (
-        pc[behaviour_feats] - pc[behaviour_feats].min()
-    ) / (pc[behaviour_feats].max() - pc[behaviour_feats].min())
+    # pc[behaviour_feats] = (
+    #     pc[behaviour_feats] - pc[behaviour_feats].min()
+    # ) / (pc[behaviour_feats].max() - pc[behaviour_feats].min())
+    pc[behaviour_feats] = robust_minmax(pc, behaviour_feats)
 
     quartile_labels = ["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
     quart_cat = pd.CategoricalDtype(categories=quartile_labels, ordered=True)
@@ -275,9 +322,10 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         pc = g[behaviour_feats + ["fitness_norm"]].copy()
 
         # 2‑a.  Min‑max scale features (parallel plots hate disparate ranges)
-        pc[behaviour_feats] = (
-            pc[behaviour_feats] - pc[behaviour_feats].min()
-        ) / (pc[behaviour_feats].max() - pc[behaviour_feats].min())
+        # pc[behaviour_feats] = (
+        #     pc[behaviour_feats] - pc[behaviour_feats].min()
+        # ) / (pc[behaviour_feats].max() - pc[behaviour_feats].min())
+        pc[behaviour_feats] = robust_minmax(pc, behaviour_feats)
 
         # 2‑b.  Quartile‑bin fitness so we can colour by performance
         pc["fitness_group"] = pd.qcut(
@@ -340,10 +388,10 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
     }
 
     data = df.copy()
-    data[behaviour_feats] = (
-        data[behaviour_feats] - data[behaviour_feats].min()
-    ) / (data[behaviour_feats].max() - data[behaviour_feats].min())
-
+    # data[behaviour_feats] = (
+    #     data[behaviour_feats] - data[behaviour_feats].min()
+    # ) / (data[behaviour_feats].max() - data[behaviour_feats].min())
+    data[behaviour_feats] = robust_minmax(data, behaviour_feats)
 
     # ------------------------------------------------------------------
     # 2  Parallel‑coordinate plot for each function‑level AUC
@@ -487,3 +535,4 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
     logger = ExperimentLogger(f'/data/neocortex/{loc}', True)
     plot_convergence(logger, metric="AOCC", save=True, budget=100)
     plot_experiment_CEG(logger, save=True, budget=100, max_seeds=5)
+

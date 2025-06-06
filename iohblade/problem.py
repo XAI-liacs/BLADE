@@ -51,6 +51,7 @@ class Problem(ABC):
         self.training_instances = training_instances if training_instances else []
         self.test_instances = test_instances if test_instances else []
         self.task_prompt = "Write the problem description part here."
+        self.example_prompt = "Write an example code here."
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
@@ -122,9 +123,9 @@ class Problem(ABC):
     @abstractmethod
     def get_prompt(self):
         """
-        Get the prompt describing the problem and how to format the answer.
+        Get the full prompt describing the problem and how to format the answer.
         """
-        return self.task_prompt + self.format_prompt
+        return self.task_prompt + self.example_prompt + self.format_prompt
 
     @abstractmethod
     def evaluate(self, solution: Solution):

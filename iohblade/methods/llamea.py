@@ -32,10 +32,13 @@ class LLaMEA(Method):
         self.llamea_instance = LLAMEA_Algorithm(
             f=problem,  # Ensure evaluation integrates with our framework
             llm=self.llm,
-            task_prompt=problem.get_prompt(),
+            role_prompt="You are an excellent Python programmer.", #not needed, it is part of the task prompt.
+            task_prompt=problem.task_prompt,
+            example_prompt=problem.example_prompt,
+            output_format_prompt=problem.format_prompt,
             log=None,  # We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
             budget=self.budget,
-            max_workers=1,
+            max_workers=1, # We do not use parallelization, as it is not supported in combination with the BLADE parrallelization.
             **self.kwargs,
         )
         return self.llamea_instance.run()
