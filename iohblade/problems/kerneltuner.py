@@ -120,6 +120,7 @@ class Kerneltuner(Problem):
         eval_timeout=60,
         budget=100,
         cache_dir="/data/neocortex/repos/benchmark_hub/",
+        extra_info=False,
     ):
         """
         Initializes the Kerneltuner problem instance.
@@ -131,6 +132,7 @@ class Kerneltuner(Problem):
             eval_timeout (int): The evaluation timeout in seconds.
             budget (int): The budget for the optimization algorithms/
             cache_dir (str): The directory that contains the kernel tuner data files.
+            extra_info (bool): If True, additional information about the problem is added to the prompt. Only works for one kernel.
         """
 
         self.applications = ["gemm", "convolution", "dedispersion", "hotspot"]
@@ -189,6 +191,13 @@ The optimization algorithm should handle a kernel tuning task with a given evalu
 The func() can only be called as many times as the budget allows, not more. The `searchspace` object can be used to sample random instances, neighbouring instances using `searchspace.get_neighbors(param_config: tuple, neighbor_method='Hamming')` where neighbor_method can be any of ["strictly-adjacent", "adjacent", "Hamming"] and to check validity of parameter settings using `searchspace.is_param_config_valid(tuple(instance))`, nothing else. The dimensionality can be varied.
 In addition, the variable `tune_params` is a dictionary containing the tuning parameters with their ranges and constraints, it can be obtained directly from the searchspace object `searchspace.tune_params`. The algorithm should be able to handle any number of tuning parameters, and the search space can be continuous or discrete. The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.
 """
+        if len(self.kernels) == 1 and extra_info:
+            input_filepath = Path(f"{self.cache_dir}kernels/{self.kernels[0]}_milo.json")
+            #read the specification file for the kernel
+            self.task_prompt += "\nThe kernel to tune is " + self.kernels[0] + ". The search space specification is as follows:\n"
+            with open(input_filepath, "r") as f:
+                self.task_prompt += f.read()
+
         self.example_prompt = """
 An example code structure with helper functions is as follows:
 ```python

@@ -45,7 +45,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         LLaMEA_method5 = LLaMEA(llm, budget=budget, name=f"LLaMEA-5", mutation_prompts=None, adaptive_mutation=True, n_parents=4, n_offspring=12, elitism=False) 
         LLaMEA_method6 = LLaMEA(llm, budget=budget, name=f"LLaMEA-6", mutation_prompts=None, adaptive_mutation=True, n_parents=1, n_offspring=1, elitism=True) 
 
-        methods =  [LLaMEA_method5, LLaMEA_method6] # LLaMEA_method1, LLaMEA_method2, , LLaMEA_method5, LLaMEA_method6
+        methods =  [LLaMEA_method1, LLaMEA_method2, , LLaMEA_method3, LLaMEA_method4, LLaMEA_method5, LLaMEA_method6] # 
 
         # List containing function IDs we consider
         fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
