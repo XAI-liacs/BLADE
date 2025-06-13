@@ -116,6 +116,11 @@ You can also install the package from source using Poetry (1.8.5).
    poetry install
    ```
 
+3. *(Optional)* Install additional baseline algorithms:
+   ```bash
+   poetry install --with baselines
+   ```
+
 ## 💻 Quick Start
 
 1. Set up an OpenAI API key:

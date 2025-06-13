@@ -25,3 +25,9 @@ You can also install the package from source using Poetry (1.8.5).
    .. code-block:: bash
 
       poetry install
+
+3. (Optional) Install extra baseline algorithms:
+
+   .. code-block:: bash
+
+      poetry install --with baselines
