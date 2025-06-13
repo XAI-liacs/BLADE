@@ -38,6 +38,7 @@ mlflow = "^2.21.0"
 kernel-tuner = {git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies"}
 python-constraint2 = "^2.2.3"
 xmltodict = "^0.14.2"
+streamlit = "^1.35.0"
 jsonschema = "^4.24.0"
 
 

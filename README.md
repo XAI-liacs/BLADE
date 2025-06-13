@@ -27,6 +27,7 @@
 - [Introduction](#introduction)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+- [Webapp](#-webapp)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
@@ -154,6 +155,16 @@ You can also install the package from source using Poetry (1.8.5).
     experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
+
+## 🌐 Webapp
+
+After running experiments you can browse them using the built-in Streamlit app:
+
+```bash
+poetry run streamlit run webapp.py
+```
+
+The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
 
 ---
 
