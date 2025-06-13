@@ -58,7 +58,8 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
     with open(log_file, "r") as f:
         contents = f.read()
     assert "dummy_method" in contents
-    assert "dummy_dir" in contents
+    expected_rel = os.path.relpath("dummy_dir", exp_logger.dirname)
+    assert expected_rel in contents
     assert '"seed": 42' in contents
 
 

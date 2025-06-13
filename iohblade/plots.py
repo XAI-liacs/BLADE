@@ -22,6 +22,7 @@ def plot_convergence(
     metric: str = "Fitness",
     budget: int = 100,
     save: bool = True,
+    return_fig: bool = False,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
@@ -90,8 +91,10 @@ def plot_convergence(
 
     if save:
         fig.savefig(f"{logger.dirname}/convergence.png")
-    else:
+    elif not return_fig:
         plt.show()
+    if return_fig:
+        return fig
     plt.close()
 
 
