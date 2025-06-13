@@ -1,1 +1,3 @@
-from modcma import ModularCMAES
+from .modcma import ModularCMAES
+
+__all__ = ["ModularCMAES"]

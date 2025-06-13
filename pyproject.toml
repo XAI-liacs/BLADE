@@ -61,6 +61,9 @@ furo = "^2024.8.6"
 sphinxext-opengraph = "^0.9.1"
 sphinx-copybutton = "^0.5.2"
 
+[tool.poetry.group.baselines.dependencies]
+eoh = {git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh"}
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::PendingDeprecationWarning",
