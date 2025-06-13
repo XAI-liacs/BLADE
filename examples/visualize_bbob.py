@@ -156,16 +156,82 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
     data_stn[behaviour_feats] = robust_minmax(data_stn, behaviour_feats)
     for method, g in data_stn.groupby("method_name", sort=False):
         lines = []
+        lines_best = []
         # one file line per evaluation, ordered by run (seed) then _id
         for seed, sg in g.groupby("seed", sort=False):
+            current_best = -np.inf
             for _, row in sg.sort_values("_id").iterrows():
                 feat_str = ",".join(f"{row[c]:.12g}" for c in feature_cols)
                 lines.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
+                if row["fitness_fid"] > current_best:
+                    current_best = row["fitness_fid"]
+                    lines_best.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
 
         fname = f"{llm_name}_{method}.csv".replace(" ", "_")
         with open(os.path.join(stn_dir, fname), "w") as fh:
             fh.write("\n".join(lines))
 
+        fname_best = f"{llm_name}_{method}_best.csv".replace(" ", "_")
+        with open(os.path.join(stn_dir, fname_best), "w") as fh:
+            fh.write("\n".join(lines_best))
+
+
+
+    # ------------------------------------------------------------------
+    # 0  Pre-filter: keep only rows where fitness_fid strictly improves
+    #    relative to the previous evaluation of the *same seed*.
+    # ------------------------------------------------------------------
+    improving = (
+        data.sort_values(["seed", "_id"])          # just to be safe
+            .groupby("seed")["fitness_fid"]
+            .apply(lambda s: s > s.shift())        # True where improvement
+            .reset_index(level=0, drop=True)       # align with original index
+    )
+
+    data_imp = data[improving].copy()              # <- only improving evals
+
+        
+    # ------------------------------------------------------------------
+    # 1  Visualise behaviour features *along those improving steps only*
+    # ------------------------------------------------------------------
+    for algo, g in data_imp.groupby("method_name", sort=False):
+        g = g.sort_values(["seed", "_id"])          # nicer lines
+
+        for feat in behaviour_feats:
+            plt.figure(figsize=(8, 4))
+
+            # individual improving stretches
+            for _, seed_group in g.groupby("seed"):
+                plt.plot(
+                    seed_group["_id"],
+                    seed_group[feat],
+                    linewidth=0.6,
+                    alpha=0.35,
+                )
+
+            # mean trend of improving steps
+            mean_curve = (
+                g.groupby("_id")[feat]
+                .mean()
+                .reset_index()
+                .sort_values("_id")
+            )
+            plt.plot(
+                mean_curve["_id"],
+                mean_curve[feat],
+                linewidth=2,
+                label="mean on improving evals",
+            )
+
+            plt.title(f"{algo}")
+            plt.xlabel("Evaluations")
+            plt.ylabel(f"{feat} - of best so far")
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(f"{img_dir}{llm_name}_{algo}_{feat}_improving.png")
+            plt.clf()
+            plt.close()
+    
     # ------------------------------------------------------------------
     # 1  Behaviour features over evaluations
     #     (_id is assumed to be monotonically increasing per seed)

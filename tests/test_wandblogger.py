@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Adjust imports to your actual package structure
 from iohblade.loggers import ExperimentLogger, RunLogger
-from iohblade.loggers import WAndBExperimentLogger, WAndBRunLogger
+from iohblade.loggers.wandb import WAndBExperimentLogger, WAndBRunLogger
 from iohblade import Method
 from iohblade import Problem
 from iohblade import LLM
