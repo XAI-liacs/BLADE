@@ -2931,11 +2931,13 @@ description = "An easy to use CUDA/OpenCL kernel tuner in Python"
 optional = false
 python-versions = "^3.10"
 files = []
-develop = true
+develop = false
 
 [package.source]
-type = "directory"
-url = "lib/autotuner/kernel_tuner"
+type = "git"
+url = "https://github.com/XAI-liacs/kernel_tuner.git"
+reference = "hyperparametertuning_custom_strategies"
+resolved_reference = "b93bd38301ba37f05dde916244be8d09670c3d15"
 
 [[package]]
 name = "kiwisolver"
@@ -7515,4 +7517,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "61286fdf95c142a37048119138ff775147af6fc2327407ad70ad44bafb4e0467"
+content-hash = "11fe7b6bbb339cec36d79ccd3c310a643cd097f605c0ae59241fc039238c3675"
