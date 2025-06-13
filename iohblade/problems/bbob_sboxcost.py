@@ -32,12 +32,14 @@ class BBOB_SBOX(Problem):
         training_instances=None,
         test_instances=None,
         name="SBOX_COST",
-        eval_timeout=60,
+        eval_timeout=120,
         dims=[2, 5],
         budget_factor=2000,
         specific_fid=None,
         specific_group=None,
         problem_type=ioh.ProblemClass.SBOX,
+        full_ioh_log=False,
+        ioh_dir="",
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -52,6 +54,7 @@ class BBOB_SBOX(Problem):
             specific_fid (int): The specific function id to use. If not None, additional information is added to the prompt about the function.
             specific_group (int): The specific function group (1,2,3,4,5) to use. If not None, additional information is added to the prompt about the function group.
             problem_type (ioh.ProblemClass): The type of problem to use. Can be SBOX or BBOB.
+            full_ioh_log (bool): If set to True, additional IOH logs are being kept for each run and each algorithm.
         """
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
@@ -64,6 +67,8 @@ class BBOB_SBOX(Problem):
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.specific_fid = specific_fid
         self.specific_group = specific_group
+        self.full_ioh_log = full_ioh_log
+        self.ioh_dir = ioh_dir
 
         # List containing descriptions of each function group
         function_groups = [
@@ -125,16 +130,18 @@ class BBOB_SBOX(Problem):
             and self.specific_group > 0
         ):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically it should work well for {function_groups[self.specific_group-1]}."
+        else:
+            extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions."
 
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 {extra_prompt} Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
-"""
-        self.format_prompt = """
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
 The func() can only be called as many times as the budget allows, not more. 
+"""
+        self.example_prompt = """
 An example of such code (a simple random search), is as follows:
 ```python
 import numpy as np
@@ -157,7 +164,8 @@ class RandomSearch:
             
         return self.f_opt, self.x_opt
 ```
-
+        """
+        self.format_prompt = """
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
 # Code: 
@@ -170,9 +178,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         Returns the problem description and answer format.
         """
-        return self.task_prompt + self.format_prompt
+        return self.task_prompt + self.example_prompt + self.format_prompt
 
-    def evaluate(self, solution: Solution, test=False, ioh_dir=""):
+    def evaluate(self, solution: Solution, test=False):
         """
         Evaluates a solution on the SBOX or BBOB benchmark using AOCC.
         """
@@ -180,6 +188,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         auc_std = 0
         code = solution.code
         algorithm_name = solution.name
+        algorithm_id = solution.id
         safe_globals = {"np": np}
         local_env = {}
         exec(code, safe_globals, local_env)
@@ -209,11 +218,13 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     fid, instance=iid, dimension=dim, problem_class=self.problem_type
                 )
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-                if test:
+                if test or self.full_ioh_log:
                     l1 = ioh.logger.Analyzer(
-                        root=ioh_dir,
-                        folder_name=algorithm_name,
-                        algorithm_name=algorithm_name,
+                        root=self.ioh_dir,
+                        folder_name=algorithm_id,
+                        algorithm_name=algorithm_id,
+                        store_positions=True,
+                        triggers=[ioh_logger.trigger.ALWAYS],
                     )
                     combined_logger = ioh.logger.Combine([l1, l2])
                     f_new.attach_logger(combined_logger)
@@ -228,8 +239,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
                 aucs.append(correct_aoc(f_new, l2, budget))
                 l2.reset(f_new)
-                if test:
-                    l1.reset(f_new)
                 f_new.reset()
 
         auc_mean = np.mean(aucs)

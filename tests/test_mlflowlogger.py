@@ -8,7 +8,7 @@ from datetime import datetime
 
 # Adjust these imports to your actual package structure
 from iohblade.loggers import ExperimentLogger, RunLogger
-from iohblade.loggers import MLFlowExperimentLogger, MLFlowRunLogger
+from iohblade.loggers.mlflow import MLFlowExperimentLogger, MLFlowRunLogger
 from iohblade import Method
 from iohblade import Problem
 from iohblade import LLM

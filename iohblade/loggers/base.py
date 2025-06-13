@@ -58,7 +58,7 @@ class ExperimentLogger:
         self.run_logger = RunLogger(
             name=run_name,
             root_dir=self.dirname,
-            budget=self.budget,
+            budget=budget,
         )
         problem.set_logger(self.run_logger)
         return self.run_logger

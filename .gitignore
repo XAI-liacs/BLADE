@@ -170,3 +170,7 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 /results/
+/examples/img/
+BBOB*.pkl
+BBOB*.zip
+/stn/
