@@ -142,6 +142,17 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
     # ── NEW BLOCK — STN-style export (drop this *after* `behaviour_feats` is defined
     #    and `data` has been assembled for the current folder) ──────────────────────
+
+    log_folder = {"BBOB0": "BBOB",
+                  "BBOB1": "BBOB-1",
+                  "BBOB2": "BBOB-2",
+                  "BBOB3": "BBOB-3"}
+    loc = log_folder[folder]
+    logger = ExperimentLogger(f'/data/neocortex/{loc}', True)
+    df_log = logger.get_problem_data(problem_name='BBOB')
+
+    data = data.merge(df_log[['id', 'parent_ids']], on='id', how='left') #add parent_ids
+
     stn_dir = "stn/"
     os.makedirs(stn_dir, exist_ok=True)
 
@@ -151,29 +162,66 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         "longest_no_improvement_streak",
     ]  # the columns that go into the STN feature list (subset)
 
-
     data_stn = data.copy()
     data_stn[behaviour_feats] = robust_minmax(data_stn, behaviour_feats)
     for method, g in data_stn.groupby("method_name", sort=False):
+
+
         lines = []
         lines_best = []
         # one file line per evaluation, ordered by run (seed) then _id
         for seed, sg in g.groupby("seed", sort=False):
-            current_best = -np.inf
-            for _, row in sg.sort_values("_id").iterrows():
-                feat_str = ",".join(f"{row[c]:.12g}" for c in feature_cols)
-                lines.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
-                if row["fitness_fid"] > current_best:
-                    current_best = row["fitness_fid"]
-                    lines_best.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
+            # Quick lookup table: id  ➜ row (Series)
+            #id_lookup = sg.set_index("id", drop=False)
+            id_lookup = (
+                sg.sort_values("_id")           # ensures _id ascending
+                .drop_duplicates("id", keep="last")
+                .set_index("id", drop=False)
+            )
 
-        fname = f"{llm_name}_{method}.csv".replace(" ", "_")
+            current_best = -np.inf
+            for _, child in sg.sort_values("_id").iterrows():
+
+                # ── get parent row, if any ───────────────────────────────
+                parent = None
+                parent_list = child["parent_ids"]
+                if isinstance(parent_list, (list, tuple)) and parent_list:
+                    pid = parent_list[0]
+                    if pid in id_lookup.index:
+                        parent = id_lookup.loc[pid]
+                        
+                        
+                # ── stringify parent & child info ───────────────────────
+                # parent block
+                if parent is not None:
+                    try:
+                        feat_str_parent = ",".join(f"{parent[c]:.12g}" for c in feature_cols)
+                        parent_block = f"{parent['fitness_fid']:.12g}\t{feat_str_parent}"
+                        # child block
+                        feat_str_child = ",".join(f"{child[c]:.12g}" for c in feature_cols)
+                        child_block = f"{child['fitness_fid']:.12g}\t{feat_str_child}"
+                        # complete line: seed ⟶ parent ⟶ child
+                        lines.append(f"{seed}\t{parent_block}\t{child_block}")
+                    except Exception as e:
+                        print(f"Error processing seed {seed} with parent {pid}: {e}")
+                        print(parent)
+                        continue
+
+                # feat_str = ",".join(f"{row[c]:.12g}" for c in feature_cols)
+                # lines.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
+                # if row["fitness_fid"] > current_best:
+                #     current_best = row["fitness_fid"]
+                #     lines_best.append(f"{seed}\t{row['fitness_fid']:.12g}\t{feat_str}")
+
+        fname = f"{llm_name}_{method}_all.csv".replace(" ", "_")
         with open(os.path.join(stn_dir, fname), "w") as fh:
             fh.write("\n".join(lines))
 
-        fname_best = f"{llm_name}_{method}_best.csv".replace(" ", "_")
-        with open(os.path.join(stn_dir, fname_best), "w") as fh:
-            fh.write("\n".join(lines_best))
+    continue #only do STN for now
+
+        # fname_best = f"{llm_name}_{method}_best.csv".replace(" ", "_")
+        # with open(os.path.join(stn_dir, fname_best), "w") as fh:
+        #     fh.write("\n".join(lines_best))
 
 
 
