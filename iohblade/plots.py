@@ -23,6 +23,7 @@ def plot_convergence(
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
+    separate_lines: bool = False,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
@@ -31,6 +32,8 @@ def plot_convergence(
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label.
         save (bool, optional): Whether to save or show the plot.
+        return_fig (bool, optional): Whether to return the figure object.
+        separate_lines (bool, optional): If True, plots each run using separate line.
     """
     methods, problems = logger.get_methods_problems()
 
@@ -59,25 +62,29 @@ def plot_convergence(
             ].cummax()
 
             # Calculate mean and std deviation of the cumulative max fitness
-            summary = (
-                method_data.groupby("_id")["cummax_fitness"]
-                .agg(["mean", "std"])
-                .reset_index()
-            )
+            if separate_lines:
+                for seed in method_data["seed"].unique():
+                    seed_data = method_data[method_data["seed"] == seed]
+                    ax.plot(seed_data["_id"], seed_data["cummax_fitness"], label=f"{method} (Run {seed})", alpha=0.5)
+            else:
+                summary = (
+                    method_data.groupby("_id")["cummax_fitness"]
+                    .agg(["mean", "std"])
+                    .reset_index()
+                )
+                # Shift X-axis so that _id starts at 1
+                summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
 
-            # Shift X-axis so that _id starts at 1
-            summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
+                # Plot the mean fitness
+                ax.plot(summary["_id"], summary["mean"], label=method)
 
-            # Plot the mean fitness
-            ax.plot(summary["_id"], summary["mean"], label=method)
-
-            # Plot the shaded error region
-            ax.fill_between(
-                summary["_id"],
-                summary["mean"] - summary["std"],
-                summary["mean"] + summary["std"],
-                alpha=0.2,
-            )
+                # Plot the shaded error region
+                ax.fill_between(
+                    summary["_id"],
+                    summary["mean"] - summary["std"],
+                    summary["mean"] + summary["std"],
+                    alpha=0.2,
+                )
 
         # Add labels and legend
         ax.set_xlabel("Number of Evaluations")

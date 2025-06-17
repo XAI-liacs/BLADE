@@ -223,6 +223,12 @@ class RunLogger:
         self.attempt = 0
         self.budget = budget
 
+    def get_log_dir(self):
+        """
+        Returns the directory where the run is logged.
+        """
+        return self.dirname
+
     def create_log_dir(self, name="", root_dir=""):
         """
         Creates a new directory for logging runs based on the current date and time.

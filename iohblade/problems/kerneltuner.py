@@ -1,7 +1,5 @@
 import os
 import numpy as np
-import os
-import numpy as np
 import pandas as pd
 import polars as pl
 import random
@@ -20,6 +18,8 @@ from kernel_tuner.searchspace import Searchspace
 from kernel_tuner.strategies.common import CostFunc
 from kernel_tuner import tune_kernel_T1
 from pathlib import Path
+from autotuning_methodology.experiments import generate_experiment_file, execute_experiment
+from autotuning_methodology.report_experiments import get_strategy_scores
 
 
 class OverBudgetException(Exception):
@@ -67,7 +67,7 @@ class problem_wrapper:
 class OptAlgWrapper:
     """Wrapper class for user-defined optimization algorithms"""
 
-    def __init__(self, optimizer, budget=100, optimum=0, scaling=False):
+    def __init__(self, optimizer, budget=1000, optimum=0, scaling=False):
         self.optimizer = optimizer
         self.scaling = scaling
         self.budget = budget
@@ -76,32 +76,25 @@ class OptAlgWrapper:
 
     def tune(self, searchspace: Searchspace, runner, tuning_options):
         cost_func = CostFunc(searchspace, tuning_options, runner, scaling=self.scaling)
-
-        # l2 = aoc_logger(
-        #     self.budget, upper=1e2, lower=1e-1, scale_log=True, triggers=[logger.trigger.ALWAYS]
-        # )
-        # problem = get_problem(f"{application}-{gpu}", instance=0, problem_class=ioh.ProblemClass.INTEGER, dimension=len(tuning_options))
-        # problem.attach_logger(l2)
-
-        problem = problem_wrapper(cost_func, self.budget, self.optimum)
-
+        #problem = problem_wrapper(cost_func, self.budget, self.optimum)
         self.tuning_options = tuning_options
         self.searchspace = searchspace
 
         if self.scaling:
             # Initialize costfunc for scaling
             cost_func.get_bounds_x0_eps()
-
         try:
-            self.optimizer(problem, searchspace)
-        except OverBudgetException:
-            pass
+            #self.optimizer(problem, searchspace)
+            self.optimizer(cost_func, searchspace)
+        # except OverBudgetException:
+        #     pass
         except util.StopCriterionReached as e:
             if tuning_options.verbose:
                 print(e)
 
-        self.aoc = problem.get_aoc()  # correct_aoc(problem, l2, self.budget)
-        return problem.f.results
+        #self.aoc = problem.get_aoc()  # correct_aoc(problem, l2, self.budget)
+        #return problem.f.results
+        return cost_func.results
 
 
 class Kerneltuner(Problem):
@@ -117,8 +110,8 @@ class Kerneltuner(Problem):
         gpus=None,
         kernels=None,
         name="kerneltuner",
-        eval_timeout=60,
-        budget=100,
+        eval_timeout=600,
+        budget=1000,
         cache_dir="/data/neocortex/repos/benchmark_hub/",
         extra_info=False,
     ):
@@ -153,32 +146,6 @@ class Kerneltuner(Problem):
                 self.training_instances.append(f"{kernel}-{gpu}")
                 self.test_instances.append(f"{kernel}-{gpu}")
 
-        self.optima = {
-            "gemm-A100": 8.01820807158947,
-            "convolution-A100": 0.5536000076681376,
-            "dedispersion-A100": 68.1165759563446,
-            "hotspot-A100": 0.1966720037162304,
-            "gemm-A4000": 13.089913964271545,
-            "convolution-A4000": 1.021171996369958,
-            "dedispersion-A4000": 147.6977825164795,
-            "hotspot-A4000": 1.4143739938735962,
-            "gemm-A6000": 6.123518988490105,
-            "convolution-A6000": 0.6030377962291835,
-            "dedispersion-A6000": 84.21807646751404,
-            "hotspot-A6000": 0.8206389956176281,
-            "gemm-MI250X": 6.940651074051857,
-            "convolution-MI250X": 0.6587962452322245,
-            "dedispersion-MI250X": 49.5724800825119,
-            "hotspot-MI250X": 0.2868224401026964,
-            "gemm-W6600": 22.872174671718053,
-            "convolution-W6600": 1.7276193872094154,
-            "dedispersion-W6600": 135.0808186531067,
-            "hotspot-W6600": 1.3389952592551708,
-            "gemm-W7800": 6.276454776525497,
-            "convolution-W7800": 0.8161421902477741,
-            "dedispersion-W7800": 50.36081421375275,
-            "hotspot-W7800": 0.805098531767726,
-        }
         self.cache_dir = cache_dir
 
         super().__init__(
@@ -213,12 +180,14 @@ import random
 class AlgorithmName:
     "Template for a generic search algorithm"
 
-    def __init__(self, searchspace):
+    def __init__(self, budget=1000):
         self.pop_size = 20 # any parameters used in the search algorithm.
+        self.budget = budget
+
+    def __call__(self, func, searchspace):
         self.searchspace = searchspace
         self.tune_params = searchspace.tune_params.copy()
 
-    def __call__(self, func):
         self.f_opt = np.Inf
         self.x_opt = None
         # create initial population and run the search till evaluation budget is exhausted.
@@ -279,7 +248,128 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
-    def evaluate(self, solution: Solution, test=False, ioh_dir=""):
+
+    def evaluate(self, solution: Solution, test=False):
+        repeats = 5 # number of times to repeat for stochasticity
+
+        path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
+        path.mkdir(parents=True, exist_ok=True)
+
+        code = solution.code
+        algorithm_name = solution.name
+        
+        exec(code, globals())
+        budget = self.budget
+        optimizer = globals()[algorithm_name](budget=budget)
+        strategy = OptAlgWrapper(optimizer, budget=budget)
+
+        # get applications & GPUs args
+        gpus = self.gpus
+        folder = f"{self.cache_dir}kernels"
+        applications = []
+        for app in self.kernels:
+            applications.append(
+                {
+                    "name": f"{app}_milo",
+                    "folder": folder,
+                    "input_file": f"{app}_milo.json"
+                }
+            )
+        # write the solution to a file
+        alg_code = f"""
+import os
+import numpy as np
+import random
+import re
+import json
+import time
+import traceback
+import math
+import traceback
+
+from kernel_tuner import util
+from kernel_tuner.searchspace import Searchspace
+from kernel_tuner.strategies.common import CostFunc
+
+{solution.code}
+
+
+
+class problem_wrapper:
+    def __init__(self, f):
+        self.f = f
+
+    def __call__(self, x):
+        y = self.f(x)
+        #with open("log.txt", "a") as f:
+        #    f.write(f"Evaluating {{x}} -> {{y}}\\n")
+        return y
+
+
+class OptAlgWrapper:
+
+    def __init__(self, optimizer={solution.name}, budget=1000, scaling=False):
+        self.optimizer = optimizer(budget=budget)
+        self.scaling = scaling
+        self.budget = budget
+        print("initialized {solution.name}")
+
+    def tune(self, searchspace: Searchspace, runner, tuning_options):
+        print("Tuning started!")
+        cost_func = CostFunc(searchspace, tuning_options, runner, scaling=self.scaling)
+        problem = problem_wrapper(cost_func)
+        self.tuning_options = tuning_options
+        self.searchspace = searchspace
+
+        if self.scaling:
+            # Initialize costfunc for scaling
+            cost_func.get_bounds_x0_eps()
+        try:
+            print("Calling optimizer")
+            self.optimizer(problem, searchspace)
+        except Exception as e:
+            print("Error during optimization:", e)
+
+        return problem.f.results
+"""
+        solution_path = os.path.join(self.logger.get_log_dir(), "evaluation", solution.id, "code.py")
+        with open(solution_path, "w") as f:
+            f.write(alg_code)
+
+        # strategy settings
+        strategy: str = solution.name # the class name of your strategy
+        hyperparams = []
+        searchspace_strategies = [{
+            "autotuner": "KernelTuner",
+            "name": "OptAlgWrapper",
+            "display_name": strategy.replace('_', ' ').capitalize(),
+            "search_method": solution_path, # TODO give a path string to your strategy here (Can we not make this a callable?)
+            'search_method_hyperparameters': hyperparams
+        }]
+        # any additional settings
+        override = {
+            "experimental_groups_defaults": {
+                "repeats": repeats,
+                "samples": 32,
+                "minimum_fraction_of_budget_valid": 0.01,
+            }
+        }
+        
+        name = solution.id
+        experiments_filepath = generate_experiment_file(name, path, searchspace_strategies, applications, gpus, override=override, generate_unique_file=True, overwrite_existing_file=True)
+
+        # run the methodology to get a fitness score for this configuration
+        scores = get_strategy_scores(str(experiments_filepath))
+        score = scores[list(scores.keys())[0]]['score']
+
+        #solution.add_metadata("all_scores", scores)
+        solution.set_scores(
+            score,
+            f"The algorithm {solution.name} scored {score:.3f} (higher is better).",
+        )
+        return solution
+
+    def evaluate_old(self, solution: Solution, test=False, ioh_dir=""):
         """
         Evaluates a solution on the kernel tuner benchmark using AOCC.
         """

@@ -69,7 +69,7 @@ if selected:
             st.progress(pct, text=f"{prog.get('current',0)} / {total}")
 
     matplotlib.use("Agg")
-    fig = plot_convergence(logger, metric="fitness", save=False, return_fig=True)
+    fig = plot_convergence(logger, metric="fitness", save=False, return_fig=True, separate_lines=True)
     st.header(f"Convergence - {selected}")
     st.pyplot(fig)
     st.caption("Plot refreshes when the page reruns")
