@@ -71,7 +71,7 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
 
-> Note, some of these algorithms are currently not yet integrated, but they are planned for integration soonn.
+> Note, FunSearch is currently not yet integrated.
 
 ### Supported LLM APIs
 

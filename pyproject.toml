@@ -63,6 +63,7 @@ sphinx-copybutton = "^0.5.2"
 
 [tool.poetry.group.baselines.dependencies]
 eoh = {git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh"}
+reevo = {git = "https://github.com/ai4co/reevo.git"}
 
 [tool.pytest.ini_options]
 filterwarnings = [
