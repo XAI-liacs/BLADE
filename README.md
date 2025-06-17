@@ -13,7 +13,7 @@
     <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
   <a href="https://codecov.io/gh/XAI-liacs/BLADE" > 
     <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/> 
   </a>
@@ -101,7 +101,7 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
   pip install iohblade
 ```
 > [!Important]
-> The Python version **must** be larger or equal to Python 3.10.
+> The Python version **must** be larger or equal to Python 3.11.
 > You need an OpenAI/Gemini/Ollama API key for using LLM models.
 
 You can also install the package from source using Poetry (1.8.5).
@@ -111,15 +111,20 @@ You can also install the package from source using Poetry (1.8.5).
    git clone https://github.com/XAI-liacs/BLADE.git
    cd BLADE
    ```
+
 2. Install the required dependencies via Poetry:
    ```bash
    poetry install
    ```
 
-3. *(Optional)* Install additional baseline algorithms:
+3. *(Optional)* Install additional baseline methods:
    ```bash
-   poetry install --with baselines
+   poetry install --with methods
    ```
+   This will install *EoH* and *ReEvo* in addition to the standardly installed *LLaMEA* method.
+
+   To use the (experimental) auto-kernel application, you also need to use `--with kerneltuner` 
+   to install additional dependencies. 
 
 ## 💻 Quick Start
 
