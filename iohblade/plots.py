@@ -88,6 +88,7 @@ def plot_convergence(
         ax.set_title(problem)
         problem_i += 1
 
+    plt.tight_layout()
     if save:
         fig.savefig(f"{logger.dirname}/convergence.png")
     else:
