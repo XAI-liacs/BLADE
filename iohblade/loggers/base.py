@@ -1,4 +1,5 @@
 import os
+import json
 from datetime import datetime
 
 import jsonlines
@@ -30,6 +31,15 @@ class ExperimentLogger:
             self.dirname = name
         else:
             self.dirname = self.create_log_dir(name)
+            self.progress = {
+                "start_time": datetime.now().isoformat(),
+                "end_time": None,
+                "current": 0,
+                "total": 0,
+            }
+            self._write_progress()
+        if read:
+            self._load_progress()
 
     def create_log_dir(self, name=""):
         """
@@ -83,6 +93,7 @@ class ExperimentLogger:
             log_dir (str): The directory where the run is logged.
             seed (int): The seed used in the run.
         """
+        rel_log_dir = os.path.relpath(log_dir, self.dirname)
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
@@ -91,11 +102,12 @@ class ExperimentLogger:
             "problem": problem.to_dict(),
             "llm": llm.to_dict(),
             "solution": solution.to_dict(),
-            "log_dir": log_dir,
+            "log_dir": rel_log_dir,
             "seed": seed,
         }
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
             file.write(convert_to_serializable(run_object))
+        self.increment_progress()
 
     def get_data(self):
         """
@@ -122,7 +134,7 @@ class ExperimentLogger:
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl") as file:
             for line in file:
                 if line["problem_name"] == problem_name:
-                    logdir = line["log_dir"]
+                    logdir = os.path.join(self.dirname, line["log_dir"])
                     # now process the logdirs into one combined PandasDataframe
                     if os.path.exists(f"{logdir}/log.jsonl"):
                         df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
@@ -149,6 +161,47 @@ class ExperimentLogger:
                 if line["problem_name"] not in problems:
                     problems.append(line["problem_name"])
         return methods, problems
+
+    # Progress helpers -------------------------------------------------
+
+    def _progress_path(self):
+        return os.path.join(self.dirname, "progress.json")
+
+    def _write_progress(self):
+        with open(self._progress_path(), "w") as f:
+            json.dump(self.progress, f)
+
+    def _load_progress(self):
+        path = self._progress_path()
+        if os.path.exists(path):
+            with open(path) as f:
+                self.progress = json.load(f)
+        else:
+            self.progress = {}
+
+    def start_progress(self, total_runs: int):
+        """Initialize progress tracking with the total number of runs."""
+        self.progress = {
+            "start_time": datetime.now().isoformat(),
+            "end_time": None,
+            "current": 0,
+            "total": int(total_runs),
+        }
+        self._write_progress()
+
+    def increment_progress(self):
+        """Increment the finished run counter and write to file."""
+        if not hasattr(self, "progress"):
+            self.start_progress(0)
+        self.progress["current"] = self.progress.get("current", 0) + 1
+        total = self.progress.get("total", 0)
+        if (
+            total
+            and self.progress["current"] >= total
+            and self.progress.get("end_time") is None
+        ):
+            self.progress["end_time"] = datetime.now().isoformat()
+        self._write_progress()
 
 
 class RunLogger:
