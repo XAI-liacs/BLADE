@@ -208,9 +208,9 @@ class AlgorithmName(OptAlg):
         # evaluate a solution using `func(x)` where `x` is a list of parameter values.
         # then return the best solution found
 
-    def generate_population(self):
-        "We can use a constraint-aware random sampling method (optional)"
-        pop = list(list(p) for p in self.searchspace.get_random_sample(self.pop_size))
+    def generate_population(self, pop_size=10):
+        "We can use a constraint-aware random sampling method (optional), get_random_sample always returns valid configurations."
+        pop = list(list(p) for p in self.searchspace.get_random_sample(pop_size))
         return pop
 
     def get_neighbour(self, solution):

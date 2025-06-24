@@ -31,7 +31,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"], #, "A4000", "MI250X"
                 kernels=["gemm"],
                 name="kerneltuner-gemm",
-                eval_timeout=7200, #2 hours..
+                eval_timeout=3600, #2 hours..
                 budget=1000,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=True),
@@ -39,7 +39,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"],
                 kernels=["convolution"],
                 name="kerneltuner-convolution",
-                eval_timeout=7200,
+                eval_timeout=3600,
                 budget=1000,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=True),
@@ -47,7 +47,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"],
                 kernels=["dedispersion"],
                 name="kerneltuner-dedispersion",
-                eval_timeout=7200,
+                eval_timeout=3600,
                 budget=1000,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=True),
@@ -55,7 +55,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"],
                 kernels=["hotspot"],
                 name="kerneltuner-hotspot",
-                eval_timeout=7200,
+                eval_timeout=3600,
                 budget=1000,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=True),
