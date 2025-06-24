@@ -345,6 +345,8 @@ from kernel_tuner.strategies.wrapper import OptAlg
     def test(self, solution: Solution, ioh_dir=""):
         """
         Runs the solution on test instances and returns the fitness score.
+
+        To evaluate kernel tuner solutions, use `autotuning_visualize <path to test file>`.
         """
         return self.evaluate(solution, True, ioh_dir)
 

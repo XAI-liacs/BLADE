@@ -15,7 +15,7 @@ def discover_experiments(root=RESULTS_DIR):
         for entry in os.listdir(root):
             path = os.path.join(root, entry)
             if os.path.isdir(path) and os.path.exists(
-                os.path.join(path, "progress.jsonl")
+                os.path.join(path, "progress.json")
             ):
                 exps.append(entry)
     return sorted(exps)

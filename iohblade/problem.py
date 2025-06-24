@@ -97,8 +97,15 @@ class Problem(ABC):
                 result = parent_conn.recv()
                 if isinstance(result, Exception):
                     raise result
-                else:
+                elif isinstance(result, Solution):
                     solution = result
+                elif isinstance(result, str):
+                    # If a string is returned, it is likely an error message
+                    solution.set_scores(
+                        -np.Inf, feedback=f"An error occurred: {result}."
+                    )
+                else:
+                    raise Exception("No Solution object or string returned.")
             else:
                 raise Exception("Evaluation failed without an exception.")
         except Exception as e:
