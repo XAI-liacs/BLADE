@@ -156,9 +156,10 @@ class Kerneltuner(Problem):
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """
 You are a highly skilled computer scientist in the field of natural computing and hardware kernel tuning. Your task is to design novel metaheuristic algorithms to solve kernel tuner problems (integer, variable dimension, contraint).
-The optimization algorithm should handle a kernel tuning task with a given evaluation budget. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` using function evaluations.
+The optimization algorithm should handle a kernel tuning task. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` using function evaluations.
 The `searchspace` object can be used to sample random instances, neighbouring instances using `searchspace.get_neighbors(param_config: tuple, neighbor_method='Hamming')` where neighbor_method can be any of ["strictly-adjacent", "adjacent", "Hamming"] and to check validity of parameter settings using `searchspace.is_param_config_valid(tuple(instance))`, nothing else. The dimensionality can be varied.
-In addition, the variable `tune_params` is a dictionary containing the tuning parameters with their ranges and constraints, it can be obtained directly from the searchspace object `searchspace.tune_params`. The algorithm should be able to handle any number of tuning parameters, and the search space can be continuous or discrete. The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.
+In addition, the variable `tune_params` is a dictionary containing the tuning parameters with their ranges and constraints, it can be obtained directly from the searchspace object `searchspace.tune_params`. The algorithm should be able to handle any number of tuning parameters, and the search space can be continuous or discrete. 
+
 """
         if len(self.kernels) == 1 and extra_info:
             input_filepath = Path(
@@ -172,6 +173,9 @@ In addition, the variable `tune_params` is a dictionary containing the tuning pa
             )
             with open(input_filepath, "r") as f:
                 self.task_prompt += f.read()
+        
+        else:
+            self.task_prompt += "The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.\n"
 
         self.example_prompt = """
 An example code structure with helper functions is as follows:
@@ -180,12 +184,12 @@ import numpy as np
 import random
 
 class AlgorithmName(OptAlg):
-    "Template for a generic search algorithm"
+    "Template for a kernel-tune algorithm"
 
     def __init__(self):
         # any parameters used in the search algorithm.
 
-        # some settings for the search algorithm, don't change these.
+        # Don't change the following 2 settings, they are not used in the algorithms code but are required for running it in the evaluator.
         self.constraint_aware = False
         self.costfunc_kwargs = {
             "scaling": False,
@@ -193,40 +197,42 @@ class AlgorithmName(OptAlg):
         }
 
     def __call__(self, func, searchspace):
-        self.budget = searchspace.size
+        self.budget = searchspace.size 
+        #this is not really the budget, but the size of the search space. The budget is dynamic and we can see how much fraction we used with `func.budget_spent_fraction`.
         self.searchspace = searchspace
         self.tune_params = searchspace.tune_params.copy()
 
         self.f_opt = np.Inf
         self.x_opt = None
-        # create initial population and run the search till evaluation budget is exhausted.
-        # then retur the best solution found
+        # create initial population and run the search till func.budget_spent_fraction is exhausted (1.0).
+        # evaluate a solution using `func(x)` where `x` is a list of parameter values.
+        # then return the best solution found
 
     def generate_population(self):
-        "We can use a constraint-aware sampling method"
+        "We can use a constraint-aware random sampling method (optional)"
         pop = list(list(p) for p in self.searchspace.get_random_sample(self.pop_size))
         return pop
 
-    def get_neighbour(self, dna):
+    def get_neighbour(self, solution):
         "We can easily get a random neighbour with hamming distance 1 using the searchspace provided method (for example)."
-        neighbors = self.searchspace.get_neighbors(tuple(dna), neighbor_method="Hamming")
+        neighbors = self.searchspace.get_neighbors(tuple(solution), neighbor_method="Hamming")
         if len(neighbors) > 0:
             return list(random.choice(neighbors))
-        return dna
+        return solution
 
-    def repair(self, dna):
+    def repair(self, solution):
         "It is possible that at some point a configuration is not valid (due to mutation, crossover etc). "
-        if not self.searchspace.is_param_config_valid(tuple(dna)):
-            # dna is not valid, try to repair it
+        if not self.searchspace.is_param_config_valid(tuple(solution)):
+            # solution is not valid, try to repair it
             # search for valid configurations neighboring this config
             # start from strictly-adjacent to increasingly allowing more neighbors
             for neighbor_method in ["strictly-adjacent", "adjacent", "Hamming"]:
-                neighbors = self.searchspace.get_neighbors_no_cache(tuple(dna), neighbor_method=neighbor_method)
+                neighbors = self.searchspace.get_neighbors_no_cache(tuple(solution), neighbor_method=neighbor_method)
                 # if we have found valid neighboring configurations, select one at random
                 if len(neighbors) > 0:
-                    new_dna = list(random.choice(neighbors))
-                    return new_dna
-        return dna
+                    new_solution = list(random.choice(neighbors))
+                    return new_solution
+        return solution
 ```
 """
         self.format_prompt = """
@@ -239,17 +245,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 ```
 """
 
-        # Load data files
-        base_path = os.path.dirname(__file__)
-        self.weights = pd.read_csv(
-            os.path.join(base_path, "mabbob", "weights.csv"), index_col=0
-        )
-        self.iids = pd.read_csv(
-            os.path.join(base_path, "mabbob", "iids.csv"), index_col=0
-        )
-        self.opt_locs = pd.read_csv(
-            os.path.join(base_path, "mabbob", "opt_locs.csv"), index_col=0
-        )
 
     def get_prompt(self):
         """
@@ -259,7 +254,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
 
     def evaluate(self, solution: Solution, test=False):
-        repeats = 5 # number of times to repeat for stochasticity
+        repeats = 2 # number of times to repeat for stochasticity, just two for now.
 
         path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
         path.mkdir(parents=True, exist_ok=True)
