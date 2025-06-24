@@ -108,10 +108,13 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
                 'seed': 'first',
                 'method_name': 'first',                    # keep one value
                 'problem_name': 'first'}                   #  – they should be constant per id
+    print(df['_id'].describe())
 
     df_all = (df
             .groupby('id', as_index=False)
             .agg(agg_map))
+
+    print(df_all['_id'].head())
 
 
 
@@ -153,8 +156,10 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
     loc = log_folder[folder]
     logger = ExperimentLogger(f'/data/neocortex/{loc}', True)
     df_log = logger.get_problem_data(problem_name='BBOB')
+    
 
     data = data.merge(df_log[['id', 'parent_ids']], on='id', how='left') #add parent_ids
+
 
     if True:
         # ── NEW BLOCK — STN-style export (drop this *after* `behaviour_feats` is defined
@@ -187,12 +192,14 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
                 #id_lookup = sg.set_index("id", drop=False)
                 id_lookup = (
                     sg.sort_values("_id")           # ensures _id ascending
-                    .drop_duplicates("id", keep="last")
+                    .drop_duplicates("id", keep="first")
                     .set_index("id", drop=False)
                 )
 
                 current_best = -np.inf
                 for _, child in sg.sort_values("_id").iterrows():
+                    # print(child)
+                    # a =aaaa
 
                     # ── get parent row, if any ───────────────────────────────
                     parent = None
@@ -201,7 +208,10 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
                         pid = parent_list[0]
                         if pid in id_lookup.index:
                             parent = id_lookup.loc[pid]
-                            
+                    
+                    if parent is None:
+                        # No parent found, use the current child as parent
+                        parent = child
                             
                     # ── stringify parent & child info ───────────────────────
                     # parent block
@@ -372,7 +382,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             plt.clf()
             plt.close()
 
-    if True:
+    if False:
         # ------------------------------------------------------------------
         # 1  Correlation heat‑map 
         # ------------------------------------------------------------------

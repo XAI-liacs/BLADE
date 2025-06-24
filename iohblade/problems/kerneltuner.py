@@ -16,6 +16,8 @@ from ..problem import Problem
 from kernel_tuner import util
 from kernel_tuner.searchspace import Searchspace
 from kernel_tuner.strategies.common import CostFunc
+from kernel_tuner.strategies.wrapper import OptAlg
+
 from kernel_tuner import tune_kernel_T1
 from pathlib import Path
 from autotuning_methodology.experiments import generate_experiment_file, execute_experiment
@@ -154,8 +156,8 @@ class Kerneltuner(Problem):
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """
 You are a highly skilled computer scientist in the field of natural computing and hardware kernel tuning. Your task is to design novel metaheuristic algorithms to solve kernel tuner problems (integer, variable dimension, contraint).
-The optimization algorithm should handle a kernel tuning task with a given evaluation budget. Your task is to write the optimization algorithm in Python code. The code should contain an `__init__(self, budget)` function with optional additional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` using `self.budget` function evaluations.
-The func() can only be called as many times as the budget allows, not more. The `searchspace` object can be used to sample random instances, neighbouring instances using `searchspace.get_neighbors(param_config: tuple, neighbor_method='Hamming')` where neighbor_method can be any of ["strictly-adjacent", "adjacent", "Hamming"] and to check validity of parameter settings using `searchspace.is_param_config_valid(tuple(instance))`, nothing else. The dimensionality can be varied.
+The optimization algorithm should handle a kernel tuning task with a given evaluation budget. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` using function evaluations.
+The `searchspace` object can be used to sample random instances, neighbouring instances using `searchspace.get_neighbors(param_config: tuple, neighbor_method='Hamming')` where neighbor_method can be any of ["strictly-adjacent", "adjacent", "Hamming"] and to check validity of parameter settings using `searchspace.is_param_config_valid(tuple(instance))`, nothing else. The dimensionality can be varied.
 In addition, the variable `tune_params` is a dictionary containing the tuning parameters with their ranges and constraints, it can be obtained directly from the searchspace object `searchspace.tune_params`. The algorithm should be able to handle any number of tuning parameters, and the search space can be continuous or discrete. The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.
 """
         if len(self.kernels) == 1 and extra_info:
@@ -177,14 +179,21 @@ An example code structure with helper functions is as follows:
 import numpy as np
 import random
 
-class AlgorithmName:
+class AlgorithmName(OptAlg):
     "Template for a generic search algorithm"
 
-    def __init__(self, budget=1000):
-        self.pop_size = 20 # any parameters used in the search algorithm.
-        self.budget = budget
+    def __init__(self):
+        # any parameters used in the search algorithm.
+
+        # some settings for the search algorithm, don't change these.
+        self.constraint_aware = False
+        self.costfunc_kwargs = {
+            "scaling": False,
+            "snap": False,
+        }
 
     def __call__(self, func, searchspace):
+        self.budget = searchspace.size
         self.searchspace = searchspace
         self.tune_params = searchspace.tune_params.copy()
 
@@ -259,9 +268,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         algorithm_name = solution.name
         
         exec(code, globals())
-        budget = self.budget
-        optimizer = globals()[algorithm_name](budget=budget)
-        strategy = OptAlgWrapper(optimizer, budget=budget)
+        strategy = globals()[algorithm_name]()
 
         # get applications & GPUs args
         gpus = self.gpus
@@ -285,52 +292,14 @@ import json
 import time
 import traceback
 import math
-import traceback
 
 from kernel_tuner import util
 from kernel_tuner.searchspace import Searchspace
 from kernel_tuner.strategies.common import CostFunc
+from kernel_tuner.strategies.wrapper import OptAlg
 
 {solution.code}
 
-
-
-class problem_wrapper:
-    def __init__(self, f):
-        self.f = f
-
-    def __call__(self, x):
-        y = self.f(x)
-        #with open("log.txt", "a") as f:
-        #    f.write(f"Evaluating {{x}} -> {{y}}\\n")
-        return y
-
-
-class OptAlgWrapper:
-
-    def __init__(self, optimizer={solution.name}, budget=1000, scaling=False):
-        self.optimizer = optimizer(budget=budget)
-        self.scaling = scaling
-        self.budget = budget
-        print("initialized {solution.name}")
-
-    def tune(self, searchspace: Searchspace, runner, tuning_options):
-        print("Tuning started!")
-        cost_func = CostFunc(searchspace, tuning_options, runner, scaling=self.scaling)
-        problem = problem_wrapper(cost_func)
-        self.tuning_options = tuning_options
-        self.searchspace = searchspace
-
-        if self.scaling:
-            # Initialize costfunc for scaling
-            cost_func.get_bounds_x0_eps()
-        try:
-            print("Calling optimizer")
-            self.optimizer(problem, searchspace)
-        except Exception as e:
-            print("Error during optimization:", e)
-
-        return problem.f.results
 """
         solution_path = os.path.join(self.logger.get_log_dir(), "evaluation", solution.id, "code.py")
         with open(solution_path, "w") as f:
@@ -341,22 +310,26 @@ class OptAlgWrapper:
         hyperparams = []
         searchspace_strategies = [{
             "autotuner": "KernelTuner",
-            "name": "OptAlgWrapper",
+            "name": strategy,
             "display_name": strategy.replace('_', ' ').capitalize(),
-            "search_method": solution_path, # TODO give a path string to your strategy here (Can we not make this a callable?)
-            'search_method_hyperparameters': hyperparams
+            "search_method": strategy, # TODO give a path string to your strategy here (Can we not make this a callable?)
+            'search_method_hyperparameters': hyperparams,
+            "custom_search_method_path": solution_path
         }]
         # any additional settings
         override = {
             "experimental_groups_defaults": {
+                "parent_folder": str(path),
                 "repeats": repeats,
                 "samples": 32,
                 "minimum_fraction_of_budget_valid": 0.01,
+                "pattern_for_full_search_space_filenames": {"regex" : "/data/neocortex/repos/benchmark_hub/cachefiles/${applications}/${gpus}_T4.json"}
             }
         }
         
+        
         name = solution.id
-        experiments_filepath = generate_experiment_file(name, path, searchspace_strategies, applications, gpus, override=override, generate_unique_file=True, overwrite_existing_file=True)
+        experiments_filepath = generate_experiment_file(name, path, searchspace_strategies, applications, gpus, override=override, generate_unique_file=False, overwrite_existing_file=True)
 
         # run the methodology to get a fitness score for this configuration
         scores = get_strategy_scores(str(experiments_filepath))
@@ -367,80 +340,6 @@ class OptAlgWrapper:
             score,
             f"The algorithm {solution.name} scored {score:.3f} (higher is better).",
         )
-        return solution
-
-    def evaluate_old(self, solution: Solution, test=False, ioh_dir=""):
-        """
-        Evaluates a solution on the kernel tuner benchmark using AOCC.
-        """
-        aocc_mean = 0
-        aocc_std = 0
-        code = solution.code
-        algorithm_name = solution.name
-        safe_globals = {
-            "np": np,
-            "math": math,
-            "random": random,
-        }
-        exec(code, globals())
-
-        algorithm = None
-
-        # Final validation
-        instances = self.test_instances if test else self.training_instances
-        aoccs = []
-        budget = self.budget
-        for idx in instances:
-            application, gpu = idx.split("-")
-            if idx not in self.optima:
-                continue  # Skip if no optimum is defined for this instance
-            optimum = self.optima[idx]
-            strategy_options = {
-                "max_fevals": budget,
-                "time_limit": 60,
-            }
-            iterations = 1  # number of kernel runs (1 because we use cached results anyways, by default 7)
-            input_filepath = Path(f"{self.cache_dir}kernels/{application}_milo.json")
-            cache_filepath = Path(
-                f"{self.cache_dir}cachefiles/{application}_milo/{gpu}.json"
-            )
-
-            try:
-                optimizer = globals()[algorithm_name](budget=budget)
-                # Wrap the algorithm class in the OptAlgWrapper
-                # for use in Kernel Tuner
-                strategy = OptAlgWrapper(optimizer, budget=budget, optimum=optimum)
-
-                results, env = tune_kernel_T1(
-                    input_filepath,
-                    cache_filepath,
-                    objective="time",
-                    objective_higher_is_better=False,
-                    simulation_mode=True,
-                    output_T4=False,
-                    iterations=iterations,
-                    device=gpu,
-                    strategy=strategy,
-                    strategy_options=strategy_options,
-                )
-                aoc = strategy.aoc
-                score = util.get_best_config(results, "time", False)["time"]
-
-                aoccs.append(aoc)
-            except OverBudgetException:
-                aoc = strategy.aoc
-                aoccs.append(aoc)
-                break
-
-        aocc_mean = np.mean(aoccs)
-        aocc_std = np.std(aoccs)
-
-        solution.add_metadata("aoccs", aoccs)
-        solution.set_scores(
-            aocc_mean,
-            f"The algorithm {algorithm_name} scored {aocc_mean:.3f} on AOCC (higher is better, 1.0 is the best).",
-        )
-
         return solution
 
     def test(self, solution: Solution, ioh_dir=""):
