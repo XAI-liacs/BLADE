@@ -30,75 +30,6 @@ class OverBudgetException(Exception):
     pass
 
 
-class problem_wrapper:
-    def __init__(self, f, budget, optimum, scale_log=True):
-        self.f = f
-        self.budget = budget
-        self.aoc = 0
-        self.lower = 1e-3
-        self.upper = 1e2
-        self.budget = budget
-        self.eval_count = 0
-        self.raw_y_best = self.upper
-        self.global_best = optimum
-        self.transform = lambda x: np.log10(x) if scale_log else (lambda x: x)
-
-    def __call__(self, x):
-        if self.eval_count > self.budget:
-            raise OverBudgetException("Budget exceeded")
-        y = self.f(x) - self.global_best  # so optimum at 0
-        if y < self.raw_y_best:
-            self.raw_y_best = y
-        y_value = np.clip(self.raw_y_best, self.lower, self.upper)
-        self.aoc += (self.transform(y_value) - self.transform(self.lower)) / (
-            self.transform(self.upper) - self.transform(self.lower)
-        )
-        self.eval_count += 1
-        return y
-
-    def get_aoc(self):
-        while self.eval_count < self.budget:
-            y_value = np.clip(self.raw_y_best, self.lower, self.upper)
-            self.aoc += (self.transform(y_value) - self.transform(self.lower)) / (
-                self.transform(self.upper) - self.transform(self.lower)
-            )
-            self.eval_count += 1
-        return 1 - (self.aoc / self.budget)
-
-
-class OptAlgWrapper:
-    """Wrapper class for user-defined optimization algorithms"""
-
-    def __init__(self, optimizer, budget=1000, optimum=0, scaling=False):
-        self.optimizer = optimizer
-        self.scaling = scaling
-        self.budget = budget
-        self.aoc = 0
-        self.optimum = optimum
-
-    def tune(self, searchspace: Searchspace, runner, tuning_options):
-        cost_func = CostFunc(searchspace, tuning_options, runner, scaling=self.scaling)
-        #problem = problem_wrapper(cost_func, self.budget, self.optimum)
-        self.tuning_options = tuning_options
-        self.searchspace = searchspace
-
-        if self.scaling:
-            # Initialize costfunc for scaling
-            cost_func.get_bounds_x0_eps()
-        try:
-            #self.optimizer(problem, searchspace)
-            self.optimizer(cost_func, searchspace)
-        # except OverBudgetException:
-        #     pass
-        except util.StopCriterionReached as e:
-            if tuning_options.verbose:
-                print(e)
-
-        #self.aoc = problem.get_aoc()  # correct_aoc(problem, l2, self.budget)
-        #return problem.f.results
-        return cost_func.results
-
-
 class Kerneltuner(Problem):
     """
     Problem class for evaluating optimization algorithms on kernel tuner real world benchmark.
@@ -156,7 +87,7 @@ class Kerneltuner(Problem):
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """
 You are a highly skilled computer scientist in the field of natural computing and hardware kernel tuning. Your task is to design novel metaheuristic algorithms to solve kernel tuner problems (integer, variable dimension, contraint).
-The optimization algorithm should handle a kernel tuning task. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` using function evaluations.
+The optimization algorithm should handle a kernel tuning task. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self, budget=5000)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` till the `func.budget_spent_fraction` is 1.0.
 The `searchspace` object can be used to sample random instances, neighbouring instances using `searchspace.get_neighbors(param_config: tuple, neighbor_method='Hamming')` where neighbor_method can be any of ["strictly-adjacent", "adjacent", "Hamming"] and to check validity of parameter settings using `searchspace.is_param_config_valid(tuple(instance))`, nothing else. The dimensionality can be varied.
 In addition, the variable `tune_params` is a dictionary containing the tuning parameters with their ranges and constraints, it can be obtained directly from the searchspace object `searchspace.tune_params`. The algorithm should be able to handle any number of tuning parameters, and the search space can be continuous or discrete. 
 
@@ -186,9 +117,9 @@ import random
 class AlgorithmName(OptAlg):
     "Template for a kernel-tune algorithm"
 
-    def __init__(self):
+    def __init__(self, budget=5000):
         # any parameters used in the search algorithm.
-
+        self.param = None
         # Don't change the following 2 settings, they are not used in the algorithms code but are required for running it in the evaluator.
         self.constraint_aware = False
         self.costfunc_kwargs = {
@@ -197,16 +128,17 @@ class AlgorithmName(OptAlg):
         }
 
     def __call__(self, func, searchspace):
-        self.budget = searchspace.size 
         #this is not really the budget, but the size of the search space. The budget is dynamic and we can see how much fraction we used with `func.budget_spent_fraction`.
+        self.budget = searchspace.size
         self.searchspace = searchspace
         self.tune_params = searchspace.tune_params.copy()
 
         self.f_opt = np.Inf
         self.x_opt = None
-        # create initial population and run the search till func.budget_spent_fraction is exhausted (1.0).
+        # create initial population and run the search till func.budget_spent_fraction is 1.0.
         # evaluate a solution using `func(x)` where `x` is a list of parameter values.
-        # then return the best solution found
+        # then return the best solution found (tuple, x_opt, f_opt) at the end of the search.
+        return self.x_opt, self.f_opt
 
     def generate_population(self, pop_size=10):
         "We can use a constraint-aware random sampling method (optional), get_random_sample always returns valid configurations."
@@ -254,7 +186,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
 
     def evaluate(self, solution: Solution, test=False):
-        repeats = 2 # number of times to repeat for stochasticity, just two for now.
+        repeats = 5 # number of times to repeat for stochasticity, just two for now.
 
         path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
         path.mkdir(parents=True, exist_ok=True)

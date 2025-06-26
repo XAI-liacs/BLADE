@@ -3009,7 +3009,7 @@ develop = false
 type = "git"
 url = "https://github.com/XAI-liacs/kernel_tuner.git"
 reference = "hyperparametertuning_custom_strategies"
-resolved_reference = "b93bd38301ba37f05dde916244be8d09670c3d15"
+resolved_reference = "bd077452577fd9eed94d4e8e44d8a46bb1cf0fe6"
 
 [[package]]
 name = "kiwisolver"
