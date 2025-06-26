@@ -18,7 +18,7 @@ def evaluate_in_subprocess(problem, conn, solution):
         result = problem.evaluate(solution)
         conn.send(result)  # Send result through the pipe
     except Exception as e:
-        print(f"stracktrace: {traceback.format_exc()}")
+        #print(f"stracktrace: {traceback.format_exc()}")
         conn.send(f"{e} stracktrace: {traceback.format_exc()}")  # Send exception for handling in the parent
     finally:
         conn.close()  # Ensure pipe is closed after sending data
@@ -76,46 +76,46 @@ class Problem(ABC):
             if self.logger.budget_exhausted():
                 raise Exception("Evaluation failed because budget is exhausted.")
 
-        solution = self.evaluate(solution) #old fashioned way
+        #solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
-        # try:
-        #     (
-        #         parent_conn,
-        #         child_conn,
-        #     ) = multiprocessing.Pipe()  # Create pipe for communication
-        #     process = multiprocessing.Process(
-        #         target=evaluate_in_subprocess, args=(self, child_conn, solution)
-        #     )
-        #     process.start()
-        #     process.join(timeout=self.eval_timeout)
+        try:
+            (
+                parent_conn,
+                child_conn,
+            ) = multiprocessing.Pipe()  # Create pipe for communication
+            process = multiprocessing.Process(
+                target=evaluate_in_subprocess, args=(self, child_conn, solution)
+            )
+            process.start()
+            process.join(timeout=self.eval_timeout)
 
-        #     if process.is_alive():
-        #         raise TimeoutException(
-        #             f"Evaluation timed out after {self.eval_timeout} seconds."
-        #         )
-        #     if parent_conn.poll():
-        #         result = parent_conn.recv()
-        #         if isinstance(result, Exception):
-        #             raise result
-        #         elif isinstance(result, Solution):
-        #             solution = result
-        #         elif isinstance(result, str):
-        #             # If a string is returned, it is likely an error message
-        #             solution.set_scores(
-        #                 -np.Inf, feedback=f"An error occurred: {result}."
-        #             )
-        #         else:
-        #             raise Exception("No Solution object or string returned.")
-        #     else:
-        #         raise Exception("Evaluation failed without an exception.")
-        # except Exception as e:
-        #     solution.set_scores(-np.Inf, feedback=f"An exception occurred: {e}.")
-        # finally:
-        #     try:
-        #         process.terminate()
-        #         process.join()
-        #     except Exception:
-        #         pass
+            if process.is_alive():
+                raise TimeoutException(
+                    f"Evaluation timed out after {self.eval_timeout} seconds."
+                )
+            if parent_conn.poll():
+                result = parent_conn.recv()
+                if isinstance(result, Exception):
+                    raise result
+                elif isinstance(result, Solution):
+                    solution = result
+                elif isinstance(result, str):
+                    # If a string is returned, it is likely an error message
+                    solution.set_scores(
+                        -np.Inf, feedback=f"An error occurred: {result}."
+                    )
+                else:
+                    raise Exception("No Solution object or string returned.")
+            else:
+                raise Exception("Evaluation failed without an exception.")
+        except Exception as e:
+            solution.set_scores(-np.Inf, feedback=f"An exception occurred: {e}.")
+        finally:
+            try:
+                process.terminate()
+                process.join()
+            except Exception:
+                pass
 
         if self.logger is not None:
             self.logger.log_individual(solution)
