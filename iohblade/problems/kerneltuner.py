@@ -120,12 +120,6 @@ class AlgorithmName(OptAlg):
     def __init__(self, budget=5000):
         # any parameters used in the search algorithm.
         self.param = None
-        # Don't change the following 2 settings, they are not used in the algorithms code but are required for running it in the evaluator.
-        self.constraint_aware = False
-        self.costfunc_kwargs = {
-            "scaling": False,
-            "snap": False,
-        }
 
     def __call__(self, func, searchspace):
         #this is not really the budget, but the size of the search space. The budget is dynamic and we can see how much fraction we used with `func.budget_spent_fraction`.
