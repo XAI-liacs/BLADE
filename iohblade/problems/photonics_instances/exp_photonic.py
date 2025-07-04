@@ -1,15 +1,16 @@
 import os
 import sys
+
 import ioh
 import numpy as np
+
 from .problems.brag_mirror import brag_mirror
 from .problems.ellipsometry_inverse import ellipsometry
+from .problems.grating2D import grating2D
+from .problems.plasmonic_nanostructure import plasmonic_nanostructure
 from .problems.sophisticated_antireflection_design import (
     sophisticated_antireflection_design,
 )
-from .problems.grating2D import grating2D
-from .problems.plasmonic_nanostructure import plasmonic_nanostructure
-
 
 problem_descriptions = {
     "bragg": "The Bragg mirror optimization aims to maximize reflectivity at a wavelength of 600 nm using a multilayer structure with alternating refractive indices (1.4 and 1.8). The structure's thicknesses are varied to find the configuration with the highest reflectivity. The problem involves two cases: one with 10 layers (minibragg) and another with 20 layers (bragg), with the latter representing a more complex inverse design problem. The known optimal solution is a periodic Bragg mirror, which achieves the best reflectivity by leveraging constructive interference. This case exemplifies challenges such as multiple local minima in the optimization landscape. ",

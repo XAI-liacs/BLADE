@@ -1,14 +1,17 @@
 import os
-import numpy as np
-import ioh
-from ioh import get_problem, logger as ioh_logger
-from ..solution import Solution
-from ..utils import aoc_logger, correct_aoc, OverBudgetException
-from ConfigSpace import Configuration, ConfigurationSpace
-from smac import Scenario, AlgorithmConfigurationFacade
-import pandas as pd
 import traceback
+
+import ioh
+import numpy as np
+import pandas as pd
+from ConfigSpace import Configuration, ConfigurationSpace
+from ioh import get_problem
+from ioh import logger as ioh_logger
+from smac import AlgorithmConfigurationFacade, Scenario
+
 from ..problem import Problem
+from ..solution import Solution
+from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
 
 class MA_BBOB(Problem):
@@ -44,6 +47,10 @@ class MA_BBOB(Problem):
         super().__init__(logger, training_instances, test_instances, name, eval_timeout)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
+        self.func_name = "__call__"
+        self.init_inputs = ["budget", "dim"]
+        self.func_inputs = ["func"]
+        self.func_outputs = ["f_opt", "x_opt"]
         self.task_prompt = """
 You are a Python developer working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.

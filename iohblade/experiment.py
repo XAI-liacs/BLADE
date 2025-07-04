@@ -1,11 +1,13 @@
+import contextlib
 from abc import ABC, abstractmethod
-from .problems import MA_BBOB
-from .loggers import ExperimentLogger, RunLogger
-from .llm import LLM
-from .method import Method
+
 import numpy as np
 from tqdm import tqdm
-import contextlib
+
+from .llm import LLM
+from .loggers import ExperimentLogger, RunLogger
+from .method import Method
+from .problems import MA_BBOB
 
 
 class Experiment(ABC):

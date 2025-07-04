@@ -1,14 +1,54 @@
-import numpy as np
+import ast
+import difflib
+import json
+import re
+import textwrap
+from typing import Optional, Tuple
+
 import numpy as np
 from ioh import LogInfo, logger
-import json
-import difflib
 
 
 class TimeoutException(Exception):
     """Custom exception for handling timeouts."""
 
     pass
+
+
+def first_class_name(code_string: str) -> str | None:
+    try:  # 1. do it the robust way
+        for node in ast.parse(code_string).body:  #    (won’t be fooled by comments)
+            if isinstance(node, ast.ClassDef):
+                return node.name
+    except SyntaxError:
+        pass  # fall back if the snippet is malformed
+
+    m = re.search(
+        r"^\s*class\s+([A-Za-z_]\w*)\s*[:(]", code_string, re.M
+    )  # 2. quick-n-dirty
+    return m.group(1) if m else None
+
+
+def class_info(code_string: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Return (class_name, docstring_or_None).
+    """
+    # 1.  Robust path: use the AST – ignores comments and embedded strings
+    try:
+        for node in ast.parse(code_string).body:
+            if isinstance(node, ast.ClassDef):
+                return node.name, ast.get_docstring(node)
+    except SyntaxError:
+        pass  # malformed snippet ⇒ fall back
+
+    # 2.  Fallback: quick regex for the first  class …\n  "docstring"
+    m = re.search(
+        r"^\s*class\s+([A-Za-z_]\w*)\s*[:(][^\n]*\n"  # class line
+        r'\s*(?P<q>["\']){1,3}(?P<doc>.*?)(?P=q){1,3}',  # first quoted block/line
+        code_string,
+        re.S | re.M,
+    )
+    return (m.group(1), textwrap.dedent(m.group("doc")).strip()) if m else (None, None)
 
 
 def code_compare(code1, code2):

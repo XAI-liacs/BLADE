@@ -1,16 +1,18 @@
 """
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
-from abc import ABC, abstractmethod
-import google.generativeai as genai
-import openai
-import ollama
 import re
-from .utils import NoCodeException
-from .solution import Solution
-from ConfigSpace import ConfigurationSpace
-from tokencost import calculate_prompt_cost, calculate_completion_cost
 import time
+from abc import ABC, abstractmethod
+
+import google.generativeai as genai
+import ollama
+import openai
+from ConfigSpace import ConfigurationSpace
+from tokencost import calculate_completion_cost, calculate_prompt_cost
+
+from .solution import Solution
+from .utils import NoCodeException
 
 
 class LLM(ABC):
@@ -301,15 +303,17 @@ class Gemini_LLM(LLM):
         Returns:
             str: The text content of the LLM's response.
         """
-        time.sleep(
-            30
-        )  # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
+        # time.sleep(
+        #    30
+        # )  # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
         history = []
-        last = session_messages.pop()
-        for msg in session_messages:
+        last = session_messages[-1]  # last message is the one we want to send
+        for msg in session_messages[:-1]:  # all but the last message
             history.append(
                 {
-                    "role": msg["role"],
+                    "role": "user"
+                    if msg["role"] == "user"
+                    else "assistant",  # system is not supportedd
                     "parts": [
                         msg["content"],
                     ],

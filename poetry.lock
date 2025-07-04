@@ -5684,7 +5684,7 @@ description = "ReEvo: Large Language Models as Hyper-Heuristics with Reflective 
 optional = false
 python-versions = ">=3.11"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 annotated-types = ">=0.6.0"
@@ -5719,9 +5719,9 @@ nco = ["torch"]
 
 [package.source]
 type = "git"
-url = "https://github.com/ai4co/reevo.git"
-reference = "HEAD"
-resolved_reference = "1f080bf0bc4a687e102235f97ec021b2611da7e1"
+url = "https://github.com/nikivanstein/reevo.git"
+reference = "main"
+resolved_reference = "b732bd7c4ebe08aaf5c116b7a37a6f064e263fcf"
 
 [[package]]
 name = "referencing"
@@ -7677,4 +7677,4 @@ six = "*"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "8f2136985d10fedbfe073a50110dc2c6da6cc886f20039e6bcd3c9e300a4f7d0"
+content-hash = "fa25cdf5f47b9b007a16bea076df5742f6d168b9b32b7b9e2c28fbb238f8173e"

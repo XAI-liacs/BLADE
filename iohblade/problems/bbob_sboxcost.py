@@ -1,14 +1,17 @@
 import os
-import numpy as np
-import ioh
-from ioh import get_problem, logger as ioh_logger
-from ..solution import Solution
-from ..utils import aoc_logger, correct_aoc, OverBudgetException
-from ConfigSpace import Configuration, ConfigurationSpace
-from smac import Scenario, AlgorithmConfigurationFacade
-import pandas as pd
 import traceback
+
+import ioh
+import numpy as np
+import pandas as pd
+from ConfigSpace import Configuration, ConfigurationSpace
+from ioh import get_problem
+from ioh import logger as ioh_logger
+from smac import AlgorithmConfigurationFacade, Scenario
+
 from ..problem import Problem
+from ..solution import Solution
+from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
 
 class BBOB_SBOX(Problem):
@@ -69,6 +72,11 @@ class BBOB_SBOX(Problem):
         self.specific_group = specific_group
         self.full_ioh_log = full_ioh_log
         self.ioh_dir = ioh_dir
+
+        self.func_name = "__call__"
+        self.init_inputs = ["budget", "dim"]
+        self.func_inputs = ["func"]
+        self.func_outputs = ["f_opt", "x_opt"]
 
         # List containing descriptions of each function group
         function_groups = [

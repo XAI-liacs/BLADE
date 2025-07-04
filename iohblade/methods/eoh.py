@@ -1,11 +1,25 @@
+import ast
 import json
+import logging
 import os
 import re
+import textwrap
+from typing import Optional, Tuple
 
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
 from ..solution import Solution
+from ..utils import class_info, first_class_name
+
+try:
+    from eoh import eoh as eoh_main
+    from eoh.methods.eoh import eoh_evolution
+    from eoh.utils.getParas import Paras
+except Exception:  # pragma: no cover - optional dependency
+    eoh_main = None
+    Paras = None
+    eoh_evolution = None
 
 
 class _BladePrompts:
@@ -18,23 +32,30 @@ class _BladePrompts:
         return self.problem.task_prompt
 
     def get_func_name(self):
-        return "OptimizationAlgorithm"
+        return self.problem.func_name
 
     def get_func_inputs(self):
-        return ["func", "budget", "dim"]
+        return self.problem.func_inputs
+
+    def get_init_inputs(self):
+        return self.problem.init_inputs
 
     def get_func_outputs(self):
-        return ["f_opt", "x_opt"]
+        return self.problem.func_outputs
 
     def get_inout_inf(self):
         return (
-            "Implement a Python class called OptimizationAlgorithm with"
-            " an __init__(self, budget, dim) and a __call__(self, func)"
-            " returning f_opt and x_opt."
+            f"Implement a Python class called `AlgorithmName` with"
+            f" an __init__(self, {', '.join(self.get_init_inputs())}) and a function {self.get_func_name()}(self, {', '.join(self.get_func_inputs())})"
+            f" returning {', '.join(self.get_func_outputs())}."
         )
 
     def get_other_inf(self):
-        return self.problem.example_prompt + self.problem.format_prompt
+        return (
+            self.problem.task_prompt
+            + self.problem.example_prompt
+            + self.problem.format_prompt
+        )
 
 
 class _BladeProblemAdapter:
@@ -45,7 +66,11 @@ class _BladeProblemAdapter:
         self.prompts = _BladePrompts(problem)
 
     def evaluate(self, code_string):
-        solution = Solution(code=code_string)
+        solution = Solution(
+            code=code_string,
+            name=first_class_name(code_string) or "AlgorithmName",
+            description=class_info(code_string)[1] or "No description provided.",
+        )
         solution = self.problem(solution)
         return solution.fitness
 
@@ -58,16 +83,6 @@ class _BladeInterfaceLLM:
 
     def get_response(self, prompt_content):
         return self.llm.query([{"role": "user", "content": prompt_content}])
-
-
-try:
-    from eoh import eoh as eoh_main
-    from eoh.methods.eoh import eoh_evolution
-    from eoh.utils.getParas import Paras
-except Exception:  # pragma: no cover - optional dependency
-    eoh_main = None
-    Paras = None
-    eoh_evolution = None
 
 
 class EoH(Method):
@@ -93,7 +108,9 @@ class EoH(Method):
             Solution: The best solution found.
         """
         if eoh_main is None:
-            raise ImportError("EoH package is not installed")
+            raise ImportError(
+                "EoH package is not installed, , please install it using `poetry install --with methods`."
+            )
 
         # Patch the EoH LLM interface to use our LLM
         if eoh_evolution is not None:

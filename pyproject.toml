@@ -48,7 +48,7 @@ sphinx-copybutton = "^0.5.2"
 
 [tool.poetry.group.methods.dependencies]
 eoh = {git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh"}
-reevo = {git = "https://github.com/ai4co/reevo.git"}
+reevo = {git = "https://github.com/nikivanstein/reevo.git", rev = "main", develop = true}
 
 [tool.poetry.group.kerneltuner.dependencies]
 kernel-tuner = {git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies"}

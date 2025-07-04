@@ -1,9 +1,11 @@
-from .solution import Solution
-from abc import ABC, abstractmethod
-import numpy as np
-import traceback
 import multiprocessing
+import traceback
+from abc import ABC, abstractmethod
+
+import numpy as np
 from joblib.externals.loky import get_reusable_executor
+
+from .solution import Solution
 from .utils import TimeoutException
 
 
@@ -55,6 +57,15 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
+
+        # These settings are required for EoH, adapt them based on your problem.
+        # The function name, inputs, and outputs should match the expected format.
+        # For example, if your problem requires a function that takes a function, budget, and dimension,
+        # and returns the optimal fitness and solution, set them accordingly.
+        self.func_name = "__call__"
+        self.init_inputs = ["budget", "dim"]
+        self.func_inputs = ["func"]
+        self.func_outputs = ["f_opt", "x_opt"]
 
     def __call__(self, solution: Solution, logger=None):
         """

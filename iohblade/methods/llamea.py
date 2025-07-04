@@ -1,8 +1,8 @@
-from ..problem import Problem
+from llamea import LLaMEA as LLAMEA_Algorithm
+
 from ..llm import LLM
 from ..method import Method
-
-from llamea import LLaMEA as LLAMEA_Algorithm
+from ..problem import Problem
 
 # We import the LLaMEA algorithm directly from the pypi package. This has the advantage that we can easily get the latest version.
 
