@@ -1,6 +1,6 @@
-from ..problem import Problem
 from ..llm import LLM
 from ..method import Method
+from ..problem import Problem
 
 # import funsearch
 

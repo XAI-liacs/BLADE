@@ -1,6 +1,6 @@
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM
-from iohblade.methods import LLaMEA, RandomSearch
+from iohblade.methods import LLaMEA, RandomSearch, EoH, ReEvo
 from iohblade.loggers import ExperimentLogger
 from iohblade.problems import AutoML
 import numpy as np
@@ -12,7 +12,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     llm1 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash")
     #llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0)
-    budget = 100
+    budget = 50
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
@@ -22,8 +22,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     for llm in [llm1]:
         LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=True)
-        methods = [LLaMEA_method]
+        ReEvo_method = ReEvo(llm, budget=budget, name="ReEvo", output_path="results/automl-breast-cancer", pop_size=4, init_pop_size=8)
+        EoH_method = EoH(llm, budget=budget, name="EoH", output_path="results/automl-breast-cancer")
+        methods = [EoH_method, ReEvo_method, LLaMEA_method] 
         logger = ExperimentLogger("results/automl-breast-cancer")
         problems = [AutoML()]
-        experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=1, show_stdout=True, exp_logger=logger) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=1, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

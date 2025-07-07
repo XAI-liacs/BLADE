@@ -48,5 +48,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 budget=100,
                 cache_dir="/data/neocortex/repos/benchmark_hub/")
             ]
-        experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.linalg import toeplitz
+
 from .photonic_problem import photonic_problem
 
 

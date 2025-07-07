@@ -1,9 +1,8 @@
 import warnings
+
 import numpy as np
-from pyGDM2 import structures
-from pyGDM2 import linear
-from pyGDM2 import tools
-from pyGDM2 import visu
+from pyGDM2 import linear, structures, tools, visu
+
 from .photonic_problem import photonic_problem
 
 

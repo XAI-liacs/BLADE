@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from .problem import Problem
+
 from .llm import LLM
+from .problem import Problem
 
 
 class Method(ABC):

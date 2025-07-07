@@ -8,7 +8,7 @@ from iohblade.methods.random_search import RandomSearch
 
 def test_random_search_calls_llm():
     class DummyLLM(LLM):
-        def query(self, s):
+        def _query(self, s):
             return "# Description: MyAlgo\n```python\nclass MyAlgo:\n  pass\n```"
 
     class DummyProblem:

@@ -1,20 +1,21 @@
-import numpy as np
-import os
-import seaborn as sns
-import matplotlib.pyplot as plt
-from collections import Counter
-import copy
 import ast
+import copy
 import difflib
+import os
+from collections import Counter
+
 import jellyfish
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, minmax_scale
-import pandas as pd
-from scipy.stats import ttest_ind
 
 from .loggers import ExperimentLogger
-from .misc.ast import process_code, analyse_complexity
+from .misc.ast import analyse_complexity, process_code
 
 
 def plot_convergence(

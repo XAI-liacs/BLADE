@@ -8,7 +8,7 @@ It is easiest to use BLADE from the PyPI package:
    pip install iohblade
 
 .. important::
-   The Python version **must** be >= 3.10.
+   The Python version **must** be >= 3.11.
    An OpenAI/Gemini/Ollama API key is needed for using LLM models.
 
 You can also install the package from source using Poetry (1.8.5).
@@ -25,3 +25,9 @@ You can also install the package from source using Poetry (1.8.5).
    .. code-block:: bash
 
       poetry install
+
+3. (Optional) Install extra baseline methods:
+
+   .. code-block:: bash
+
+      poetry install --with methods

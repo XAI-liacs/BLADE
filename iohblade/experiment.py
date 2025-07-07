@@ -1,11 +1,13 @@
+import contextlib
 from abc import ABC, abstractmethod
-from .problems import MA_BBOB
-from .loggers import ExperimentLogger, RunLogger
-from .llm import LLM
-from .method import Method
+
 import numpy as np
 from tqdm import tqdm
-import contextlib
+
+from .llm import LLM
+from .loggers import ExperimentLogger, RunLogger
+from .method import Method
+from .problems import MA_BBOB
 
 
 class Experiment(ABC):
@@ -17,7 +19,6 @@ class Experiment(ABC):
         self,
         methods: list,
         problems: list,
-        llm: LLM,
         runs=5,
         budget=100,
         seeds=None,
@@ -30,7 +31,6 @@ class Experiment(ABC):
         Args:
             methods (list): List of method instances.
             problems (list): List of problem instances.
-            llm (LLM): LLM instance to use.
             runs (int): Number of runs for each method.
             budget (int): Number of evaluations per run for each method.
             seeds (list, optional): The exact seeds to use for the runs, len(seeds) overwrites the number of runs if set.
@@ -46,7 +46,6 @@ class Experiment(ABC):
         else:
             self.seeds = seeds
             self.runs = len(seeds)
-        self.llm = llm
         self.show_stdout = show_stdout
         if exp_logger is None:
             exp_logger = ExperimentLogger("results/experiment")
@@ -66,7 +65,7 @@ class Experiment(ABC):
                     np.random.seed(i)
 
                     logger = self.exp_logger.open_run(method, problem, self.budget, i)
-                    self.llm.set_logger(logger)
+                    method.llm.set_logger(logger)
 
                     if self.show_stdout:
                         solution = method(problem)
@@ -77,7 +76,7 @@ class Experiment(ABC):
                     self.exp_logger.add_run(
                         method,
                         problem,
-                        self.llm,
+                        method.llm,
                         solution,
                         log_dir=logger.dirname,
                         seed=i,
@@ -89,7 +88,6 @@ class MA_BBOB_Experiment(Experiment):
     def __init__(
         self,
         methods: list,
-        llm: LLM,
         show_stdout=False,
         runs=5,
         budget=100,
@@ -104,7 +102,6 @@ class MA_BBOB_Experiment(Experiment):
 
         Args:
             methods (list): List of method instances.
-            llm (LLM): LLM instance to use.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
             runs (int): Number of runs for each method.
             budget (int): Number of algorithm evaluations per run per method.
@@ -117,7 +114,6 @@ class MA_BBOB_Experiment(Experiment):
         super().__init__(
             methods,
             [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)],
-            llm=llm,
             runs=runs,
             budget=budget,
             seeds=seeds,
