@@ -44,7 +44,7 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
-        def query(self, s):
+        def _query(self, s):
             return "res"
 
     method = DummyMethod(None, 100, name="dummy_method")

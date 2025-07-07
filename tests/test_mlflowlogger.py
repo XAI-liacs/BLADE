@@ -158,7 +158,7 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
             return {"type": "DummyProblem"}
 
     class DummyLLM(LLM):
-        def query(self, s):
+        def _query(self, s):
             return "dummy response"
 
         def to_dict(self):

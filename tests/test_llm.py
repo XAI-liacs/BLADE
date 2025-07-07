@@ -6,7 +6,7 @@ from iohblade import LLM, OpenAI_LLM, Ollama_LLM, Gemini_LLM, NoCodeException
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class
     class DummyLLM(LLM):
-        def query(self, session: list):
+        def _query(self, session: list):
             return "Mock response"
 
     llm = DummyLLM(api_key="fake", model="fake")
@@ -16,7 +16,7 @@ def test_llm_instantiation():
 
 def test_llm_sample_solution_no_code_raises_exception():
     class DummyLLM(LLM):
-        def query(self, session: list):
+        def _query(self, session: list):
             return "This has no code block"
 
     llm = DummyLLM(api_key="x", model="y")
@@ -28,7 +28,7 @@ def test_llm_sample_solution_no_code_raises_exception():
 
 def test_llm_sample_solution_good_code():
     class DummyLLM(LLM):
-        def query(self, session: list):
+        def _query(self, session: list):
             return "# Description: MyAlgo\n```python\nclass MyAlgo:\n  pass\n```"
 
     llm = DummyLLM(api_key="x", model="y")

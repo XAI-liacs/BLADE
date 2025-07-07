@@ -88,7 +88,6 @@ class MA_BBOB_Experiment(Experiment):
     def __init__(
         self,
         methods: list,
-        llm: LLM,
         show_stdout=False,
         runs=5,
         budget=100,
@@ -103,7 +102,6 @@ class MA_BBOB_Experiment(Experiment):
 
         Args:
             methods (list): List of method instances.
-            llm (LLM): LLM instance to use.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
             runs (int): Number of runs for each method.
             budget (int): Number of algorithm evaluations per run per method.
@@ -116,7 +114,6 @@ class MA_BBOB_Experiment(Experiment):
         super().__init__(
             methods,
             [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)],
-            llm=llm,
             runs=runs,
             budget=budget,
             seeds=seeds,
