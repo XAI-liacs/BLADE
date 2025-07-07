@@ -27,5 +27,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         methods = [EoH_method, ReEvo_method, LLaMEA_method] 
         logger = ExperimentLogger("results/automl-breast-cancer")
         problems = [AutoML()]
-        experiment = Experiment(methods=methods, problems=problems, runs=1, show_stdout=True, exp_logger=logger) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=1, show_stdout=True, exp_logger=logger, budget=budget) #normal run
         experiment() #run the experiment

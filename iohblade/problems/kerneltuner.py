@@ -10,9 +10,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import polars as pl
-from kernel_tuner import tune_kernel_T1, util
-from kernel_tuner.searchspace import Searchspace
-from kernel_tuner.strategies.common import CostFunc
+
+try:
+    from kernel_tuner import tune_kernel_T1, util
+    from kernel_tuner.searchspace import Searchspace
+    from kernel_tuner.strategies.common import CostFunc
+except Exception:  # pragma: no cover - optional dependency
+    tune_kernel_T1 = None
+    util = None
+    Searchspace = None
+    CostFunc = None
+
 
 from ..problem import Problem
 from ..solution import Solution

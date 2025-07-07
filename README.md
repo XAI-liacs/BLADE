@@ -105,7 +105,8 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
 > The Python version **must** be larger or equal to Python 3.11.
 > You need an OpenAI/Gemini/Ollama API key for using LLM models.
 
-You can also install the package from source using Poetry (1.8.5).
+You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).
+make sure you have `uv` installed.
 
 1. Clone the repository:
    ```bash
@@ -113,19 +114,17 @@ You can also install the package from source using Poetry (1.8.5).
    cd BLADE
    ```
 
-2. Install the required dependencies via Poetry:
+2. Install the required dependencies via uv:
    ```bash
-   poetry install
+   uv sync
    ```
 
-3. *(Optional)* Install additional baseline methods:
+3. *(Optional)* Install additional packages:
    ```bash
-   poetry install --with methods
+   uv sync --group kerneltuner --group dev --group docs
    ```
-   This will install *EoH* and *ReEvo* in addition to the standardly installed *LLaMEA* method.
-
-   To use the (experimental) auto-kernel application, you also need to use `--with kerneltuner` 
-   to install additional dependencies. 
+   This will install additional dependencies for development and building documentation.
+   The (experimental) auto-kernel application is also under a separate group for now. 
 
 ## 💻 Quick Start
 
@@ -171,7 +170,7 @@ You can also install the package from source using Poetry (1.8.5).
 After running experiments you can browse them using the built-in Streamlit app:
 
 ```bash
-poetry run streamlit run webapp.py
+uv run streamlit run webapp.py
 ```
 
 The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
