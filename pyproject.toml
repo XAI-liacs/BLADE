@@ -53,7 +53,7 @@ reevo = {git = "https://github.com/nikivanstein/reevo.git", rev = "main", develo
 
 [tool.poetry.group.kerneltuner.dependencies]
 kernel-tuner = {git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies"}
-autotuning_methodology = {git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", branch = "standardization"}
+autotuning_methodology = {git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", branch = "standardization", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702"}
 
 [tool.pytest.ini_options]
 filterwarnings = [
