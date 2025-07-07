@@ -1,6 +1,8 @@
 import pytest
 import numpy as np
 from iohblade.utils import (
+    first_class_name,
+    class_info,
     code_compare,
     is_jsonable,
     convert_to_serializable,
@@ -21,6 +23,17 @@ def test_code_compare():
 def test_is_jsonable():
     assert is_jsonable({"a": 1})
     assert not is_jsonable(set([1, 2, 3]))
+
+
+def test_first_class_name():
+    code_example = """
+class my_class:
+    \"\"\"A simple class example.\"\"\"
+    def __init__(self):
+        pass
+"""
+    assert first_class_name(code_example) ==  "my_class", "The class name should be 'my_class'"
+    assert class_info(code_example)[1] ==  "A simple class example.", "The class docstring should match"
 
 
 def test_convert_to_serializable():
