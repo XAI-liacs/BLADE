@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from types import SimpleNamespace
 from typing import Any
+import traceback
 
 from ..llm import LLM
 from ..method import Method
@@ -29,9 +30,6 @@ class _BladeReEvoClient(BaseClient):
         self, messages: list[dict], temperature: float, n: int = 1
     ):
         responses = []
-        print(messages)
-        if not isinstance(messages, list) or len(messages) == 0:
-            exit()
         for _ in range(n):
             content = self.llm.query(messages)
             responses.append({"message": {"role": "assistant", "content": content}})
@@ -92,7 +90,8 @@ class ReEvo(Method):
         self.kwargs = kwargs
 
     def _eval_population(self, reevo: Any, population: list[dict], problem: Problem):
-        for individual in population:
+        for response_id in range(len(population)):
+            individual = population[response_id]
             reevo.function_evals += 1
             if individual.get("code") is None:
                 individual["exec_success"] = False
@@ -104,12 +103,26 @@ class ReEvo(Method):
                 description=class_info(individual["code"])[1]
                 or "No description provided.",
             )
-            solution = problem(solution)
+            try:
+                solution = problem(solution)
+            except Exception as e:
+                logging.error(
+                    f"Error evaluating individual {individual['response_id']}: {e}"
+                )
+                individual["exec_success"] = False
+                individual["obj"] = float("inf")
+                tb_str = "".join(traceback.format_exception(e))
+                population[response_id] = self.mark_invalid_individual(
+                    individual, tb_str
+                )
+                continue
             if reevo.obj_type == "min":
                 individual["obj"] = -solution.fitness
             else:  # we normally do maximization
                 individual["obj"] = solution.fitness
+
             individual["exec_success"] = True
+            population[response_id] = individual
         return population
 
     def __call__(self, problem: Problem):
@@ -122,8 +135,8 @@ class ReEvo(Method):
 
         cfg_dict = {
             "max_fe": self.budget,
-            "pop_size": self.kwargs.get("pop_size", 10),
-            "init_pop_size": self.kwargs.get("init_pop_size", 30),
+            "pop_size": self.kwargs.get("pop_size", 4),
+            "init_pop_size": self.kwargs.get("init_pop_size", 4),
             "mutation_rate": self.kwargs.get("mutation_rate", 0.5),
             "timeout": self.kwargs.get("timeout", 20),
             "problem": {
@@ -134,7 +147,7 @@ class ReEvo(Method):
                 "seed_func": problem.example_prompt,
                 "func_signature": f"{problem.func_name}(self)",
                 "obj_type": "max",
-                "problem_type": "black_box",
+                "problem_type": "blade",
                 "func_desc": "",
                 "external_knowledge": "",
             },

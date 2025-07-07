@@ -59,5 +59,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, eval_timeout=600, name=f"BBOB", problem_type=ioh.ProblemClass.BBOB, full_ioh_log=True, ioh_dir=f"{logger.dirname}/ioh"))
 
         
-        experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=False, exp_logger=logger, budget=budget) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=False, exp_logger=logger, budget=budget) #normal run
         experiment() #run the experiment

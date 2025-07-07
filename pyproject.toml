@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "iohblade"
-version = "0.1.0"
+version = "0.2.0"
 description = "Benchmarking Llm Assisted Design and Evolution of algorithms."
 authors = ["Niki van Stein <n.van.stein@liacs.leidenuniv.nl>"]
 readme = "README.md"

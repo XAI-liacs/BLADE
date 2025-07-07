@@ -42,7 +42,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
         methods = [LLaMEA_method1] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
         logger = ExperimentLogger("results/MA-BBOB")
-        experiment = MA_BBOB_Experiment(methods=methods, llm=llm, runs=2, seeds=[4,7], dims=[5], budget_factor=2000, budget=100, eval_timeout=60, show_stdout=True, exp_logger=logger) #normal run
+        experiment = MA_BBOB_Experiment(methods=methods, runs=2, seeds=[4,7], dims=[5], budget_factor=2000, budget=100, eval_timeout=60, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment
 
 
