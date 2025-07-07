@@ -39,7 +39,7 @@ from sklearn.neighbors import NearestNeighbors
 def get_coordinates(df: pd.DataFrame) -> np.ndarray:
     """Return (N, d) array with decision variables extracted from x-columns."""
     x_cols = [c for c in df.columns if c.startswith("x")]
-    return df[x_cols].to_numpy(order="c")
+    return df[x_cols].to_numpy()
 
 
 def get_objective(df: pd.DataFrame) -> np.ndarray:

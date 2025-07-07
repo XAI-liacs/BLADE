@@ -97,6 +97,7 @@ class WAndBExperimentLogger(ExperimentLogger):
         wandb.log({"final_fitness": final_fitness})
 
         # Log a serialized run object
+        rel_log_dir = os.path.relpath(log_dir, self.dirname)
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
@@ -105,7 +106,7 @@ class WAndBExperimentLogger(ExperimentLogger):
             "problem": problem.to_dict(),
             "llm": llm.to_dict(),
             "solution": solution.to_dict(),
-            "log_dir": log_dir,
+            "log_dir": rel_log_dir,
             "seed": seed,
         }
         # For large data, consider W&B artifacts. For quick usage, we do a single JSON log:

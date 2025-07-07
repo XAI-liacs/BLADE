@@ -24,6 +24,7 @@ wandb = "^0.19.8"
 mlflow = "^2.21.0"
 python-constraint2 = "^2.2.3"
 xmltodict = "^0.14.2"
+streamlit = "^1.35.0"
 jsonschema = "^4.24.0"
 
 [tool.poetry.group.dev.dependencies]

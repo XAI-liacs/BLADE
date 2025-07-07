@@ -108,6 +108,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
         mlflow.log_metric("final_fitness", final_fitness)
 
         # Log a serialized object as an artifact
+        rel_log_dir = os.path.relpath(log_dir, self.dirname)
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
@@ -116,7 +117,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
             "problem": problem.to_dict(),
             "llm": llm.to_dict(),
             "solution": solution.to_dict(),
-            "log_dir": log_dir,
+            "log_dir": rel_log_dir,
             "seed": seed,
         }
         mlflow.log_text(
