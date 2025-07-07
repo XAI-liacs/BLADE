@@ -103,23 +103,18 @@ class ReEvo(Method):
                 description=class_info(individual["code"])[1]
                 or "No description provided.",
             )
-            try:
-                solution = problem(solution)
-            except Exception as e:
-                logging.error(
-                    f"Error evaluating individual {individual['response_id']}: {e}"
-                )
+
+            solution = problem(solution)
+            if solution.error != "":
+                # If the solution has an error, we mark it as invalid.
                 individual["exec_success"] = False
-                individual["obj"] = float("inf")
-                tb_str = "".join(traceback.format_exception(e))
+                individual["obj"] = -solution.fitness
                 population[response_id] = self.mark_invalid_individual(
-                    individual, tb_str
+                    individual, solution.error
                 )
                 continue
-            if reevo.obj_type == "min":
-                individual["obj"] = -solution.fitness
-            else:  # we normally do maximization
-                individual["obj"] = solution.fitness
+            # Re-Evo always minimizes. (while BLADE problems are maximization)
+            individual["obj"] = -solution.fitness
 
             individual["exec_success"] = True
             population[response_id] = individual
@@ -135,8 +130,8 @@ class ReEvo(Method):
 
         cfg_dict = {
             "max_fe": self.budget,
-            "pop_size": self.kwargs.get("pop_size", 4),
-            "init_pop_size": self.kwargs.get("init_pop_size", 4),
+            "pop_size": self.kwargs.get("pop_size", 10),
+            "init_pop_size": self.kwargs.get("init_pop_size", 20),
             "mutation_rate": self.kwargs.get("mutation_rate", 0.5),
             "timeout": self.kwargs.get("timeout", 20),
             "problem": {

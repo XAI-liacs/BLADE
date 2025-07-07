@@ -113,7 +113,11 @@ class Problem(ABC):
             else:
                 raise Exception("Evaluation failed without an exception.")
         except Exception as e:
-            solution.set_scores(-np.Inf, feedback=f"An exception occurred: {e}.")
+            solution.set_scores(
+                -np.Inf,
+                feedback=f"An exception occurred: {e}.",
+                error=f"An exception occurred: {e}.",
+            )
         finally:
             try:
                 process.terminate()
