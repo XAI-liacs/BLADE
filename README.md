@@ -161,7 +161,7 @@ make sure you have `uv` installed.
     problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
     # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
     logger = ExperimentLogger("results/SBOX")
-    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
+    experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
