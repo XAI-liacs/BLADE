@@ -1,59 +1,78 @@
-[tool.poetry]
+[project]
 name = "iohblade"
 version = "0.2.0"
 description = "Benchmarking Llm Assisted Design and Evolution of algorithms."
-authors = ["Niki van Stein <n.van.stein@liacs.leidenuniv.nl>"]
+authors = [{ name = "Niki van Stein", email = "n.van.stein@liacs.leidenuniv.nl" }]
+requires-python = "~=3.11"
 readme = "README.md"
 license = "MIT"
-homepage = "https://github.com/XAI-liacs/BLADE"
-repository = "https://github.com/XAI-liacs/BLADE"
+dependencies = [
+    "numpy>=1.26.3,<2",
+    "pandas==2.0.3",
+    "openai>=1.25.2,<2",
+    "ollama>=0.2.1,<0.3",
+    "jsonlines>=4.0.0,<5",
+    "google-generativeai>=0.8.1,<0.9",
+    "joblib>=1.4.2,<2",
+    "tokencost>=0.1.18,<0.2",
+    "llamea>=1.0.6,<2",
+    "ipykernel>=6.29.5,<7",
+    "wandb>=0.19.8,<0.20",
+    "mlflow>=2.21.0,<3",
+    "python-constraint2>=2.2.3,<3",
+    "xmltodict>=0.14.2,<0.15",
+    "streamlit>=1.35.0,<2",
+    "jsonschema>=4.24.0,<5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-numpy = "^1.26.3"
-pandas = "2.0.3"
-openai = "^1.25.2"
-ollama = "^0.2.1"
-jsonlines = "^4.0.0"
-google-generativeai = "^0.8.1"
-joblib = "^1.4.2"
-tokencost = "^0.1.18"
-llamea = "^1.0.6"
-ipykernel = "^6.29.5"
-wandb = "^0.19.8"
-mlflow = "^2.21.0"
-python-constraint2 = "^2.2.3"
-xmltodict = "^0.14.2"
-streamlit = "^1.35.0"
-jsonschema = "^4.24.0"
+[project.urls]
+Homepage = "https://github.com/XAI-liacs/BLADE"
+Repository = "https://github.com/XAI-liacs/BLADE"
 
-[tool.poetry.group.dev.dependencies]
-black = "^23.11.0"
-isort = "^5.12.0"
-pytest = "^7.4.3"
-jupyter = "^1.0.0"
-pytest-cov = "^4.1.0"
-codecov = "^2.1.13"
-pytest-mock = "^3.14.0"
-ipykernel = "^6.29.5"
+[dependency-groups]
+dev = [
+    "black>=23.11.0,<24",
+    "isort>=5.12.0,<6",
+    "pytest>=7.4.3,<8",
+    "jupyter>=1.0.0,<2",
+    "pytest-cov>=4.1.0,<5",
+    "codecov>=2.1.13,<3",
+    "pytest-mock>=3.14.0,<4",
+    "ipykernel>=6.29.5,<7",
+]
+docs = [
+    "sphinx==7.4.7",
+    "sphinx-rtd-theme>=3.0.2,<4",
+    "myst-parser>=4.0.1,<5",
+    "nbsphinx>=0.9.6,<0.10",
+    "pandoc~=2.4",
+    "furo>=2024.8.6,<2025",
+    "sphinxext-opengraph>=0.9.1,<0.10",
+    "sphinx-copybutton>=0.5.2,<0.6",
+]
+methods = [
+    "eoh",
+    "reevo",
+]
+kerneltuner = [
+    "kernel-tuner",
+    "autotuning_methodology",
+]
 
-[tool.poetry.group.docs.dependencies]
-sphinx = "7.4.7"
-sphinx-rtd-theme = "^3.0.2"
-myst-parser = "^4.0.1"
-nbsphinx = "^0.9.6"
-pandoc = "^2.4"
-furo = "^2024.8.6"
-sphinxext-opengraph = "^0.9.1"
-sphinx-copybutton = "^0.5.2"
+[tool.uv]
+default-groups = [
+    "methods",
+]
 
-[tool.poetry.group.methods.dependencies]
-eoh = {git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh"}
-reevo = {git = "https://github.com/nikivanstein/reevo.git", rev = "main", develop = true}
+[tool.uv.sources]
+eoh = { git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh" }
+reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
+kernel-tuner = { git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies" }
+autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702" }
 
-[tool.poetry.group.kerneltuner.dependencies]
-kernel-tuner = {git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies"}
-autotuning_methodology = {git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", branch = "standardization", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702"}
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 filterwarnings = [
@@ -62,7 +81,3 @@ filterwarnings = [
     "ignore::RuntimeWarning",
     "ignore::DeprecationWarning",
 ]
-
-[build-system]
-requires = ["poetry-core>=1.2.0"]
-build-backend = "poetry.core.masonry.api"
