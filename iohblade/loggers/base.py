@@ -34,6 +34,7 @@ class ExperimentLogger:
             self.dirname = name  # ← back-compat for code that still uses .dirname
         else:
             self.dirname = self.create_log_dir(name)
+            self.dirs.append(self.dirname)
             self.progress = {
                 "start_time": datetime.now().isoformat(),
                 "end_time": None,
