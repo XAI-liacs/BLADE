@@ -133,3 +133,33 @@ def test_read_multiple_log_dirs(cleanup_tmp_dir):
     problem_data = explogger_read.get_problem_data("problemX")
     assert len(problem_data) == 2, "Expected 2 entries for problemX, got {}".format(len(problem_data))
     
+def test_experiment_logger_get_methods_problems(cleanup_tmp_dir):
+    """`get_methods_problems` should return the unique sets of methods and problems
+    across all read-in experiment directories, ignoring dirs with no log."""
+    import os
+    from iohblade.loggers import ExperimentLogger
+
+    # Make three experiment dirs: two with logs, one empty
+    dir1 = os.path.join(cleanup_tmp_dir, "exp1")
+    dir2 = os.path.join(cleanup_tmp_dir, "exp2")
+
+    os.makedirs(dir1, exist_ok=True)
+    os.makedirs(dir2, exist_ok=True)
+
+    # Write JSON-lines logs
+    with open(os.path.join(dir1, "experimentlog.jsonl"), "w") as f:
+        f.write('{"method_name":"methodA","problem_name":"problemX"}\n')
+        f.write('{"method_name":"methodB","problem_name":"problemY"}\n')
+    with open(os.path.join(dir2, "experimentlog.jsonl"), "w") as f:
+        f.write('{"method_name":"methodC","problem_name":"problemX"}\n')
+        # Duplicate methodA, new problemZ – should be deduped
+        f.write('{"method_name":"methodA","problem_name":"problemZ"}\n')
+
+    # Read the dirs
+    exp_logger = ExperimentLogger(name=dir1, read=True)
+    exp_logger.add_read_dir(dir2)
+
+    methods, problems = exp_logger.get_methods_problems()
+
+    assert set(methods) == {"methodA", "methodB", "methodC"}
+    assert set(problems) == {"problemX", "problemY", "problemZ"}
