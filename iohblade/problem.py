@@ -20,7 +20,10 @@ def evaluate_in_subprocess(problem, conn, solution):
         result = problem.evaluate(solution)
         conn.send(result)  # Send result through the pipe
     except Exception as e:
-        conn.send(e)  # Send exception for handling in the parent
+        # print(f"stracktrace: {traceback.format_exc()}")
+        conn.send(
+            f"{e} stracktrace: {traceback.format_exc()}"
+        )  # Send exception for handling in the parent
     finally:
         conn.close()  # Ensure pipe is closed after sending data
 
@@ -36,7 +39,7 @@ class Problem(ABC):
         training_instances=None,
         test_instances=None,
         name="Problem",
-        eval_timeout=600,
+        eval_timeout=6000,
     ):
         """
         Initializes a problem instance with logging and dataset references.
@@ -86,8 +89,7 @@ class Problem(ABC):
             if self.logger.budget_exhausted():
                 raise Exception("Evaluation failed because budget is exhausted.")
 
-        # solution = problem.evaluate(solution) #old fashioned way
-
+        # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
         try:
             (
@@ -108,8 +110,15 @@ class Problem(ABC):
                 result = parent_conn.recv()
                 if isinstance(result, Exception):
                     raise result
-                else:
+                elif isinstance(result, Solution):
                     solution = result
+                elif isinstance(result, str):
+                    # If a string is returned, it is likely an error message
+                    solution.set_scores(
+                        -np.Inf, feedback=f"An error occurred: {result}.", error=result
+                    )
+                else:
+                    raise Exception("No Solution object or string returned.")
             else:
                 raise Exception("Evaluation failed without an exception.")
         except Exception as e:

@@ -15,7 +15,7 @@ def discover_experiments(root=RESULTS_DIR):
         for entry in os.listdir(root):
             path = os.path.join(root, entry)
             if os.path.isdir(path) and os.path.exists(
-                os.path.join(path, "experimentlog.jsonl")
+                os.path.join(path, "progress.json")
             ):
                 exps.append(entry)
     return sorted(exps)
@@ -69,7 +69,7 @@ if selected:
             st.progress(pct, text=f"{prog.get('current',0)} / {total}")
 
     matplotlib.use("Agg")
-    fig = plot_convergence(logger, metric="fitness", save=False, return_fig=True)
+    fig = plot_convergence(logger, metric="fitness", save=False, return_fig=True, separate_lines=True)
     st.header(f"Convergence - {selected}")
     st.pyplot(fig)
     st.caption("Plot refreshes when the page reruns")

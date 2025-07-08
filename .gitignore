@@ -174,3 +174,5 @@ cython_debug/
 BBOB*.pkl
 BBOB*.zip
 /stn/
+/run/
+/setup/

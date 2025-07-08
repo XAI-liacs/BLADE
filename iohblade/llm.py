@@ -307,36 +307,45 @@ class Gemini_LLM(LLM):
             system_instruction="You are a computer scientist and excellent Python programmer.",
         )
 
-    def _query(self, session_messages):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
-        Sends a conversation history to the configured model and returns the response text.
+        Sends the conversation history to Gemini, retrying on 429 ResourceExhausted exceptions.
 
         Args:
-            session_messages (list of dict): A list of message dictionaries with keys
-                "role" (e.g. "user", "assistant") and "content" (the message text).
+            session_messages (list[dict]): [{"role": str, "content": str}, …]
+            max_retries (int): how many times to retry before giving up.
+            default_delay (int): fallback sleep when the error has no retry_delay.
 
         Returns:
-            str: The text content of the LLM's response.
+            str: model's reply.
         """
-        # time.sleep(
-        #    30
-        # )  # Gemini has a rate limit of 15 requests per minute in the free tier (we do max 12 at once)
-        history = []
-        last = session_messages[-1]  # last message is the one we want to send
-        for msg in session_messages[:-1]:  # all but the last message
-            history.append(
-                {
-                    "role": "user"
-                    if msg["role"] == "user"
-                    else "assistant",  # system is not supportedd
-                    "parts": [
-                        msg["content"],
-                    ],
-                }
-            )
-        chat_session = self.client.start_chat(history=history)
-        response = chat_session.send_message(last["content"])
-        return response.text
+        history = [
+            {"role": m["role"], "parts": [m["content"]]} for m in session_messages[:-1]
+        ]
+        last = session_messages[-1]["content"]
+
+        attempt = 0
+        while True:
+            try:
+                chat = self.client.start_chat(history=history)
+                response = chat.send_message(last)
+                return response.text
+
+            except Exception as err:
+                attempt += 1
+                if attempt > max_retries:
+                    raise  # bubble out after N tries
+
+                # Prefer the structured retry_delay field if present
+                delay = getattr(err, "retry_delay", None)
+                if delay is not None:
+                    wait = delay.seconds + 1  # add 1 second to avoid immediate retry
+                else:
+                    # Sometimes retry_delay only appears in the string—grab it
+                    m = re.search(r"retry_delay\s*{\s*seconds:\s*(\d+)", str(err))
+                    wait = int(m.group(1)) if m else default_delay * attempt
+
+                time.sleep(wait)
 
 
 class Ollama_LLM(LLM):

@@ -28,10 +28,13 @@ class ExperimentLogger:
             name (str): The name of the experiment.
             read (bool): Whether to read the experiment log or create a new one.
         """
+        self.dirs = []  # list[str] with every experiment dir we will read from
         if read:
-            self.dirname = name
+            self.dirs.append(name)  # keep a reference for aggregation
+            self.dirname = name  # ← back-compat for code that still uses .dirname
         else:
             self.dirname = self.create_log_dir(name)
+            self.dirs.append(self.dirname)
             self.progress = {
                 "start_time": datetime.now().isoformat(),
                 "end_time": None,
@@ -41,6 +44,18 @@ class ExperimentLogger:
             self._write_progress()
         if read:
             self._load_progress()
+
+    def add_read_dir(self, dir_path: str):
+        """
+        Register another finished experiment so that *this* logger will read it
+        when you call get_data(), get_problem_data(), etc.
+        """
+        if not os.path.isdir(dir_path):
+            raise ValueError(f"{dir_path} is not a directory")
+        if not os.path.isfile(os.path.join(dir_path, "experimentlog.jsonl")):
+            raise ValueError("No experimentlog.jsonl found in the given directory")
+        if dir_path not in self.dirs:
+            self.dirs.append(dir_path)
 
     def create_log_dir(self, name=""):
         """
@@ -117,8 +132,12 @@ class ExperimentLogger:
         Returns:
             dataframe: Pandas DataFrame of the experimentlog.
         """
-        df = pd.read_json(f"{self.dirname}/experimentlog.jsonl", lines=True)
-        return df
+        frames = []
+        for d in self.dirs:
+            path = os.path.join(d, "experimentlog.jsonl")
+            if os.path.exists(path):
+                frames.append(pd.read_json(path, lines=True))
+        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     def get_problem_data(self, problem_name):
         """
@@ -130,15 +149,21 @@ class ExperimentLogger:
         Returns:
             list: List of run data for the specified method and problem.
         """
-        logdirs = []
         bigdf = pd.DataFrame()
-        with jsonlines.open(f"{self.dirname}/experimentlog.jsonl") as file:
-            for line in file:
-                if line["problem_name"] == problem_name:
-                    logdir = os.path.join(self.dirname, line["log_dir"])
-                    # now process the logdirs into one combined PandasDataframe
-                    if os.path.exists(f"{logdir}/log.jsonl"):
-                        df = pd.read_json(f"{logdir}/log.jsonl", lines=True)
+        for d in self.dirs:
+            exp_log = os.path.join(d, "experimentlog.jsonl")
+            if not os.path.exists(exp_log):
+                continue
+            with jsonlines.open(exp_log) as file:
+                for line in file:
+                    if line["problem_name"] != problem_name:
+                        continue
+                    logdir = os.path.join(
+                        d, line["log_dir"]
+                    )  # relative to *that* experiment
+                    run_log = os.path.join(logdir, "log.jsonl")
+                    if os.path.exists(run_log):
+                        df = pd.read_json(run_log, lines=True)
                         df["method_name"] = line["method_name"]
                         df["problem_name"] = line["problem_name"]
                         df["seed"] = line["seed"]
@@ -153,15 +178,16 @@ class ExperimentLogger:
         Returns:
             tuple: Tuple of lists containing the method and problem names.
         """
-        methods = []
-        problems = []
-        with jsonlines.open(f"{self.dirname}/experimentlog.jsonl") as file:
-            for line in file:
-                if line["method_name"] not in methods:
-                    methods.append(line["method_name"])
-                if line["problem_name"] not in problems:
-                    problems.append(line["problem_name"])
-        return methods, problems
+        methods, problems = set(), set()
+        for d in self.dirs:
+            exp_log = os.path.join(d, "experimentlog.jsonl")
+            if not os.path.exists(exp_log):
+                continue
+            with jsonlines.open(exp_log) as file:
+                for line in file:
+                    methods.add(line["method_name"])
+                    problems.add(line["problem_name"])
+        return list(methods), list(problems)
 
     # Progress helpers -------------------------------------------------
 
@@ -223,6 +249,12 @@ class RunLogger:
         self.dirname = self.create_log_dir(name, root_dir)
         self.attempt = 0
         self.budget = budget
+
+    def get_log_dir(self):
+        """
+        Returns the directory where the run is logged.
+        """
+        return self.dirname
 
     def create_log_dir(self, name="", root_dir=""):
         """
