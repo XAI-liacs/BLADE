@@ -1,8 +1,10 @@
-import pytest
 import os
 import shutil
+
+import pytest
+
+from iohblade import Method, Problem, Solution
 from iohblade.loggers import ExperimentLogger, RunLogger
-from iohblade import Solution
 
 
 @pytest.fixture
@@ -19,9 +21,9 @@ def cleanup_tmp_dir():
 
 def test_experiment_logger_add_run(cleanup_tmp_dir):
     exp_logger = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "my_experiment"))
+    from iohblade.llm import LLM
     from iohblade.method import Method
     from iohblade.problem import Problem
-    from iohblade.llm import LLM
 
     class DummyMethod(Method):
         def __call__(self, problem):
@@ -96,6 +98,7 @@ def test_experiment_logger_get_data(cleanup_tmp_dir):
     assert "method_name" in df.columns
     assert "problem_name" in df.columns
 
+
 def test_read_multiple_log_dirs(cleanup_tmp_dir):
     exp_logger1 = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "multi_dir1"))
     exp_logger2 = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "multi_dir2"))
@@ -117,13 +120,21 @@ def test_read_multiple_log_dirs(cleanup_tmp_dir):
 
     log_file = os.path.join(exp_logger1.dirname, "experimentlog.jsonl")
     with open(log_file, "w") as f:
-        f.write(f'{{"method_name":"methodA","problem_name":"problemX", "log_dir":"run-test_run1", "seed":"0"}}\n')
-        f.write(f'{{"method_name":"methodB","problem_name":"problemY", "log_dir":"run-test_run1", "seed":"0"}}\n')
-    
+        f.write(
+            f'{{"method_name":"methodA","problem_name":"problemX", "log_dir":"run-test_run1", "seed":"0"}}\n'
+        )
+        f.write(
+            f'{{"method_name":"methodB","problem_name":"problemY", "log_dir":"run-test_run1", "seed":"0"}}\n'
+        )
+
     log_file = os.path.join(exp_logger2.dirname, "experimentlog.jsonl")
     with open(log_file, "w") as f:
-        f.write(f'{{"method_name":"methodC","problem_name":"problemX", "log_dir":"run-test_run2", "seed":"1"}}\n')
-        f.write(f'{{"method_name":"methodD","problem_name":"problemY", "log_dir":"run-test_run2", "seed":"1"}}\n')
+        f.write(
+            f'{{"method_name":"methodC","problem_name":"problemX", "log_dir":"run-test_run2", "seed":"1"}}\n'
+        )
+        f.write(
+            f'{{"method_name":"methodD","problem_name":"problemY", "log_dir":"run-test_run2", "seed":"1"}}\n'
+        )
 
     # now create a new ExperimentLogger that reads both directories.
     explogger_read = ExperimentLogger(name=exp_logger1.dirname, read=True)
@@ -131,12 +142,16 @@ def test_read_multiple_log_dirs(cleanup_tmp_dir):
     data = explogger_read.get_data()
     assert len(data) == 4
     problem_data = explogger_read.get_problem_data("problemX")
-    assert len(problem_data) == 2, "Expected 2 entries for problemX, got {}".format(len(problem_data))
-    
+    assert len(problem_data) == 2, "Expected 2 entries for problemX, got {}".format(
+        len(problem_data)
+    )
+
+
 def test_experiment_logger_get_methods_problems(cleanup_tmp_dir):
     """`get_methods_problems` should return the unique sets of methods and problems
     across all read-in experiment directories, ignoring dirs with no log."""
     import os
+
     from iohblade.loggers import ExperimentLogger
 
     # Make three experiment dirs: two with logs, one empty
@@ -163,3 +178,69 @@ def test_experiment_logger_get_methods_problems(cleanup_tmp_dir):
 
     assert set(methods) == {"methodA", "methodB", "methodC"}
     assert set(problems) == {"problemX", "problemY", "problemZ"}
+
+
+def test_start_progress_and_restart(tmp_path):
+    class DummyMethod(Method):
+        def __call__(self, problem):
+            pass
+
+        def to_dict(self):
+            return {}
+
+    class DummyProblem(Problem):
+        def get_prompt(self):
+            return "prompt"
+
+        def evaluate(self, s):
+            return s
+
+        def test(self, s):
+            return s
+
+        def to_dict(self):
+            return {}
+
+    m = DummyMethod(None, 1, name="m")
+    p = DummyProblem(name="p")
+    logger_dir = tmp_path / "exp"
+    logger = ExperimentLogger(name=str(logger_dir))
+    logger.start_progress(1, methods=[m], problems=[p], seeds=[0], budget=1)
+
+    # Restart with same config should succeed
+    logger2 = ExperimentLogger(name=str(logger_dir))
+    logger2.start_progress(1, methods=[m], problems=[p], seeds=[0], budget=1)
+    assert logger2.is_run_pending(m, p, 0)
+
+
+def test_start_progress_mismatch(tmp_path):
+    class DummyMethod(Method):
+        def __call__(self, problem):
+            pass
+
+        def to_dict(self):
+            return {}
+
+    class DummyProblem(Problem):
+        def get_prompt(self):
+            return "prompt"
+
+        def evaluate(self, s):
+            return s
+
+        def test(self, s):
+            return s
+
+        def to_dict(self):
+            return {}
+
+    m1 = DummyMethod(None, 1, name="m1")
+    m2 = DummyMethod(None, 1, name="m2")
+    p = DummyProblem(name="p")
+    logger_dir = tmp_path / "exp"
+    logger = ExperimentLogger(name=str(logger_dir))
+    logger.start_progress(1, methods=[m1], problems=[p], seeds=[0], budget=1)
+
+    logger2 = ExperimentLogger(name=str(logger_dir))
+    with pytest.raises(ValueError):
+        logger2.start_progress(1, methods=[m2], problems=[p], seeds=[0], budget=1)

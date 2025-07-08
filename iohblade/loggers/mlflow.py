@@ -66,6 +66,9 @@ class MLFlowExperimentLogger(ExperimentLogger):
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
+            progress_callback=lambda: self.increment_eval(
+                method.name, problem.name, seed
+            ),
         )
         problem.set_logger(self.run_logger)
         return self.run_logger
@@ -151,9 +154,9 @@ class MLFlowRunLogger(RunLogger):
     relying on the fact that the MLFlowExperimentLogger has opened a run.
     """
 
-    def __init__(self, name="", root_dir="", budget=100):
+    def __init__(self, name="", root_dir="", budget=100, progress_callback=None):
         # We do want to keep the parent's file-based logging directories
-        super().__init__(name, root_dir, budget)
+        super().__init__(name, root_dir, budget, progress_callback=progress_callback)
 
     def log_conversation(self, role, content, cost=0.0):
         """

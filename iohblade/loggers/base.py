@@ -1,5 +1,5 @@
-import os
 import json
+import os
 from datetime import datetime
 
 import jsonlines
@@ -20,18 +20,41 @@ class ExperimentLogger:
     """
 
     def __init__(self, name="", read=False):
-        """
-        Initializes an instance of the ExperimentLogger.
-        Sets up a new logging directory named with the current date and time.
+        """Create or load an experiment logging directory.
 
-        Args:
-            name (str): The name of the experiment.
-            read (bool): Whether to read the experiment log or create a new one.
+        If ``read`` is ``True`` the logger is opened in read only mode.
+        Otherwise a new directory is created unless ``name`` already exists, in
+        which case the existing directory is used so runs can be restarted.
+
+        Parameters
+        ----------
+        name: str
+            Path to the experiment directory.
+        read: bool
+            If ``True`` open the directory for reading only.
         """
-        self.dirs = []  # list[str] with every experiment dir we will read from
+
+        self.dirs = []
         if read:
-            self.dirs.append(name)  # keep a reference for aggregation
-            self.dirname = name  # ← back-compat for code that still uses .dirname
+            # Only reading previous results
+            self.dirs.append(name)
+            self.dirname = name
+            self._load_progress()
+            return
+
+        if os.path.exists(name):
+            # Reuse the directory for restarting
+            self.dirname = name
+            self.dirs.append(self.dirname)
+            self._load_progress()
+            if not hasattr(self, "progress") or not self.progress:
+                self.progress = {
+                    "start_time": datetime.now().isoformat(),
+                    "end_time": None,
+                    "current": 0,
+                    "total": 0,
+                }
+                self._write_progress()
         else:
             self.dirname = self.create_log_dir(name)
             self.dirs.append(self.dirname)
@@ -42,8 +65,6 @@ class ExperimentLogger:
                 "total": 0,
             }
             self._write_progress()
-        if read:
-            self._load_progress()
 
     def add_read_dir(self, dir_path: str):
         """
@@ -58,19 +79,12 @@ class ExperimentLogger:
             self.dirs.append(dir_path)
 
     def create_log_dir(self, name=""):
-        """
-        Creates a new directory for logging experiments based on the current date and time.
-
-        Returns:
-            str: The name of the created directory.
-        """
+        """Create a unique directory for a new experiment."""
         dirname = f"{name}"
-
         tempi = 0
         while os.path.exists(dirname):
             tempi += 1
             dirname = f"{name}-{tempi}"
-
         os.mkdir(dirname)
         return dirname
 
@@ -81,12 +95,46 @@ class ExperimentLogger:
         """
         run_name = f"{method.name}-{problem.name}-{seed}"
 
+        entry = self._get_run_entry(method.name, problem.name, seed)
+        if entry is None:
+            entry = {
+                "method_name": method.name,
+                "problem_name": problem.name,
+                "seed": seed,
+                "budget": int(budget),
+                "evaluations": 0,
+                "start_time": None,
+                "end_time": None,
+                "log_dir": None,
+            }
+            self.progress.setdefault("runs", []).append(entry)
+
+        # If a previous attempt exists remove it
+        if (
+            entry.get("start_time")
+            and not entry.get("end_time")
+            and entry.get("log_dir")
+        ):
+            prev = os.path.join(self.dirname, entry["log_dir"])
+            if os.path.exists(prev):
+                import shutil
+
+                shutil.rmtree(prev)
+            entry["evaluations"] = 0
+
         self.run_logger = RunLogger(
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
+            progress_callback=lambda: self.increment_eval(
+                method.name, problem.name, seed
+            ),
         )
         problem.set_logger(self.run_logger)
+        entry["start_time"] = datetime.now().isoformat()
+        entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
+        entry["end_time"] = None
+        self._write_progress()
         return self.run_logger
 
     def add_run(
@@ -123,6 +171,10 @@ class ExperimentLogger:
         }
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
             file.write(convert_to_serializable(run_object))
+        entry = self._get_run_entry(method.name, problem.name, seed)
+        if entry is not None:
+            entry["end_time"] = datetime.now().isoformat()
+            entry["log_dir"] = rel_log_dir
         self.increment_progress()
 
     def get_data(self):
@@ -191,6 +243,17 @@ class ExperimentLogger:
 
     # Progress helpers -------------------------------------------------
 
+    def _get_run_entry(self, method_name, problem_name, seed):
+        """Return the run progress entry matching the identifiers."""
+        for r in self.progress.get("runs", []):
+            if (
+                r.get("method_name") == method_name
+                and r.get("problem_name") == problem_name
+                and r.get("seed") == seed
+            ):
+                return r
+        return None
+
     def _progress_path(self):
         return os.path.join(self.dirname, "progress.json")
 
@@ -206,29 +269,94 @@ class ExperimentLogger:
         else:
             self.progress = {}
 
-    def start_progress(self, total_runs: int):
-        """Initialize progress tracking with the total number of runs."""
-        self.progress = {
-            "start_time": datetime.now().isoformat(),
-            "end_time": None,
-            "current": 0,
-            "total": int(total_runs),
-        }
+    def start_progress(
+        self, total_runs: int, methods=None, problems=None, seeds=None, budget=None
+    ):
+        """Initialize progress tracking with experiment configuration."""
+        if os.path.exists(self._progress_path()):
+            self._load_progress()
+            # Validate that the planned runs match
+            existing = {
+                (r["method_name"], r["problem_name"], r["seed"])
+                for r in self.progress.get("runs", [])
+            }
+            expected = {
+                (m.name, p.name, int(s))
+                for m in methods
+                for p in problems
+                for s in seeds
+            }
+            if existing and existing != expected:
+                raise ValueError("Existing progress does not match experiment setup")
+            if not existing:
+                # initialize runs for the first time
+                self.progress = {
+                    "start_time": datetime.now().isoformat(),
+                    "end_time": None,
+                    "current": 0,
+                    "total": int(total_runs),
+                    "runs": [],
+                }
+                for m in methods:
+                    for p in problems:
+                        for s in seeds:
+                            self.progress["runs"].append(
+                                {
+                                    "method_name": m.name,
+                                    "problem_name": p.name,
+                                    "seed": int(s),
+                                    "budget": int(budget),
+                                    "evaluations": 0,
+                                    "start_time": None,
+                                    "end_time": None,
+                                    "log_dir": None,
+                                }
+                            )
+        else:
+            self.progress = {
+                "start_time": datetime.now().isoformat(),
+                "end_time": None,
+                "current": 0,
+                "total": int(total_runs),
+                "runs": [],
+            }
+            for m in methods:
+                for p in problems:
+                    for s in seeds:
+                        self.progress["runs"].append(
+                            {
+                                "method_name": m.name,
+                                "problem_name": p.name,
+                                "seed": int(s),
+                                "budget": int(budget),
+                                "evaluations": 0,
+                                "start_time": None,
+                                "end_time": None,
+                                "log_dir": None,
+                            }
+                        )
         self._write_progress()
 
     def increment_progress(self):
-        """Increment the finished run counter and write to file."""
-        if not hasattr(self, "progress"):
-            self.start_progress(0)
-        self.progress["current"] = self.progress.get("current", 0) + 1
+        """Recalculate and write progress based on run entries."""
+        finished = sum(1 for r in self.progress.get("runs", []) if r.get("end_time"))
+        self.progress["current"] = finished
         total = self.progress.get("total", 0)
-        if (
-            total
-            and self.progress["current"] >= total
-            and self.progress.get("end_time") is None
-        ):
+        if total and finished >= total and self.progress.get("end_time") is None:
             self.progress["end_time"] = datetime.now().isoformat()
         self._write_progress()
+
+    def increment_eval(self, method_name, problem_name, seed):
+        entry = self._get_run_entry(method_name, problem_name, seed)
+        if entry is not None:
+            entry["evaluations"] = entry.get("evaluations", 0) + 1
+            self._write_progress()
+
+    def is_run_pending(self, method, problem, seed):
+        entry = self._get_run_entry(method.name, problem.name, seed)
+        if entry is None:
+            return True
+        return entry.get("end_time") is None
 
 
 class RunLogger:
@@ -236,7 +364,7 @@ class RunLogger:
     Logs an LLM-driven optimization run.
     """
 
-    def __init__(self, name="", root_dir="", budget=100):
+    def __init__(self, name="", root_dir="", budget=100, progress_callback=None):
         """
         Initializes an instance of the RunLogger.
         Sets up a new logging directory named with the current date and time.
@@ -249,6 +377,7 @@ class RunLogger:
         self.dirname = self.create_log_dir(name, root_dir)
         self.attempt = 0
         self.budget = budget
+        self._progress_callback = progress_callback
 
     def get_log_dir(self):
         """
@@ -334,6 +463,8 @@ class RunLogger:
         ind_dict = individual.to_dict()
         with jsonlines.open(f"{self.dirname}/log.jsonl", "a") as file:
             file.write(convert_to_serializable(ind_dict))
+        if self._progress_callback:
+            self._progress_callback()
 
     def log_code(self, individual):
         """
@@ -361,4 +492,4 @@ class RunLogger:
                 file.write(cs_json.write(individual.configspace))
             else:
                 file.write("Failed to extract config space")
-        self.attempt = attempt
+        self.attempt += 1
