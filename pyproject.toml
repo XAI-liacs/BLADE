@@ -74,13 +74,6 @@ autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autot
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.poetry.group.methods.dependencies]
-eoh = {git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh", rev = "8d679f821af8edc7fbe3a4b6d6538b1b0362b4fb"}
-reevo = {git = "https://github.com/nikivanstein/reevo.git", rev = "main"}
-
-[tool.poetry.group.kerneltuner.dependencies]
-kernel_tuner = {git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies"}
-autotuning_methodology = {git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702"}
 
 [tool.pytest.ini_options]
 filterwarnings = [

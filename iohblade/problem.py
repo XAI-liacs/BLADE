@@ -113,7 +113,7 @@ class Problem(ABC):
                 elif isinstance(result, str):
                     # If a string is returned, it is likely an error message
                     solution.set_scores(
-                        -np.Inf, feedback=f"An error occurred: {result}."
+                        -np.Inf, feedback=f"An error occurred: {result}.", error=result
                     )
                 else:
                     raise Exception("No Solution object or string returned.")
