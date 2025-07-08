@@ -55,13 +55,16 @@ class Experiment(ABC):
         """
         Runs the experiment by executing each method on each problem.
         """
-        total_runs = len(self.problems) * len(self.methods) * len(self.seeds)
         if hasattr(self.exp_logger, "start_progress"):
-            self.exp_logger.start_progress(total_runs)
+            self.exp_logger.start_progress(
+                self.methods, self.problems, self.seeds, self.budget
+            )
 
         for problem in tqdm(self.problems, desc="Problems"):
             for method in tqdm(self.methods, leave=False, desc="Methods"):
                 for i in tqdm(self.seeds, leave=False, desc="Runs"):
+                    if not self.exp_logger.is_run_needed(method.name, problem.name, i):
+                        continue
                     np.random.seed(i)
 
                     logger = self.exp_logger.open_run(method, problem, self.budget, i)

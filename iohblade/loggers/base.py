@@ -1,5 +1,6 @@
 import os
 import json
+import shutil
 from datetime import datetime
 
 import jsonlines
@@ -32,18 +33,26 @@ class ExperimentLogger:
         if read:
             self.dirs.append(name)  # keep a reference for aggregation
             self.dirname = name  # ← back-compat for code that still uses .dirname
-        else:
-            self.dirname = self.create_log_dir(name)
-            self.dirs.append(self.dirname)
-            self.progress = {
-                "start_time": datetime.now().isoformat(),
-                "end_time": None,
-                "current": 0,
-                "total": 0,
-            }
-            self._write_progress()
-        if read:
             self._load_progress()
+        else:
+            if os.path.exists(name):
+                # Existing experiment directory -> resume
+                self.dirname = name
+                self.dirs.append(self.dirname)
+                self._load_progress()
+            else:
+                self.dirname = self.create_log_dir(name)
+                self.dirs.append(self.dirname)
+                self.progress = {
+                    "start_time": datetime.now().isoformat(),
+                    "end_time": None,
+                    "methods": [],
+                    "problems": [],
+                    "runs": [],
+                    "current": 0,
+                    "total": 0,
+                }
+                self._write_progress()
 
     def add_read_dir(self, dir_path: str):
         """
@@ -74,11 +83,36 @@ class ExperimentLogger:
         os.mkdir(dirname)
         return dirname
 
+    # Internal helpers -------------------------------------------------
+
+    def _find_run(self, method_name, problem_name, seed):
+        for r in self.progress.get("runs", []):
+            if (
+                r.get("method_name") == method_name
+                and r.get("problem_name") == problem_name
+                and int(r.get("seed")) == int(seed)
+            ):
+                return r
+        return None
+
+    def is_run_needed(self, method_name, problem_name, seed):
+        r = self._find_run(method_name, problem_name, seed)
+        return r is not None and not r.get("end_time")
+
     def open_run(self, method, problem, budget=100, seed=0):
         """
         Opens (starts) a new run for logging.
         Typically call this right before your run, so that the RunLogger can log step data.
         """
+        run = self._find_run(method.name, problem.name, seed)
+        if run is None:
+            raise ValueError("Run not registered in progress")
+        if run.get("end_time"):
+            raise ValueError("Run already completed")
+        if run.get("log_dir") and os.path.exists(
+            os.path.join(self.dirname, run["log_dir"])
+        ):
+            shutil.rmtree(os.path.join(self.dirname, run["log_dir"]))
         run_name = f"{method.name}-{problem.name}-{seed}"
 
         self.run_logger = RunLogger(
@@ -86,6 +120,10 @@ class ExperimentLogger:
             root_dir=self.dirname,
             budget=budget,
         )
+        run["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
+        run["start_time"] = datetime.now().isoformat()
+        run["budget"] = int(budget)
+        self._write_progress()
         problem.set_logger(self.run_logger)
         return self.run_logger
 
@@ -123,6 +161,13 @@ class ExperimentLogger:
         }
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
             file.write(convert_to_serializable(run_object))
+        run = self._find_run(method.name, problem.name, seed)
+        if run is not None:
+            run["end_time"] = datetime.now().isoformat()
+            log_path = os.path.join(log_dir, "log.jsonl")
+            if os.path.exists(log_path):
+                with open(log_path) as f:
+                    run["evaluations"] = sum(1 for _ in f)
         self.increment_progress()
 
     def get_data(self):
@@ -203,29 +248,69 @@ class ExperimentLogger:
         if os.path.exists(path):
             with open(path) as f:
                 self.progress = json.load(f)
+            # ensure counters are consistent
+            runs = self.progress.get("runs", [])
+            self.progress["total"] = len(runs)
+            self.progress["current"] = sum(1 for r in runs if r.get("end_time"))
         else:
             self.progress = {}
 
-    def start_progress(self, total_runs: int):
-        """Initialize progress tracking with the total number of runs."""
-        self.progress = {
-            "start_time": datetime.now().isoformat(),
-            "end_time": None,
-            "current": 0,
-            "total": int(total_runs),
-        }
+    def start_progress(self, methods, problems, seeds, budget):
+        """Initialize progress tracking with the experiment setup."""
+        runs = []
+        for problem in problems:
+            for method in methods:
+                for seed in seeds:
+                    runs.append(
+                        {
+                            "method_name": method.name,
+                            "problem_name": problem.name,
+                            "seed": int(seed),
+                            "budget": int(budget),
+                            "log_dir": None,
+                            "start_time": None,
+                            "end_time": None,
+                            "evaluations": 0,
+                        }
+                    )
+
+        if self.progress.get("runs"):
+            existing_keys = {
+                (r["method_name"], r["problem_name"], int(r["seed"]))
+                for r in self.progress["runs"]
+            }
+            new_keys = {
+                (r["method_name"], r["problem_name"], int(r["seed"])) for r in runs
+            }
+            if existing_keys != new_keys:
+                raise ValueError("Experiment setup does not match existing log")
+        else:
+            self.progress = {
+                "start_time": datetime.now().isoformat(),
+                "end_time": None,
+                "methods": [m.to_dict() for m in methods],
+                "problems": [p.to_dict() for p in problems],
+                "runs": runs,
+            }
+
+        self.progress["total"] = len(self.progress["runs"])
+        self.progress["current"] = sum(
+            1 for r in self.progress["runs"] if r.get("end_time")
+        )
         self._write_progress()
 
     def increment_progress(self):
         """Increment the finished run counter and write to file."""
         if not hasattr(self, "progress"):
-            self.start_progress(0)
-        self.progress["current"] = self.progress.get("current", 0) + 1
+            return
+        self.progress["current"] = sum(
+            1 for r in self.progress.get("runs", []) if r.get("end_time")
+        )
         total = self.progress.get("total", 0)
         if (
             total
             and self.progress["current"] >= total
-            and self.progress.get("end_time") is None
+            and not self.progress.get("end_time")
         ):
             self.progress["end_time"] = datetime.now().isoformat()
         self._write_progress()
