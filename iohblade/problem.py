@@ -20,8 +20,10 @@ def evaluate_in_subprocess(problem, conn, solution):
         result = problem.evaluate(solution)
         conn.send(result)  # Send result through the pipe
     except Exception as e:
-        #print(f"stracktrace: {traceback.format_exc()}")
-        conn.send(f"{e} stracktrace: {traceback.format_exc()}")  # Send exception for handling in the parent
+        # print(f"stracktrace: {traceback.format_exc()}")
+        conn.send(
+            f"{e} stracktrace: {traceback.format_exc()}"
+        )  # Send exception for handling in the parent
     finally:
         conn.close()  # Ensure pipe is closed after sending data
 
@@ -87,7 +89,7 @@ class Problem(ABC):
             if self.logger.budget_exhausted():
                 raise Exception("Evaluation failed because budget is exhausted.")
 
-        #solution = self.evaluate(solution) #old fashioned way
+        # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
         try:
             (

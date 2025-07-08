@@ -19,7 +19,10 @@ try:
     from kernel_tuner.strategies.wrapper import OptAlg
 
     from kernel_tuner import tune_kernel_T1
-    from autotuning_methodology.experiments import generate_experiment_file, execute_experiment
+    from autotuning_methodology.experiments import (
+        generate_experiment_file,
+        execute_experiment,
+    )
     from autotuning_methodology.report_experiments import get_strategy_scores
 except Exception:  # pragma: no cover - optional dependency
     tune_kernel_T1 = None
@@ -116,7 +119,7 @@ In addition, the variable `tune_params` is a dictionary containing the tuning pa
             )
             with open(input_filepath, "r") as f:
                 self.task_prompt += f.read()
-        
+
         else:
             self.task_prompt += "The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.\n"
 
@@ -183,23 +186,21 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 ```
 """
 
-
     def get_prompt(self):
         """
         Returns the problem description and answer format.
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
-
     def evaluate(self, solution: Solution, test=False):
-        repeats = 5 # number of times to repeat for stochasticity, just two for now.
+        repeats = 5  # number of times to repeat for stochasticity, just two for now.
 
         path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
         path.mkdir(parents=True, exist_ok=True)
 
         code = solution.code
         algorithm_name = solution.name
-        
+
         exec(code, globals())
         strategy = globals()[algorithm_name]()
 
@@ -212,7 +213,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 {
                     "name": f"{app}_milo",
                     "folder": folder,
-                    "input_file": f"{app}_milo.json"
+                    "input_file": f"{app}_milo.json",
                 }
             )
         # write the solution to a file
@@ -234,21 +235,25 @@ from kernel_tuner.strategies.wrapper import OptAlg
 {solution.code}
 
 """
-        solution_path = os.path.join(self.logger.get_log_dir(), "evaluation", solution.id, "code.py")
+        solution_path = os.path.join(
+            self.logger.get_log_dir(), "evaluation", solution.id, "code.py"
+        )
         with open(solution_path, "w") as f:
             f.write(alg_code)
 
         # strategy settings
-        strategy: str = solution.name # the class name of your strategy
+        strategy: str = solution.name  # the class name of your strategy
         hyperparams = []
-        searchspace_strategies = [{
-            "autotuner": "KernelTuner",
-            "name": strategy,
-            "display_name": strategy.replace('_', ' ').capitalize(),
-            "search_method": strategy, # TODO give a path string to your strategy here (Can we not make this a callable?)
-            'search_method_hyperparameters': hyperparams,
-            "custom_search_method_path": solution_path
-        }]
+        searchspace_strategies = [
+            {
+                "autotuner": "KernelTuner",
+                "name": strategy,
+                "display_name": strategy.replace("_", " ").capitalize(),
+                "search_method": strategy,  # TODO give a path string to your strategy here (Can we not make this a callable?)
+                "search_method_hyperparameters": hyperparams,
+                "custom_search_method_path": solution_path,
+            }
+        ]
         # any additional settings
         override = {
             "experimental_groups_defaults": {
@@ -256,19 +261,29 @@ from kernel_tuner.strategies.wrapper import OptAlg
                 "repeats": repeats,
                 "samples": 32,
                 "minimum_fraction_of_budget_valid": 0.01,
-                "pattern_for_full_search_space_filenames": {"regex" : "/data/neocortex/repos/benchmark_hub/cachefiles/${applications}/${gpus}_T4.json"}
+                "pattern_for_full_search_space_filenames": {
+                    "regex": "/data/neocortex/repos/benchmark_hub/cachefiles/${applications}/${gpus}_T4.json"
+                },
             }
         }
-        
-        
+
         name = solution.id
-        experiments_filepath = generate_experiment_file(name, path, searchspace_strategies, applications, gpus, override=override, generate_unique_file=False, overwrite_existing_file=True)
+        experiments_filepath = generate_experiment_file(
+            name,
+            path,
+            searchspace_strategies,
+            applications,
+            gpus,
+            override=override,
+            generate_unique_file=False,
+            overwrite_existing_file=True,
+        )
 
         # run the methodology to get a fitness score for this configuration
         scores = get_strategy_scores(str(experiments_filepath))
-        score = scores[list(scores.keys())[0]]['score']
+        score = scores[list(scores.keys())[0]]["score"]
 
-        #solution.add_metadata("all_scores", scores)
+        # solution.add_metadata("all_scores", scores)
         solution.set_scores(
             score,
             f"The algorithm {solution.name} scored {score:.3f} (higher is better).",

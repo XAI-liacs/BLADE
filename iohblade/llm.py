@@ -320,8 +320,7 @@ class Gemini_LLM(LLM):
             str: model's reply.
         """
         history = [
-            {"role": m["role"], "parts": [m["content"]]}
-            for m in session_messages[:-1]
+            {"role": m["role"], "parts": [m["content"]]} for m in session_messages[:-1]
         ]
         last = session_messages[-1]["content"]
 
@@ -335,12 +334,12 @@ class Gemini_LLM(LLM):
             except Exception as err:
                 attempt += 1
                 if attempt > max_retries:
-                    raise                           # bubble out after N tries
+                    raise  # bubble out after N tries
 
                 # Prefer the structured retry_delay field if present
                 delay = getattr(err, "retry_delay", None)
                 if delay is not None:
-                    wait = delay.seconds + 1 # add 1 second to avoid immediate retry
+                    wait = delay.seconds + 1  # add 1 second to avoid immediate retry
                 else:
                     # Sometimes retry_delay only appears in the string—grab it
                     m = re.search(r"retry_delay\s*{\s*seconds:\s*(\d+)", str(err))

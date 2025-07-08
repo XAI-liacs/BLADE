@@ -66,7 +66,12 @@ def plot_convergence(
             if separate_lines:
                 for seed in method_data["seed"].unique():
                     seed_data = method_data[method_data["seed"] == seed]
-                    ax.plot(seed_data["_id"], seed_data["cummax_fitness"], label=f"{method} (Run {seed})", alpha=0.5)
+                    ax.plot(
+                        seed_data["_id"],
+                        seed_data["cummax_fitness"],
+                        label=f"{method} (Run {seed})",
+                        alpha=0.5,
+                    )
             else:
                 summary = (
                     method_data.groupby("_id")["cummax_fitness"]

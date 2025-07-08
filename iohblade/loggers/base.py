@@ -28,10 +28,10 @@ class ExperimentLogger:
             name (str): The name of the experiment.
             read (bool): Whether to read the experiment log or create a new one.
         """
-        self.dirs = []     # list[str] with every experiment dir we will read from
+        self.dirs = []  # list[str] with every experiment dir we will read from
         if read:
-            self.dirs.append(name)          # keep a reference for aggregation
-            self.dirname = name             # ← back-compat for code that still uses .dirname
+            self.dirs.append(name)  # keep a reference for aggregation
+            self.dirname = name  # ← back-compat for code that still uses .dirname
         else:
             self.dirname = self.create_log_dir(name)
             self.progress = {
@@ -44,7 +44,6 @@ class ExperimentLogger:
         if read:
             self._load_progress()
 
-
     def add_read_dir(self, dir_path: str):
         """
         Register another finished experiment so that *this* logger will read it
@@ -56,7 +55,6 @@ class ExperimentLogger:
             raise ValueError("No experimentlog.jsonl found in the given directory")
         if dir_path not in self.dirs:
             self.dirs.append(dir_path)
-
 
     def create_log_dir(self, name=""):
         """
@@ -159,7 +157,9 @@ class ExperimentLogger:
                 for line in file:
                     if line["problem_name"] != problem_name:
                         continue
-                    logdir = os.path.join(d, line["log_dir"])   # relative to *that* experiment
+                    logdir = os.path.join(
+                        d, line["log_dir"]
+                    )  # relative to *that* experiment
                     run_log = os.path.join(logdir, "log.jsonl")
                     if os.path.exists(run_log):
                         df = pd.read_json(run_log, lines=True)
