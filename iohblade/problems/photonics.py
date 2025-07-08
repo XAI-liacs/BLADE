@@ -1,16 +1,19 @@
 import os
-import numpy as np
-import ioh
-from ioh import get_problem, logger as ioh_logger
-from ..solution import Solution
-from ..utils import aoc_logger, correct_aoc, OverBudgetException
-import pandas as pd
 import traceback
+
+import ioh
+import numpy as np
+import pandas as pd
+from ioh import get_problem
+from ioh import logger as ioh_logger
+
 from ..problem import Problem
+from ..solution import Solution
+from ..utils import OverBudgetException, aoc_logger, correct_aoc
 from .photonic_instances import (
+    algorithmic_insights,
     get_photonic_instance,
     problem_descriptions,
-    algorithmic_insights,
 )
 
 
@@ -46,6 +49,10 @@ class Photonics(Problem):
 
         self.problem_type = problem_type
         self.problem = get_photonic_instance(self.problem_type)
+        self.func_name = "__call__"
+        self.init_inputs = ["budget", "dim"]
+        self.func_inputs = ["func"]
+        self.func_outputs = ["f_opt", "x_opt"]
 
         super().__init__(logger, [self.problem], [self.problem], name, eval_timeout)
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget

@@ -21,16 +21,15 @@ Author: Niki van Stein (May 2025)
 from __future__ import annotations
 
 import math
-from typing import Sequence, Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
-from scipy.spatial import distance_matrix, ConvexHull
+from scipy.spatial import ConvexHull, distance_matrix
+from scipy.spatial.distance import pdist, squareform
 from scipy.stats import gaussian_kde
 from sklearn.linear_model import LinearRegression
-from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
-
 
 # ---------------------------------------------------------------------
 # helpers

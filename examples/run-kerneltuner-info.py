@@ -61,5 +61,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 extra_info=True),
             
             ]
-        experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

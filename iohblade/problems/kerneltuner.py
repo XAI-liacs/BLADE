@@ -1,27 +1,39 @@
+import json
+import math
 import os
+import random
+import re
+import time
+import traceback
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import polars as pl
-import random
-import re
-import json
-import time
-import traceback
-import math
-from ..solution import Solution
-import pandas as pd
-import traceback
+
+
+try:
+    from kernel_tuner import util
+    from kernel_tuner.searchspace import Searchspace
+    from kernel_tuner.strategies.common import CostFunc
+    from kernel_tuner.strategies.wrapper import OptAlg
+
+    from kernel_tuner import tune_kernel_T1
+    from autotuning_methodology.experiments import generate_experiment_file, execute_experiment
+    from autotuning_methodology.report_experiments import get_strategy_scores
+except Exception:  # pragma: no cover - optional dependency
+    tune_kernel_T1 = None
+    util = None
+    Searchspace = None
+    CostFunc = None
+    OptAlg = object
+    generate_experiment_file = None
+    execute_experiment = None
+    get_strategy_scores = None
+
+
 from ..problem import Problem
-
-from kernel_tuner import util
-from kernel_tuner.searchspace import Searchspace
-from kernel_tuner.strategies.common import CostFunc
-from kernel_tuner.strategies.wrapper import OptAlg
-
-from kernel_tuner import tune_kernel_T1
-from pathlib import Path
-from autotuning_methodology.experiments import generate_experiment_file, execute_experiment
-from autotuning_methodology.report_experiments import get_strategy_scores
+from ..solution import Solution
 
 
 class OverBudgetException(Exception):

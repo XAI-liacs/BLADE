@@ -1,5 +1,6 @@
 import numpy as np
 import PyMoosh as pm
+
 from .photonic_problem import photonic_problem
 
 

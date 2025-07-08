@@ -1,15 +1,16 @@
-import os
 import json
-import wandb
+import os
 from datetime import datetime
 
-from .base import ExperimentLogger, RunLogger
-from ..utils import convert_to_serializable
+import wandb
+from ConfigSpace.read_and_write import json as cs_json
+
+from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
-from ..llm import LLM
 from ..solution import Solution
-from ConfigSpace.read_and_write import json as cs_json
+from ..utils import convert_to_serializable
+from .base import ExperimentLogger, RunLogger
 
 
 class WAndBExperimentLogger(ExperimentLogger):

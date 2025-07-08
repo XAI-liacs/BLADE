@@ -1,17 +1,18 @@
 """
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
-from abc import ABC, abstractmethod
-import google.generativeai as genai
-from google.api_core.exceptions import ResourceExhausted
-import openai
-import ollama
 import re
-from .utils import NoCodeException
-from .solution import Solution
-from ConfigSpace import ConfigurationSpace
-from tokencost import calculate_prompt_cost, calculate_completion_cost
 import time
+from abc import ABC, abstractmethod
+
+import google.generativeai as genai
+import ollama
+import openai
+from ConfigSpace import ConfigurationSpace
+from tokencost import calculate_completion_cost, calculate_prompt_cost
+
+from .solution import Solution
+from .utils import NoCodeException
 
 
 class LLM(ABC):
@@ -62,6 +63,19 @@ class LLM(ABC):
         )
 
     @abstractmethod
+    def _query(self, session: list):
+        """
+        Sends a conversation history to the configured model and returns the response text.
+
+        Args:
+            session (list of dict): A list of message dictionaries with keys
+                "role" (e.g. "user", "assistant") and "content" (the message text).
+
+        Returns:
+            str: The text content of the LLM's response.
+        """
+        pass
+
     def query(self, session: list):
         """
         Sends a conversation history to the configured model and returns the response text.
@@ -73,7 +87,25 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
-        pass
+        if self.log:
+            try:
+                cost = calculate_prompt_cost(session, self.model)
+            except Exception as e:
+                cost = 0
+            self.logger.log_conversation(
+                "client", "\n".join([d["content"] for d in session]), cost
+            )
+
+        message = self._query(session)
+
+        if self.log:
+            try:
+                cost = calculate_completion_cost(message, self.model)
+            except Exception as e:
+                cost = 0
+            self.logger.log_conversation(self.model, message, cost)
+
+        return message
 
     def set_logger(self, logger):
         """
@@ -101,23 +133,7 @@ class LLM(ABC):
             NoCodeException: If the language model fails to return any code.
             Exception: Captures and logs any other exceptions that occur during the interaction.
         """
-        if self.log:
-            try:
-                cost = calculate_prompt_cost(session_messages, self.model)
-            except Exception as e:
-                cost = 0
-            self.logger.log_conversation(
-                "client", "\n".join([d["content"] for d in session_messages]), cost
-            )
-
         message = self.query(session_messages)
-
-        if self.log:
-            try:
-                cost = calculate_completion_cost(message, self.model)
-            except Exception as e:
-                cost = 0
-            self.logger.log_conversation(self.model, message, cost)
 
         code = self.extract_algorithm_code(message)
         name = self.extract_classname(code)
@@ -243,7 +259,7 @@ class OpenAI_LLM(LLM):
         self.client = openai.OpenAI(api_key=api_key)
         self.temperature = temperature
 
-    def query(self, session_messages):
+    def _query(self, session_messages):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -291,7 +307,7 @@ class Gemini_LLM(LLM):
             system_instruction="You are a computer scientist and excellent Python programmer.",
         )
 
-    def query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
         Sends the conversation history to Gemini, retrying on 429 ResourceExhausted exceptions.
 
@@ -316,7 +332,7 @@ class Gemini_LLM(LLM):
                 response = chat.send_message(last)
                 return response.text
 
-            except ResourceExhausted as err:
+            except Exception as err:
                 attempt += 1
                 if attempt > max_retries:
                     raise                           # bubble out after N tries
@@ -344,7 +360,7 @@ class Ollama_LLM(LLM):
         """
         super().__init__("", model, None, **kwargs)
 
-    def query(self, session_messages):
+    def _query(self, session_messages):
         """
         Sends a conversation history to the configured model and returns the response text.
 

@@ -14,8 +14,8 @@ BLADE
 .. image:: https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg
    :alt: Maintenance
    :height: 18
-.. image:: https://img.shields.io/badge/Python-3.10+-blue.svg
-   :alt: Python 3.10+
+.. image:: https://img.shields.io/badge/Python-3.11+-blue.svg
+   :alt: Python 3.11+
    :height: 18
 .. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7 
    :target: https://codecov.io/gh/XAI-liacs/BLADE
@@ -105,7 +105,7 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
      - `code <https://github.com/ai4co/LLM-as-HH>`_, `paper <https://arxiv.org/abs/2402.01145>`_
 
 .. note::
-   Some of these algorithms are currently not yet integrated, but they are planned for integration soon.
+   ``FunSearch`` is currently not yet integrated.
 
 Supported LLM APIs
 ------------------

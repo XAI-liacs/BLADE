@@ -1,8 +1,5 @@
 # iohblade/loggers/__init__.py
-from .base import (
-    ExperimentLogger,
-    RunLogger,
-)
+from .base import ExperimentLogger, RunLogger
 
 # from .mlflow import (
 #     MLFlowExperimentLogger,

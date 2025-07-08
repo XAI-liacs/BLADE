@@ -1,32 +1,27 @@
-from .solution import Solution
+import multiprocessing
+
+from .llm import LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from .method import Method
-from .problem import Problem
-from .llm import (
-    Ollama_LLM,
-    OpenAI_LLM,
-    Gemini_LLM,
-    LLM,
-)
 from .plots import (
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_code_evolution_graphs,
+    fitness_table,
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,
-    fitness_table,
+    plot_code_evolution_graphs,
+    plot_convergence,
+    plot_experiment_CEG,
 )
+from .problem import Problem
+from .solution import Solution
 from .utils import (
-    convert_to_serializable,
-    aoc_logger,
-    correct_aoc,
+    NoCodeException,
     OverBudgetException,
     ThresholdReachedException,
-    NoCodeException,
     TimeoutException,
+    aoc_logger,
     budget_logger,
+    convert_to_serializable,
+    correct_aoc,
 )
-
-import multiprocessing
 
 
 def ensure_spawn_start_method():

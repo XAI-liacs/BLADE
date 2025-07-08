@@ -116,7 +116,7 @@ class DummyLLM(llm_mod.LLM):
     def __init__(self):
         super().__init__(api_key="", model="dummy", logger=DummyLogger())
 
-    def query(self, session_messages):
+    def _query(self, session_messages):
         return """```python\nclass Algo:\n    pass\n```\n# Description: test"""
 
 

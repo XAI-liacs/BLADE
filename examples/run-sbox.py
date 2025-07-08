@@ -48,5 +48,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
             problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST_group{group}", specific_group=group))
 
         logger = ExperimentLogger("results/SBOX")
-        experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

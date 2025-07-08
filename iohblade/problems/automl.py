@@ -1,23 +1,20 @@
+import json
+import math
 import os
-import numpy as np
-import os
+import random
+import re
+import time
+import traceback
+
 import numpy as np
 import pandas as pd
 import polars as pl
-import random
-import re
-import json
-import time
-import traceback
-import math
-from ..solution import Solution
-import pandas as pd
-import traceback
-from ..problem import Problem
-
+import sklearn
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import accuracy_score
-import sklearn
+
+from ..problem import Problem
+from ..solution import Solution
 
 # import autosklearn.classification
 
@@ -46,6 +43,11 @@ class AutoML(Problem):
             name,
             eval_timeout,
         )
+        self.func_name = "__call__"
+        self.init_inputs = ["X", "y"]
+        self.func_inputs = ["X"]
+        self.func_outputs = ["y_pred"]
+
         self.task_prompt = f"""
 You are a highly skilled computer scientist in the field machine learning. Your task is to design novel machine learning pipelines for a given dataset and task.
 The pipeline in this case should handle a breast cancer classification task. Your task is to write the Python code. The code should contain an `__init__(self, X, y)` function that trains a machine learning model and the function `def __call__(self, X)`, which should predict the samples in X and return the predictions.
@@ -66,12 +68,11 @@ class AlgorithmName:
     def train(self, X, y):
         # Standardize the feature data
         scaler = sklearn.preprocessing.StandardScaler()
-        X_train = scaler.fit_transform(X_train)
-        X_test = scaler.transform(X_test)
+        X_train = scaler.fit_transform(X)
 
         # Let's create and train a logistic regression model
         lr_model = sklearn.linear_model.LogisticRegression()
-        lr_model.fit(X_train, y_train)
+        lr_model.fit(X_train, y)
         self.model = lr_model
         
     def __call__(self, X):

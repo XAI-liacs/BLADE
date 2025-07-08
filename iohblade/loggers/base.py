@@ -4,13 +4,14 @@ from datetime import datetime
 
 import jsonlines
 import numpy as np
-from ..utils import convert_to_serializable
+import pandas as pd
+from ConfigSpace.read_and_write import json as cs_json
+
+from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
-from ..llm import LLM
 from ..solution import Solution
-from ConfigSpace.read_and_write import json as cs_json
-import pandas as pd
+from ..utils import convert_to_serializable
 
 
 class ExperimentLogger:

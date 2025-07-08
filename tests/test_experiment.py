@@ -30,14 +30,14 @@ def test_ma_bbob_experiment_init(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
-        def query(self, s):
+        def _query(self, s):
             return "res"
 
-    methods = [DummyMethod(None, 10, name="m1")]
     llm = DummyLLM(api_key="", model="")
+    methods = [DummyMethod(llm, 10, name="m1")]
+    
     exp = MA_BBOB_Experiment(
         methods,
-        llm,
         runs=2,
         budget=50,
         dims=[2, 3],
@@ -55,7 +55,7 @@ def test_experiment_run(cleanup_tmp_dir):
             self.exp_logger.add_run(
                 self.methods[0],
                 self.problems[0],
-                self.llm,
+                self.methods[0].llm,
                 MagicMock(),
                 log_dir="test",
                 seed=0,
@@ -82,16 +82,15 @@ def test_experiment_run(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
-        def query(self, session_messages):
+        def _query(self, session_messages):
             return "response"
-
-    m = DummyMethod(None, 5, name="DMethod")
-    p = DummyProblem()
     l = DummyLLM("", "")
+    m = DummyMethod(l, 5, name="DMethod")
+    p = DummyProblem()
+    
     exp = DummyExp(
         methods=[m],
         problems=[p],
-        llm=l,
         exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "mabbob_experiment")),
     )
     exp()  # call

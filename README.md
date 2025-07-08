@@ -13,7 +13,7 @@
     <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
-  <img src="https://img.shields.io/badge/Python-3.10+-blue" alt="Python 3.10+" height="18">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
   <a href="https://codecov.io/gh/XAI-liacs/BLADE" > 
     <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/> 
   </a>
@@ -72,7 +72,7 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
 
-> Note, some of these algorithms are currently not yet integrated, but they are planned for integration soonn.
+> Note, FunSearch is currently not yet integrated.
 
 ### Supported LLM APIs
 
@@ -102,20 +102,29 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
   pip install iohblade
 ```
 > [!Important]
-> The Python version **must** be larger or equal to Python 3.10.
+> The Python version **must** be larger or equal to Python 3.11.
 > You need an OpenAI/Gemini/Ollama API key for using LLM models.
 
-You can also install the package from source using Poetry (1.8.5).
+You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).
+make sure you have `uv` installed.
 
 1. Clone the repository:
    ```bash
    git clone https://github.com/XAI-liacs/BLADE.git
    cd BLADE
    ```
-2. Install the required dependencies via Poetry:
+
+2. Install the required dependencies via uv:
    ```bash
-   poetry install
+   uv sync
    ```
+
+3. *(Optional)* Install additional packages:
+   ```bash
+   uv sync --group kerneltuner --group dev --group docs
+   ```
+   This will install additional dependencies for development and building documentation.
+   The (experimental) auto-kernel application is also under a separate group for now. 
 
 ## 💻 Quick Start
 
@@ -152,7 +161,7 @@ You can also install the package from source using Poetry (1.8.5).
     problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
     # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
     logger = ExperimentLogger("results/SBOX")
-    experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
+    experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
@@ -161,7 +170,7 @@ You can also install the package from source using Poetry (1.8.5).
 After running experiments you can browse them using the built-in Streamlit app:
 
 ```bash
-poetry run streamlit run webapp.py
+uv run streamlit run webapp.py
 ```
 
 The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
