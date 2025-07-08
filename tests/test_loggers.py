@@ -95,3 +95,41 @@ def test_experiment_logger_get_data(cleanup_tmp_dir):
     assert len(df) == 2
     assert "method_name" in df.columns
     assert "problem_name" in df.columns
+
+def test_read_multiple_log_dirs(cleanup_tmp_dir):
+    exp_logger1 = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "multi_dir1"))
+    exp_logger2 = ExperimentLogger(name=os.path.join(cleanup_tmp_dir, "multi_dir2"))
+
+    # create a sample log file in each directory
+    run_logger = RunLogger(name="test_run1", root_dir=exp_logger1.dirname)
+    sol = Solution(name="test_solution").set_scores(1.0, feedback="Test feedback")
+    run_logger.log_individual(sol)
+    # Check existence of log.jsonl
+    log_file1 = os.path.join(run_logger.get_log_dir(), "log.jsonl")
+    assert os.path.exists(log_file1)
+
+    run_logger2 = RunLogger(name="test_run2", root_dir=exp_logger2.dirname)
+    sol = Solution(name="test_solution").set_scores(1.0, feedback="Test feedback")
+    run_logger2.log_individual(sol)
+    # Check existence of log.jsonl
+    log_file2 = os.path.join(run_logger2.get_log_dir(), "log.jsonl")
+    assert os.path.exists(log_file2)
+
+    log_file = os.path.join(exp_logger1.dirname, "experimentlog.jsonl")
+    with open(log_file, "w") as f:
+        f.write(f'{{"method_name":"methodA","problem_name":"problemX", "log_dir":"run-test_run1", "seed":"0"}}\n')
+        f.write(f'{{"method_name":"methodB","problem_name":"problemY", "log_dir":"run-test_run1", "seed":"0"}}\n')
+    
+    log_file = os.path.join(exp_logger2.dirname, "experimentlog.jsonl")
+    with open(log_file, "w") as f:
+        f.write(f'{{"method_name":"methodC","problem_name":"problemX", "log_dir":"run-test_run2", "seed":"1"}}\n')
+        f.write(f'{{"method_name":"methodD","problem_name":"problemY", "log_dir":"run-test_run2", "seed":"1"}}\n')
+
+    # now create a new ExperimentLogger that reads both directories.
+    explogger_read = ExperimentLogger(name=exp_logger1.dirname, read=True)
+    explogger_read.add_read_dir(exp_logger2.dirname)
+    data = explogger_read.get_data()
+    assert len(data) == 4
+    problem_data = explogger_read.get_problem_data("problemX")
+    assert len(problem_data) == 2, "Expected 2 entries for problemX, got {}".format(len(problem_data))
+    
