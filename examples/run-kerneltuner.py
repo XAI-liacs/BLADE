@@ -11,7 +11,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_gemini = os.getenv("GEMINI_API_KEY")
 
     llm1 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash")
-    llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0)
+    llm2 = OpenAI_LLM(api_key,"o3-2025-04-16", temperature=1.0)
+    llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0) #Done
     budget = 100
 
     mutation_prompts = [
@@ -20,33 +21,45 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         "Refine and simplify the selected algorithm to improve it.", #simplify
     ]
 
-    for llm in [llm1]: #, llm1
-        LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=True)
+    for llm in [llm5]: #, llm1
+        LLaMEA_method = LLaMEA(llm, budget=budget, name="o4 (no info)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=True)
 
         methods = [LLaMEA_method]
-        logger = ExperimentLogger("results/kerneltuner-gemini")
+        logger = ExperimentLogger("results/kerneltuner-o4-no-info")
         problems = [
             Kerneltuner(
-                gpus=["A100"],
-                kernels=["gemm", "convolution", "dedispersion", "hotspot"],
-                name="kerneltuner-A100",
-                eval_timeout=120,
-                budget=100,
-                cache_dir="/data/neocortex/repos/benchmark_hub/"),
-            Kerneltuner(
-                gpus=["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"],
+                gpus=["A100", "A4000", "MI250X"], #, "A4000", "MI250X"
                 kernels=["gemm"],
                 name="kerneltuner-gemm",
-                eval_timeout=160,
-                budget=100,
-                cache_dir="/data/neocortex/repos/benchmark_hub/"),
+                eval_timeout=600, #5 minutes
+                budget=1000,
+                cache_dir="/data/neocortex/repos/benchmark_hub/",
+                extra_info=False),
             Kerneltuner(
-                gpus=["A100", "A4000", "A6000", "MI250X", "W6600", "W7800"],
-                kernels=["gemm", "convolution", "dedispersion", "hotspot"],
-                name="kerneltuner-general",
-                eval_timeout=360,
-                budget=100,
-                cache_dir="/data/neocortex/repos/benchmark_hub/")
+                gpus=["A100", "A4000", "MI250X"],
+                kernels=["convolution"],
+                name="kerneltuner-convolution",
+                eval_timeout=600,
+                budget=1000,
+                cache_dir="/data/neocortex/repos/benchmark_hub/",
+                extra_info=False),
+            Kerneltuner(
+                gpus=["A100", "A4000", "MI250X"],
+                kernels=["dedispersion"],
+                name="kerneltuner-dedispersion",
+                eval_timeout=600,
+                budget=1000,
+                cache_dir="/data/neocortex/repos/benchmark_hub/",
+                extra_info=False),
+            Kerneltuner(
+                gpus=["A100", "A4000", "MI250X"],
+                kernels=["hotspot"],
+                name="kerneltuner-hotspot",
+                eval_timeout=600,
+                budget=1000,
+                cache_dir="/data/neocortex/repos/benchmark_hub/",
+                extra_info=False),
+            
             ]
         experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

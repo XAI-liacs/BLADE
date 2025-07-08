@@ -54,28 +54,28 @@
         {
             "name": "MABAdaptiveVNS",
             "search_method": "MABAdaptiveVNS",
-            "display_name": "Multi-armed bandit–driven Adaptive Variable Neighborhood Search",
+            "display_name": "MABAdaptiveVNS (convolution)",
             "autotuner": "KernelTuner",
             "custom_search_method_path": "/home/neocortex/repos/BLADE/results/kerneltuner-o4/alg-kerneltuner-convolution.py"
         },
         {
             "name": "AnnealedHarmonySearch",
             "search_method": "AnnealedHarmonySearch",
-            "display_name": "Annealed Harmony Search",
+            "display_name": "AnnealedHarmonySearch (dedispersion)",
             "autotuner": "KernelTuner",
             "custom_search_method_path": "/home/neocortex/repos/BLADE/results/kerneltuner-o4/alg-kerneltuner-dedispersion.py"
         },
         {
             "name": "AdaptiveBanditVNS",
             "search_method": "AdaptiveBanditVNS",
-            "display_name": "Adaptive Multi‐Armed Bandit‐Guided VNS",
+            "display_name": "AdaptiveBanditVNS (gemm)",
             "autotuner": "KernelTuner",
             "custom_search_method_path": "/home/neocortex/repos/BLADE/results/kerneltuner-o4/alg-kerneltuner-gemm.py"
         },
         {
             "name": "MemeticConstraintGA",
             "search_method": "MemeticConstraintGA",
-            "display_name": "Memetic Constraint GA",
+            "display_name": "MemeticConstraintGA (hotspot)",
             "autotuner": "KernelTuner",
             "custom_search_method_path": "/home/neocortex/repos/BLADE/results/kerneltuner-o4/alg-kerneltuner-hotspot.py"
         },
