@@ -2,9 +2,9 @@ import json
 import os
 from datetime import datetime
 from functools import partial
+from threading import Lock
 
 import jsonlines
-import numpy as np
 import pandas as pd
 from ConfigSpace.read_and_write import json as cs_json
 
@@ -36,6 +36,7 @@ class ExperimentLogger:
         """
 
         self.dirs = []
+        self._lock = Lock()
         if read:
             # Only reading previous results
             self.dirs.append(name)
@@ -96,33 +97,6 @@ class ExperimentLogger:
         """
         run_name = f"{method.name}-{problem.name}-{seed}"
 
-        entry = self._get_run_entry(method.name, problem.name, seed)
-        if entry is None:
-            entry = {
-                "method_name": method.name,
-                "problem_name": problem.name,
-                "seed": seed,
-                "budget": int(budget),
-                "evaluations": 0,
-                "start_time": None,
-                "end_time": None,
-                "log_dir": None,
-            }
-            self.progress.setdefault("runs", []).append(entry)
-
-        # If a previous attempt exists remove it
-        if (
-            entry.get("start_time")
-            and not entry.get("end_time")
-            and entry.get("log_dir")
-        ):
-            prev = os.path.join(self.dirname, entry["log_dir"])
-            if os.path.exists(prev):
-                import shutil
-
-                shutil.rmtree(prev)
-            entry["evaluations"] = 0
-
         progress_cb = partial(self.increment_eval, method.name, problem.name, seed)
 
         self.run_logger = RunLogger(
@@ -132,10 +106,38 @@ class ExperimentLogger:
             progress_callback=progress_cb,
         )
         problem.set_logger(self.run_logger)
-        entry["start_time"] = datetime.now().isoformat()
-        entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
-        entry["end_time"] = None
-        self._write_progress()
+        with self._lock:
+            entry = self._get_run_entry(method.name, problem.name, seed)
+            if entry is None:
+                entry = {
+                    "method_name": method.name,
+                    "problem_name": problem.name,
+                    "seed": seed,
+                    "budget": int(budget),
+                    "evaluations": 0,
+                    "start_time": None,
+                    "end_time": None,
+                    "log_dir": None,
+                }
+                self.progress.setdefault("runs", []).append(entry)
+
+            # If a previous attempt exists remove it
+            if (
+                entry.get("start_time")
+                and not entry.get("end_time")
+                and entry.get("log_dir")
+            ):
+                prev = os.path.join(self.dirname, entry["log_dir"])
+                if os.path.exists(prev):
+                    import shutil
+
+                    shutil.rmtree(prev)
+                entry["evaluations"] = 0
+
+            entry["start_time"] = datetime.now().isoformat()
+            entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
+            entry["end_time"] = None
+            self._write_progress()
         return self.run_logger
 
     def add_run(
@@ -172,10 +174,12 @@ class ExperimentLogger:
         }
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
             file.write(convert_to_serializable(run_object))
-        entry = self._get_run_entry(method.name, problem.name, seed)
-        if entry is not None:
-            entry["end_time"] = datetime.now().isoformat()
-            entry["log_dir"] = rel_log_dir
+        with self._lock:
+            entry = self._get_run_entry(method.name, problem.name, seed)
+            if entry is not None:
+                entry["end_time"] = datetime.now().isoformat()
+                entry["log_dir"] = rel_log_dir
+            self._write_progress()
         self.increment_progress()
 
     def get_data(self):
@@ -274,23 +278,49 @@ class ExperimentLogger:
         self, total_runs: int, methods=None, problems=None, seeds=None, budget=None
     ):
         """Initialize progress tracking with experiment configuration."""
-        if os.path.exists(self._progress_path()):
-            self._load_progress()
-            # Validate that the planned runs match
-            existing = {
-                (r["method_name"], r["problem_name"], r["seed"])
-                for r in self.progress.get("runs", [])
-            }
-            expected = {
-                (m.name, p.name, int(s))
-                for m in methods
-                for p in problems
-                for s in seeds
-            }
-            if existing and existing != expected:
-                raise ValueError("Existing progress does not match experiment setup")
-            if not existing:
-                # initialize runs for the first time
+        with self._lock:
+            if os.path.exists(self._progress_path()):
+                self._load_progress()
+                # Validate that the planned runs match
+                existing = {
+                    (r["method_name"], r["problem_name"], r["seed"])
+                    for r in self.progress.get("runs", [])
+                }
+                expected = {
+                    (m.name, p.name, int(s))
+                    for m in methods
+                    for p in problems
+                    for s in seeds
+                }
+                if existing and existing != expected:
+                    raise ValueError(
+                        "Existing progress does not match experiment setup"
+                    )
+                if not existing:
+                    # initialize runs for the first time
+                    self.progress = {
+                        "start_time": datetime.now().isoformat(),
+                        "end_time": None,
+                        "current": 0,
+                        "total": int(total_runs),
+                        "runs": [],
+                    }
+                    for m in methods:
+                        for p in problems:
+                            for s in seeds:
+                                self.progress["runs"].append(
+                                    {
+                                        "method_name": m.name,
+                                        "problem_name": p.name,
+                                        "seed": int(s),
+                                        "budget": int(budget),
+                                        "evaluations": 0,
+                                        "start_time": None,
+                                        "end_time": None,
+                                        "log_dir": None,
+                                    }
+                                )
+            else:
                 self.progress = {
                     "start_time": datetime.now().isoformat(),
                     "end_time": None,
@@ -313,45 +343,26 @@ class ExperimentLogger:
                                     "log_dir": None,
                                 }
                             )
-        else:
-            self.progress = {
-                "start_time": datetime.now().isoformat(),
-                "end_time": None,
-                "current": 0,
-                "total": int(total_runs),
-                "runs": [],
-            }
-            for m in methods:
-                for p in problems:
-                    for s in seeds:
-                        self.progress["runs"].append(
-                            {
-                                "method_name": m.name,
-                                "problem_name": p.name,
-                                "seed": int(s),
-                                "budget": int(budget),
-                                "evaluations": 0,
-                                "start_time": None,
-                                "end_time": None,
-                                "log_dir": None,
-                            }
-                        )
-        self._write_progress()
+            self._write_progress()
 
     def increment_progress(self):
         """Recalculate and write progress based on run entries."""
-        finished = sum(1 for r in self.progress.get("runs", []) if r.get("end_time"))
-        self.progress["current"] = finished
-        total = self.progress.get("total", 0)
-        if total and finished >= total and self.progress.get("end_time") is None:
-            self.progress["end_time"] = datetime.now().isoformat()
-        self._write_progress()
+        with self._lock:
+            finished = sum(
+                1 for r in self.progress.get("runs", []) if r.get("end_time")
+            )
+            self.progress["current"] = finished
+            total = self.progress.get("total", 0)
+            if total and finished >= total and self.progress.get("end_time") is None:
+                self.progress["end_time"] = datetime.now().isoformat()
+            self._write_progress()
 
     def increment_eval(self, method_name, problem_name, seed):
-        entry = self._get_run_entry(method_name, problem_name, seed)
-        if entry is not None:
-            entry["evaluations"] = entry.get("evaluations", 0) + 1
-            self._write_progress()
+        with self._lock:
+            entry = self._get_run_entry(method_name, problem_name, seed)
+            if entry is not None:
+                entry["evaluations"] = entry.get("evaluations", 0) + 1
+                self._write_progress()
 
     def is_run_pending(self, method, problem, seed):
         entry = self._get_run_entry(method.name, problem.name, seed)

@@ -6,9 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from tqdm import tqdm
 
-from .llm import LLM
-from .loggers import ExperimentLogger, RunLogger
-from .method import Method
+from .loggers import ExperimentLogger
 from .problems import MA_BBOB
 
 
@@ -80,11 +78,11 @@ class Experiment(ABC):
                         ) and not self.exp_logger.is_run_pending(method, problem, i):
                             continue
 
-                        logger = self.exp_logger.open_run(
-                            method, problem, self.budget, i
-                        )
                         m_copy = copy.deepcopy(method)
                         p_copy = copy.deepcopy(problem)
+                        logger = self.exp_logger.open_run(
+                            m_copy, p_copy, self.budget, i
+                        )
 
                         future = executor.submit(
                             self._run_single,
@@ -93,14 +91,14 @@ class Experiment(ABC):
                             logger,
                             i,
                         )
-                        tasks.append((future, method, problem, logger, m_copy.llm, i))
+                        tasks.append((future, method, problem, logger, i))
 
-            for future, method, problem, logger, llm, i in tasks:
+            for future, method, problem, logger, i in tasks:
                 solution = future.result()
                 self.exp_logger.add_run(
                     method,
                     problem,
-                    llm,
+                    method.llm,
                     solution,
                     log_dir=logger.dirname,
                     seed=i,
