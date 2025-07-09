@@ -72,7 +72,9 @@ class _BladeProblemAdapter:
             description=class_info(code_string)[1] or "No description provided.",
         )
         solution = self.problem(solution)
-        return solution.fitness
+        return (
+            -solution.fitness
+        )  # EoH minimizes the fitness, so we return negative value.
 
 
 class _BladeInterfaceLLM:
