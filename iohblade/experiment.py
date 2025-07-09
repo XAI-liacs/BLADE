@@ -77,9 +77,7 @@ class Experiment(ABC):
                         np.random.seed(i)
                         if hasattr(
                             self.exp_logger, "is_run_pending"
-                        ) and not self.exp_logger.is_run_pending(
-                            method, problem, i
-                        ):
+                        ) and not self.exp_logger.is_run_pending(method, problem, i):
                             continue
 
                         logger = self.exp_logger.open_run(
@@ -95,9 +93,7 @@ class Experiment(ABC):
                             logger,
                             i,
                         )
-                        tasks.append(
-                            (future, method, problem, logger, m_copy.llm, i)
-                        )
+                        tasks.append((future, method, problem, logger, m_copy.llm, i))
 
             for future, method, problem, logger, llm, i in tasks:
                 solution = future.result()
