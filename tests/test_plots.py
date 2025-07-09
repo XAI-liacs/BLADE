@@ -1,3 +1,4 @@
+import json
 import os
 
 # Use a non-interactive backend for CI
@@ -19,6 +20,7 @@ from iohblade import (
     plot_code_evolution_graphs,
     plot_convergence,
     plot_experiment_CEG,
+    plot_token_usage,
 )
 
 # ------------------------------------------------------------------------
@@ -51,6 +53,7 @@ def run(budget=100, dim=5):
 """,
                 ],
                 "parent_ids": ["[]", '["0"]', '["1","0"]', '["2"]'],
+                "log_dir": [f"run{i}" for i in range(4)],
             }
         )
         # Additional problems, if you want to test multi-problem plotting
@@ -64,6 +67,7 @@ def run(budget=100, dim=5):
                 "fitness": [1.0, 2.0, 3.0, 4.0],
                 "code": ["code e", "code f", "code g", "code h"],
                 "parent_ids": ["[]", "[]", "[]", "[]"],
+                "log_dir": [f"run{i+4}" for i in range(4)],
             }
         )
 
@@ -95,7 +99,15 @@ def run(budget=100, dim=5):
 def mock_logger(tmp_path):
     # If the plotting code tries to save a file, it’ll do so in this tmp path
     os.chdir(tmp_path)  # switch working dir to temp
-    return MockExperimentLogger()
+    logger = MockExperimentLogger()
+    os.makedirs(logger.dirname, exist_ok=True)
+    df = pd.concat([logger.mock_data, logger.mock_data2], ignore_index=True)
+    for ld in df["log_dir"]:
+        run_dir = os.path.join(logger.dirname, ld)
+        os.makedirs(run_dir, exist_ok=True)
+        with open(os.path.join(run_dir, "conversationlog.jsonl"), "w") as f:
+            f.write(json.dumps({"tokens": 5, "content": "x"}) + "\n")
+    return logger
 
 
 # ------------------------------------------------------------------------
@@ -218,3 +230,9 @@ def test_fitness_table(mock_logger):
     for val in table_df.values.flatten():
         assert isinstance(val, str)
     # No figure is created for a table, so nothing to close.
+
+
+def test_plot_token_usage(mock_logger):
+    plot_token_usage(mock_logger, save=False)
+    assert isinstance(plt.gcf(), plt.Figure)
+    plt.close("all")

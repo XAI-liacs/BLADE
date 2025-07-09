@@ -147,7 +147,7 @@ class WAndBRunLogger(RunLogger):
             progress_callback=progress_callback,
         )
 
-    def log_conversation(self, role, content, cost=0.0):
+    def log_conversation(self, role, content, cost=0.0, tokens=0):
         """
         Log conversation data to W&B plus the normal local file-based logs.
         """
@@ -156,12 +156,13 @@ class WAndBRunLogger(RunLogger):
             "time": str(datetime.now()),
             "content": content,
             "cost": float(cost),
+            "tokens": int(tokens),
         }
         # wandb.log can be repeated, but if content is large, consider an artifact
         wandb.log({"conversation": conversation})
 
         # Also do file-based logging
-        super().log_conversation(role, content, cost)
+        super().log_conversation(role, content, cost, tokens)
 
     def log_individual(self, individual: Solution):
         """

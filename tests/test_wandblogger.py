@@ -220,8 +220,12 @@ def test_run_logger_log_conversation(mock_run_logger, mock_wandb):
     """
     log_conversation() should record to local conversationlog.jsonl and also wandb.log().
     """
-    mock_run_logger.log_conversation(role="user", content="Hello AI", cost=0.5)
-    mock_run_logger.log_conversation(role="assistant", content="Hi, user!", cost=0.7)
+    mock_run_logger.log_conversation(
+        role="user", content="Hello AI", cost=0.5, tokens=2
+    )
+    mock_run_logger.log_conversation(
+        role="assistant", content="Hi, user!", cost=0.7, tokens=3
+    )
 
     # Check wandb calls
     # The wandb.log calls appear once per log_conversation call
@@ -235,9 +239,9 @@ def test_run_logger_log_conversation(mock_run_logger, mock_wandb):
     convo_file = os.path.join(mock_run_logger.dirname, "conversationlog.jsonl")
     assert os.path.exists(convo_file)
     with open(convo_file, "r") as f:
-        content = f.read()
-    assert "Hello AI" in content
-    assert "Hi, user!" in content
+        lines = [json.loads(l) for l in f]
+    assert any(d.get("content") == "Hello AI" and d.get("tokens") == 2 for d in lines)
+    assert any(d.get("content") == "Hi, user!" and d.get("tokens") == 3 for d in lines)
 
 
 def test_run_logger_log_code(mock_run_logger, mock_wandb):
