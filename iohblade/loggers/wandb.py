@@ -60,6 +60,9 @@ class WAndBExperimentLogger(ExperimentLogger):
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
+            progress_callback=lambda: self.increment_eval(
+                method.name, problem.name, seed
+            ),
         )
         problem.set_logger(self.run_logger)
         return self.run_logger
@@ -133,11 +136,16 @@ class WAndBRunLogger(RunLogger):
     preserving the original file-based logs.
     """
 
-    def __init__(self, name="", root_dir="", budget=100):
+    def __init__(self, name="", root_dir="", budget=100, progress_callback=None):
         """
         As before, call super() so we keep the local directories.
         """
-        super().__init__(name=name, root_dir=root_dir, budget=budget)
+        super().__init__(
+            name=name,
+            root_dir=root_dir,
+            budget=budget,
+            progress_callback=progress_callback,
+        )
 
     def log_conversation(self, role, content, cost=0.0):
         """

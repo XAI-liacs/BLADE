@@ -1,12 +1,12 @@
-import pytest
 import os
 import shutil
 from unittest.mock import MagicMock
+
+import pytest
+
+from iohblade import LLM, Method, Problem
 from iohblade.experiment import Experiment, MA_BBOB_Experiment
 from iohblade.loggers import ExperimentLogger
-from iohblade import LLM
-from iohblade import Problem
-from iohblade import Method
 
 
 @pytest.fixture
@@ -35,7 +35,7 @@ def test_ma_bbob_experiment_init(cleanup_tmp_dir):
 
     llm = DummyLLM(api_key="", model="")
     methods = [DummyMethod(llm, 10, name="m1")]
-    
+
     exp = MA_BBOB_Experiment(
         methods,
         runs=2,
@@ -84,10 +84,11 @@ def test_experiment_run(cleanup_tmp_dir):
     class DummyLLM(LLM):
         def _query(self, session_messages):
             return "response"
+
     l = DummyLLM("", "")
     m = DummyMethod(l, 5, name="DMethod")
     p = DummyProblem()
-    
+
     exp = DummyExp(
         methods=[m],
         problems=[p],

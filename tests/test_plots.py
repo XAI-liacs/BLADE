@@ -1,26 +1,25 @@
-import pytest
 import os
-import numpy as np
-import pandas as pd
 
 # Use a non-interactive backend for CI
 import matplotlib
+import numpy as np
+import pandas as pd
+import pytest
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-
 from unittest.mock import MagicMock
+
+import matplotlib.pyplot as plt
 
 # Adjust imports to match your actual package structure
 from iohblade import (
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_code_evolution_graphs,
+    fitness_table,
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,
-    fitness_table,
+    plot_code_evolution_graphs,
+    plot_convergence,
+    plot_experiment_CEG,
 )
-
 
 # ------------------------------------------------------------------------
 # Mock objects and data

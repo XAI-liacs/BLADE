@@ -57,12 +57,22 @@ class Experiment(ABC):
         """
         total_runs = len(self.problems) * len(self.methods) * len(self.seeds)
         if hasattr(self.exp_logger, "start_progress"):
-            self.exp_logger.start_progress(total_runs)
+            self.exp_logger.start_progress(
+                total_runs,
+                methods=self.methods,
+                problems=self.problems,
+                seeds=self.seeds,
+                budget=self.budget,
+            )
 
         for problem in tqdm(self.problems, desc="Problems"):
             for method in tqdm(self.methods, leave=False, desc="Methods"):
                 for i in tqdm(self.seeds, leave=False, desc="Runs"):
                     np.random.seed(i)
+                    if hasattr(
+                        self.exp_logger, "is_run_pending"
+                    ) and not self.exp_logger.is_run_pending(method, problem, i):
+                        continue
 
                     logger = self.exp_logger.open_run(method, problem, self.budget, i)
                     method.llm.set_logger(logger)

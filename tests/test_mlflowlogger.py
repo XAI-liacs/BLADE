@@ -1,18 +1,16 @@
-import pytest
-import os
 import json
-import mlflow
-
-from unittest.mock import patch, MagicMock, call
+import os
 from datetime import datetime
+from unittest.mock import MagicMock, call, patch
+
+import mlflow
+import pytest
+
+from iohblade import LLM, Method, Problem, Solution
 
 # Adjust these imports to your actual package structure
 from iohblade.loggers import ExperimentLogger, RunLogger
 from iohblade.loggers.mlflow import MLFlowExperimentLogger, MLFlowRunLogger
-from iohblade import Method
-from iohblade import Problem
-from iohblade import LLM
-from iohblade import Solution
 
 
 @pytest.fixture

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from types import SimpleNamespace
 from typing import Any
-import traceback
 
 from ..llm import LLM
 from ..method import Method
@@ -109,7 +109,7 @@ class ReEvo(Method):
                 # If the solution has an error, we mark it as invalid.
                 individual["exec_success"] = False
                 individual["obj"] = -solution.fitness
-                population[response_id] = self.mark_invalid_individual(
+                population[response_id] = reevo.mark_invalid_individual(
                     individual, solution.error
                 )
                 continue

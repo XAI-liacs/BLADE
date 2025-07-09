@@ -1,8 +1,11 @@
-import pytest
 import datetime as _dt
 from unittest.mock import MagicMock
-from iohblade import LLM, OpenAI_LLM, Ollama_LLM, Gemini_LLM, NoCodeException
-import iohblade.llm as llm_mod   # the module that defines _query
+
+import pytest
+
+import iohblade.llm as llm_mod  # the module that defines _query
+from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM
+
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class
@@ -86,8 +89,8 @@ def test_gemini_llm_retries_then_succeeds(monkeypatch):
     reply = llm._query([{"role": "user", "content": "hello"}], max_retries=3)
 
     assert reply == "OK-DONE"
-    assert fake_client.start_chat.call_count == 2        # 1 failure + 1 success
-    slept.assert_called_once_with(3)                     # 2 s + 1 s safety buffer
+    assert fake_client.start_chat.call_count == 2  # 1 failure + 1 success
+    slept.assert_called_once_with(3)  # 2 s + 1 s safety buffer
 
 
 def test_gemini_llm_gives_up_after_max_retries(monkeypatch):

@@ -1,18 +1,16 @@
-import pytest
-import os
 import json
+import os
+from datetime import datetime
+from unittest.mock import MagicMock, call, patch
+
+import pytest
 import wandb
 
-from unittest.mock import patch, MagicMock, call
-from datetime import datetime
+from iohblade import LLM, Method, Problem, Solution
 
 # Adjust imports to your actual package structure
 from iohblade.loggers import ExperimentLogger, RunLogger
 from iohblade.loggers.wandb import WAndBExperimentLogger, WAndBRunLogger
-from iohblade import Method
-from iohblade import Problem
-from iohblade import LLM
-from iohblade import Solution
 
 
 @pytest.fixture
