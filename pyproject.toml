@@ -23,6 +23,7 @@ dependencies = [
     "xmltodict>=0.14.2,<0.15",
     "streamlit>=1.35.0,<2",
     "jsonschema>=4.24.0,<5",
+    "plotly>=6.2.0",
 ]
 
 [project.urls]
