@@ -244,3 +244,82 @@ def test_start_progress_mismatch(tmp_path):
     logger2 = ExperimentLogger(name=str(logger_dir))
     with pytest.raises(ValueError):
         logger2.start_progress(1, methods=[m2], problems=[p], seeds=[0], budget=1)
+
+
+def test_open_run_create_and_restart(tmp_path):
+    """Check that `open_run` correctly creates, restarts, and updates progress."""
+
+    # --- dummy objects -------------------------------------------------
+    class DummyMethod(Method):
+        def __call__(self, problem):
+            pass
+
+        def to_dict(self):
+            return {}
+
+    class DummyProblem(Problem):
+        def get_prompt(self):
+            return "prompt"
+
+        def evaluate(self, s):  # pragma: no cover
+            return s
+
+        def test(self, s):  # pragma: no cover
+            return s
+
+        def to_dict(self):
+            return {}
+
+        # Keep a reference so we can assert the logger was set.
+        def set_logger(self, logger):
+            self._logger = logger
+            super().set_logger(logger)
+
+    # --- setup ---------------------------------------------------------
+    exp_dir = tmp_path / "exp"
+    logger = ExperimentLogger(name=str(exp_dir))
+
+    m = DummyMethod(None, 1, name="methodX")
+    p = DummyProblem(name="problemY")
+
+    # ------------------------------------------------------------------
+    # 1. First call should create a run directory and a progress entry
+    # ------------------------------------------------------------------
+    run1 = logger.open_run(m, p, budget=5, seed=0)
+    entry = logger._get_run_entry("methodX", "problemY", 0)
+
+    assert entry is not None, "Progress entry not created"
+    assert entry["evaluations"] == 0
+    assert entry["end_time"] is None
+    assert os.path.isdir(run1.dirname)
+    assert entry["log_dir"] == os.path.relpath(run1.dirname, logger.dirname)
+    # Logger should be attached to the problem
+    assert getattr(p, "_logger", None) is run1
+
+    # The callback should increment `evaluations`
+    run1.log_individual(Solution(name="sol"))
+    assert entry["evaluations"] == 1
+
+    first_dir = run1.dirname
+    assert os.path.exists(first_dir)
+
+    # ------------------------------------------------------------------
+    # 2. Second call with same identifiers (unfinished run) should
+    #    delete old dir, reset evaluations, and create a new dir
+    # ------------------------------------------------------------------
+    run2 = logger.open_run(m, p, budget=5, seed=0)
+    entry_after = logger._get_run_entry("methodX", "problemY", 0)
+
+    assert entry_after["evaluations"] == 0, "Evaluations were not reset"
+    assert entry_after["log_dir"] == os.path.relpath(run2.dirname, logger.dirname)
+    assert getattr(p, "_logger", None) is run2
+
+    # ------------------------------------------------------------------
+    # 3. Different seed should create an independent progress entry
+    # ------------------------------------------------------------------
+    run3 = logger.open_run(m, p, budget=5, seed=1)
+    new_entry = logger._get_run_entry("methodX", "problemY", 1)
+
+    assert new_entry is not None
+    assert new_entry is not entry_after  # distinct entry
+    assert os.path.isdir(run3.dirname)

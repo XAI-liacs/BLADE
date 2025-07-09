@@ -11,19 +11,16 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
-
 try:
-    from kernel_tuner import util
+    from autotuning_methodology.experiments import (
+        execute_experiment,
+        generate_experiment_file,
+    )
+    from autotuning_methodology.report_experiments import get_strategy_scores
+    from kernel_tuner import tune_kernel_T1, util
     from kernel_tuner.searchspace import Searchspace
     from kernel_tuner.strategies.common import CostFunc
     from kernel_tuner.strategies.wrapper import OptAlg
-
-    from kernel_tuner import tune_kernel_T1
-    from autotuning_methodology.experiments import (
-        generate_experiment_file,
-        execute_experiment,
-    )
-    from autotuning_methodology.report_experiments import get_strategy_scores
 except Exception:  # pragma: no cover - optional dependency
     tune_kernel_T1 = None
     util = None

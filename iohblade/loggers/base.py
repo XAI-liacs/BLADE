@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+from functools import partial
 
 import jsonlines
 import numpy as np
@@ -122,13 +123,13 @@ class ExperimentLogger:
                 shutil.rmtree(prev)
             entry["evaluations"] = 0
 
+        progress_cb = partial(self.increment_eval, method.name, problem.name, seed)
+
         self.run_logger = RunLogger(
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
-            progress_callback=lambda: self.increment_eval(
-                method.name, problem.name, seed
-            ),
+            progress_callback=progress_cb,
         )
         problem.set_logger(self.run_logger)
         entry["start_time"] = datetime.now().isoformat()

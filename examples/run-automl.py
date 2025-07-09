@@ -12,7 +12,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     llm1 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash")
     #llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0)
-    budget = 50
+    budget = 20
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation

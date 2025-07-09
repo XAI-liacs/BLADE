@@ -1,16 +1,17 @@
-import pytest
+import ioh
 import numpy as np
+import pytest
+
 from iohblade.utils import (
-    first_class_name,
-    class_info,
-    code_compare,
-    is_jsonable,
-    convert_to_serializable,
-    correct_aoc,
     OverBudgetException,
     aoc_logger,
+    class_info,
+    code_compare,
+    convert_to_serializable,
+    correct_aoc,
+    first_class_name,
+    is_jsonable,
 )
-import ioh
 
 
 def test_code_compare():
@@ -32,8 +33,12 @@ class my_class:
     def __init__(self):
         pass
 """
-    assert first_class_name(code_example) ==  "my_class", "The class name should be 'my_class'"
-    assert class_info(code_example)[1] ==  "A simple class example.", "The class docstring should match"
+    assert (
+        first_class_name(code_example) == "my_class"
+    ), "The class name should be 'my_class'"
+    assert (
+        class_info(code_example)[1] == "A simple class example."
+    ), "The class docstring should match"
 
 
 def test_convert_to_serializable():
