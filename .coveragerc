@@ -6,3 +6,4 @@ omit =
     iohblade/methods/funsearch.py
     iohblade/methods/llamea.py
     iohblade/problems/*
+    iohblade/webapp.py
