@@ -206,6 +206,7 @@ if selected:
                         data=sol.get("code", ""),
                         file_name=fname,
                         mime="text/x-python",
+                        key=f"download_{m}_{sol.get('id', 'id')}",
                     )
     else:
         st.write("No data")
