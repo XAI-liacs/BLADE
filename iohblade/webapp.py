@@ -117,7 +117,7 @@ def run() -> None:
         st.session_state["last_refresh"] = time.time()
     elif time.time() - st.session_state["last_refresh"] > 60:
         st.session_state["last_refresh"] = time.time()
-        st.experimental_rerun()
+        st.rerun()
 
     logo_html = f"""
     <picture>
@@ -136,7 +136,7 @@ def run() -> None:
         for exp in experiments:
             prog = read_progress(os.path.join(RESULTS_DIR, exp))
             icon = "✅" if prog and prog.get("end_time") else "⏳"
-            if st.sidebar.button(exp, key=f"btn_{exp}", type="secondary", icon=icon):
+            if st.sidebar.button(exp, key=f"btn_{exp}", type="tertiary", icon=icon):
                 st.session_state["selected_exp"] = exp
                 selected = exp
             if prog and not prog.get("end_time"):
@@ -179,7 +179,7 @@ def run() -> None:
             problems = sorted(df["problem_name"].unique())
             method_sel = st.multiselect("Methods", methods, default=methods)
             problem_sel = st.multiselect("Problems", problems, default=problems)
-            aggregate = st.checkbox("Aggregate runs", value=False)
+            aggregate = st.checkbox("Aggregate runs", value=True)
             df_filt = df[
                 df["method_name"].isin(method_sel)
                 & df["problem_name"].isin(problem_sel)
