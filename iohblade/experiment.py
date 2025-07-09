@@ -1,5 +1,7 @@
 import contextlib
+import copy
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from tqdm import tqdm
@@ -24,6 +26,7 @@ class Experiment(ABC):
         seeds=None,
         show_stdout=False,
         exp_logger=None,
+        n_jobs=1,
     ):
         """
         Initializes an experiment with multiple methods and problems.
@@ -36,6 +39,7 @@ class Experiment(ABC):
             seeds (list, optional): The exact seeds to use for the runs, len(seeds) overwrites the number of runs if set.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
             exp_logger (ExperimentLogger, optiona): The logger object, can be a standard file logger or a WandB or MLFlow logger.
+            n_jobs (int): Number of runs to execute in parallel.
         """
         self.methods = methods
         self.problems = problems
@@ -47,6 +51,7 @@ class Experiment(ABC):
             self.seeds = seeds
             self.runs = len(seeds)
         self.show_stdout = show_stdout
+        self.n_jobs = n_jobs
         if exp_logger is None:
             exp_logger = ExperimentLogger("results/experiment")
         self.exp_logger = exp_logger
@@ -64,34 +69,56 @@ class Experiment(ABC):
                 seeds=self.seeds,
                 budget=self.budget,
             )
+        tasks = []
+        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+            for problem in tqdm(self.problems, desc="Problems"):
+                for method in tqdm(self.methods, leave=False, desc="Methods"):
+                    for i in tqdm(self.seeds, leave=False, desc="Runs"):
+                        np.random.seed(i)
+                        if hasattr(
+                            self.exp_logger, "is_run_pending"
+                        ) and not self.exp_logger.is_run_pending(
+                            method, problem, i
+                        ):
+                            continue
 
-        for problem in tqdm(self.problems, desc="Problems"):
-            for method in tqdm(self.methods, leave=False, desc="Methods"):
-                for i in tqdm(self.seeds, leave=False, desc="Runs"):
-                    np.random.seed(i)
-                    if hasattr(
-                        self.exp_logger, "is_run_pending"
-                    ) and not self.exp_logger.is_run_pending(method, problem, i):
-                        continue
+                        logger = self.exp_logger.open_run(
+                            method, problem, self.budget, i
+                        )
+                        m_copy = copy.deepcopy(method)
+                        p_copy = copy.deepcopy(problem)
 
-                    logger = self.exp_logger.open_run(method, problem, self.budget, i)
-                    method.llm.set_logger(logger)
+                        future = executor.submit(
+                            self._run_single,
+                            m_copy,
+                            p_copy,
+                            logger,
+                            i,
+                        )
+                        tasks.append(
+                            (future, method, problem, logger, m_copy.llm, i)
+                        )
 
-                    if self.show_stdout:
-                        solution = method(problem)
-                    else:
-                        with contextlib.redirect_stdout(None):
-                            with contextlib.redirect_stderr(None):
-                                solution = method(problem)
-                    self.exp_logger.add_run(
-                        method,
-                        problem,
-                        method.llm,
-                        solution,
-                        log_dir=logger.dirname,
-                        seed=i,
-                    )
+            for future, method, problem, logger, llm, i in tasks:
+                solution = future.result()
+                self.exp_logger.add_run(
+                    method,
+                    problem,
+                    llm,
+                    solution,
+                    log_dir=logger.dirname,
+                    seed=i,
+                )
         return
+
+    def _run_single(self, method, problem, logger, seed):
+        np.random.seed(seed)
+        method.llm.set_logger(logger)
+        if self.show_stdout:
+            return method(problem)
+        with contextlib.redirect_stdout(None):
+            with contextlib.redirect_stderr(None):
+                return method(problem)
 
 
 class MA_BBOB_Experiment(Experiment):
@@ -105,6 +132,7 @@ class MA_BBOB_Experiment(Experiment):
         dims=[2, 5],
         budget_factor=2000,
         exp_logger=None,
+        n_jobs=1,
         **kwargs,
     ):
         """
@@ -120,13 +148,22 @@ class MA_BBOB_Experiment(Experiment):
             budget_factor (int): Budget factor for the problems.
             **kwargs: Additional keyword arguments for the MA_BBOB problem.
             exp_logger (ExperimentLogger): The logger to store the data.
+            n_jobs (int): Number of runs to execute in parallel.
         """
         super().__init__(
             methods,
-            [MA_BBOB(dims=dims, budget_factor=budget_factor, name="MA_BBOB", **kwargs)],
+            [
+                MA_BBOB(
+                    dims=dims,
+                    budget_factor=budget_factor,
+                    name="MA_BBOB",
+                    **kwargs,
+                )
+            ],
             runs=runs,
             budget=budget,
             seeds=seeds,
             show_stdout=show_stdout,
             exp_logger=exp_logger,
+            n_jobs=n_jobs,
         )
