@@ -1,6 +1,7 @@
 """
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
+
 import re
 import time
 from abc import ABC, abstractmethod
@@ -275,7 +276,7 @@ class OpenAI_LLM(LLM):
         self.client = openai.OpenAI(api_key=api_key)
         self.temperature = temperature
 
-    def _query(self, session_messages):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -287,10 +288,37 @@ class OpenAI_LLM(LLM):
             str: The text content of the LLM's response.
         """
 
-        response = self.client.chat.completions.create(
-            model=self.model, messages=session_messages, temperature=self.temperature
-        )
-        return response.choices[0].message.content
+        attempt = 0
+        while True:
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=session_messages,
+                    temperature=self.temperature,
+                )
+                return response.choices[0].message.content
+
+            except openai.RateLimitError as err:
+                attempt += 1
+                if attempt > max_retries:
+                    raise
+
+                retry_after = None
+                if getattr(err, "response", None) is not None:
+                    retry_after = err.response.headers.get("Retry-After")
+
+                wait = int(retry_after) if retry_after else default_delay * attempt
+                time.sleep(wait)
+
+            except (
+                openai.APITimeoutError,
+                openai.APIConnectionError,
+                openai.APIError,
+            ) as err:
+                attempt += 1
+                if attempt > max_retries:
+                    raise
+                time.sleep(default_delay * attempt)
 
 
 class Gemini_LLM(LLM):
@@ -375,7 +403,7 @@ class Ollama_LLM(LLM):
         """
         super().__init__("", model, None, **kwargs)
 
-    def _query(self, session_messages):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -390,13 +418,24 @@ class Ollama_LLM(LLM):
         big_message = ""
         for msg in session_messages:
             big_message += msg["content"] + "\n"
-        response = ollama.chat(
-            model=self.model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": big_message,
-                }
-            ],
-        )
-        return response["message"]["content"]
+
+        attempt = 0
+        while True:
+            try:
+                response = ollama.chat(
+                    model=self.model,
+                    messages=[{"role": "user", "content": big_message}],
+                )
+                return response["message"]["content"]
+
+            except ollama.ResponseError as err:
+                attempt += 1
+                if attempt > max_retries or err.status_code not in (429, 500, 503):
+                    raise
+                time.sleep(default_delay * attempt)
+
+            except Exception:
+                attempt += 1
+                if attempt > max_retries:
+                    raise
+                time.sleep(default_delay * attempt)

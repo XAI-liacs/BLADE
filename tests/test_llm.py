@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
+import httpx
 from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM
 
 
@@ -67,6 +68,19 @@ def _resource_exhausted(delay_secs: int = 2) -> Exception:
     return err
 
 
+def _openai_rate_limit(retry_after: int = 2) -> Exception:
+    response = httpx.Response(
+        status_code=429,
+        headers={"Retry-After": str(retry_after)},
+        request=httpx.Request("POST", "http://test"),
+    )
+    return llm_mod.openai.RateLimitError("quota", response=response, body=None)
+
+
+def _ollama_response_error(status: int = 429) -> Exception:
+    return llm_mod.ollama.ResponseError("quota", status_code=status)
+
+
 def test_gemini_llm_retries_then_succeeds(monkeypatch):
     """_query should sleep, retry once, then return the model reply."""
     llm = Gemini_LLM(api_key="fake", model="gemini-test")
@@ -112,3 +126,70 @@ def test_gemini_llm_gives_up_after_max_retries(monkeypatch):
 
     # It sleeps exactly `max_retries` times (raises on the next attempt)
     assert slept.call_count == 2
+
+
+def test_openai_llm_retries_then_succeeds(monkeypatch):
+    llm = OpenAI_LLM(api_key="fake", model="gpt-test")
+
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+
+    ok = MagicMock()
+    ok.choices = [MagicMock(message=MagicMock(content="DONE"))]
+    llm.client.chat.completions.create = MagicMock(
+        side_effect=[_openai_rate_limit(2), ok]
+    )
+
+    reply = llm._query([{"role": "user", "content": "hi"}], max_retries=2)
+    assert reply == "DONE"
+    assert llm.client.chat.completions.create.call_count == 2
+    slept.assert_called_once_with(2)
+
+
+def test_openai_llm_gives_up(monkeypatch):
+    llm = OpenAI_LLM(api_key="fake", model="gpt-test")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    llm.client.chat.completions.create = MagicMock(
+        side_effect=[_openai_rate_limit(1), _openai_rate_limit(1)]
+    )
+
+    with pytest.raises(llm_mod.openai.RateLimitError):
+        llm._query([{"role": "user", "content": "boom"}], max_retries=1)
+    slept.assert_called_once_with(1)
+
+
+def test_ollama_llm_retries_then_succeeds(monkeypatch):
+    llm = Ollama_LLM(model="llama-test")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    monkeypatch.setattr(
+        llm_mod.ollama,
+        "chat",
+        MagicMock(
+            side_effect=[_ollama_response_error(429), {"message": {"content": "OK"}}]
+        ),
+    )
+
+    reply = llm._query([{"role": "u", "content": "hi"}], max_retries=2)
+    assert reply == "OK"
+    llm_mod.ollama.chat.assert_called_with(
+        model=llm.model,
+        messages=[{"role": "user", "content": "hi\n"}],
+    )
+    slept.assert_called_once_with(10)
+
+
+def test_ollama_llm_gives_up(monkeypatch):
+    llm = Ollama_LLM(model="llama-test")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    monkeypatch.setattr(
+        llm_mod.ollama,
+        "chat",
+        MagicMock(side_effect=[_ollama_response_error(), _ollama_response_error()]),
+    )
+
+    with pytest.raises(llm_mod.ollama.ResponseError):
+        llm._query([{"role": "u", "content": "boom"}], max_retries=1)
+    slept.assert_called_once_with(10)
