@@ -9,6 +9,7 @@ from .plots import (
     plot_code_evolution_graphs,
     plot_convergence,
     plot_experiment_CEG,
+    plot_token_usage,
 )
 from .problem import Problem
 from .solution import Solution

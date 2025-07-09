@@ -426,7 +426,7 @@ class RunLogger:
 
         return count >= self.budget
 
-    def log_conversation(self, role, content, cost=0.0):
+    def log_conversation(self, role, content, cost=0.0, tokens=0):
         """
         Logs the given conversation content into a conversation log file.
 
@@ -434,12 +434,14 @@ class RunLogger:
             role (str): Who (the llm or user) said the content.
             content (str): The conversation content to be logged.
             cost (float, optional): The cost of the conversation.
+            tokens (int, optional): Number of tokens used.
         """
         conversation_object = {
             "role": role,
             "time": f"{datetime.now()}",
             "content": content,
             "cost": float(cost),
+            "tokens": int(tokens),
         }
         with jsonlines.open(f"{self.dirname}/conversationlog.jsonl", "a") as file:
             file.write(conversation_object)

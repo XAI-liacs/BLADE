@@ -158,7 +158,7 @@ class MLFlowRunLogger(RunLogger):
         # We do want to keep the parent's file-based logging directories
         super().__init__(name, root_dir, budget, progress_callback=progress_callback)
 
-    def log_conversation(self, role, content, cost=0.0):
+    def log_conversation(self, role, content, cost=0.0, tokens=0):
         """
         Logs conversation details to MLflow, plus calls super() to keep the local file logs if you wish.
         """
@@ -168,6 +168,7 @@ class MLFlowRunLogger(RunLogger):
             "time": str(datetime.now()),
             "content": content,
             "cost": float(cost),
+            "tokens": int(tokens),
         }
         # Example: We can log each conversation snippet as a text artifact
         mlflow.log_text(
@@ -177,7 +178,7 @@ class MLFlowRunLogger(RunLogger):
 
         # Also do the usual file-based logs or any other logic you have in the parent
         # (You may have to define such a method if you want to keep conversation logs in a file.)
-        super().log_conversation(role, content, cost)
+        super().log_conversation(role, content, cost, tokens)
 
     def log_individual(self, individual):
         """

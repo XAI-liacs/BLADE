@@ -111,8 +111,8 @@ class DummyLogger:
     def __init__(self):
         self.logged = []
 
-    def log_conversation(self, who, text, cost):
-        self.logged.append((who, text, cost))
+    def log_conversation(self, who, text, cost=0.0, tokens=0):
+        self.logged.append((who, text, cost, tokens))
 
 
 class DummyLLM(llm_mod.LLM):

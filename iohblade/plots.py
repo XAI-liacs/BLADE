@@ -5,6 +5,7 @@ import os
 from collections import Counter
 
 import jellyfish
+import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -492,3 +493,53 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
     table_df = pd.DataFrame(table_values, index=methods, columns=problems)
 
     return table_df
+
+
+def plot_token_usage(
+    logger: ExperimentLogger, save: bool = True, return_fig: bool = False
+):
+    """Plot total tokens used per method/problem from an experiment logger."""
+
+    df = logger.get_data().copy()
+    token_records = []
+    for _, row in df.iterrows():
+        tokens = 0
+        if "log_dir" in row:
+            convo_path = os.path.join(
+                logger.dirname, row["log_dir"], "conversationlog.jsonl"
+            )
+            if os.path.isfile(convo_path):
+                with jsonlines.open(convo_path) as f:
+                    for line in f:
+                        tokens += line.get("tokens", 0)
+        token_records.append(
+            {
+                "method_name": row["method_name"],
+                "problem_name": row["problem_name"],
+                "tokens": tokens,
+            }
+        )
+    token_df = pd.DataFrame(token_records)
+    summary = (
+        token_df.groupby(["problem_name", "method_name"])["tokens"].sum().reset_index()
+    )
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    sns.barplot(
+        data=summary,
+        x="problem_name",
+        y="tokens",
+        hue="method_name",
+        ax=ax,
+    )
+    ax.set_xlabel("Problem")
+    ax.set_ylabel("Total Tokens")
+    plt.tight_layout()
+
+    if save:
+        fig.savefig(os.path.join(logger.dirname, "token_usage.png"))
+    elif not return_fig:
+        plt.show()
+    if return_fig:
+        return fig
+    plt.close()

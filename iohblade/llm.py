@@ -9,7 +9,12 @@ import google.generativeai as genai
 import ollama
 import openai
 from ConfigSpace import ConfigurationSpace
-from tokencost import calculate_completion_cost, calculate_prompt_cost
+from tokencost import (
+    calculate_completion_cost,
+    calculate_prompt_cost,
+    count_message_tokens,
+    count_string_tokens,
+)
 
 from .solution import Solution
 from .utils import NoCodeException
@@ -90,10 +95,17 @@ class LLM(ABC):
         if self.log:
             try:
                 cost = calculate_prompt_cost(session, self.model)
-            except Exception as e:
+            except Exception:
                 cost = 0
+            try:
+                tokens = count_message_tokens(session, model=self.model)
+            except Exception:
+                tokens = 0
             self.logger.log_conversation(
-                "client", "\n".join([d["content"] for d in session]), cost
+                "client",
+                "\n".join([d["content"] for d in session]),
+                cost,
+                tokens,
             )
 
         message = self._query(session)
@@ -101,9 +113,13 @@ class LLM(ABC):
         if self.log:
             try:
                 cost = calculate_completion_cost(message, self.model)
-            except Exception as e:
+            except Exception:
                 cost = 0
-            self.logger.log_conversation(self.model, message, cost)
+            try:
+                tokens = count_string_tokens(prompt=message, model=self.model)
+            except Exception:
+                tokens = 0
+            self.logger.log_conversation(self.model, message, cost, tokens)
 
         return message
 

@@ -222,7 +222,9 @@ def test_run_logger_log_conversation(mock_run_logger, mock_mlflow):
     plus call the parent's file-based logs.
     """
     with patch("mlflow.log_text") as mock_log_text:
-        mock_run_logger.log_conversation(role="user", content="Hello MLFlow", cost=1.23)
+        mock_run_logger.log_conversation(
+            role="user", content="Hello MLFlow", cost=1.23, tokens=5
+        )
 
     # Check mlflow.log_text call
     mock_log_text.assert_called_once()
@@ -237,8 +239,10 @@ def test_run_logger_log_conversation(mock_run_logger, mock_mlflow):
     convo_path = os.path.join(mock_run_logger.dirname, "conversationlog.jsonl")
     assert os.path.exists(convo_path)
     with open(convo_path, "r") as f:
-        content = f.read()
-    assert "Hello MLFlow" in content
+        lines = [json.loads(l) for l in f]
+    assert any(
+        d.get("content") == "Hello MLFlow" and d.get("tokens") == 5 for d in lines
+    )
 
 
 def test_run_logger_log_individual(mock_run_logger, mock_mlflow):
