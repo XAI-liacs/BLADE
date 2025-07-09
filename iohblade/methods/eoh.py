@@ -26,24 +26,38 @@ class _BladePrompts:
     """Adapter exposing the prompt interface expected by EoH."""
 
     def __init__(self, problem: Problem):
+        """Store the wrapped :class:`Problem`."""
+
         self.problem = problem
 
     def get_task(self):
+        """Return the task description prompt."""
+
         return self.problem.task_prompt
 
     def get_func_name(self):
+        """Return the function name expected by the problem."""
+
         return self.problem.func_name
 
     def get_func_inputs(self):
+        """Return the function argument names."""
+
         return self.problem.func_inputs
 
     def get_init_inputs(self):
+        """Return names of ``__init__`` parameters."""
+
         return self.problem.init_inputs
 
     def get_func_outputs(self):
+        """Return output variable names."""
+
         return self.problem.func_outputs
 
     def get_inout_inf(self):
+        """Return prompt describing required class signature."""
+
         return (
             f"Implement a Python class called `AlgorithmName` with"
             f" an __init__(self, {', '.join(self.get_init_inputs())}) and a function {self.get_func_name()}(self, {', '.join(self.get_func_inputs())})"
@@ -51,6 +65,8 @@ class _BladePrompts:
         )
 
     def get_other_inf(self):
+        """Return concatenated extra prompts."""
+
         return (
             self.problem.task_prompt
             + self.problem.example_prompt
@@ -62,10 +78,14 @@ class _BladeProblemAdapter:
     """Wraps a BLADE problem for use with EoH."""
 
     def __init__(self, problem: Problem):
+        """Wrap the given :class:`Problem`."""
+
         self.problem = problem
         self.prompts = _BladePrompts(problem)
 
     def evaluate(self, code_string):
+        """Evaluate a candidate algorithm and return its negative fitness."""
+
         solution = Solution(
             code=code_string,
             name=first_class_name(code_string) or "AlgorithmName",
@@ -81,13 +101,18 @@ class _BladeInterfaceLLM:
     """Provide EoH with the BLADE LLM interface."""
 
     def __init__(self, llm: LLM):
+        """Store reference to the underlying LLM."""
+
         self.llm = llm
 
     def get_response(self, prompt_content):
+        """Query the wrapped LLM with the given prompt."""
+
         return self.llm.query([{"role": "user", "content": prompt_content}])
 
 
 class EoH(Method):
+    """Evolutionary Optimization of Heuristics (EoH) method."""
     def __init__(self, llm: LLM, budget: int, name="EoH", **kwargs):
         """
         Initializes the EoH algorithm within the benchmarking framework.

@@ -4,6 +4,7 @@ from ..problem import Problem
 
 
 class RandomSearch(Method):
+    """Simple random search baseline."""
     def __init__(self, llm: LLM, budget, name="RandomSearch", **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.

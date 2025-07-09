@@ -25,6 +25,7 @@ algorithmic_insights = {
 
 
 def get_photonic_instance(problem_name="bragg"):
+    """Return a configured photonic optimization problem."""
     if problem_name == "bragg":
         # ------- define "mini-bragg" optimization problem
         nb_layers = 10  # number of layers of full stack

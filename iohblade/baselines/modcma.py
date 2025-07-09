@@ -3,12 +3,16 @@ from modcma import c_maes
 
 
 class ModularCMAES:
-    """
-    Baseline implementation of CMA-ES with active update.
-    Can be extended later to cover all Modular CMAES options.
-    """
+    """Baseline implementation of CMA‑ES with active update."""
 
-    def __init__(self, budget=10000, dim=10, **kwargs):
+    def __init__(self, budget: int = 10000, dim: int = 10, **kwargs) -> None:
+        """Instantiate the baseline CMA‑ES optimizer.
+
+        Args:
+            budget (int): Total number of function evaluations.
+            dim (int): Search space dimensionality.
+            **kwargs: Additional parameters forwarded to ``modcma`` settings.
+        """
         self.budget = budget
         self.dim = dim
         # Instantate a modules object
@@ -23,4 +27,6 @@ class ModularCMAES:
         self.cma = c_maes.ModularCMAES(self.parameters)
 
     def __call__(self, func):
+        """Optimize ``func`` using CMA‑ES."""
+
         return self.cma.run(func)

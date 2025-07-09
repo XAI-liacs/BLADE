@@ -5,7 +5,11 @@ from .photonic_problem import photonic_problem
 
 
 class grating2D(photonic_problem):
+    """2D grating design problem."""
+
     def __init__(self, nb_layers, min_w, max_w, min_thick, max_thick, min_p, max_p):
+        """Initialize search bounds."""
+
         super().__init__()
         self.nb_layers = nb_layers
         self.n = 3 * nb_layers
@@ -26,6 +30,7 @@ class grating2D(photonic_problem):
 
     # RCWA functions
     def cascade(self, T, U):
+        """Cascade two scattering matrices."""
         n = int(T.shape[1] / 2)
         J = np.linalg.inv(np.eye(n) - np.matmul(U[0:n, 0:n], T[n : 2 * n, n : 2 * n]))
         K = np.linalg.inv(np.eye(n) - np.matmul(T[n : 2 * n, n : 2 * n], U[0:n, 0:n]))
@@ -54,6 +59,7 @@ class grating2D(photonic_problem):
         return S
 
     def c_bas(self, A, V, h):
+        """Compute the propagation matrix for a base layer."""
         n = int(A.shape[1] / 2)
         D = np.diag(np.exp(1j * V * h))
         S = np.block(
@@ -68,6 +74,7 @@ class grating2D(photonic_problem):
         return S
 
     def marche(self, a, b, p, n, x):
+        """Generate Toeplitz matrix for grating profile."""
         l = np.zeros(n, dtype=np.complex128)
         m = np.zeros(n, dtype=np.complex128)
         tmp = (
@@ -84,6 +91,7 @@ class grating2D(photonic_problem):
         return T
 
     def creneau(self, k0, a0, pol, e1, e2, a, n, x0):
+        """Construct eigenmodes for a binary grating."""
         nmod = int(n / 2)
         alpha = np.diag(a0 + 2 * np.pi * np.arange(-nmod, nmod + 1))
         if pol == 0:
@@ -112,6 +120,7 @@ class grating2D(photonic_problem):
         return P, L
 
     def homogene(self, k0, a0, pol, epsilon, n):
+        """Eigenmodes for a homogeneous layer."""
         nmod = int(n / 2)
         valp = np.sqrt(
             epsilon * k0 * k0 - (a0 + 2 * np.pi * np.arange(-nmod, nmod + 1)) ** 2 + 0j
@@ -121,6 +130,7 @@ class grating2D(photonic_problem):
         return P, valp
 
     def interface(self, P, Q):
+        """Interface scattering between two layers."""
         n = int(P.shape[1])
         S = np.matmul(
             np.linalg.inv(
@@ -139,6 +149,7 @@ class grating2D(photonic_problem):
 
     # Cost function
     def __call__(self, x):
+        """Evaluate the grating design and return reflection."""
         lam_blue = 449.5897
         pol = 1
         d = 600.521475

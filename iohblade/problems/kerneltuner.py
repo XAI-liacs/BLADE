@@ -190,6 +190,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         return self.task_prompt + self.example_prompt + self.format_prompt
 
     def evaluate(self, solution: Solution, test=False):
+        """Evaluate a proposed tuning strategy."""
         repeats = 5  # number of times to repeat for stochasticity, just two for now.
 
         path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))

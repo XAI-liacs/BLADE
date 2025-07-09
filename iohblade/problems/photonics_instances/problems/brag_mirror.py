@@ -5,13 +5,10 @@ from .photonic_problem import photonic_problem
 
 
 class brag_mirror(photonic_problem):
+    """Simple Bragg mirror benchmark."""
+
     def __init__(self, nb_layers, target_wl, mat_env, mat1, mat2):
-        """
-        Args:
-            mat_env (float): environment ref. index
-            mat1 (float): material 1 ref. index
-            mat2 (float): material 2 ref. index
-        """
+        """Store mirror parameters."""
         super().__init__()
         self.n = nb_layers
         self.nb_layers = nb_layers

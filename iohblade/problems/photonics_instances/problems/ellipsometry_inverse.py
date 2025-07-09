@@ -5,6 +5,8 @@ from .photonic_problem import photonic_problem
 
 
 class ellipsometry(photonic_problem):
+    """Inverse ellipsometry problem."""
+
     def __init__(
         self,
         mat_env,
@@ -17,6 +19,7 @@ class ellipsometry(photonic_problem):
         wavelengths,
         angle,
     ):
+        """Set up problem parameters."""
         self.n = nb_layers * 2
         self.mat_env = mat_env
         self.mat_substrate = mat_substrate

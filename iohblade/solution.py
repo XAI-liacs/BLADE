@@ -74,6 +74,17 @@ class Solution:
         return self.metadata[key] if key in self.metadata.keys() else None
 
     def set_scores(self, fitness, feedback="", error=""):
+        """Set fitness and feedback information for the solution.
+
+        Args:
+            fitness (float): The achieved fitness value.
+            feedback (str, optional): Any human readable feedback.
+            error (str, optional): Error message if evaluation failed.
+
+        Returns:
+            Solution: The updated solution instance.
+        """
+
         self.fitness = fitness
         self.feedback = feedback
         self.error = error

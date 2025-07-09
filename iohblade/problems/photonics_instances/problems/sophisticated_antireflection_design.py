@@ -5,6 +5,7 @@ from .photonic_problem import photonic_problem
 
 
 class sophisticated_antireflection_design(photonic_problem):
+    """Optimization of multilayer antireflection coatings."""
     def __init__(
         self,
         nb_layers,
@@ -17,6 +18,7 @@ class sophisticated_antireflection_design(photonic_problem):
         pola=0,
         incidence=0,
     ):
+        """Initialize problem parameters."""
         super().__init__()
         self.n = nb_layers
         self.nb_layers = nb_layers

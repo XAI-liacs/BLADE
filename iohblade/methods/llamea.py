@@ -8,6 +8,7 @@ from ..problem import Problem
 
 
 class LLaMEA(Method):
+    """Wrapper for the LLaMEA search method."""
     def __init__(self, llm: LLM, budget: int, name="LLaMEA", **kwargs):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.

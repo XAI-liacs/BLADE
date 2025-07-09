@@ -106,6 +106,8 @@ class Experiment(ABC):
         return
 
     def _run_single(self, method, problem, logger, seed):
+        """Execute a single (method, problem, seed) run."""
+
         np.random.seed(seed)
         method.llm.set_logger(logger)
         if self.show_stdout:
@@ -116,6 +118,7 @@ class Experiment(ABC):
 
 
 class MA_BBOB_Experiment(Experiment):
+    """Convenience experiment wrapper for MA‑BBOB."""
     def __init__(
         self,
         methods: list,

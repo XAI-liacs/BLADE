@@ -17,6 +17,8 @@ LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
 
 
 def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
+    """Return a DataFrame summarizing convergence data for plotting."""
+
     methods, problems = logger.get_methods_problems()
     frames = []
     for p in problems:
@@ -35,6 +37,8 @@ def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
+    """Create a Plotly convergence graph."""
+
     fig = go.Figure()
     if aggregate:
         for (m, p), g in df.groupby(["method_name", "problem_name"]):
@@ -99,6 +103,8 @@ def discover_experiments(root=RESULTS_DIR):
 
 
 def read_progress(exp_dir):
+    """Load progress.json as a dictionary."""
+
     path = os.path.join(exp_dir, "progress.json")
     if os.path.exists(path):
         with open(path) as f:
@@ -107,6 +113,7 @@ def read_progress(exp_dir):
 
 
 def run() -> None:
+    """Launch the Streamlit web interface."""
     st.set_page_config(
         page_title="BLADE Experiment Browser",
         layout="wide",
@@ -236,6 +243,8 @@ def run() -> None:
 
 
 def main() -> None:
+    """Entry point for ``python -m iohblade.webapp``."""
+
     subprocess.run(["streamlit", "run", str(Path(__file__))], check=True)
 
 

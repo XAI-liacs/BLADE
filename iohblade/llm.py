@@ -22,6 +22,8 @@ from .utils import NoCodeException
 
 
 class LLM(ABC):
+    """Base class for all language model interfaces."""
+
     def __init__(
         self,
         api_key,
@@ -393,6 +395,7 @@ class Gemini_LLM(LLM):
 
 
 class Ollama_LLM(LLM):
+    """Wrapper around the local `ollama` inference server."""
     def __init__(self, model="llama3.2", **kwargs):
         """
         Initializes the Ollama LLM manager with a model name. See https://ollama.com/search for models.

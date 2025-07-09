@@ -141,6 +141,8 @@ def average_distance_to_best_so_far(df: pd.DataFrame) -> float:
 
 
 def closed_form_random_search_diversity(bounds: Sequence[Tuple[float, float]]) -> float:
+    """Approximate diversity of pure random search."""
+
     bounds = np.asarray(bounds, dtype=float)
     widths = bounds[:, 1] - bounds[:, 0]
     d = len(bounds)
@@ -154,6 +156,8 @@ def estimate_random_search_diversity(
     samples: int = 10_000,
     rng: Optional[np.random.Generator] = None,
 ) -> float:
+    """Monte Carlo estimate of diversity for random search."""
+
     if rng is None:
         rng = np.random.default_rng()
     d = len(bounds)
@@ -168,6 +172,8 @@ def avg_exploration_exploitation_chunked(
     bounds: Optional[Sequence[Tuple[float, float]]] = None,
     rng: Optional[np.random.Generator] = None,
 ) -> Tuple[float, float]:
+    """Return exploration and exploitation percentages."""
+
     X = get_coordinates(df)
     n, d = X.shape
 

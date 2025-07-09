@@ -6,6 +6,7 @@ from ..problem import Problem
 
 
 class funsearch(Method):
+    """Placeholder for a future FunSearch implementation."""
     def __init__(self, llm: LLM, budget: int, name="funsearch", **kwargs):
         """
         Initializes the funsearch algorithm within the benchmarking framework.

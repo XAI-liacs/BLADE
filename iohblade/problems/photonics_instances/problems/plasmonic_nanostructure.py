@@ -7,19 +7,10 @@ from .photonic_problem import photonic_problem
 
 
 class plasmonic_nanostructure(photonic_problem):
+    """Optimization of plasmonic nanostructures."""
+
     def __init__(self, element_sim, method, verbose=0):
-        """
-        Args:
-            mat_env (float): environment ref. index
-            mat_substrate (str): substrate material
-            nb_layers (int): number of layers
-            min_thick (float): minimum thickness
-            max_thick (float): maximum thickness
-            min_eps (float): minimum permittivity
-            max_eps (float): maximum permittivity
-            wavelengths (np.array): wavelengths
-            angle (float): angle
-        """
+        """Initialise with simulation backend and method."""
         super().__init__()
         self.n = 20
         self.element_sim = element_sim

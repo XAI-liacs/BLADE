@@ -260,13 +260,19 @@ class ExperimentLogger:
         return None
 
     def _progress_path(self):
+        """Return path to the progress tracking file."""
+
         return os.path.join(self.dirname, "progress.json")
 
     def _write_progress(self):
+        """Persist progress information to disk."""
+
         with open(self._progress_path(), "w") as f:
             json.dump(self.progress, f)
 
     def _load_progress(self):
+        """Load progress information if available."""
+
         path = self._progress_path()
         if os.path.exists(path):
             with open(path) as f:
@@ -358,6 +364,8 @@ class ExperimentLogger:
             self._write_progress()
 
     def increment_eval(self, method_name, problem_name, seed):
+        """Increment evaluation count for a specific run."""
+
         with self._lock:
             entry = self._get_run_entry(method_name, problem_name, seed)
             if entry is not None:
@@ -365,6 +373,8 @@ class ExperimentLogger:
                 self._write_progress()
 
     def is_run_pending(self, method, problem, seed):
+        """Return ``True`` if the given run has not finished yet."""
+
         entry = self._get_run_entry(method.name, problem.name, seed)
         if entry is None:
             return True

@@ -23,12 +23,15 @@ class _BladeReEvoClient(BaseClient):
     """Adapter that exposes the interface expected by ReEvo."""
 
     def __init__(self, llm: LLM, temperature: float = 1.0) -> None:
+        """Initialize wrapper around ReEvo's LLM client."""
+
         super().__init__(model=llm.model, temperature=temperature)
         self.llm = llm
 
     def _chat_completion_api(
         self, messages: list[dict], temperature: float, n: int = 1
     ):
+        """Call the underlying LLM and return responses."""
         responses = []
         for _ in range(n):
             content = self.llm.query(messages)
@@ -86,10 +89,14 @@ class ReEvo(Method):
     """Wrapper for the ReEvo baseline."""
 
     def __init__(self, llm: LLM, budget: int, name: str = "ReEvo", **kwargs: Any):
+        """Create a ReEvo method instance."""
+
         super().__init__(llm, budget, name)
         self.kwargs = kwargs
 
     def _eval_population(self, reevo: Any, population: list[dict], problem: Problem):
+        """Evaluate a population of candidate solutions using ``problem``."""
+
         for response_id in range(len(population)):
             individual = population[response_id]
             reevo.function_evals += 1
@@ -121,6 +128,7 @@ class ReEvo(Method):
         return population
 
     def __call__(self, problem: Problem):
+        """Run the ReEvo algorithm on ``problem`` and return the best solution."""
         if ReEvoAlgorithm is None:
             raise ImportError(
                 "reevo package is not installed, please install it using `poetry install --with methods`."
@@ -162,6 +170,8 @@ class ReEvo(Method):
         return Solution(code=code, name=name)
 
     def to_dict(self):
+        """Return a JSON‑serializable representation of the method."""
+
         return {
             "method_name": self.name if self.name is not None else "ReEvo",
             "budget": self.budget,

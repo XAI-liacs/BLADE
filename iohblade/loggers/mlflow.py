@@ -154,7 +154,9 @@ class MLFlowRunLogger(RunLogger):
     relying on the fact that the MLFlowExperimentLogger has opened a run.
     """
 
-    def __init__(self, name="", root_dir="", budget=100, progress_callback=None):
+    def __init__(self, name: str = "", root_dir: str = "", budget: int = 100, progress_callback=None) -> None:
+        """Create a RunLogger that mirrors logs to MLflow."""
+
         # We do want to keep the parent's file-based logging directories
         super().__init__(name, root_dir, budget, progress_callback=progress_callback)
 

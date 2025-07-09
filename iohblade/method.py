@@ -5,6 +5,7 @@ from .problem import Problem
 
 
 class Method(ABC):
+    """Abstract base class for optimization methods."""
     def __init__(self, llm: LLM, budget, name="Method"):
         """
         Initializes a method (optimization algorithm) instance.

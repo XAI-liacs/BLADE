@@ -25,7 +25,20 @@ from .utils import (
 )
 
 
-def ensure_spawn_start_method():
+def ensure_spawn_start_method() -> None:
+    """Ensure the multiprocessing start method is ``spawn``.
+
+    Multiprocessing defaults differ between platforms. This helper checks the
+    current start method and enforces ``spawn`` if it is not already set.
+
+    Raises:
+        RuntimeError: If a different start method is already active and cannot
+            be changed.
+
+    Examples:
+        >>> ensure_spawn_start_method()
+
+    """
     try:
         if multiprocessing.get_start_method(allow_none=True) != "spawn":
             multiprocessing.set_start_method("spawn", force=True)

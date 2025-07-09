@@ -28,6 +28,7 @@ class AutoML(Problem):
     def __init__(
         self, logger=None, datasets=None, name="AutoML-breast_cancer", eval_timeout=360
     ):
+        """Create a simple AutoML benchmarking problem."""
         X, y = load_breast_cancer(return_X_y=True)
         (
             self.X_train,

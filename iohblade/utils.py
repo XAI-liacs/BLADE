@@ -16,6 +16,15 @@ class TimeoutException(Exception):
 
 
 def first_class_name(code_string: str) -> str | None:
+    """Return the first class name found in ``code_string``.
+
+    Args:
+        code_string (str): Python source code snippet.
+
+    Returns:
+        str | None: The class name or ``None`` if not found.
+    """
+
     try:  # 1. do it the robust way
         for node in ast.parse(code_string).body:  #    (won’t be fooled by comments)
             if isinstance(node, ast.ClassDef):
@@ -52,18 +61,18 @@ def class_info(code_string: str) -> Tuple[Optional[str], Optional[str]]:
 
 
 def code_compare(code1, code2):
-    # Parse the Python code into ASTs
-    # Use difflib to find differences
+    """Return a similarity distance between two code snippets."""
+
     diff = difflib.ndiff(code1.splitlines(), code2.splitlines())
-    # Count the number of differing lines
     diffs = sum(1 for x in diff if x.startswith("- ") or x.startswith("+ "))
-    # Calculate total lines for the ratio
     total_lines = max(len(code1.splitlines()), len(code2.splitlines()))
     similarity_ratio = (total_lines - diffs) / total_lines if total_lines else 1
     return 1 - similarity_ratio
 
 
 def is_jsonable(x):
+    """Return ``True`` if ``x`` can be JSON serialized."""
+
     try:
         json.dumps(x)
         return True
@@ -72,6 +81,8 @@ def is_jsonable(x):
 
 
 def convert_to_serializable(data):
+    """Recursively convert objects to JSON serializable types."""
+
     if isinstance(data, dict):
         return {key: convert_to_serializable(value) for key, value in data.items()}
     elif isinstance(data, list):
@@ -178,6 +189,8 @@ class aoc_logger(logger.AbstractLogger):
         )
 
     def reset(self, func):
+        """Reset the accumulated AOC metric."""
+
         super().reset()
         self.aoc = 0
 
@@ -209,4 +222,6 @@ class budget_logger(logger.AbstractLogger):
             raise OverBudgetException
 
     def reset(self):
+        """Reset logger state."""
+
         super().reset()
