@@ -170,7 +170,7 @@ make sure you have `uv` installed.
 After running experiments you can browse them using the built-in Streamlit app:
 
 ```bash
-uv run streamlit run webapp.py
+uv run iohblade-webapp
 ```
 
 The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
