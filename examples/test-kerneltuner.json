@@ -129,6 +129,21 @@
                 "scope": "aggregate",
                 "style": "line",
                 "ylabel": "Aggregate performance relative to baseline"
+            },
+            {
+                "scope": "search_strategy",
+                "style": "heatmap",
+                "x_axis_value_types": [
+                    "applications"
+                ],
+                "y_axis_value_types": [
+                    "gpus"
+                ],
+                "cmin": -8.0,
+                "cnum": 10,
+                "include_y_labels": true,
+                "include_colorbar": true,
+                "annotate": true
             }
         ],
         "resolution": 1000.0,

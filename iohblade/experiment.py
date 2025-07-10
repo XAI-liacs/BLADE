@@ -67,7 +67,7 @@ class Experiment(ABC):
                 seeds=self.seeds,
                 budget=self.budget,
             )
-        tasks = {}
+        tasks = {}  # future -> (method, problem, logger, seed)
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             for problem in self.problems:
                 for method in self.methods:
@@ -93,17 +93,17 @@ class Experiment(ABC):
                         )
                         tasks[future] = (m_copy, p_copy, logger, seed)
 
-        for future in tqdm(as_completed(tasks), total=len(tasks), desc="Runs"):
-            m_copy, p_copy, logger, seed = tasks[future]
-            solution = future.result()
-            self.exp_logger.add_run(
-                m_copy,
-                p_copy,
-                m_copy.llm,
-                solution,
-                log_dir=logger.dirname,
-                seed=seed,
-            )
+            for fut in as_completed(tasks):
+                method, problem, logger, seed = tasks[fut]
+                solution = fut.result()
+                self.exp_logger.add_run(
+                    method,
+                    problem,
+                    method.llm,
+                    solution,
+                    log_dir=logger.dirname,
+                    seed=seed,
+                )
         return
 
     def _run_single(self, method, problem, logger, seed):

@@ -159,7 +159,9 @@ class ReEvo(Method):
         reevo.init_population()
         code, _ = reevo.evolve()
         name = first_class_name(code) or "AlgorithmName"
-        return Solution(code=code, name=name)
+        sol = Solution(code=code, name=name)
+        sol.set_scores(-reevo.best_obj_overall, "", "")
+        return sol
 
     def to_dict(self):
         return {
