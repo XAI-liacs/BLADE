@@ -369,6 +369,16 @@ class ExperimentLogger:
         if entry is None:
             return True
         return entry.get("end_time") is None
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # locks can't be pickled, recreate after unpickling
+        state["_lock"] = None
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._lock = Lock()
 
 
 class RunLogger:
@@ -421,7 +431,6 @@ class RunLogger:
             dirname = f"run-{name}-{tempi}"
             dirname = os.path.join(root_dir, dirname)
         os.mkdir(dirname)
-        os.mkdir(os.path.join(dirname, "code"))
         return dirname
 
     def budget_exhausted(self):

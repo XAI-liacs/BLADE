@@ -4,6 +4,8 @@ LLM modules to connect to different LLM providers. Also extracts code, name and 
 import re
 import time
 from abc import ABC, abstractmethod
+import logging
+import copy
 
 import google.generativeai as genai
 import ollama
@@ -66,6 +68,8 @@ class LLM(ABC):
             if cs_pattern != None
             else r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         )
+        # Mute tokecost logging
+        logging.getLogger("tokencost").setLevel(logging.ERROR)
 
     @abstractmethod
     def _query(self, session: list):
@@ -272,7 +276,10 @@ class OpenAI_LLM(LLM):
                 Options are: gpt-3.5-turbo, gpt-4-turbo, gpt-4o, and others from OpeNAI models library.
         """
         super().__init__(api_key, model, None, **kwargs)
-        self.client = openai.OpenAI(api_key=api_key)
+        self._client_kwargs = dict(api_key=api_key)
+        self.client = openai.OpenAI(**self._client_kwargs)
+        logging.getLogger("openai").setLevel(logging.ERROR)
+        logging.getLogger("httpx").setLevel(logging.ERROR)
         self.temperature = temperature
 
     def _query(self, session_messages):
@@ -291,6 +298,31 @@ class OpenAI_LLM(LLM):
             model=self.model, messages=session_messages, temperature=self.temperature
         )
         return response.choices[0].message.content
+    
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        """Return the picklable part of the instance."""
+        state = self.__dict__.copy()
+        state.pop("client", None)          # the client itself is NOT picklable
+        return state                       # everything else is fine
+
+    def __setstate__(self, state):
+        """Restore from a pickled state."""
+        self.__dict__.update(state)        # put back the simple stuff
+        self.client = openai.OpenAI(**self._client_kwargs)   # rebuild non-picklable handle
+
+    def __deepcopy__(self, memo):
+        """Explicit deepcopy that skips the client and recreates it."""
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        # finally restore client
+        new.client = openai.OpenAI(**new._client_kwargs)
+        return new
 
 
 class Gemini_LLM(LLM):

@@ -1,7 +1,7 @@
 import contextlib
 import copy
 from abc import ABC, abstractmethod
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from tqdm import tqdm
@@ -67,21 +67,21 @@ class Experiment(ABC):
                 seeds=self.seeds,
                 budget=self.budget,
             )
-        tasks = []
+        tasks = {}
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
-            for problem in tqdm(self.problems, desc="Problems"):
-                for method in tqdm(self.methods, leave=False, desc="Methods"):
-                    for i in tqdm(self.seeds, leave=False, desc="Runs"):
-                        np.random.seed(i)
+            for problem in self.problems:
+                for method in self.methods:
+                    for seed in self.seeds:
+                        np.random.seed(seed)
                         if hasattr(
                             self.exp_logger, "is_run_pending"
-                        ) and not self.exp_logger.is_run_pending(method, problem, i):
+                        ) and not self.exp_logger.is_run_pending(method, problem, seed):
                             continue
 
                         m_copy = copy.deepcopy(method)
                         p_copy = copy.deepcopy(problem)
                         logger = self.exp_logger.open_run(
-                            m_copy, p_copy, self.budget, i
+                            m_copy, p_copy, self.budget, seed
                         )
 
                         future = executor.submit(
@@ -89,20 +89,21 @@ class Experiment(ABC):
                             m_copy,
                             p_copy,
                             logger,
-                            i,
+                            seed,
                         )
-                        tasks.append((future, method, problem, logger, i))
+                        tasks[future] = (m_copy, p_copy, logger, seed)
 
-            for future, method, problem, logger, i in tasks:
-                solution = future.result()
-                self.exp_logger.add_run(
-                    method,
-                    problem,
-                    method.llm,
-                    solution,
-                    log_dir=logger.dirname,
-                    seed=i,
-                )
+        for future in tqdm(as_completed(tasks), total=len(tasks), desc="Runs"):
+            m_copy, p_copy, logger, seed = tasks[future]
+            solution = future.result()
+            self.exp_logger.add_run(
+                m_copy,
+                p_copy,
+                m_copy.llm,
+                solution,
+                log_dir=logger.dirname,
+                seed=seed,
+            )
         return
 
     def _run_single(self, method, problem, logger, seed):
