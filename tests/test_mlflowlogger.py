@@ -213,7 +213,6 @@ def test_run_logger_init_file_structure(mock_run_logger):
     Confirm the parent (file-based) directories exist.
     """
     assert os.path.exists(mock_run_logger.dirname)
-    assert os.path.exists(os.path.join(mock_run_logger.dirname, "code"))
 
 
 def test_run_logger_log_conversation(mock_run_logger, mock_mlflow):

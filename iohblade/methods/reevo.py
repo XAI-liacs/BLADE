@@ -103,8 +103,8 @@ class ReEvo(Method):
                 description=class_info(individual["code"])[1]
                 or "No description provided.",
             )
-
             solution = problem(solution)
+
             if solution.error != "":
                 # If the solution has an error, we mark it as invalid.
                 individual["exec_success"] = False
@@ -159,7 +159,9 @@ class ReEvo(Method):
         reevo.init_population()
         code, _ = reevo.evolve()
         name = first_class_name(code) or "AlgorithmName"
-        return Solution(code=code, name=name)
+        sol = Solution(code=code, name=name)
+        sol.set_scores(-reevo.best_obj_overall, "", "")
+        return sol
 
     def to_dict(self):
         return {

@@ -157,7 +157,7 @@ class EoH(Method):
         name_match = re.search(r"class\s+(\w+)", code)
         name = name_match.group(1) if name_match else "OptimizationAlgorithm"
         solution = Solution(code=code, name=name, description=desc)
-        solution.set_scores(best.get("objective", 0))
+        solution.set_scores(-best.get("objective", 0))
         return solution
 
     def to_dict(self):
