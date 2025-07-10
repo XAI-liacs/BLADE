@@ -496,6 +496,9 @@ class RunLogger:
         Args:
             individual (Solution): potential solution to be logged.
         """
+        # Create code directory if it doesn't exist
+        if not os.path.exists(f"{self.dirname}/code"):
+            os.makedirs(f"{self.dirname}/code")
         with open(
             f"{self.dirname}/code/{individual.id}-{individual.name}.py", "w"
         ) as file:

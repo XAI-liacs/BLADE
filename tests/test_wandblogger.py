@@ -190,7 +190,6 @@ def test_run_logger_init_file_dirs(mock_run_logger):
     created directories for local logs.
     """
     assert os.path.exists(mock_run_logger.dirname)
-    assert os.path.exists(os.path.join(mock_run_logger.dirname, "code"))
 
 
 def test_run_logger_log_individual(mock_run_logger, mock_wandb):
