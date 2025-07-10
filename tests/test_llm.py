@@ -1,11 +1,70 @@
 import datetime as _dt
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+import copy
+import pickle
 
 import iohblade.llm as llm_mod  # the module that defines _query
 from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM
 
+
+class _DummyOpenAI:
+    """Stand-in that just records the kwargs used to build it."""
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+def _patch_openai(monkeypatch):
+    """
+    Helper that swaps out openai.OpenAI with _DummyOpenAI inside the
+    already-imported iohblade.llm module.
+    """
+    monkeypatch.setattr(llm_mod.openai, "OpenAI", _DummyOpenAI)
+
+def test_openai_llm_getstate_strips_client(monkeypatch):
+    _patch_openai(monkeypatch)
+
+    llm = OpenAI_LLM(api_key="sk-test", model="gpt-4-turbo")
+    state = llm.__getstate__()
+
+    assert "client" not in state
+    # sanity-check something else is still there
+    assert state["model"] == "gpt-4-turbo"
+
+
+def test_openai_llm_deepcopy_restores_client(monkeypatch):
+    _patch_openai(monkeypatch)
+
+    original = OpenAI_LLM(api_key="sk-test", model="gpt-4o", temperature=0.17)
+    clone = copy.deepcopy(original)
+
+    # new object, equal public state
+    assert clone is not original
+    assert clone.model == original.model
+    assert clone.temperature == original.temperature
+
+    # brand-new client object of the dummy type
+    assert isinstance(clone.client, _DummyOpenAI)
+    assert clone.client is not original.client
+    assert clone.client.kwargs["api_key"] == "sk-test"
+
+    # changing the clone does not leak back
+    clone.temperature = 0.99
+    assert original.temperature != clone.temperature
+
+
+def test_openai_llm_pickle_roundtrip(monkeypatch):
+    _patch_openai(monkeypatch)
+
+    llm = OpenAI_LLM(api_key="sk-test", model="gpt-3.5-turbo")
+    blob = pickle.dumps(llm)
+    revived = pickle.loads(blob)
+
+    # revived instance has equivalent state and a fresh client
+    assert revived.model == llm.model
+    assert isinstance(revived.client, _DummyOpenAI)
+    assert revived.client.kwargs["api_key"] == "sk-test"
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class
