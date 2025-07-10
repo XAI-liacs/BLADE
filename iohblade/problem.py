@@ -87,7 +87,12 @@ class Problem(ABC):
 
         if self.logger != None:
             if self.logger.budget_exhausted():
-                raise Exception("Evaluation failed because budget is exhausted.")
+                solution.set_scores(
+                    -np.Inf,
+                    feedback="Budget is exhausted.",
+                    error="Budget is exhausted.",
+                )
+                return solution  # Return early if budget is exhausted
 
         # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout

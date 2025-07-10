@@ -103,8 +103,8 @@ class ReEvo(Method):
                 description=class_info(individual["code"])[1]
                 or "No description provided.",
             )
-
             solution = problem(solution)
+
             if solution.error != "":
                 # If the solution has an error, we mark it as invalid.
                 individual["exec_success"] = False
