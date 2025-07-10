@@ -369,7 +369,7 @@ class ExperimentLogger:
         if entry is None:
             return True
         return entry.get("end_time") is None
-    
+
     def __getstate__(self):
         state = self.__dict__.copy()
         # locks can't be pickled, recreate after unpickling

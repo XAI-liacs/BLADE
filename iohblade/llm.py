@@ -298,18 +298,20 @@ class OpenAI_LLM(LLM):
             model=self.model, messages=session_messages, temperature=self.temperature
         )
         return response.choices[0].message.content
-    
+
     # ---------- pickling / deepcopy helpers ----------
     def __getstate__(self):
         """Return the picklable part of the instance."""
         state = self.__dict__.copy()
-        state.pop("client", None)          # the client itself is NOT picklable
-        return state                       # everything else is fine
+        state.pop("client", None)  # the client itself is NOT picklable
+        return state  # everything else is fine
 
     def __setstate__(self, state):
         """Restore from a pickled state."""
-        self.__dict__.update(state)        # put back the simple stuff
-        self.client = openai.OpenAI(**self._client_kwargs)   # rebuild non-picklable handle
+        self.__dict__.update(state)  # put back the simple stuff
+        self.client = openai.OpenAI(
+            **self._client_kwargs
+        )  # rebuild non-picklable handle
 
     def __deepcopy__(self, memo):
         """Explicit deepcopy that skips the client and recreates it."""
