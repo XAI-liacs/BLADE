@@ -271,7 +271,7 @@ wheels = [
 [[package]]
 name = "autotuning-methodology"
 version = "1.2.0"
-source = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=6a9a50a5a49bc104469b3b753fd43a5324241702#6a9a50a5a49bc104469b3b753fd43a5324241702" }
+source = { git = "https://github.com/XAI-liacs/autotuning_methodology.git?rev=ee3885a42a7d468c219854c8ed7df076b47ec4d3#ee3885a42a7d468c219854c8ed7df076b47ec4d3" }
 dependencies = [
     { name = "jsonschema" },
     { name = "kernel-tuner" },
@@ -1614,8 +1614,8 @@ docs = [
     { name = "sphinxext-opengraph", specifier = ">=0.9.1,<0.10" },
 ]
 kerneltuner = [
-    { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=6a9a50a5a49bc104469b3b753fd43a5324241702" },
-    { name = "kernel-tuner", git = "https://github.com/XAI-liacs/kernel_tuner.git?branch=hyperparametertuning_custom_strategies" },
+    { name = "autotuning-methodology", git = "https://github.com/XAI-liacs/autotuning_methodology.git?rev=ee3885a42a7d468c219854c8ed7df076b47ec4d3" },
+    { name = "kernel-tuner", git = "https://github.com/XAI-liacs/kernel_tuner.git?rev=a1b4d796c67ce950f8ca07bb39aa94ef5fd033f6" },
 ]
 methods = [
     { name = "eoh", git = "https://github.com/FeiLiu36/EoH.git?subdirectory=eoh&rev=8d679f821af8edc7fbe3a4b6d6538b1b0362b4fb" },
@@ -2157,7 +2157,7 @@ wheels = [
 [[package]]
 name = "kernel-tuner"
 version = "1.3.0"
-source = { git = "https://github.com/XAI-liacs/kernel_tuner.git?branch=hyperparametertuning_custom_strategies#b71be62c64bf199a5f1f8b7ba9aabaabfff6d52c" }
+source = { git = "https://github.com/XAI-liacs/kernel_tuner.git?rev=a1b4d796c67ce950f8ca07bb39aa94ef5fd033f6#a1b4d796c67ce950f8ca07bb39aa94ef5fd033f6" }
 dependencies = [
     { name = "jsonschema" },
     { name = "numpy" },

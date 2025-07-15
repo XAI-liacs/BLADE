@@ -206,11 +206,15 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         folder = f"{self.cache_dir}kernels"
         applications = []
         for app in self.kernels:
+            objectives = ["time"]
+            if app in ["hotspot"]:
+                objectives = ["GFLOP/s"]
             applications.append(
                 {
                     "name": f"{app}_milo",
                     "folder": folder,
                     "input_file": f"{app}_milo.json",
+                    "objective_performance_keys": objectives,
                 }
             )
         # write the solution to a file

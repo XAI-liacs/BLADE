@@ -71,8 +71,8 @@ default-groups = [
 [tool.uv.sources]
 eoh = { git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh" , rev = "8d679f821af8edc7fbe3a4b6d6538b1b0362b4fb"}
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
-kernel-tuner = { git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies" }
-autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702" }
+kernel-tuner = { git = "https://github.com/XAI-liacs/kernel_tuner.git", rev = "a1b4d796c67ce950f8ca07bb39aa94ef5fd033f6" }
+autotuning_methodology = { git = "https://github.com/XAI-liacs/autotuning_methodology.git", rev = "ee3885a42a7d468c219854c8ed7df076b47ec4d3" }
 
 [build-system]
 requires = ["hatchling"]
