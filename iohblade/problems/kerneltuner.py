@@ -56,7 +56,7 @@ class Kerneltuner(Problem):
         kernels=None,
         name="kerneltuner",
         eval_timeout=600,
-        budget=1000,
+        repeats=3,
         cache_dir="/data/neocortex/repos/benchmark_hub/",
         extra_info=False,
     ):
@@ -68,7 +68,7 @@ class Kerneltuner(Problem):
             kernels (list): The kernels (applications) to train on.
             name (str): The name of the problem.
             eval_timeout (int): The evaluation timeout in seconds.
-            budget (int): The budget for the optimization algorithms/
+            repeats (int): The number of times the optimization algorithms are repeated (for random runs).
             cache_dir (str): The directory that contains the kernel tuner data files.
             extra_info (bool): If True, additional information about the problem is added to the prompt. Only works for one kernel.
         """
@@ -96,7 +96,7 @@ class Kerneltuner(Problem):
         super().__init__(
             logger, self.training_instances, self.test_instances, name, eval_timeout
         )
-        self.budget = budget  # The budget for the optimization algorithms
+        self.repeats = repeats
         self.task_prompt = """
 You are a highly skilled computer scientist in the field of natural computing and hardware kernel tuning. Your task is to design novel metaheuristic algorithms to solve kernel tuner problems (integer, variable dimension, contraint).
 The optimization algorithm should handle a kernel tuning task. Your task is to write the optimization algorithm in Python code. The code should inherit the `OptAlg` class and contain an `__init__(self, budget=5000)` function with optional arguments and the function `def __call__(self, func, searchspace)`, which should optimize the black box function `func` till the `func.budget_spent_fraction` is 1.0.
@@ -190,8 +190,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         return self.task_prompt + self.example_prompt + self.format_prompt
 
     def evaluate(self, solution: Solution, test=False):
-        repeats = 5  # number of times to repeat for stochasticity, just two for now.
-
         path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
         path.mkdir(parents=True, exist_ok=True)
 
@@ -259,7 +257,7 @@ from kernel_tuner.strategies.wrapper import OptAlg
         override = {
             "experimental_groups_defaults": {
                 "parent_folder": str(path),
-                "repeats": repeats,
+                "repeats": self.repeats,
                 "samples": 32,
                 "minimum_fraction_of_budget_valid": 0.01,
                 "pattern_for_full_search_space_filenames": {
@@ -307,5 +305,5 @@ from kernel_tuner.strategies.wrapper import OptAlg
             "name": self.name,
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
-            "budget": self.budget,
+            "repeats": self.repeats,
         }

@@ -33,8 +33,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"], #, "A4000", "MI250X"
                 kernels=[kernel],
                 name=f"{kernel}",
-                eval_timeout=900, #5 minutes
-                budget=1000,
+                eval_timeout=1800, #30 minutes
+                repeats=3,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=True))
             # No info version
@@ -42,10 +42,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 gpus=["A100", "A4000", "MI250X"], #, "A4000", "MI250X"
                 kernels=[kernel],
                 name=f"{kernel}-no-info",
-                eval_timeout=900, #5 minutes
-                budget=1000,
+                eval_timeout=1800, #30 minutes
+                repeats=3,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=False))
         
-        experiment = Experiment(methods=methods, problems=problems, runs=5, budget = budget, show_stdout=True, exp_logger=logger, n_jobs=4) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=5, budget = budget, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
         experiment() #run the experiment
