@@ -28,6 +28,7 @@ class MA_BBOB(Problem):
         eval_timeout=60,
         dims=[2, 5],
         budget_factor=2000,
+        dependencies=None,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -44,7 +45,7 @@ class MA_BBOB(Problem):
             training_instances = range(0, 20)
         if test_instances is None:
             test_instances = range(20, 120)
-        super().__init__(logger, training_instances, test_instances, name, eval_timeout)
+        super().__init__(logger, training_instances, test_instances, name, eval_timeout, dependencies)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.func_name = "__call__"

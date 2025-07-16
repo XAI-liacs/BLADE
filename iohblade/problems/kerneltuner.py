@@ -59,6 +59,7 @@ class Kerneltuner(Problem):
         budget=1000,
         cache_dir="/data/neocortex/repos/benchmark_hub/",
         extra_info=False,
+        dependencies=None,
     ):
         """
         Initializes the Kerneltuner problem instance.
@@ -94,7 +95,7 @@ class Kerneltuner(Problem):
         self.cache_dir = cache_dir
 
         super().__init__(
-            logger, self.training_instances, self.test_instances, name, eval_timeout
+            logger, self.training_instances, self.test_instances, name, eval_timeout, dependencies
         )
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """

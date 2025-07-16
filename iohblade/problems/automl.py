@@ -26,7 +26,12 @@ class AutoML(Problem):
     """
 
     def __init__(
-        self, logger=None, datasets=None, name="AutoML-breast_cancer", eval_timeout=360
+        self,
+        logger=None,
+        datasets=None,
+        name="AutoML-breast_cancer",
+        eval_timeout=360,
+        dependencies=None,
     ):
         X, y = load_breast_cancer(return_X_y=True)
         (
@@ -42,6 +47,7 @@ class AutoML(Problem):
             [(self.X_test, self.y_test)],
             name,
             eval_timeout,
+            dependencies,
         )
         self.func_name = "__call__"
         self.init_inputs = ["X", "y"]

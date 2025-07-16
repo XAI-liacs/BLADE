@@ -43,6 +43,7 @@ class BBOB_SBOX(Problem):
         problem_type=ioh.ProblemClass.SBOX,
         full_ioh_log=False,
         ioh_dir="",
+        dependencies=None,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -65,7 +66,7 @@ class BBOB_SBOX(Problem):
             test_instances = [
                 (f, i) for f in range(1, 25) for i in range(5, 16)
             ]  # 10 test instances
-        super().__init__(logger, training_instances, test_instances, name, eval_timeout)
+        super().__init__(logger, training_instances, test_instances, name, eval_timeout, dependencies)
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.specific_fid = specific_fid
