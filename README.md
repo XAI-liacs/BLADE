@@ -83,6 +83,7 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
 | **Gemini**   | Google's multimodal LLM designed to process text, images, audio, and more. [Reference](https://en.wikipedia.org/wiki/Gemini_%28language_model%29) | Accessible via the Gemini API, compatible with OpenAI libraries. [Reference](https://ai.google.dev/gemini-api/docs/openai) |
 | **OpenAI**   | Developer of GPT series models, including GPT-4, widely used for natural language understanding and generation. [Reference](https://openai.com/) | Integration through OpenAI's REST API and client libraries.                                                    |
 | **Ollama**   | A platform offering access to various LLMs, enabling local and cloud-based model deployment. [Reference](https://www.ollama.ai/) | Integration details can be found in their official documentation.                                             |
+| **Claude**   | Anthropic's Claude models for safe and capable language generation. [Reference](https://www.anthropic.com/) | Accessed via the Anthropic API. |
 
 
 ### Evaluating against Human Designed baselines
@@ -103,7 +104,7 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
 ```
 > [!Important]
 > The Python version **must** be larger or equal to Python 3.11.
-> You need an OpenAI/Gemini/Ollama API key for using LLM models.
+> You need an OpenAI/Gemini/Ollama/Claude API key for using LLM models.
 
 You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).
 make sure you have `uv` installed.
@@ -128,8 +129,8 @@ make sure you have `uv` installed.
 
 ## 💻 Quick Start
 
-1. Set up an OpenAI API key:
-   - Obtain an API key from [OpenAI](https://openai.com/) or Gemini or another LLM provider.
+1. Set up an API key for your preferred provider:
+   - Obtain an API key from [OpenAI](https://openai.com/), Claude, Gemini, or another LLM provider.
    - Set the API key in your environment variables:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'

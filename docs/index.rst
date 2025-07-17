@@ -128,6 +128,9 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
    * - **Ollama**
      - A platform offering access to various LLMs, enabling local and cloud-based model deployment. `Reference <https://www.ollama.ai/>`_
      - Integration details can be found in their official documentation.
+   * - **Claude**
+     - Anthropic's Claude models for safe and capable language generation. `Reference <https://www.anthropic.com/>`_
+     - Accessed via the Anthropic API.
 
 Evaluating against Human Designed Baselines
 -------------------------------------------
