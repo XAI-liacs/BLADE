@@ -2,12 +2,13 @@
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
 
+import copy
+import logging
 import re
 import time
 from abc import ABC, abstractmethod
-import logging
-import copy
 
+import anthropic
 import google.generativeai as genai
 import ollama
 import openai
@@ -468,8 +469,85 @@ class Ollama_LLM(LLM):
                     raise
                 time.sleep(default_delay * attempt)
 
-            except Exception:
+
+class Claude_LLM(LLM):
+    """A manager class for handling requests to Anthropic's Claude models."""
+
+    def __init__(
+        self,
+        api_key,
+        model="claude-3-haiku-20240307",
+        base_url=None,
+        temperature=0.8,
+        max_tokens=4096,
+        **kwargs,
+    ):
+        """Initializes the LLM manager with an API key and model name."""
+
+        super().__init__(api_key, model, base_url, **kwargs)
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self._client_kwargs = {"api_key": api_key}
+        if base_url:
+            self._client_kwargs["base_url"] = base_url
+        self.client = anthropic.Anthropic(**self._client_kwargs)
+        logging.getLogger("anthropic").setLevel(logging.ERROR)
+
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+        """Sends a conversation history to the configured model and returns the response text."""
+
+        attempt = 0
+        while True:
+            try:
+                response = self.client.messages.create(
+                    model=self.model,
+                    messages=session_messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+
+                content = response.content
+                if isinstance(content, list):
+                    return "".join(b.text for b in content)
+                return content
+
+            except anthropic.RateLimitError as err:
+                attempt += 1
+                if attempt > max_retries:
+                    raise
+                retry_after = None
+                if getattr(err, "response", None) is not None:
+                    retry_after = err.response.headers.get("Retry-After")
+                wait = int(retry_after) if retry_after else default_delay * attempt
+                time.sleep(wait)
+
+            except (
+                anthropic.APITimeoutError,
+                anthropic.APIConnectionError,
+                anthropic.APIError,
+            ) as err:
                 attempt += 1
                 if attempt > max_retries:
                     raise
                 time.sleep(default_delay * attempt)
+
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = anthropic.Anthropic(**self._client_kwargs)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.client = anthropic.Anthropic(**new._client_kwargs)
+        return new
