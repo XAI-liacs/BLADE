@@ -9,6 +9,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from iohblade.plots import CEG_FEATURES, plotly_code_evolution
+
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
 
@@ -204,6 +206,26 @@ def run() -> None:
                 )
             box_fig.update_layout(yaxis_title="Fitness", xaxis_title="Method")
             st.plotly_chart(box_fig, use_container_width=True)
+
+            st.markdown("#### Code Evolution Graph")
+            ceg_method = st.selectbox("Method", methods, key="ceg_method")
+            ceg_problem = st.selectbox("Problem", problems, key="ceg_problem")
+            seed_options = df[
+                (df["method_name"] == ceg_method) & (df["problem_name"] == ceg_problem)
+            ]["seed"].unique()
+            ceg_seed = st.selectbox(
+                "Seed", sorted(seed_options.tolist()), key="ceg_seed"
+            )
+            feature = st.selectbox("Feature", CEG_FEATURES, key="ceg_feature")
+            run_df = logger.get_problem_data(ceg_problem)
+            run_df = run_df[
+                (run_df["method_name"] == ceg_method) & (run_df["seed"] == ceg_seed)
+            ]
+            if not run_df.empty:
+                ceg_fig = plotly_code_evolution(run_df, feature=feature)
+                st.plotly_chart(ceg_fig, use_container_width=True)
+            else:
+                st.write("No data for selected run.")
 
             st.markdown("#### Top Solutions")
             runs = logger.get_data()
