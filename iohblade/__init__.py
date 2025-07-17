@@ -7,6 +7,8 @@ from .plots import (
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,
     plot_code_evolution_graphs,
+    plotly_code_evolution,
+    CEG_FEATURES,
     plot_convergence,
     plot_experiment_CEG,
     plot_token_usage,
