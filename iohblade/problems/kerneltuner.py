@@ -32,7 +32,7 @@ except Exception:  # pragma: no cover - optional dependency
     get_strategy_scores = None
 
 
-from ..problem import Problem
+from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 
 
@@ -59,6 +59,7 @@ class Kerneltuner(Problem):
         budget=1000,
         cache_dir="/data/neocortex/repos/benchmark_hub/",
         extra_info=False,
+        dependencies=None,
     ):
         """
         Initializes the Kerneltuner problem instance.
@@ -72,6 +73,12 @@ class Kerneltuner(Problem):
             cache_dir (str): The directory that contains the kernel tuner data files.
             extra_info (bool): If True, additional information about the problem is added to the prompt. Only works for one kernel.
         """
+
+        if dependencies is None:
+            dependencies = [
+                "kernel-tuner @ git+https://github.com/XAI-liacs/kernel_tuner.git@hyperparametertuning_custom_strategies",
+                "autotuning-methodology @ git+https://github.com/AutoTuningAssociation/autotuning_methodology.git@6a9a50a5a49bc104469b3b753fd43a5324241702",
+            ]
 
         self.applications = ["gemm", "convolution", "dedispersion", "hotspot"]
         if gpus is None:
@@ -94,7 +101,12 @@ class Kerneltuner(Problem):
         self.cache_dir = cache_dir
 
         super().__init__(
-            logger, self.training_instances, self.test_instances, name, eval_timeout
+            logger,
+            self.training_instances,
+            self.test_instances,
+            name,
+            eval_timeout,
+            dependencies,
         )
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = """
