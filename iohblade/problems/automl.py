@@ -13,7 +13,7 @@ import sklearn
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import accuracy_score
 
-from ..problem import Problem
+from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 
 # import autosklearn.classification
@@ -33,6 +33,9 @@ class AutoML(Problem):
         eval_timeout=360,
         dependencies=None,
     ):
+        if dependencies is None:
+            dependencies = []
+
         X, y = load_breast_cancer(return_X_y=True)
         (
             self.X_train,

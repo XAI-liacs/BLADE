@@ -9,7 +9,7 @@ from ioh import get_problem
 from ioh import logger as ioh_logger
 from smac import AlgorithmConfigurationFacade, Scenario
 
-from ..problem import Problem
+from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
@@ -41,11 +41,20 @@ class MA_BBOB(Problem):
             dims (list): The dimensionalities of the problem instances to run on.
             budget_factor (int): The factor to multiply the dimensionality with to get the budget.
         """
+        if dependencies is None:
+            dependencies = [
+                "ioh==0.3.18",
+                "configspace==1.2.1",
+                "smac==2.3.1",
+            ]
+
         if training_instances is None:
             training_instances = range(0, 20)
         if test_instances is None:
             test_instances = range(20, 120)
-        super().__init__(logger, training_instances, test_instances, name, eval_timeout, dependencies)
+        super().__init__(
+            logger, training_instances, test_instances, name, eval_timeout, dependencies
+        )
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.func_name = "__call__"

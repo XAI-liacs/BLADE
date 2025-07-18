@@ -12,6 +12,14 @@ from pathlib import Path
 import numpy as np
 from joblib.externals.loky import get_reusable_executor
 
+# Standard packages installed in every evaluation environment
+BASE_DEPENDENCIES = [
+    "numpy>=1.26.3,<2",
+    "pandas==2.0.3",
+    "polars==1.31.0",
+    "scikit-learn==1.3.0",
+]
+
 from .solution import Solution
 from .utils import TimeoutException
 
@@ -33,7 +41,9 @@ def evaluate_in_subprocess(problem, conn, solution):
 
             deps = getattr(problem, "dependencies", [])
             if deps:
-                subprocess.run([str(python_bin), "-m", "pip", "install", *deps], check=True)
+                subprocess.run(
+                    [str(python_bin), "-m", "pip", "install", *deps], check=True
+                )
 
             problem_pickle = env_path / "problem.pkl"
             solution_pickle = env_path / "solution.pkl"
@@ -97,7 +107,10 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
-        self.dependencies = dependencies or []
+        # Combine the base dependencies with any problem specific ones
+        self.dependencies = BASE_DEPENDENCIES.copy()
+        if dependencies:
+            self.dependencies.extend(dependencies)
 
         # These settings are required for EoH, adapt them based on your problem.
         # The function name, inputs, and outputs should match the expected format.

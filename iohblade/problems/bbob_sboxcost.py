@@ -9,7 +9,7 @@ from ioh import get_problem
 from ioh import logger as ioh_logger
 from smac import AlgorithmConfigurationFacade, Scenario
 
-from ..problem import Problem
+from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
@@ -60,13 +60,22 @@ class BBOB_SBOX(Problem):
             problem_type (ioh.ProblemClass): The type of problem to use. Can be SBOX or BBOB.
             full_ioh_log (bool): If set to True, additional IOH logs are being kept for each run and each algorithm.
         """
+        if dependencies is None:
+            dependencies = [
+                "ioh==0.3.18",
+                "configspace==1.2.1",
+                "smac==2.3.1",
+            ]
+
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
         if test_instances is None:
             test_instances = [
                 (f, i) for f in range(1, 25) for i in range(5, 16)
             ]  # 10 test instances
-        super().__init__(logger, training_instances, test_instances, name, eval_timeout, dependencies)
+        super().__init__(
+            logger, training_instances, test_instances, name, eval_timeout, dependencies
+        )
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.specific_fid = specific_fid
@@ -277,9 +286,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
-            "problem_type": "SBOX"
-            if self.problem_type == ioh.ProblemClass.SBOX
-            else "BBOB",
+            "problem_type": (
+                "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB"
+            ),
             "specific_fid": self.specific_fid,
             "specific_group": self.specific_group,
         }

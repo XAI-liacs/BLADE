@@ -7,7 +7,7 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
-from ..problem import Problem
+from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 from ..utils import OverBudgetException, aoc_logger, correct_aoc
 from .photonic_instances import (
@@ -43,6 +43,9 @@ class Photonics(Problem):
             budget_factor (int): The factor to multiply the dimensionality with to get the budget.
             seeds (int): Number of random runs.
         """
+        if dependencies is None:
+            dependencies = ["ioh==0.3.18"]
+
         if problem_type not in ["bragg", "ellipsometry", "photovoltaic"]:
             raise Exception(
                 "problem_type should be either 'bragg', 'ellipsometry' or 'photovoltaic'."
@@ -55,7 +58,9 @@ class Photonics(Problem):
         self.func_inputs = ["func"]
         self.func_outputs = ["f_opt", "x_opt"]
 
-        super().__init__(logger, [self.problem], [self.problem], name, eval_timeout, dependencies)
+        super().__init__(
+            logger, [self.problem], [self.problem], name, eval_timeout, dependencies
+        )
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.description_prompt = problem_descriptions[self.problem_type]
         self.extra_prompt = algorithmic_insights[self.problem_type]
