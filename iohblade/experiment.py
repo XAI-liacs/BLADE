@@ -97,7 +97,7 @@ class Experiment(ABC):
             "Welcome to BLADE!\n"
             "You can inspect this experiment in your browser by running:\n"
             "    uv run iohblade-webapp\n\n"
-            "While BLADE hides most output from the generated algorithms, "
+            "While BLADE hides most output from experiments by default, "
             "some logs or warnings may still appear.\n"
         )
         print(message)
