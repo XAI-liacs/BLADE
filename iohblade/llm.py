@@ -473,3 +473,66 @@ class Ollama_LLM(LLM):
                 if attempt > max_retries:
                     raise
                 time.sleep(default_delay * attempt)
+
+
+class Dummy_LLM(LLM):
+    def __init__(self, model="DUMMY", **kwargs):
+        """
+        Initializes the DUMMY LLM manager with a model name. This is a placeholder
+        and does not connect to any LLM provider. It is used for testing purposes only.
+
+        Args:
+            model (str, optional): model abbreviation. Defaults to "DUMMY".
+                Has no effect, just a placeholder.
+        """
+        super().__init__("", model, None, **kwargs)
+
+    def _query(self, session_messages):
+        """
+        Sends a conversation history to DUMMY model and returns a random response text.
+
+        Args:
+            session_messages (list of dict): A list of message dictionaries with keys
+                "role" (e.g. "user", "assistant") and "content" (the message text).
+
+        Returns:
+            str: The text content of the LLM's response.
+        """
+        # first concatenate the session messages
+        big_message = ""
+        for msg in session_messages:
+            big_message += msg["content"] + "\n"
+        response = """This is a dummy response from the DUMMY LLM. It does not connect to any LLM provider.
+It is used for testing purposes only. 
+# Description: A simple random search algorithm that samples points uniformly in the search space and returns the best found solution.
+# Code:
+```python
+import numpy as np
+
+class RandomSearch:
+    def __init__(self, budget=10000, dim=10):
+        self.budget = budget
+        self.dim = dim
+        self.f_opt = np.Inf
+        self.x_opt = None
+
+    def __call__(self, func):
+        for i in range(self.budget):
+            x = np.random.uniform(func.bounds.lb, func.bounds.ub)
+            
+            f = func(x)
+            if f < self.f_opt:
+                self.f_opt = f
+                self.x_opt = x
+            
+        return self.f_opt, self.x_opt
+```
+# Configuration Space:
+```python
+{
+    'budget': {'type': 'int', 'lower': 1000, 'upper': 100000},
+    'dim': {'type': 'int', 'lower': 1, 'upper': 100}
+}
+```
+"""
+        return response
