@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from tqdm import tqdm
+import sys
 
 from .loggers import ExperimentLogger
 from .problems import MA_BBOB
@@ -86,9 +87,11 @@ class Experiment(ABC):
 
     def _refresh_console(self) -> None:
         """Clear the console and show the banner and run overview."""
-        self._clear_console()
-        self._print_welcome_message()
-        self._print_run_overview()
+        with contextlib.redirect_stdout(sys.__stdout__):
+            self._clear_console()
+            self._print_welcome_message()
+            self._print_run_overview()
+            sys.__stdout__.flush()
 
     def _print_welcome_message(self) -> None:
         """Print a welcome banner with instructions."""
