@@ -149,7 +149,6 @@ class Problem(ABC):
         """
         self.logger = logger
 
-    @abstractmethod
     def get_prompt(self):
         """
         Get the full prompt describing the problem and how to format the answer.
