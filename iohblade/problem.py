@@ -1,9 +1,24 @@
 import multiprocessing
+import os
+import pickle
+import shutil
+import subprocess
+import tempfile
 import traceback
+import venv
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import numpy as np
 from joblib.externals.loky import get_reusable_executor
+
+# Standard packages installed in every evaluation environment
+BASE_DEPENDENCIES = [
+    "numpy>=1.26.3,<2",
+    "pandas==2.0.3",
+    "polars==1.31.0",
+    "scikit-learn==1.3.0",
+]
 
 from .solution import Solution
 from .utils import TimeoutException
@@ -16,11 +31,42 @@ def evaluate_in_subprocess(problem, conn, solution):
         queue (multiprocessing.Queue): Queue for storing the evaluation result.
         solution (Solution): Solution object to be evaluated.
     """
+    repo_root = Path(__file__).resolve().parents[1]
     try:
-        result = problem.evaluate(solution)
-        conn.send(result)  # Send result through the pipe
+        with tempfile.TemporaryDirectory(prefix="blade_env_") as env_dir:
+            env_path = Path(env_dir)
+            venv.create(env_dir, with_pip=True)
+
+            python_bin = env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
+
+            deps = getattr(problem, "dependencies", [])
+            if deps:
+                subprocess.run(
+                    [str(python_bin), "-m", "pip", "install", *deps], check=True
+                )
+
+            problem_pickle = env_path / "problem.pkl"
+            solution_pickle = env_path / "solution.pkl"
+            result_pickle = env_path / "result.pkl"
+            with open(problem_pickle, "wb") as f:
+                pickle.dump(problem, f)
+            with open(solution_pickle, "wb") as f:
+                pickle.dump(solution, f)
+
+            script_path = env_path / "run_eval.py"
+            script_path.write_text(
+                f"import pickle,sys\nsys.path.insert(0, '{repo_root}')\nproblem=pickle.load(open('{problem_pickle}','rb'))\nsolution=pickle.load(open('{solution_pickle}','rb'))\nresult=problem.evaluate(solution)\npickle.dump(result, open('{result_pickle}','wb'))\n"
+            )
+
+            env = os.environ.copy()
+            env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
+            subprocess.run([str(python_bin), str(script_path)], check=True, env=env)
+
+            with open(result_pickle, "rb") as f:
+                result = pickle.load(f)
+
+            conn.send(result)  # Send result through the pipe
     except Exception as e:
-        # print(f"stracktrace: {traceback.format_exc()}")
         conn.send(
             f"{e} stracktrace: {traceback.format_exc()}"
         )  # Send exception for handling in the parent
@@ -40,6 +86,7 @@ class Problem(ABC):
         test_instances=None,
         name="Problem",
         eval_timeout=6000,
+        dependencies=None,
     ):
         """
         Initializes a problem instance with logging and dataset references.
@@ -60,6 +107,10 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
+        # Combine the base dependencies with any problem specific ones
+        self.dependencies = BASE_DEPENDENCIES.copy()
+        if dependencies:
+            self.dependencies.extend(dependencies)
 
         # These settings are required for EoH, adapt them based on your problem.
         # The function name, inputs, and outputs should match the expected format.
