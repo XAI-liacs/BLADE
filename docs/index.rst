@@ -171,7 +171,11 @@ If you use BLADE in your research, please consider citing the associated paper:
    Introduction
    Installation
    modules
+   notebooks/simple_experiment
+   notebooks/custom_problem
+   notebooks/custom_method
    notebooks/mabbob_example
+   notebooks/visualization_options
 
 
 Indices and tables
