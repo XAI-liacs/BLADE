@@ -209,7 +209,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 1, instance=1, dimension=2, problem_class=self.problem_type
             )
             problem.attach_logger(l2_temp)
-            algorithm = local_env[algorithm_name](budget=100, dim=2)
+            algorithm = globals()[algorithm_name](budget=100, dim=2)
             algorithm(problem)
         except OverBudgetException:
             pass
@@ -224,7 +224,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 f_new = get_problem(
                     fid, instance=iid, dimension=dim, problem_class=self.problem_type
                 )
-                l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+                l2 = aoc_logger(budget, upper=1e4, triggers=[ioh_logger.trigger.ALWAYS])
                 if test or self.full_ioh_log:
                     l1 = ioh.logger.Analyzer(
                         root=self.ioh_dir,
@@ -239,7 +239,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     f_new.attach_logger(l2)
 
                 try:
-                    algorithm = local_env[algorithm_name](budget=budget, dim=dim)
+                    algorithm = globals()[algorithm_name](budget=budget, dim=dim)
                     algorithm(f_new)
                 except OverBudgetException:
                     pass
