@@ -197,9 +197,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
-        safe_globals = {"np": np}
         local_env = {}
-        exec(code, safe_globals, local_env)
+        exec(code, globals())
 
         algorithm = None
 

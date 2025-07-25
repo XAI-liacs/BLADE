@@ -84,5 +84,5 @@ Give an excellent, novel and computationally efficient Bayesian Optimization alg
         problems.append(prob)
 
         
-        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=False, exp_logger=logger, budget=budget) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=10) #normal run
         experiment() #run the experiment
