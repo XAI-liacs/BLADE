@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import streamlit as st
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
@@ -36,6 +37,8 @@ def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
     fig = go.Figure()
+    colorlist = px.colors.qualitative.G10
+    colorindex = 0
     if aggregate:
         for (m, p), g in df.groupby(["method_name", "problem_name"]):
             summary = (
@@ -47,6 +50,7 @@ def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
                     y=summary["mean"],
                     mode="lines",
                     name=f"{m}-{p}",
+                    line_color=colorlist[colorindex],
                 )
             )
             fig.add_trace(
@@ -56,6 +60,7 @@ def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
                     mode="lines",
                     line=dict(width=0),
                     showlegend=False,
+                    line_color=colorlist[colorindex],
                 )
             )
             fig.add_trace(
@@ -66,8 +71,10 @@ def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
                     line=dict(width=0),
                     fill="tonexty",
                     showlegend=False,
+                    line_color=colorlist[colorindex],
                 )
             )
+            colorindex = (colorindex + 1) % len(colorlist)
     else:
         for (m, p, s), g in df.groupby(["method_name", "problem_name", "seed"]):
             fig.add_trace(
@@ -154,14 +161,16 @@ def run() -> None:
         logger = ExperimentLogger(exp_dir, read=True)
 
         prog = read_progress(exp_dir)
+        finished = False
         if prog:
             if prog.get("end_time"):
                 st.success("Finished")
+                finished = True
             else:
                 total = prog.get("total", 1)
                 pct = prog.get("current", 0) / total if total else 0
                 st.progress(pct)
-            if prog.get("runs"):
+            if prog.get("runs") and not finished:
                 st.markdown("#### Run Progress")
                 for r in prog["runs"]:
                     label = (

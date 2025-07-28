@@ -10,7 +10,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key = os.getenv("OPENAI_API_KEY")
     api_key_gemini = os.getenv("GEMINI_API_KEY")
 
-    #llm1 = OpenAI_LLM(api_key,"gpt-4.1-2025-04-14") #Done
+    #llm2 = OpenAI_LLM(api_key,"gpt-4o-mini-2024-07-18", temperature=1.0) #Done
     llm1 = Gemini_LLM(api_key_gemini, "gemini-2.0-flash") #Failed partly #running 3/4 in BBOB-4, 5/6 in BBOB-5, rest is in 1/2 BBOB-1 folder.
     #llm3 = Ollama_LLM("qwen2.5-coder:32b") #Failed
     #llm4 = Ollama_LLM("gemma3:27b") #Done
@@ -38,11 +38,13 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     for llm in [llm1]: #, llm2, llm3, llm4, llm5, llm2
         #RS = RandomSearch(llm, budget=budget) #LLaMEA(llm)
-        LLaMEA_method1 = LLaMEA(llm, budget=budget, name=f"LLaMEA (1+1)", mutation_prompts=mutation_prompts1, n_parents=1, n_offspring=1, elitism=True) 
-        LLaMEA_method2 = LLaMEA(llm, budget=budget, name=f"LLaMEA (4+16)", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=16, elitism=True) 
+        #LLaMEA_method1 = LLaMEA(llm, budget=budget, name=f"LLaMEA (1+1)", mutation_prompts=mutation_prompts1, n_parents=1, n_offspring=1, elitism=True) 
+        LLaMEA_method2 = LLaMEA(llm, budget=budget, name=f"LLaMEA (4,16)", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=16, elitism=False) 
         #LLaMEA_method2 = LLaMEA(llm, budget=budget, name=f"LLaMEA-2", mutation_prompts=mutation_prompts2, n_parents=4, n_offspring=12, elitism=False) 
-
-        methods =  [LLaMEA_method1, LLaMEA_method2]#, LLaMEA_method2] # 
+        #LLaMEA_method3 = LLaMEA(llm2, budget=budget, name=f"LLaMEA-4o-mini (4+16)", mutation_prompts=mutation_prompts1, n_parents=4, n_offspring=16, elitism=True) 
+        RS = RandomSearch(llm, budget=budget, name=f"RandomSearch") #LLaMEA(llm)
+        
+        methods =  [LLaMEA_method2, RS]#, LLaMEA_method2] # 
 
         # List containing function IDs we consider
         fids = [
@@ -57,10 +59,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         training_instances = [(f, i) for f in fids for i in ids]
         test_instances = [(f, i) for f in fids for i in range(5, 16)]
         
-        logger = ExperimentLogger("results/BBOB-BO")
+        logger = ExperimentLogger("results/BBOB-BO2")
 
         problems = []
-        prob = BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=20, eval_timeout=1200, name=f"BBOB", problem_type=ioh.ProblemClass.BBOB, full_ioh_log=False, ioh_dir=f"{logger.dirname}/ioh")
+        prob = BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=20, eval_timeout=1800, name=f"BBOB", problem_type=ioh.ProblemClass.BBOB, full_ioh_log=False, ioh_dir=f"{logger.dirname}/ioh")
         
         role_prompt = "You are a highly skilled computer scientist in the field of natural computing. Your task is to design novel metaheuristic algorithms to solve black box optimization problems."
 
@@ -84,5 +86,5 @@ Give an excellent, novel and computationally efficient Bayesian Optimization alg
         problems.append(prob)
 
         
-        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=10) #normal run
+        experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=False, exp_logger=logger, budget=budget, n_jobs=10) #normal run
         experiment() #run the experiment

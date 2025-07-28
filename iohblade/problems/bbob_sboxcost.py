@@ -202,18 +202,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         algorithm = None
 
-        # Small test run to catch code errors
-        try:
-            l2_temp = aoc_logger(100, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-            problem = get_problem(
-                1, instance=1, dimension=2, problem_class=self.problem_type
-            )
-            problem.attach_logger(l2_temp)
-            algorithm = globals()[algorithm_name](budget=100, dim=2)
-            algorithm(problem)
-        except OverBudgetException:
-            pass
-
         # Final validation
         instances = self.test_instances if test else self.training_instances
         aucs = []
