@@ -9,7 +9,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from iohblade.plots import CEG_FEATURES, plotly_code_evolution
+from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
@@ -216,7 +216,10 @@ def run() -> None:
             ceg_seed = st.selectbox(
                 "Seed", sorted(seed_options.tolist()), key="ceg_seed"
             )
-            feature = st.selectbox("Feature", CEG_FEATURES, key="ceg_feature")
+            feature_labels = [CEG_FEATURE_LABELS.get(f, f) for f in CEG_FEATURES]
+            label_to_feature = {CEG_FEATURE_LABELS.get(f, f): f for f in CEG_FEATURES}
+            selected_label = st.selectbox("Feature", feature_labels, key="ceg_feature")
+            feature = label_to_feature[selected_label]
             run_df = logger.get_problem_data(ceg_problem)
             run_df = run_df[
                 (run_df["method_name"] == ceg_method) & (run_df["seed"] == ceg_seed)

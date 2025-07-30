@@ -208,7 +208,8 @@ def plot_code_evolution_graphs(
             "If an axis is provided, the length of plot_features must be 1."
         )
 
-    data = run_data.copy()
+    data = run_data.copy().reset_index(drop=True)
+    data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
@@ -356,13 +357,24 @@ CEG_FEATURES = [
     "total_parameter_count",
 ]
 
+# Display names for select features in the webapp
+CEG_FEATURE_LABELS = {
+    "mean_complexity": "Mean Complexity",
+    "total_complexity": "Total Complexity",
+    "mean_token_count": "Mean Token Count",
+    "total_token_count": "Total Token Count",
+    "mean_parameter_count": "Mean Parameter Count",
+    "total_parameter_count": "Total Parameter Count",
+}
+
 
 def plotly_code_evolution(
     run_data: pd.DataFrame, feature: str = "total_token_count"
 ) -> go.Figure:
     """Create an interactive code evolution graph using Plotly."""
 
-    data = run_data.copy()
+    data = run_data.copy().reset_index(drop=True)
+    data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
@@ -414,7 +426,7 @@ def plotly_code_evolution(
                 pr = data[data["id"] == pid].iloc[0]
                 fig.add_trace(
                     go.Scatter(
-                        x=[pr["id"], row["id"]],
+                        x=[pr["eval_index"], row["eval_index"]],
                         y=[pr[feature], row[feature]],
                         mode="lines",
                         line=dict(color="gray", width=1),
@@ -425,7 +437,7 @@ def plotly_code_evolution(
 
     fig.add_trace(
         go.Scatter(
-            x=data["id"],
+            x=data["eval_index"],
             y=data[feature],
             mode="markers",
             marker=dict(
