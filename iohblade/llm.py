@@ -12,7 +12,6 @@ import anthropic
 import google.generativeai as genai
 import ollama
 import openai
-from ConfigSpace import ConfigurationSpace
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -205,8 +204,10 @@ class LLM(ABC):
         c = None
         for m in re.finditer(pattern, message, re.DOTALL | re.IGNORECASE):
             try:
+                from ConfigSpace import ConfigurationSpace
+
                 c = ConfigurationSpace(eval(m.group(1)))
-            except Exception as e:
+            except Exception:
                 pass
         return c
 
@@ -508,7 +509,10 @@ class Claude_LLM(LLM):
 
                 content = response.content
                 if isinstance(content, list):
-                    return "".join(b.text for b in content)
+                    parts = []
+                    for block in content:
+                        parts.append(getattr(block, "text", block.get("text", "")))
+                    return "".join(parts)
                 return content
 
             except anthropic.RateLimitError as err:

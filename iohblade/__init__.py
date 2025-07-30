@@ -2,15 +2,19 @@ import multiprocessing
 
 from .llm import LLM, Claude_LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from .method import Method
-from .plots import (
-    fitness_table,
-    plot_boxplot_fitness,
-    plot_boxplot_fitness_hue,
-    plot_code_evolution_graphs,
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_token_usage,
-)
+
+try:  # Optional plotting dependencies may be missing
+    from .plots import (
+        fitness_table,
+        plot_boxplot_fitness,
+        plot_boxplot_fitness_hue,
+        plot_code_evolution_graphs,
+        plot_convergence,
+        plot_experiment_CEG,
+        plot_token_usage,
+    )
+except Exception:  # pragma: no cover - optional dependency
+    pass
 from .problem import Problem
 from .solution import Solution
 from .utils import (
