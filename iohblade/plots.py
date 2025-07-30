@@ -373,7 +373,8 @@ def plotly_code_evolution(
 ) -> go.Figure:
     """Create an interactive code evolution graph using Plotly."""
 
-    data = run_data.copy()
+    data = run_data.copy().reset_index(drop=True)
+    data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
