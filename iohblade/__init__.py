@@ -1,6 +1,13 @@
 import multiprocessing
 
-from .llm import LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
+from .llm import (
+    LLM,
+    Gemini_LLM,
+    Ollama_LLM,
+    OpenAI_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
+)
 from .method import Method
 from .plots import (
     fitness_table,

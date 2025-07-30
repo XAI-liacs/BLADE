@@ -355,6 +355,17 @@ class OpenAI_LLM(LLM):
         return new
 
 
+class DeepSeek_LLM(OpenAI_LLM):
+    """A manager class for the DeepSeek chat models."""
+
+    def __init__(self, api_key, model="deepseek-chat", temperature=0.8, **kwargs):
+        """Initializes DeepSeek LLM with required base URL."""
+        super().__init__(api_key, model=model, temperature=temperature, **kwargs)
+        self.base_url = "https://api.deepseek.com"
+        self._client_kwargs["base_url"] = self.base_url
+        self.client = openai.OpenAI(**self._client_kwargs)
+
+
 class Gemini_LLM(LLM):
     """
     A manager class for handling requests to Google's Gemini models.

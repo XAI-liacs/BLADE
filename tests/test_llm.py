@@ -7,7 +7,15 @@ import pickle
 
 import iohblade.llm as llm_mod  # the module that defines _query
 import httpx
-from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM, Dummy_LLM
+from iohblade import (
+    LLM,
+    Gemini_LLM,
+    NoCodeException,
+    Ollama_LLM,
+    OpenAI_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
+)
 
 
 class _DummyOpenAI:
@@ -16,12 +24,14 @@ class _DummyOpenAI:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
+
 def _patch_openai(monkeypatch):
     """
     Helper that swaps out openai.OpenAI with _DummyOpenAI inside the
     already-imported iohblade.llm module.
     """
     monkeypatch.setattr(llm_mod.openai, "OpenAI", _DummyOpenAI)
+
 
 def test_openai_llm_getstate_strips_client(monkeypatch):
     _patch_openai(monkeypatch)
@@ -66,6 +76,7 @@ def test_openai_llm_pickle_roundtrip(monkeypatch):
     assert revived.model == llm.model
     assert isinstance(revived.client, _DummyOpenAI)
     assert revived.client.kwargs["api_key"] == "sk-test"
+
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class
@@ -115,6 +126,13 @@ def test_ollama_llm_init():
 def test_gemini_llm_init():
     llm = Gemini_LLM(api_key="some_key", model="gemini-2.0-flash")
     assert llm.model == "gemini-2.0-flash"
+
+
+def test_deepseek_llm_init(monkeypatch):
+    _patch_openai(monkeypatch)
+    llm = DeepSeek_LLM(api_key="ds-key")
+    assert llm.model == "deepseek-chat"
+    assert llm.client.kwargs.get("base_url") == "https://api.deepseek.com"
 
 
 def _resource_exhausted(delay_secs: int = 2) -> Exception:
@@ -253,8 +271,13 @@ def test_ollama_llm_gives_up(monkeypatch):
         llm._query([{"role": "u", "content": "boom"}], max_retries=1)
     slept.assert_called_once_with(10)
 
+
 def test_dummy_llm():
     llm = Dummy_LLM(model="dummy-model")
     assert llm.model == "dummy-model"
     response = llm._query([{"role": "user", "content": "test"}])
-    assert len(response) == 946, "Dummy_LLM should return a 946-character string, returned length: {}".format(len(response))
+    assert (
+        len(response) == 946
+    ), "Dummy_LLM should return a 946-character string, returned length: {}".format(
+        len(response)
+    )

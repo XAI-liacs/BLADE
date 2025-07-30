@@ -128,6 +128,9 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
    * - **Ollama**
      - A platform offering access to various LLMs, enabling local and cloud-based model deployment. `Reference <https://www.ollama.ai/>`_
      - Integration details can be found in their official documentation.
+   * - **DeepSeek**
+     - Developer of the DeepSeek family of models for code and chat. `Reference <https://www.deepseek.com/>`_
+     - Access via OpenAI compatible API at ``https://api.deepseek.com``.
 
 Evaluating against Human Designed Baselines
 -------------------------------------------
