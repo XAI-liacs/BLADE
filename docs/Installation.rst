@@ -9,7 +9,7 @@ It is easiest to use BLADE from the PyPI package:
 
 .. important::
    The Python version **must** be >= 3.11.
-   An OpenAI/Gemini/Ollama API key is needed for using LLM models.
+   An OpenAI/Gemini/Ollama/DeepSeek API key is needed for using LLM models.
 
 You can also install the package from source using **uv** (0.7.9).
 
