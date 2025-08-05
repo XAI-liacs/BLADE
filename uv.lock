@@ -1522,6 +1522,7 @@ name = "iohblade"
 version = "0.2.1"
 source = { editable = "." }
 dependencies = [
+    { name = "anthropic" },
     { name = "google-generativeai" },
     { name = "ipykernel" },
     { name = "joblib" },
@@ -1573,6 +1574,7 @@ methods = [
 
 [package.metadata]
 requires-dist = [
+    { name = "anthropic", specifier = ">=0.57,<1" },
     { name = "google-generativeai", specifier = ">=0.8.1,<0.9" },
     { name = "ipykernel", specifier = ">=6.29.5,<7" },
     { name = "joblib", specifier = ">=1.4.2,<2" },
