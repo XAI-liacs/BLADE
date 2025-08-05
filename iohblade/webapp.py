@@ -9,6 +9,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
+
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
 
@@ -154,6 +156,7 @@ def run() -> None:
         logger = ExperimentLogger(exp_dir, read=True)
 
         prog = read_progress(exp_dir)
+        finished = prog and prog.get("end_time")
         if prog:
             if prog.get("end_time"):
                 st.success("Finished")
@@ -161,7 +164,7 @@ def run() -> None:
                 total = prog.get("total", 1)
                 pct = prog.get("current", 0) / total if total else 0
                 st.progress(pct)
-            if prog.get("runs"):
+            if prog.get("runs") and not finished:
                 st.markdown("#### Run Progress")
                 for r in prog["runs"]:
                     label = (
@@ -204,6 +207,30 @@ def run() -> None:
                 )
             box_fig.update_layout(yaxis_title="Fitness", xaxis_title="Method")
             st.plotly_chart(box_fig, use_container_width=True)
+
+            st.markdown("#### Code Evolution Graph")
+            ceg_method = st.selectbox("Method", methods, key="ceg_method")
+            ceg_problem = st.selectbox("Problem", problems, key="ceg_problem")
+            seed_options = df[
+                (df["method_name"] == ceg_method) & (df["problem_name"] == ceg_problem)
+            ]["seed"].unique()
+            ceg_seed = st.selectbox(
+                "Seed", sorted(seed_options.tolist()), key="ceg_seed"
+            )
+            feature_labels = [CEG_FEATURE_LABELS.get(f, f) for f in CEG_FEATURES]
+            label_to_feature = {CEG_FEATURE_LABELS.get(f, f): f for f in CEG_FEATURES}
+            selected_label = st.selectbox("Feature", feature_labels, key="ceg_feature")
+            feature = label_to_feature[selected_label]
+            run_df = logger.get_problem_data(ceg_problem)
+            run_df = run_df[
+                (run_df["method_name"] == ceg_method) & (run_df["seed"] == ceg_seed)
+            ]
+            if st.button("Plot Evolution Graph", key="plot_ceg"):
+                if not run_df.empty:
+                    ceg_fig = plotly_code_evolution(run_df, feature=feature)
+                    st.plotly_chart(ceg_fig, use_container_width=True)
+                else:
+                    st.write("No data for selected run.")
 
             st.markdown("#### Top Solutions")
             runs = logger.get_data()

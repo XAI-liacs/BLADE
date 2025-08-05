@@ -4,6 +4,8 @@ import difflib
 import os
 from collections import Counter
 
+import plotly.graph_objects as go
+
 import jellyfish
 import jsonlines
 import matplotlib.pyplot as plt
@@ -206,7 +208,8 @@ def plot_code_evolution_graphs(
             "If an axis is provided, the length of plot_features must be 1."
         )
 
-    data = run_data.copy()
+    data = run_data.copy().reset_index(drop=True)
+    data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
@@ -319,6 +322,139 @@ def plot_code_evolution_graphs(
             plt.show()
         if ax is None:
             plt.close()
+
+
+CEG_FEATURES = [
+    "tsne",
+    "pca",
+    "Nodes",
+    "Edges",
+    "Max Degree",
+    "Min Degree",
+    "Mean Degree",
+    "Degree Variance",
+    "Transitivity",
+    "Max Depth",
+    "Min Depth",
+    "Mean Depth",
+    "Max Clustering",
+    "Min Clustering",
+    "Mean Clustering",
+    "Clustering Variance",
+    "Degree Entropy",
+    "Depth Entropy",
+    "Assortativity",
+    "Average Eccentricity",
+    "Diameter",
+    "Radius",
+    "Edge Density",
+    "Average Shortest Path",
+    "mean_complexity",
+    "total_complexity",
+    "mean_token_count",
+    "total_token_count",
+    "mean_parameter_count",
+    "total_parameter_count",
+]
+
+# Display names for select features in the webapp
+CEG_FEATURE_LABELS = {
+    "mean_complexity": "Mean Complexity",
+    "total_complexity": "Total Complexity",
+    "mean_token_count": "Mean Token Count",
+    "total_token_count": "Total Token Count",
+    "mean_parameter_count": "Mean Parameter Count",
+    "total_parameter_count": "Total Parameter Count",
+}
+
+
+def plotly_code_evolution(
+    run_data: pd.DataFrame, feature: str = "total_token_count"
+) -> go.Figure:
+    """Create an interactive code evolution graph using Plotly."""
+
+    data = run_data.copy().reset_index(drop=True)
+    data["eval_index"] = data.index + 1
+    data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    data["fitness"] = minmax_scale(data["fitness"])
+    data.fillna(0, inplace=True)
+
+    complexity_features = [
+        "mean_complexity",
+        "total_complexity",
+        "mean_token_count",
+        "total_token_count",
+        "mean_parameter_count",
+        "total_parameter_count",
+    ]
+
+    if feature in complexity_features:
+        df_stats = data["code"].apply(analyse_complexity).apply(pd.Series)
+    else:
+        df_stats = data["code"].apply(process_code).apply(pd.Series)
+
+    stat_features = df_stats.columns
+    data = pd.concat([data, df_stats], axis=1)
+    data.fillna(0, inplace=True)
+
+    features = data[stat_features].copy()
+    scaler = StandardScaler()
+    features_scaled = scaler.fit_transform(features)
+
+    pca = PCA(n_components=1)
+    data["pca"] = pca.fit_transform(features_scaled)[:, 0]
+    try:
+        tsne = TSNE(n_components=1, random_state=42)
+        data["tsne"] = tsne.fit_transform(features_scaled)[:, 0]
+    except Exception:
+        data["tsne"] = data["pca"]
+
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+
+    parent_counts = Counter(
+        parent_id for parent_ids in data["parent_ids"] for parent_id in parent_ids
+    )
+    data["parent_size"] = data["id"].map(lambda x: parent_counts.get(x, 1) * 2)
+
+    fig = go.Figure()
+
+    for _, row in data.iterrows():
+        for pid in row["parent_ids"]:
+            if pid in data["id"].values:
+                pr = data[data["id"] == pid].iloc[0]
+                fig.add_trace(
+                    go.Scatter(
+                        x=[pr["eval_index"], row["eval_index"]],
+                        y=[pr[feature], row[feature]],
+                        mode="lines",
+                        line=dict(color="gray", width=1),
+                        hoverinfo="skip",
+                        showlegend=False,
+                    )
+                )
+
+    fig.add_trace(
+        go.Scatter(
+            x=data["eval_index"],
+            y=data[feature],
+            mode="markers",
+            marker=dict(
+                size=data["parent_size"],
+                color=data["fitness"],
+                colorscale="Viridis",
+                colorbar=dict(title="Fitness"),
+            ),
+            showlegend=False,
+        )
+    )
+
+    fig.update_layout(
+        xaxis_title="Evaluation",
+        yaxis_title=feature.replace("_", " "),
+    )
+    return fig
 
 
 def plot_boxplot_fitness(

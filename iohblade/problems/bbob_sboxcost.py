@@ -7,7 +7,13 @@ import pandas as pd
 from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
 from ioh import logger as ioh_logger
-from smac import AlgorithmConfigurationFacade, Scenario
+
+# smac is optional and only required for advanced configuration features
+try:
+    from smac import AlgorithmConfigurationFacade, Scenario  # pragma: no cover
+except Exception:  # pragma: no cover - allow absence in lightweight installs
+    AlgorithmConfigurationFacade = None
+    Scenario = None
 
 from ..problem import Problem
 from ..solution import Solution
@@ -276,9 +282,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
-            "problem_type": "SBOX"
-            if self.problem_type == ioh.ProblemClass.SBOX
-            else "BBOB",
+            "problem_type": (
+                "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB"
+            ),
             "specific_fid": self.specific_fid,
             "specific_group": self.specific_group,
         }

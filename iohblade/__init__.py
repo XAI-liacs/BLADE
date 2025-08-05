@@ -1,5 +1,17 @@
 import multiprocessing
 
+from .method import Method
+from .plots import (
+    fitness_table,
+    plot_boxplot_fitness,
+    plot_boxplot_fitness_hue,
+    plot_code_evolution_graphs,
+    plotly_code_evolution,
+    CEG_FEATURES,
+    plot_convergence,
+    plot_experiment_CEG,
+    plot_token_usage,
+)
 from .llm import (
     LLM,
     Gemini_LLM,
@@ -9,7 +21,7 @@ from .llm import (
     DeepSeek_LLM,
     Dummy_LLM,
 )
-from .method import Method
+
 
 try:  # Optional plotting dependencies may be missing
     from .plots import (
