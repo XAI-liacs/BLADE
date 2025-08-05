@@ -156,6 +156,7 @@ def run() -> None:
         logger = ExperimentLogger(exp_dir, read=True)
 
         prog = read_progress(exp_dir)
+        finished = prog and prog.get("end_time")
         if prog:
             if prog.get("end_time"):
                 st.success("Finished")
@@ -163,7 +164,7 @@ def run() -> None:
                 total = prog.get("total", 1)
                 pct = prog.get("current", 0) / total if total else 0
                 st.progress(pct)
-            if prog.get("runs"):
+            if prog.get("runs") and not finished:
                 st.markdown("#### Run Progress")
                 for r in prog["runs"]:
                     label = (
