@@ -225,11 +225,12 @@ def run() -> None:
             run_df = run_df[
                 (run_df["method_name"] == ceg_method) & (run_df["seed"] == ceg_seed)
             ]
-            if not run_df.empty:
-                ceg_fig = plotly_code_evolution(run_df, feature=feature)
-                st.plotly_chart(ceg_fig, use_container_width=True)
-            else:
-                st.write("No data for selected run.")
+            if st.button("Plot Evolution Graph", key="plot_ceg"):
+                if not run_df.empty:
+                    ceg_fig = plotly_code_evolution(run_df, feature=feature)
+                    st.plotly_chart(ceg_fig, use_container_width=True)
+                else:
+                    st.write("No data for selected run.")
 
             st.markdown("#### Top Solutions")
             runs = logger.get_data()
