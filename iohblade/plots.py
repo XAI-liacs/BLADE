@@ -397,6 +397,9 @@ def plotly_code_evolution(
     data = pd.concat([data, df_stats], axis=1)
     data.fillna(0, inplace=True)
 
+    # replace infinity values with 0
+    data.replace([np.inf, -np.inf], 0, inplace=True)
+
     features = data[stat_features].copy()
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features)
