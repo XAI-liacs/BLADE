@@ -176,6 +176,7 @@ If you use BLADE in your research, please consider citing the associated paper:
 
    Introduction
    Installation
+   webapp
    modules
    notebooks/mabbob_example
 
