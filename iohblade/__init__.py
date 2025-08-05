@@ -1,6 +1,14 @@
 import multiprocessing
 
-from .llm import LLM, Claude_LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM
+from .llm import (
+    LLM,
+    Gemini_LLM,
+    Ollama_LLM,
+    OpenAI_LLM,
+    Claude_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
+)
 from .method import Method
 
 try:  # Optional plotting dependencies may be missing

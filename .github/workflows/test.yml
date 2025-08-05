@@ -3,7 +3,7 @@ permissions:
   contents: read
   id-token: write
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   lint:

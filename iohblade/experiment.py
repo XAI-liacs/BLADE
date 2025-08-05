@@ -5,9 +5,19 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from tqdm import tqdm
+import sys
 
 from .loggers import ExperimentLogger
 from .problems import MA_BBOB
+import logging
+
+BLADE_ASCII = r"""
+    ____  __    ___    ____  ______
+   / __ )/ /   /   |  / __ \/ ____/
+  / __  / /   / /| | / / / / __/
+ / /_/ / /___/ ___ |/ /_/ / /___
+/_____/_____/_/  |_/_____/_____/
+"""
 
 
 class Experiment(ABC):
@@ -54,6 +64,47 @@ class Experiment(ABC):
             exp_logger = ExperimentLogger("results/experiment")
         self.exp_logger = exp_logger
 
+    def _clear_console(self) -> None:
+        """Clear the console using ANSI escape codes."""
+        print("\033c", end="")
+
+    def _print_run_overview(self) -> None:
+        """Pretty print the planned runs and their status."""
+        runs = getattr(self.exp_logger, "progress", {}).get("runs", [])
+        header = f"{'Method':<15} {'Problem':<15} {'Seed':<5} Status"
+        lines = ["Run overview:", header, "-" * len(header)]
+        for r in runs:
+            if r.get("end_time"):
+                status = "✅"
+            elif r.get("start_time"):
+                status = "🔄"
+            else:
+                status = "⏳"
+            lines.append(
+                f"{r['method_name']:<15} {r['problem_name']:<15} {r['seed']:<5} {status}"
+            )
+        print("\n".join(lines))
+
+    def _refresh_console(self) -> None:
+        """Clear the console and show the banner and run overview."""
+        with contextlib.redirect_stdout(sys.__stdout__):
+            self._clear_console()
+            self._print_welcome_message()
+            self._print_run_overview()
+            sys.__stdout__.flush()
+
+    def _print_welcome_message(self) -> None:
+        """Print a welcome banner with instructions."""
+        message = (
+            f"\n{BLADE_ASCII}\n"
+            "Welcome to BLADE!\n"
+            "You can inspect this experiment in your browser by running:\n"
+            "    uv run iohblade-webapp\n\n"
+            "While BLADE hides most output from experiments by default, "
+            "some logs or warnings may still appear.\n"
+        )
+        print(message)
+
     def __call__(self):
         """
         Runs the experiment by executing each method on each problem.
@@ -67,6 +118,12 @@ class Experiment(ABC):
                 seeds=self.seeds,
                 budget=self.budget,
             )
+        if not self.show_stdout:
+            logging.disable(logging.CRITICAL)
+            self._refresh_console()
+        else:
+            self._print_welcome_message()
+            self._print_run_overview()
         tasks = {}  # future -> (method, problem, logger, seed)
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             for problem in self.problems:
@@ -104,6 +161,10 @@ class Experiment(ABC):
                     log_dir=logger.dirname,
                     seed=seed,
                 )
+                if not self.show_stdout:
+                    self._refresh_console()
+                else:
+                    self._print_run_overview()
         return
 
     def _run_single(self, method, problem, logger, seed):

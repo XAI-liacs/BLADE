@@ -131,6 +131,9 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
    * - **Claude**
      - Anthropic's Claude models for safe and capable language generation. `Reference <https://www.anthropic.com/>`_
      - Accessed via the Anthropic API.
+   * - **DeepSeek**
+     - Developer of the DeepSeek family of models for code and chat. `Reference <https://www.deepseek.com/>`_
+     - Access via OpenAI compatible API at ``https://api.deepseek.com``.
 
 Evaluating against Human Designed Baselines
 -------------------------------------------

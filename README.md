@@ -84,6 +84,7 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
 | **OpenAI**   | Developer of GPT series models, including GPT-4, widely used for natural language understanding and generation. [Reference](https://openai.com/) | Integration through OpenAI's REST API and client libraries.                                                    |
 | **Ollama**   | A platform offering access to various LLMs, enabling local and cloud-based model deployment. [Reference](https://www.ollama.ai/) | Integration details can be found in their official documentation.                                             |
 | **Claude**   | Anthropic's Claude models for safe and capable language generation. [Reference](https://www.anthropic.com/) | Accessed via the Anthropic API. |
+| **DeepSeek** | Developer of the DeepSeek family of models for code and chat. [Reference](https://www.deepseek.com/) | Access via OpenAI compatible API at `https://api.deepseek.com`. |
 
 
 ### Evaluating against Human Designed baselines
@@ -104,7 +105,7 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
 ```
 > [!Important]
 > The Python version **must** be larger or equal to Python 3.11.
-> You need an OpenAI/Gemini/Ollama/Claude API key for using LLM models.
+> You need an OpenAI/Gemini/Ollama/Claude/DeepSeek API key for using LLM models.
 
 You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).
 make sure you have `uv` installed.
@@ -203,7 +204,17 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 ## ✨ Citation
 
 
-TBA
+```bibtex
+@article{vanstein2025blade,
+      title={BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics}, 
+      author={Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas Bäck},
+      year={2025},
+      eprint={2504.20183},
+      archivePrefix={arXiv},
+      primaryClass={cs.SE},
+      url={https://arxiv.org/abs/2504.20183}, 
+}
+```
 
 -----
 Happy Benchmarking with IOH-BLADE! 🚀

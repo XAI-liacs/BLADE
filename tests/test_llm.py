@@ -7,6 +7,7 @@ import httpx
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
+import httpx
 from iohblade import (
     LLM,
     Claude_LLM,
@@ -14,6 +15,8 @@ from iohblade import (
     NoCodeException,
     Ollama_LLM,
     OpenAI_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
 )
 
 
@@ -143,6 +146,13 @@ def test_gemini_llm_init():
 def test_claude_llm_init():
     llm = Claude_LLM(api_key="some_key", model="claude-3-haiku-20240307")
     assert llm.model == "claude-3-haiku-20240307"
+
+    
+def test_deepseek_llm_init(monkeypatch):
+    _patch_openai(monkeypatch)
+    llm = DeepSeek_LLM(api_key="ds-key")
+    assert llm.model == "deepseek-chat"
+    assert llm.client.kwargs.get("base_url") == "https://api.deepseek.com"
 
 
 def _resource_exhausted(delay_secs: int = 2) -> Exception:
@@ -357,3 +367,14 @@ def test_ollama_llm_gives_up(monkeypatch):
     with pytest.raises(llm_mod.ollama.ResponseError):
         llm._query([{"role": "u", "content": "boom"}], max_retries=1)
     slept.assert_called_once_with(10)
+
+
+def test_dummy_llm():
+    llm = Dummy_LLM(model="dummy-model")
+    assert llm.model == "dummy-model"
+    response = llm._query([{"role": "user", "content": "test"}])
+    assert (
+        len(response) == 946
+    ), "Dummy_LLM should return a 946-character string, returned length: {}".format(
+        len(response)
+    )
