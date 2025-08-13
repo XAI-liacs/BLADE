@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the following work."
+authors:
+  - family-names: van Stein
+    given-names: Niki
+  - family-names: Kononova
+    given-names: Anna V.
+  - family-names: Yin
+    given-names: Haoran
+  - family-names: Bäck
+    given-names: Thomas
+title: "BLADE"
+version: "0.2.1"
+doi: 10.1145/3712255.3734347
+url: https://doi.org/10.1145/3712255.3734347
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: van Stein
+      given-names: Niki
+    - family-names: Kononova
+      given-names: Anna V.
+    - family-names: Yin
+      given-names: Haoran
+    - family-names: Bäck
+      given-names: Thomas
+  title: "BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics"
+  conference: "Proceedings of the Genetic and Evolutionary Computation Conference Companion"
+  collection-title: "GECCO '25 Companion"
+  publisher: Association for Computing Machinery
+  address: New York, NY, USA
+  year: 2025
+  pages: 2336-2344
+  doi: 10.1145/3712255.3734347
+  url: https://doi.org/10.1145/3712255.3734347
