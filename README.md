@@ -202,19 +202,24 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 
 ## ✨ Citation
-
+If you use BLADE in your research, please cite the following work:
 
 ```bibtex
-@article{vanstein2025blade,
-      title={BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics}, 
-      author={Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas Bäck},
-      year={2025},
-      eprint={2504.20183},
-      archivePrefix={arXiv},
-      primaryClass={cs.SE},
-      url={https://arxiv.org/abs/2504.20183}, 
+@inproceedings{vanstein2025blade,
+  author    = {Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas B{\"a}ck},
+  title     = {BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics},
+  booktitle = {Proceedings of the Genetic and Evolutionary Computation Conference Companion},
+  series    = {GECCO '25 Companion'},
+  year      = {2025},
+  pages     = {2336--2344},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  doi       = {10.1145/3712255.3734347},
+  url       = {https://doi.org/10.1145/3712255.3734347}
 }
 ```
+
+The repository also provides a [`CITATION.cff`](./CITATION.cff) file for use with GitHub's citation feature.
 
 -----
 Happy Benchmarking with IOH-BLADE! 🚀
