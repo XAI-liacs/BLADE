@@ -2,22 +2,45 @@
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
 
+import copy
+import logging
 import re
 import time
 from abc import ABC, abstractmethod
-import logging
-import copy
 
-import google.generativeai as genai
-import ollama
-import openai
+try:
+    import google.generativeai as genai
+except Exception:  # pragma: no cover - optional dependency
+    genai = None
+
+try:
+    import ollama
+except Exception:  # pragma: no cover - optional dependency
+    ollama = None
+
+try:
+    import openai
+except Exception:  # pragma: no cover - optional dependency
+    openai = None
+
 from ConfigSpace import ConfigurationSpace
-from tokencost import (
-    calculate_completion_cost,
-    calculate_prompt_cost,
-    count_message_tokens,
-    count_string_tokens,
-)
+
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except Exception:  # pragma: no cover - optional dependency
+
+    def _missing(*args, **kwargs):
+        raise ImportError("tokencost is required for token calculations")
+
+    calculate_completion_cost = _missing
+    calculate_prompt_cost = _missing
+    count_message_tokens = _missing
+    count_string_tokens = _missing
 
 from .solution import Solution
 from .utils import NoCodeException

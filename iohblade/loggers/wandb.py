@@ -2,6 +2,10 @@ import json
 import os
 from datetime import datetime
 
+import numpy as np
+
+if not hasattr(np, "byte"):
+    np.byte = np.int8
 import wandb
 from ConfigSpace.read_and_write import json as cs_json
 

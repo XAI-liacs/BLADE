@@ -1,16 +1,28 @@
 import json
 import os
+import sys
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+try:
+    import numpy as np
+
+    if not hasattr(np, "byte"):
+        np.byte = np.int8
+except Exception:  # pragma: no cover - optional dependency
+    pass
 import wandb
 
-from iohblade import LLM, Method, Problem, Solution
-
-# Adjust imports to your actual package structure
+from iohblade.llm import LLM
 from iohblade.loggers import ExperimentLogger, RunLogger
 from iohblade.loggers.wandb import WAndBExperimentLogger, WAndBRunLogger
+from iohblade.method import Method
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 @pytest.fixture
@@ -19,9 +31,12 @@ def mock_wandb():
     Fixture to patch 'wandb.init', 'wandb.log', and 'wandb.finish'
     for the duration of each test.
     """
-    with patch("wandb.init") as mock_init, patch("wandb.log") as mock_log, patch(
-        "wandb.config"
-    ) as mock_config, patch("wandb.finish") as mock_finish:
+    with (
+        patch("wandb.init") as mock_init,
+        patch("wandb.log") as mock_log,
+        patch("wandb.config") as mock_config,
+        patch("wandb.finish") as mock_finish,
+    ):
         # Create a mock "run" object that has a config property
         mock_run = MagicMock()
         mock_run.config = MagicMock()

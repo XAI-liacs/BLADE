@@ -2,15 +2,29 @@ import multiprocessing
 
 from .llm import LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from .method import Method
-from .plots import (
-    fitness_table,
-    plot_boxplot_fitness,
-    plot_boxplot_fitness_hue,
-    plot_code_evolution_graphs,
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_token_usage,
-)
+
+try:
+    from .plots import (
+        fitness_table,
+        plot_boxplot_fitness,
+        plot_boxplot_fitness_hue,
+        plot_code_evolution_graphs,
+        plot_convergence,
+        plot_experiment_CEG,
+        plot_token_usage,
+    )
+except Exception:  # pragma: no cover - optional dependency
+
+    def _missing(*args, **kwargs):
+        raise ImportError("plotting dependencies are missing")
+
+    fitness_table = _missing
+    plot_boxplot_fitness = _missing
+    plot_boxplot_fitness_hue = _missing
+    plot_code_evolution_graphs = _missing
+    plot_convergence = _missing
+    plot_experiment_CEG = _missing
+    plot_token_usage = _missing
 from .problem import Problem
 from .solution import Solution
 from .utils import (
