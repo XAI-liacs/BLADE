@@ -7,6 +7,7 @@ from pathlib import Path
 import matplotlib
 import pandas as pd
 import plotly.graph_objects as go
+import jsonlines
 import streamlit as st
 
 from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
@@ -115,6 +116,24 @@ def run() -> None:
         menu_items={"Get Help": "https://xai-liacs.github.io/BLADE/"},
     )
 
+    params = st.query_params
+    conv = params.get("conv")
+    exp = params.get("exp")
+    if conv and exp:
+        log_path = os.path.join(RESULTS_DIR, exp, conv, "conversationlog.jsonl")
+        st.title("Conversation Log")
+        if os.path.exists(log_path):
+            with jsonlines.open(log_path) as f:
+                for msg in f:
+                    role = msg.get("role", "assistant")
+                    content = msg.get("content", "")
+                    chat_role = "user" if role.lower() in {"client", "user"} else "assistant"
+                    with st.chat_message(chat_role):
+                        st.markdown(content)
+        else:
+            st.write("No conversation log found.")
+        return
+
     if "last_refresh" not in st.session_state:
         st.session_state["last_refresh"] = time.time()
     elif time.time() - st.session_state["last_refresh"] > 60:
@@ -174,6 +193,20 @@ def run() -> None:
                     evaluations = r.get("evaluations", 0)
                     pct_run = evaluations / budget if budget else 0
                     st.progress(pct_run, text=label)
+
+        if prog and prog.get("runs"):
+            st.markdown("#### Run Logs")
+            for r in prog["runs"]:
+                label = f"{r['method_name']} | {r['problem_name']} | seed {r['seed']}"
+                log_dir = r.get("log_dir")
+                if log_dir:
+                    conv_path = os.path.join(exp_dir, log_dir, "conversationlog.jsonl")
+                    if os.path.exists(conv_path):
+                        link = f"?exp={selected}&conv={log_dir}"
+                        st.markdown(
+                            f"- {label} - <a href='{link}' target='_blank'>Conversation Log</a>",
+                            unsafe_allow_html=True,
+                        )
 
         st.header(f"Convergence - {selected}")
         df = convergence_dataframe(logger)
