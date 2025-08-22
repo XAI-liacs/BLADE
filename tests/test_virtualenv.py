@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -12,6 +13,7 @@ class DummyDepProblem(Problem):
 
     def evaluate(self, s):
         import mypkg  # type: ignore
+
         s.set_scores(len(mypkg.hello()))
         return s
 
@@ -23,8 +25,12 @@ class DummyDepProblem(Problem):
 
 
 def test_dependencies_installed_in_virtualenv(tmp_path, monkeypatch):
-    # just patch away heavy base deps if you want, or remove this entirely
-    monkeypatch.setattr("iohblade.problem.BASE_DEPENDENCIES", [], raising=False)
+    # ensure only essential dependency is installed in the evaluation env
+    monkeypatch.setattr(
+        "iohblade.problem.BASE_DEPENDENCIES",
+        ["cloudpickle", "numpy", "joblib", "ioh"],
+        raising=False,
+    )
 
     pkg_dir = tmp_path / "mypkg"
     pkg_dir.mkdir()
@@ -32,9 +38,7 @@ def test_dependencies_installed_in_virtualenv(tmp_path, monkeypatch):
         "from setuptools import setup; setup(name='mypkg', version='0.0.0')"
     )
     (pkg_dir / "mypkg").mkdir()
-    (pkg_dir / "mypkg" / "__init__.py").write_text(
-        "def hello():\n    return 'hi'\n"
-    )
+    (pkg_dir / "mypkg" / "__init__.py").write_text("def hello():\n    return 'hi'\n")
 
     problem = DummyDepProblem(pkg_dir)
     sol = Solution()
@@ -43,4 +47,5 @@ def test_dependencies_installed_in_virtualenv(tmp_path, monkeypatch):
     assert result.fitness == 2, result.feedback
     # after the call, the dep should not leak back to the outer environment
     import importlib
+
     assert importlib.util.find_spec("mypkg") is None
