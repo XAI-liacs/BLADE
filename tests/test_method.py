@@ -2,8 +2,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from iohblade import LLM, Method, Solution
+from iohblade.llm import LLM
+from iohblade.method import Method
 from iohblade.methods.random_search import RandomSearch
+from iohblade.solution import Solution
 
 
 def test_random_search_calls_llm():

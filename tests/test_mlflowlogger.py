@@ -6,11 +6,14 @@ from unittest.mock import MagicMock, call, patch
 import mlflow
 import pytest
 
-from iohblade import LLM, Method, Problem, Solution
+from iohblade.llm import LLM
 
 # Adjust these imports to your actual package structure
 from iohblade.loggers import ExperimentLogger, RunLogger
 from iohblade.loggers.mlflow import MLFlowExperimentLogger, MLFlowRunLogger
+from iohblade.method import Method
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 @pytest.fixture
@@ -19,21 +22,16 @@ def mock_mlflow():
     Fixture that patches common mlflow calls for the duration of a test.
     Yields a dict of the mocks for easy inspection.
     """
-    with patch("mlflow.set_tracking_uri") as mock_set_uri, patch(
-        "mlflow.create_experiment"
-    ) as mock_create_experiment, patch(
-        "mlflow.get_experiment_by_name"
-    ) as mock_get_experiment_by_name, patch(
-        "mlflow.start_run"
-    ) as mock_start_run, patch(
-        "mlflow.end_run"
-    ) as mock_end_run, patch(
-        "mlflow.log_param"
-    ) as mock_log_param, patch(
-        "mlflow.log_metric"
-    ) as mock_log_metric, patch(
-        "mlflow.log_text"
-    ) as mock_log_text:
+    with (
+        patch("mlflow.set_tracking_uri") as mock_set_uri,
+        patch("mlflow.create_experiment") as mock_create_experiment,
+        patch("mlflow.get_experiment_by_name") as mock_get_experiment_by_name,
+        patch("mlflow.start_run") as mock_start_run,
+        patch("mlflow.end_run") as mock_end_run,
+        patch("mlflow.log_param") as mock_log_param,
+        patch("mlflow.log_metric") as mock_log_metric,
+        patch("mlflow.log_text") as mock_log_text,
+    ):
         # Provide default behaviors for the experiment calls
         mock_create_experiment.return_value = "12345"  # some fake experiment_id
         fake_experiment = MagicMock()
@@ -251,9 +249,10 @@ def test_run_logger_log_individual(mock_run_logger, mock_mlflow):
     """
     sol = Solution(name="test_solution")
     sol.set_scores(3.14)
-    with patch("mlflow.log_metric") as mock_log_metric, patch(
-        "mlflow.log_text"
-    ) as mock_log_text:
+    with (
+        patch("mlflow.log_metric") as mock_log_metric,
+        patch("mlflow.log_text") as mock_log_text,
+    ):
         mock_run_logger.log_individual(sol)
 
         mock_log_metric.assert_called_once_with("fitness", 3.14)

@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import pickle
 import shutil
 import subprocess
 import tempfile
@@ -8,12 +7,15 @@ import traceback
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import cloudpickle
 import numpy as np
 from joblib.externals.loky import get_reusable_executor
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
     "numpy>=1.26.3,<2",
+    "cloudpickle>=3.1.0,<4",
+    "joblib>=1.4.2,<2",
     #    "pandas==2.0.3",
     #    "polars==1.31.0",
     #    "scikit-learn==1.3.0",
@@ -24,55 +26,52 @@ from .utils import TimeoutException
 
 
 def evaluate_in_subprocess(problem, conn, solution):
-    """
-    Runs the evaluation and stores the result in a queue.
-    Args:
-        queue (multiprocessing.Queue): Queue for storing the evaluation result.
-        solution (Solution): Solution object to be evaluated.
-    """
-    import virtualenv
-    repo_root = Path(__file__).resolve().parents[1]
+    """Evaluate a solution in a dedicated virtual environment."""
     try:
-        with tempfile.TemporaryDirectory(prefix="blade_env_") as env_dir:
-            env_path = Path(env_dir)
-            virtualenv.cli_run([env_dir])
-            #venv.create(env_dir, with_pip=True)
+        env_path = problem._env_path
+        python_bin = problem._python_bin
 
-            python_bin = env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
+        problem_pickle = env_path / "problem.pkl"
+        solution_pickle = env_path / "solution.pkl"
+        result_pickle = env_path / "result.pkl"
 
-            deps = getattr(problem, "dependencies", [])
-            if deps:
-                subprocess.run(
-                    [str(python_bin), "-m", "pip", "install", *deps], check=True
-                )
+        with open(problem_pickle, "wb") as f:
+            cloudpickle.dump(problem, f)
+        with open(solution_pickle, "wb") as f:
+            cloudpickle.dump(solution, f)
 
-            problem_pickle = env_path / "problem.pkl"
-            solution_pickle = env_path / "solution.pkl"
-            result_pickle = env_path / "result.pkl"
-            with open(problem_pickle, "wb") as f:
-                pickle.dump(problem, f)
-            with open(solution_pickle, "wb") as f:
-                pickle.dump(solution, f)
+        script_path = env_path / "run_eval.py"
+        deps_imports = []
+        for dep in getattr(problem, "dependencies", []):
+            if os.sep in dep:
+                mod = Path(dep).name
+            else:
+                mod = dep.split("==")[0].split(">=")[0].split("<")[0]
+            deps_imports.append(f"import {mod.replace('-', '_')}")
+        imports_block = "\n".join(deps_imports)
+        script_path.write_text(
+            (f"{imports_block}\n" if imports_block else "")
+            + "import cloudpickle as pickle\n"
+            + f"problem=pickle.load(open('{problem_pickle}','rb'))\n"
+            + f"solution=pickle.load(open('{solution_pickle}','rb'))\n"
+            + f"result=problem.evaluate(solution)\n"
+            + f"with open('{result_pickle}','wb') as f:\n"
+            + "    pickle.dump(result, f)\n"
+        )
 
-            script_path = env_path / "run_eval.py"
-            script_path.write_text(
-                f"import pickle,sys\nsys.path.insert(0, '{repo_root}')\nproblem=pickle.load(open('{problem_pickle}','rb'))\nproblem.load_dependencies()\nsolution=pickle.load(open('{solution_pickle}','rb'))\nresult=problem.evaluate(solution)\npickle.dump(result, open('{result_pickle}','wb'))\n"
-            )
+        env = os.environ.copy()
+        repo_root = Path(__file__).resolve().parents[1]
+        env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
+        subprocess.run([str(python_bin), str(script_path)], check=True, env=env)
 
-            env = os.environ.copy()
-            env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
-            subprocess.run([str(python_bin), str(script_path)], check=True, env=env)
+        with open(result_pickle, "rb") as f:
+            result = cloudpickle.load(f)
 
-            with open(result_pickle, "rb") as f:
-                result = pickle.load(f)
-
-            conn.send(result)  # Send result through the pipe
+        conn.send(result)
     except Exception as e:
-        conn.send(
-            f"{e} stracktrace: {traceback.format_exc()}"
-        )  # Send exception for handling in the parent
+        conn.send(f"{e} stracktrace: {traceback.format_exc()}")
     finally:
-        conn.close()  # Ensure pipe is closed after sending data
+        conn.close()
 
 
 class Problem(ABC):
@@ -114,6 +113,10 @@ class Problem(ABC):
         if dependencies:
             self.dependencies.extend(dependencies)
 
+        # Path to the virtual environment used for evaluations
+        self._env_path: Path | None = None
+        self._python_bin: Path | None = None
+
         # These settings are required for EoH, adapt them based on your problem.
         # The function name, inputs, and outputs should match the expected format.
         # For example, if your problem requires a function that takes a function, budget, and dimension,
@@ -150,6 +153,7 @@ class Problem(ABC):
         # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
         try:
+            self._ensure_env()
             (
                 parent_conn,
                 child_conn,
@@ -195,6 +199,32 @@ class Problem(ABC):
         if self.logger is not None:
             self.logger.log_individual(solution)
         return solution
+
+    def _ensure_env(self):
+        """Create the virtual environment for evaluations if it does not exist."""
+        if self._env_path is not None:
+            return
+        import virtualenv
+
+        env_dir = tempfile.mkdtemp(prefix="blade_env_")
+        self._env_path = Path(env_dir)
+        virtualenv.cli_run([env_dir])
+        self._python_bin = (
+            self._env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
+        )
+
+        deps = getattr(self, "dependencies", [])
+        if deps:
+            subprocess.run(
+                [str(self._python_bin), "-m", "pip", "install", *deps], check=True
+            )
+
+    def __del__(self):
+        try:
+            if self._env_path and self._env_path.exists():
+                shutil.rmtree(self._env_path)
+        except Exception:
+            pass
 
     def set_logger(self, logger):
         """

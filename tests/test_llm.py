@@ -7,7 +7,13 @@ import httpx
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
-from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM
+from iohblade.llm import (
+    LLM,
+    Gemini_LLM,
+    NoCodeException,
+    Ollama_LLM,
+    OpenAI_LLM,
+)
 
 
 class _DummyOpenAI:
