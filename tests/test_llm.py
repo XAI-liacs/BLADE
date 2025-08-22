@@ -1,12 +1,12 @@
+import copy
 import datetime as _dt
+import pickle
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
-import copy
-import pickle
 
 import iohblade.llm as llm_mod  # the module that defines _query
-import httpx
 from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM
 
 
@@ -16,12 +16,14 @@ class _DummyOpenAI:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
+
 def _patch_openai(monkeypatch):
     """
     Helper that swaps out openai.OpenAI with _DummyOpenAI inside the
     already-imported iohblade.llm module.
     """
     monkeypatch.setattr(llm_mod.openai, "OpenAI", _DummyOpenAI)
+
 
 def test_openai_llm_getstate_strips_client(monkeypatch):
     _patch_openai(monkeypatch)
@@ -66,6 +68,7 @@ def test_openai_llm_pickle_roundtrip(monkeypatch):
     assert revived.model == llm.model
     assert isinstance(revived.client, _DummyOpenAI)
     assert revived.client.kwargs["api_key"] == "sk-test"
+
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class

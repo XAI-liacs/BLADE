@@ -4,17 +4,12 @@ import sys
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
+import numpy as np
 import pytest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+if not hasattr(np, "byte"):
+    np.byte = np.int8
 
-try:
-    import numpy as np
-
-    if not hasattr(np, "byte"):
-        np.byte = np.int8
-except Exception:  # pragma: no cover - optional dependency
-    pass
 import wandb
 
 from iohblade.llm import LLM

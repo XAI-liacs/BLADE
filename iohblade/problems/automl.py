@@ -34,7 +34,7 @@ class AutoML(Problem):
         dependencies=None,
     ):
         if dependencies is None:
-            dependencies = []
+            dependencies = ["pandas==2.0.3", "polars==1.31.0", "scikit-learn==1.3.0"]
 
         X, y = load_breast_cancer(return_X_y=True)
         (

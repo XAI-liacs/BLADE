@@ -3,9 +3,6 @@ import os
 from datetime import datetime
 
 import numpy as np
-
-if not hasattr(np, "byte"):
-    np.byte = np.int8
 import wandb
 from ConfigSpace.read_and_write import json as cs_json
 
@@ -15,6 +12,9 @@ from ..problem import Problem
 from ..solution import Solution
 from ..utils import convert_to_serializable
 from .base import ExperimentLogger, RunLogger
+
+if not hasattr(np, "byte"):
+    np.byte = np.int8
 
 
 class WAndBExperimentLogger(ExperimentLogger):

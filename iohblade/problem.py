@@ -15,9 +15,9 @@ from joblib.externals.loky import get_reusable_executor
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
     "numpy>=1.26.3,<2",
-    "pandas==2.0.3",
-    "polars==1.31.0",
-    "scikit-learn==1.3.0",
+    #    "pandas==2.0.3",
+    #    "polars==1.31.0",
+    #    "scikit-learn==1.3.0",
 ]
 
 from .solution import Solution
@@ -98,6 +98,7 @@ class Problem(ABC):
             name (str, optional): Name of the problem.
             eval_timeout (int, optional): Number of seconds before a timeout error is raised.
             budget (int): number of algorithms are allowed to be generated per run.
+            dependencies (list, optional): a list of pypi packages to install before evaluation.
         """
         self.logger = logger
         self.training_instances = training_instances if training_instances else []
