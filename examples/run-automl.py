@@ -22,10 +22,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     ]
 
     for llm in [llm2]:
-        LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=2, n_offspring=4, elitism=True)
+        LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=1, n_offspring=1, elitism=True)
         ReEvo_method = ReEvo(llm, budget=budget, name="ReEvo", output_path="results/automl-breast-cancer", pop_size=2, init_pop_size=4)
         EoH_method = EoH(llm, budget=budget, name="EoH", output_path="results/automl-breast-cancer")
-        methods = [EoH_method, ReEvo_method, LLaMEA_method] 
+        methods = [LLaMEA_method] #EoH_method, ReEvo_method, 
         logger = ExperimentLogger("results/automl-breast-cancer")
         problems = [AutoML()]
         experiment = Experiment(methods=methods, problems=problems, runs=1, show_stdout=False, exp_logger=logger, budget=budget, n_jobs=3) #normal run

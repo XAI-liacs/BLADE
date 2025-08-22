@@ -15,7 +15,7 @@ import openai
 # ConfigSpace dependency is required when in the loop HPO is enabled.
 try:
     from ConfigSpace import ConfigurationSpace
-except Exception:
+except ImportError:
     ConfigurationSpace = None
 
 from tokencost import (

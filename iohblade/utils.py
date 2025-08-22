@@ -4,9 +4,16 @@ import json
 import re
 import textwrap
 from typing import Optional, Tuple
+import types
 
 import numpy as np
-from ioh import LogInfo, logger
+
+try:
+    from ioh import LogInfo, logger
+except ImportError:
+    LogInfo = None
+    logger = types.ModuleType("logger")
+    logger.AbstractLogger = object
 
 
 class TimeoutException(Exception):

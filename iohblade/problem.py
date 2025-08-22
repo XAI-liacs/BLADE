@@ -9,7 +9,7 @@ from pathlib import Path
 
 import cloudpickle
 import numpy as np
-from joblib.externals.loky import get_reusable_executor
+import json, tempfile, uuid
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
@@ -33,7 +33,9 @@ def evaluate_in_subprocess(problem, conn, solution):
 
         problem_pickle = env_path / "problem.pkl"
         solution_pickle = env_path / "solution.pkl"
-        result_pickle = env_path / "result.pkl"
+        result_pickle = (
+            Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
+        )
 
         with open(problem_pickle, "wb") as f:
             cloudpickle.dump(problem, f)
@@ -51,12 +53,20 @@ def evaluate_in_subprocess(problem, conn, solution):
         imports_block = "\n".join(deps_imports)
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
-            + "import cloudpickle as pickle\n"
-            + f"problem=pickle.load(open('{problem_pickle}','rb'))\n"
-            + f"solution=pickle.load(open('{solution_pickle}','rb'))\n"
-            + f"result=problem.evaluate(solution)\n"
-            + f"with open('{result_pickle}','wb') as f:\n"
-            + "    pickle.dump(result, f)\n"
+            + "import cloudpickle as cp\n"
+            + "import os, json\n"
+            + f"problem_path = {json.dumps(str(problem_pickle))}\n"
+            + f"solution_path = {json.dumps(str(solution_pickle))}\n"
+            + f"result_path  = {json.dumps(str(result_pickle))}\n"
+            + "print('Loading problem')\n"
+            + "problem=cp.load(open(problem_path,'rb'))\n"
+            + "print('Loading solution')\n"
+            + "solution=cp.load(open(solution_path,'rb'))\n"
+            + "print('evaluating solution')\n"
+            + "result=problem.evaluate(solution)\n"
+            + "print('writing result', result.fitness)\n"
+            + "with open(result_path,'wb') as f:\n"
+            + "    cp.dump(result, f)\n"
         )
 
         env = os.environ.copy()
