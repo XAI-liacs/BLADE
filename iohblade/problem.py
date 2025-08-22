@@ -23,6 +23,7 @@ BASE_DEPENDENCIES = [
 
 from .solution import Solution
 from .utils import TimeoutException
+import copy
 
 
 def evaluate_in_subprocess(problem, conn, solution):
@@ -36,9 +37,10 @@ def evaluate_in_subprocess(problem, conn, solution):
         result_pickle = (
             Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
         )
-
+        problem_copy = copy.deepcopy(problem)
+        problem_copy.logger = None
         with open(problem_pickle, "wb") as f:
-            cloudpickle.dump(problem, f)
+            cloudpickle.dump(problem_copy, f)
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
@@ -49,6 +51,8 @@ def evaluate_in_subprocess(problem, conn, solution):
                 mod = Path(dep).name
             else:
                 mod = dep.split("==")[0].split(">=")[0].split("<")[0]
+            if mod == "scikit-learn":
+                mod = "sklearn"
             deps_imports.append(f"import {mod.replace('-', '_')}")
         imports_block = "\n".join(deps_imports)
         script_path.write_text(
@@ -58,13 +62,9 @@ def evaluate_in_subprocess(problem, conn, solution):
             + f"problem_path = {json.dumps(str(problem_pickle))}\n"
             + f"solution_path = {json.dumps(str(solution_pickle))}\n"
             + f"result_path  = {json.dumps(str(result_pickle))}\n"
-            + "print('Loading problem')\n"
             + "problem=cp.load(open(problem_path,'rb'))\n"
-            + "print('Loading solution')\n"
             + "solution=cp.load(open(solution_path,'rb'))\n"
-            + "print('evaluating solution')\n"
             + "result=problem.evaluate(solution)\n"
-            + "print('writing result', result.fitness)\n"
             + "with open(result_path,'wb') as f:\n"
             + "    cp.dump(result, f)\n"
         )
@@ -72,12 +72,22 @@ def evaluate_in_subprocess(problem, conn, solution):
         env = os.environ.copy()
         repo_root = Path(__file__).resolve().parents[1]
         env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
-        subprocess.run([str(python_bin), str(script_path)], check=True, env=env)
 
-        with open(result_pickle, "rb") as f:
-            result = cloudpickle.load(f)
+        try:
+            res = subprocess.run(
+                [str(python_bin), str(script_path)],
+                check=True,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            with open(result_pickle, "rb") as f:
+                result = cloudpickle.load(f)
+            conn.send(result)
+        except subprocess.CalledProcessError as e:
+            # Process returned non-zero exit code
+            conn.send(e.stderr)
 
-        conn.send(result)
     except Exception as e:
         conn.send(f"{e} stracktrace: {traceback.format_exc()}")
     finally:
@@ -135,6 +145,10 @@ class Problem(ABC):
         self.init_inputs = ["budget", "dim"]
         self.func_inputs = ["func"]
         self.func_outputs = ["f_opt", "x_opt"]
+
+        # setup the env
+        print("Setting up environment for evaluation...")
+        self._ensure_env()
 
     def __call__(self, solution: Solution, logger=None):
         """
@@ -229,7 +243,7 @@ class Problem(ABC):
                 [str(self._python_bin), "-m", "pip", "install", *deps], check=True
             )
 
-    def __del__(self):
+    def cleanup(self):
         try:
             if self._env_path and self._env_path.exists():
                 shutil.rmtree(self._env_path)
@@ -241,12 +255,6 @@ class Problem(ABC):
         Sets the logger for this problem.
         """
         self.logger = logger
-
-    def load_dependencies(self):
-        """
-        Optionally load all dependencies here.
-        """
-        return
 
     @abstractmethod
     def get_prompt(self):

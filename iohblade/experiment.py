@@ -104,6 +104,9 @@ class Experiment(ABC):
                     log_dir=logger.dirname,
                     seed=seed,
                 )
+        # Clean up all envs
+        for problem in self.problems:
+            problem.cleanup()
         return
 
     def _run_single(self, method, problem, logger, seed):

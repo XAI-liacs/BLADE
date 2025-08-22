@@ -98,9 +98,6 @@ Give an excellent and novel ML pipeline to solve this task and also give it a on
 ```
 """
 
-    def load_dependencies(self):
-        import polars as pl
-
     def get_prompt(self):
         """
         Returns the problem description and answer format.
