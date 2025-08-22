@@ -7,7 +7,7 @@ import httpx
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
-from iohblade import (
+from iohblade.llm import (
     LLM,
     Claude_LLM,
     Gemini_LLM,
