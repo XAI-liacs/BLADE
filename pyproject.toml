@@ -10,6 +10,7 @@ dependencies = [
     "numpy>=1.26.3,<2",
     "pandas==2.0.3",
     "openai>=1.25.2,<2",
+    "anthropic>=0.57,<1",
     "ollama>=0.2.1,<0.3",
     "jsonlines>=4.0.0,<5",
     "google-generativeai>=0.8.1,<0.9",

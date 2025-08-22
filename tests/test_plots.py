@@ -11,6 +11,8 @@ matplotlib.use("Agg")
 from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+import iohblade
 
 # Adjust imports to match your actual package structure
 from iohblade.plots import (
@@ -199,6 +201,33 @@ def test_plot_code_evolution_graphs_multiple_features():
     )
     assert isinstance(plt.gcf(), plt.Figure)
     plt.close("all")
+
+
+def test_plotly_code_evolution_returns_figure():
+    df = pd.DataFrame(
+        {
+            "id": ["a", "b", "c"],
+            "parent_ids": ["[]", '["a"]', '["b"]'],
+            "fitness": [1.0, 2.0, 3.0],
+            "code": ["print('a')", "print('b')", "print('c')"],
+        }
+    )
+    fig = iohblade.plots.plotly_code_evolution(df, feature="total_token_count")
+    assert isinstance(fig, go.Figure)
+
+
+def test_plotly_code_evolution_xaxis_order():
+    df = pd.DataFrame(
+        {
+            "id": ["x1", "x2", "x3"],
+            "parent_ids": ["[]", '["x1"]', '["x2"]'],
+            "fitness": [0.1, 0.2, 0.3],
+            "code": ["print('1')", "print('2')", "print('3')"],
+        }
+    )
+    fig = iohblade.plots.plotly_code_evolution(df, feature="total_token_count")
+    marker_trace = fig.data[-1]
+    assert list(marker_trace.x) == [1, 2, 3]
 
 
 def test_plot_boxplot_fitness(mock_logger):

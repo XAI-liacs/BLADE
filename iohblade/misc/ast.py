@@ -2,6 +2,7 @@
 import ast
 import difflib
 import os
+import tempfile
 from collections import Counter
 
 import jsonlines
@@ -11,11 +12,16 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import tqdm
+from joblib import Memory
 from networkx.drawing.nx_pydot import graphviz_layout
 from scipy.stats import entropy
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, minmax_scale
+
+
+CACHE_DIR = os.path.join(tempfile.gettempdir(), "iohblade_cache")
+memory = Memory(CACHE_DIR, verbose=0)
 
 
 def code_compare(code1, code2, printdiff=False):
@@ -43,6 +49,7 @@ def code_compare(code1, code2, printdiff=False):
     return 1 - similarity_ratio
 
 
+@memory.cache
 def analyse_complexity(code):
     """
     Analyzes the code complexity of a Python code snippet using the lizard library.
@@ -271,7 +278,23 @@ def process_file(path, visualize):
     return {**stats, **complexity_stats}
 
 
-# Function to create graph out of AST
+def _process_code_internal(python_code, visualize):
+    root = ast.parse(python_code)
+    build = BuildAST()
+    G = build.build_graph(root)
+    stats = analyze_graph(G)
+    if visualize:
+        visualize_graph(G)
+    complexity_stats = analyse_complexity(python_code)
+    return {**stats, **complexity_stats}
+
+
+@memory.cache
+def _process_code_cached(python_code):
+    return _process_code_internal(python_code, visualize=False)
+
+
+# Function to create graph out of AST with caching
 def process_code(python_code, visualize=False):
     """
     Processes a Python code string by:
@@ -288,15 +311,9 @@ def process_code(python_code, visualize=False):
     Returns:
         dict: Combined statistics from graph analysis and code complexity.
     """
-    root = ast.parse(python_code)
-    build = BuildAST()
-    G = build.build_graph(root)
-    stats = analyze_graph(G)
-    if visualize == True:  # visualize graph
-        visualize_graph(G)
-
-    complexity_stats = analyse_complexity(python_code)
-    return {**stats, **complexity_stats}
+    if visualize:
+        return _process_code_internal(python_code, visualize=True)
+    return _process_code_cached(python_code)
 
 
 def aggregate_stats(results):

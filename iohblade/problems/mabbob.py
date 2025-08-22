@@ -7,7 +7,13 @@ import pandas as pd
 from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
 from ioh import logger as ioh_logger
-from smac import AlgorithmConfigurationFacade, Scenario
+
+# smac is optional and only required for advanced configuration features
+try:
+    from smac import AlgorithmConfigurationFacade, Scenario  # pragma: no cover
+except Exception:  # pragma: no cover - allow absence in lightweight installs
+    AlgorithmConfigurationFacade = None
+    Scenario = None
 
 from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
