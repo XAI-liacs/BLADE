@@ -41,13 +41,22 @@ def evaluate_in_subprocess(problem, conn, solution):
             cloudpickle.dump(solution, f)
 
         script_path = env_path / "run_eval.py"
+        deps_imports = []
+        for dep in getattr(problem, "dependencies", []):
+            if os.sep in dep:
+                mod = Path(dep).name
+            else:
+                mod = dep.split("==")[0].split(">=")[0].split("<")[0]
+            deps_imports.append(f"import {mod.replace('-', '_')}")
+        imports_block = "\n".join(deps_imports)
         script_path.write_text(
-            f"import cloudpickle as pickle\n"
-            f"problem=pickle.load(open('{problem_pickle}','rb'))\n"
-            f"problem.load_dependencies()\n"
-            f"solution=pickle.load(open('{solution_pickle}','rb'))\n"
-            f"result=problem.evaluate(solution)\n"
-            f"pickle.dump(result, open('{result_pickle}','wb'))\n"
+            (f"{imports_block}\n" if imports_block else "")
+            + "import cloudpickle as pickle\n"
+            + f"problem=pickle.load(open('{problem_pickle}','rb'))\n"
+            + f"solution=pickle.load(open('{solution_pickle}','rb'))\n"
+            + f"result=problem.evaluate(solution)\n"
+            + f"with open('{result_pickle}','wb') as f:\n"
+            + "    pickle.dump(result, f)\n"
         )
 
         env = os.environ.copy()

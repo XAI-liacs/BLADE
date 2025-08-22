@@ -1,12 +1,20 @@
-import iohinspector
-import polars as pl
-from iohblade.behaviour_metrics import compute_behavior_metrics
-from tqdm import tqdm
-import pandas as pd
-import numpy as np
-from iohblade.loggers import ExperimentLogger
-from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
+
+import iohinspector
+import numpy as np
+import pandas as pd
+import polars as pl
+from tqdm import tqdm
+
+from iohblade.behaviour_metrics import compute_behavior_metrics
+from iohblade.loggers import ExperimentLogger
+from iohblade.plots import (
+    fitness_table,
+    plot_boxplot_fitness,
+    plot_boxplot_fitness_hue,
+    plot_convergence,
+    plot_experiment_CEG,
+)
 
 data_dir = "/data/neocortex/BBOB-2"
 
@@ -17,10 +25,16 @@ data = logger.get_data()
 
 tqdm.pandas(desc="Processing runs")
 
-func_ids        = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
-runs_per_func   = 5          # we know each function has 5 runs
+func_ids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
+runs_per_func = 5  # we know each function has 5 runs
 
-def avg_auc_for_fid(aucs: list[float], fid: int, runs_per_func=5, func_ids=[1, 3, 6, 8, 10, 13, 15, 17, 21, 23]) -> float:
+
+def avg_auc_for_fid(
+    aucs: list[float],
+    fid: int,
+    runs_per_func=5,
+    func_ids=[1, 3, 6, 8, 10, 13, 15, 17, 21, 23],
+) -> float:
     """
     aucs = 50-long list in metadata.
     Take the five entries belonging to the requested fid and average them.
@@ -31,19 +45,25 @@ def avg_auc_for_fid(aucs: list[float], fid: int, runs_per_func=5, func_ids=[1, 3
     slice_ = aucs[block : block + runs_per_func]
     return float(np.mean(slice_))
 
-def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_func=5, root=f"{data_dir}/ioh/"):
+
+def process_run(
+    row,
+    func_ids=[1, 3, 6, 8, 10, 13, 15, 17, 21, 23],
+    runs_per_func=5,
+    root=f"{data_dir}/ioh/",
+):
     rows = []
     # each algorithm has 50 different runs = 50 different directories we need to process
-    algid = row['id']
-    fitness = row['fitness']
-    aucs = row['aucs_list']
-    method_name = row['method_name']
-    problem_name = row['problem_name']
+    algid = row["id"]
+    fitness = row["fitness"]
+    aucs = row["aucs_list"]
+    method_name = row["method_name"]
+    problem_name = row["problem_name"]
 
     counter = 0
     for fid in func_ids:
         for run in range(runs_per_func):
-            
+
             path = f"{root}{algid}"
             if counter > 0:
                 path = f"{root}{algid}-{counter}"
@@ -57,20 +77,23 @@ def process_run(row, func_ids= [1, 3, 6, 8, 10, 13, 15, 17, 21, 23], runs_per_fu
             metrics = compute_behavior_metrics(df)
             counter += 1
 
-            f_fid = avg_auc_for_fid(aucs, fid, runs_per_func=runs_per_func, func_ids=func_ids)
+            f_fid = avg_auc_for_fid(
+                aucs, fid, runs_per_func=runs_per_func, func_ids=func_ids
+            )
             metrics.update(
                 {
-                    "id":           algid,
-                    "fid":          fid,
-                    "fitness_fid":  f_fid,
-                    "method_name":  method_name,
+                    "id": algid,
+                    "fid": fid,
+                    "fitness_fid": f_fid,
+                    "method_name": method_name,
                     "problem_name": problem_name,
-                    "seed" :        row['seed'], 
-                    "_id" :         row['_id'],
+                    "seed": row["seed"],
+                    "_id": row["_id"],
                 }
             )
             rows.append(metrics)
     return pd.DataFrame(rows)
+
 
 def get_aucs(d):
     """Return the list under key 'aucs' (or [] if anything is wrong)."""
@@ -91,14 +114,15 @@ for problem in problems:
 
     df["aucs_list"] = df["metadata"].apply(get_aucs)
 
-
     frames = []
 
-    for _, algo_row in tqdm(df.iterrows(),  # <‑‑ your dataframe of algorithms
-                            total=len(df),
-                            desc="algorithms"):
+    for _, algo_row in tqdm(
+        df.iterrows(),  # <‑‑ your dataframe of algorithms
+        total=len(df),
+        desc="algorithms",
+    ):
         try:
-            df_runs = process_run(algo_row)      # your function above
+            df_runs = process_run(algo_row)  # your function above
             frames.append(df_runs)
         except Exception as e:
             print(f"⚠︎  {algo_row['id']} skipped ({e})")

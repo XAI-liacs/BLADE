@@ -4,9 +4,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from iohblade import LLM, Method, Problem
 from iohblade.experiment import Experiment, MA_BBOB_Experiment
+from iohblade.llm import LLM
 from iohblade.loggers import ExperimentLogger
+from iohblade.method import Method
+from iohblade.problem import Problem
 
 
 @pytest.fixture

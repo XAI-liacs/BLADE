@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import matplotlib.pyplot as plt
 
 # Adjust imports to match your actual package structure
-from iohblade import (
+from iohblade.plots import (
     fitness_table,
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,

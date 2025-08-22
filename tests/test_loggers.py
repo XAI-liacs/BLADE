@@ -3,8 +3,10 @@ import shutil
 
 import pytest
 
-from iohblade import Method, Problem, Solution
 from iohblade.loggers import ExperimentLogger, RunLogger
+from iohblade.method import Method
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 @pytest.fixture
