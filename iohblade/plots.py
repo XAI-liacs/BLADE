@@ -4,7 +4,6 @@ import difflib
 import os
 from collections import Counter
 
-import jellyfish
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np

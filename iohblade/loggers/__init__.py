@@ -6,10 +6,6 @@ from .base import ExperimentLogger, RunLogger
 #     MLFlowRunLogger,
 # )
 
-# from .wandb import (
-#     WAndBExperimentLogger,
-#     WAndBRunLogger,
-# )
 
 # __all__ = [
 #     "ExperimentLogger",

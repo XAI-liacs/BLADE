@@ -8,7 +8,6 @@ import traceback
 
 import numpy as np
 import pandas as pd
-import polars as pl
 import sklearn
 from sklearn.datasets import load_breast_cancer
 from sklearn.metrics import accuracy_score
@@ -98,6 +97,9 @@ Give an excellent and novel ML pipeline to solve this task and also give it a on
 <code>
 ```
 """
+
+    def load_dependencies(self):
+        import polars as pl
 
     def get_prompt(self):
         """

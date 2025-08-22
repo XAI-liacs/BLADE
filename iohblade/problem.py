@@ -5,7 +5,6 @@ import shutil
 import subprocess
 import tempfile
 import traceback
-import venv
 from abc import ABC, abstractmethod
 from pathlib import Path
 
@@ -31,11 +30,13 @@ def evaluate_in_subprocess(problem, conn, solution):
         queue (multiprocessing.Queue): Queue for storing the evaluation result.
         solution (Solution): Solution object to be evaluated.
     """
+    import virtualenv
     repo_root = Path(__file__).resolve().parents[1]
     try:
         with tempfile.TemporaryDirectory(prefix="blade_env_") as env_dir:
             env_path = Path(env_dir)
-            venv.create(env_dir, with_pip=True)
+            virtualenv.cli_run([env_dir])
+            #venv.create(env_dir, with_pip=True)
 
             python_bin = env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
 
@@ -55,7 +56,7 @@ def evaluate_in_subprocess(problem, conn, solution):
 
             script_path = env_path / "run_eval.py"
             script_path.write_text(
-                f"import pickle,sys\nsys.path.insert(0, '{repo_root}')\nproblem=pickle.load(open('{problem_pickle}','rb'))\nsolution=pickle.load(open('{solution_pickle}','rb'))\nresult=problem.evaluate(solution)\npickle.dump(result, open('{result_pickle}','wb'))\n"
+                f"import pickle,sys\nsys.path.insert(0, '{repo_root}')\nproblem=pickle.load(open('{problem_pickle}','rb'))\nproblem.load_dependencies()\nsolution=pickle.load(open('{solution_pickle}','rb'))\nresult=problem.evaluate(solution)\npickle.dump(result, open('{result_pickle}','wb'))\n"
             )
 
             env = os.environ.copy()
@@ -200,6 +201,12 @@ class Problem(ABC):
         Sets the logger for this problem.
         """
         self.logger = logger
+
+    def load_dependencies(self):
+        """
+        Optionally load all dependencies here.
+        """
+        return
 
     @abstractmethod
     def get_prompt(self):

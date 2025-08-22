@@ -15,15 +15,20 @@ dependencies = [
     "google-generativeai>=0.8.1,<0.9",
     "joblib>=1.4.2,<2",
     "tokencost>=0.1.18,<0.2",
-    "llamea>=1.0.6,<2",
+    "llamea>=1.1.0,<2",
     "ipykernel>=6.29.5,<7",
-    "wandb>=0.19.8,<0.20",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
     "xmltodict>=0.14.2,<0.15",
     "streamlit>=1.35.0,<2",
     "jsonschema>=4.24.0,<5",
     "plotly>=6.2.0",
+    "ioh>=0.3.18",
+    "seaborn>=0.13.2",
+    "lizard>=1.17.31",
+    "networkx>=3.5",
+    "smac>=2.3.1",
+    "virtualenv>=20.34.0",
 ]
 
 [project.urls]

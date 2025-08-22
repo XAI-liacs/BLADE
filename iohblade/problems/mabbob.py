@@ -113,6 +113,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         self.opt_locs = pd.read_csv(
             os.path.join(base_path, "mabbob", "opt_locs.csv"), index_col=0
         )
+    
 
     def get_prompt(self):
         """

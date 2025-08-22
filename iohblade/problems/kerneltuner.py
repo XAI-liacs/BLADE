@@ -9,7 +9,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import polars as pl
 
 try:
     from autotuning_methodology.experiments import (
