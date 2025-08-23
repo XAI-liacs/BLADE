@@ -161,22 +161,22 @@ class Experiment(ABC):
                     log_dir=logger.dirname,
                     seed=seed,
                 )
+                problem.cleanup()
                 if not self.show_stdout:
                     self._refresh_console()
                 else:
                     self._print_run_overview()
-            # Clean up all envs
-            for problem in self.problems:
-                problem.cleanup()
         return
 
     def _run_single(self, method, problem, logger, seed):
         np.random.seed(seed)
         method.llm.set_logger(logger)
         if self.show_stdout:
+            problem._ensure_env()
             return method(problem)
         with contextlib.redirect_stdout(None):
             with contextlib.redirect_stderr(None):
+                problem._ensure_env()
                 return method(problem)
 
 

@@ -46,15 +46,7 @@ def evaluate_in_subprocess(problem, conn, solution):
 
         script_path = env_path / "run_eval.py"
         deps_imports = []
-        for dep in getattr(problem, "dependencies", []):
-            if os.sep in dep:
-                mod = Path(dep).name
-            else:
-                mod = dep.split("==")[0].split(">=")[0].split("<")[0]
-            if mod == "scikit-learn":
-                mod = "sklearn"
-            deps_imports.append(f"import {mod.replace('-', '_')}")
-        imports_block = "\n".join(deps_imports)
+        imports_block = getattr(problem, "imports", "")
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
             + "import cloudpickle as cp\n"
@@ -107,6 +99,7 @@ class Problem(ABC):
         name="Problem",
         eval_timeout=6000,
         dependencies=None,
+        imports=None,
     ):
         """
         Initializes a problem instance with logging and dataset references.
@@ -119,8 +112,10 @@ class Problem(ABC):
             eval_timeout (int, optional): Number of seconds before a timeout error is raised.
             budget (int): number of algorithms are allowed to be generated per run.
             dependencies (list, optional): a list of pypi packages to install before evaluation.
+            imports (string, optional): the python string to manage imports in the evaluation file.
         """
         self.logger = logger
+        self.logger_dir = ""
         self.training_instances = training_instances if training_instances else []
         self.test_instances = test_instances if test_instances else []
         self.task_prompt = "Write the problem description part here."
@@ -132,6 +127,10 @@ class Problem(ABC):
         self.dependencies = BASE_DEPENDENCIES.copy()
         if dependencies:
             self.dependencies.extend(dependencies)
+        if imports is None:
+            self.imports = "import numpy as np\n"
+        else:
+            self.imports = imports
 
         # Path to the virtual environment used for evaluations
         self._env_path: Path | None = None
@@ -145,10 +144,6 @@ class Problem(ABC):
         self.init_inputs = ["budget", "dim"]
         self.func_inputs = ["func"]
         self.func_outputs = ["f_opt", "x_opt"]
-
-        # setup the env
-        print("Setting up environment for evaluation...")
-        self._ensure_env()
 
     def __call__(self, solution: Solution, logger=None):
         """
@@ -240,7 +235,10 @@ class Problem(ABC):
         deps = getattr(self, "dependencies", [])
         if deps:
             subprocess.run(
-                [str(self._python_bin), "-m", "pip", "install", *deps], check=True
+                [str(self._python_bin), "-m", "pip", "install", *deps],
+                check=True,
+                capture_output=True,
+                text=True,
             )
 
     def cleanup(self):
@@ -255,6 +253,8 @@ class Problem(ABC):
         Sets the logger for this problem.
         """
         self.logger = logger
+        if logger != None:
+            self.logger_dir = logger.get_log_dir()
 
     def get_prompt(self):
         """

@@ -59,6 +59,7 @@ class Kerneltuner(Problem):
         cache_dir="/data/neocortex/repos/benchmark_hub/",
         extra_info=False,
         dependencies=None,
+        imports=None,
     ):
         """
         Initializes the Kerneltuner problem instance.
@@ -77,7 +78,13 @@ class Kerneltuner(Problem):
             dependencies = [
                 "kernel-tuner @ git+https://github.com/XAI-liacs/kernel_tuner.git@hyperparametertuning_custom_strategies",
                 "autotuning-methodology @ git+https://github.com/AutoTuningAssociation/autotuning_methodology.git@6a9a50a5a49bc104469b3b753fd43a5324241702",
+                "pandas==2.0.3",
+                "ioh==0.3.18",
+                "configspace==1.2.1",
+                "smac==2.3.1",
             ]
+        if imports is None:
+            imports = "import numpy as np"
 
         self.applications = ["gemm", "convolution", "dedispersion", "hotspot"]
         if gpus is None:
@@ -203,7 +210,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
     def evaluate(self, solution: Solution, test=False):
         repeats = 5  # number of times to repeat for stochasticity, just two for now.
 
-        path = Path(os.path.join(self.logger.get_log_dir(), "evaluation", solution.id))
+        path = Path(os.path.join(self.logger_dir, "evaluation", solution.id))
         path.mkdir(parents=True, exist_ok=True)
 
         code = solution.code
@@ -244,7 +251,7 @@ from kernel_tuner.strategies.wrapper import OptAlg
 
 """
         solution_path = os.path.join(
-            self.logger.get_log_dir(), "evaluation", solution.id, "code.py"
+            self.logger_dir, "evaluation", solution.id, "code.py"
         )
         with open(solution_path, "w") as f:
             f.write(alg_code)

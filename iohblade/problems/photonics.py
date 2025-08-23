@@ -32,6 +32,7 @@ class Photonics(Problem):
         budget_factor=500,
         seeds=5,
         dependencies=None,
+        imports=None,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -44,7 +45,9 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if dependencies is None:
-            dependencies = ["ioh==0.3.18"]
+            dependencies = ["ioh==0.3.18", "pandas==2.0.3"]
+        if imports is None:
+            imports = "import numpy as np\nimport ioh\n"
 
         if problem_type not in ["bragg", "ellipsometry", "photovoltaic"]:
             raise Exception(

@@ -50,6 +50,7 @@ class BBOB_SBOX(Problem):
         full_ioh_log=False,
         ioh_dir="",
         dependencies=None,
+        imports=None,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -65,13 +66,18 @@ class BBOB_SBOX(Problem):
             specific_group (int): The specific function group (1,2,3,4,5) to use. If not None, additional information is added to the prompt about the function group.
             problem_type (ioh.ProblemClass): The type of problem to use. Can be SBOX or BBOB.
             full_ioh_log (bool): If set to True, additional IOH logs are being kept for each run and each algorithm.
+            dependencies (list, optional): a list of pypi packages to install before evaluation.
+            imports (string, optional): the python string to manage imports in the evaluation file.
         """
         if dependencies is None:
             dependencies = [
+                "pandas==2.0.3",
                 "ioh==0.3.18",
                 "configspace==1.2.1",
                 "smac==2.3.1",
             ]
+        if imports is None:
+            imports = "import numpy as np\nimport ioh\nimport pandas as pd\n"
 
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]

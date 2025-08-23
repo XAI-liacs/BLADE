@@ -31,9 +31,12 @@ class AutoML(Problem):
         name="AutoML-breast_cancer",
         eval_timeout=360,
         dependencies=None,
+        imports=None,
     ):
         if dependencies is None:
             dependencies = ["pandas==2.0.3", "polars==1.31.0", "scikit-learn==1.3.0"]
+        if imports is None:
+            imports = "import pandas as pd\nimport polars\nimport sklearn\n"
 
         X, y = load_breast_cancer(return_X_y=True)
         (
@@ -50,6 +53,7 @@ class AutoML(Problem):
             name,
             eval_timeout,
             dependencies,
+            imports,
         )
         self.func_name = "__call__"
         self.init_inputs = ["X", "y"]
@@ -110,14 +114,6 @@ Give an excellent and novel ML pipeline to solve this task and also give it a on
         """
         code = solution.code
         algorithm_name = solution.name
-        safe_globals = {
-            "sklearn": sklearn,
-            "math": math,
-            "random": random,
-            "np": np,
-            "pd": pd,
-        }
-
         exec(code, globals())
 
         algorithm = None
