@@ -27,7 +27,7 @@ Quick Start
       RS = RandomSearch(llm, budget=budget) #Random Search baseline
       LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False) #LLamEA with 4,12 strategy
       methods = [RS, LLaMEA_method]
-      
+
       problems = []
       # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
       training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
@@ -37,6 +37,18 @@ Quick Start
       logger = ExperimentLogger("results/SBOX")
       experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
       experiment() #run the experiment, all data is logged in the folder results/SBOX/
+
+3. Monitoring experiment progress.
+    Run the included web-app that searches for all the experiments--running and completed--in the ``current-working-directory/results``. It can
+    be used to monitor progress of running experiment, inspect convergence of completed experiments and download best solution found so far.
+
+    To run the web app:
+
+    .. code-block:: bash
+        uv run iohblade-webapp
+
+    Read more :doc:`here <webapp>`.
+
 
 Examples
 --------
