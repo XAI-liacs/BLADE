@@ -36,8 +36,9 @@ The sidebar lists all discovered experiments and shows their progress.
 Selecting an experiment reveals overall progress and the status of each
 run.
 
-.. note::
-   TODO: add screenshot of sidebar and progress indicators.
+.. image:: blade-working.png
+   :alt: Blade, work in progress.
+   :width: 100%
 
 Inspecting Results
 ------------------
@@ -46,6 +47,6 @@ Once an experiment is finished, the webapp displays convergence plots and
 summaries of the top solutions. Methods and problems can be filtered and
 runs can be aggregated.
 
-.. note::
-   TODO: add screenshot of convergence plot and top solutions section.
-
+.. image:: blade-analyze.png
+   :alt: Blade, work in progress.
+   :width: 100%
