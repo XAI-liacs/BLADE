@@ -18,10 +18,7 @@
 - [Introduction](#introduction)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
-- [Webapp](#-webapp)
-- [Contributing](#-contributing)
 - [License](#-license)
-- [Citation](#-citation)
 
 
 ## Introduction
@@ -52,6 +49,8 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
 2. Run the Kernel-tuner experiment
 
     `python run-kerneltuner.py`
+
+3. Results can be viewed in the `kerneltuner-results` directory.
 
     
 ## 🪪 License
