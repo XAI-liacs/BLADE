@@ -17,11 +17,14 @@ BLADE
 .. image:: https://img.shields.io/badge/Python-3.11+-blue.svg
    :alt: Python 3.11+
    :height: 18
-.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7 
+.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7
    :target: https://codecov.io/gh/XAI-liacs/BLADE
    :alt: Codecov
    :height: 18
-
+.. image:: https://colab.research.google.com/img/colab_favicon_256px.png
+    :target: https://colab.research.google.com/drive/1gJPpQPvCGu0v2LoSsxtdGmot73A-ypSf?usp=sharing
+    :alt: Colab Notebook
+    :height: 18
 
 .. image:: blade-framework.png
    :align: center
