@@ -200,6 +200,8 @@ class LLM(ABC):
         Returns:
             ConfigSpace: Extracted configuration space object.
         """
+        if ConfigurationSpace == None:
+            raise Exception("Please install the ConfigSpace package first.")
         pattern = r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         c = None
         for m in re.finditer(pattern, message, re.DOTALL | re.IGNORECASE):
@@ -373,7 +375,9 @@ class Gemini_LLM(LLM):
     A manager class for handling requests to Google's Gemini models.
     """
 
-    def __init__(self, api_key, model="gemini-2.0-flash", **kwargs):
+    def __init__(
+        self, api_key, model="gemini-2.0-flash", generation_config=None, **kwargs
+    ):
         """
         Initializes the LLM manager with an API key and model name.
 
@@ -384,13 +388,14 @@ class Gemini_LLM(LLM):
         """
         super().__init__(api_key, model, None, **kwargs)
         genai.configure(api_key=api_key)
-        generation_config = {
-            "temperature": 1,
-            "top_p": 0.95,
-            "top_k": 64,
-            "max_output_tokens": 8192,
-            "response_mime_type": "text/plain",
-        }
+        if generation_config == None:
+            generation_config = {
+                "temperature": 1,
+                "top_p": 0.95,
+                "top_k": 64,
+                "max_output_tokens": 65536,
+                "response_mime_type": "text/plain",
+            }
 
         self.client = genai.GenerativeModel(
             model_name=self.model,  # "gemini-1.5-flash","gemini-2.0-flash",

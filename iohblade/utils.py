@@ -4,6 +4,7 @@ import json
 import re
 import textwrap
 from typing import Optional, Tuple
+import types
 
 import numpy as np
 

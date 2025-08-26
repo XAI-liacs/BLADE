@@ -7,8 +7,7 @@ import httpx
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
-import httpx
-from iohblade import (
+from iohblade.llm import (
     LLM,
     Claude_LLM,
     Gemini_LLM,
@@ -147,7 +146,7 @@ def test_claude_llm_init():
     llm = Claude_LLM(api_key="some_key", model="claude-3-haiku-20240307")
     assert llm.model == "claude-3-haiku-20240307"
 
-    
+
 def test_deepseek_llm_init(monkeypatch):
     _patch_openai(monkeypatch)
     llm = DeepSeek_LLM(api_key="ds-key")

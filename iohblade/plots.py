@@ -6,7 +6,6 @@ from collections import Counter
 
 import plotly.graph_objects as go
 
-import jellyfish
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np

@@ -142,12 +142,13 @@ make sure you have `uv` installed.
     To run a benchmarking experiment using BLADE:
 
     ```python
-    from iohblade import Experiment
-    from iohblade import Ollama_LLM
+    import os
+
+    from iohblade.experiment import Experiment
+    from iohblade.llm import Ollama_LLM
     from iohblade.methods import LLaMEA, RandomSearch
     from iohblade.problems import BBOB_SBOX
     from iohblade.loggers import ExperimentLogger
-    import os
 
     llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
     budget = 50 #short budget for testing
