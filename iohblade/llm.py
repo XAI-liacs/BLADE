@@ -9,9 +9,9 @@ import time
 from abc import ABC, abstractmethod
 
 import anthropic
-import google.generativeai as genai
 import ollama
 import openai
+from google import genai
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -387,21 +387,18 @@ class Gemini_LLM(LLM):
                 Options are: "gemini-1.5-flash","gemini-2.0-flash", and others from Googles models library.
         """
         super().__init__(api_key, model, None, **kwargs)
-        genai.configure(api_key=api_key)
-        if generation_config == None:
+        if generation_config is None:
             generation_config = {
                 "temperature": 1,
                 "top_p": 0.95,
                 "top_k": 64,
                 "max_output_tokens": 65536,
                 "response_mime_type": "text/plain",
+                "system_instruction": "You are a computer scientist and excellent Python programmer.",
             }
 
-        self.client = genai.GenerativeModel(
-            model_name=self.model,  # "gemini-1.5-flash","gemini-2.0-flash",
-            generation_config=generation_config,
-            system_instruction="You are a computer scientist and excellent Python programmer.",
-        )
+        self.client = genai.Client(api_key=api_key)
+        self.generation_config = generation_config
 
     def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
@@ -423,7 +420,9 @@ class Gemini_LLM(LLM):
         attempt = 0
         while True:
             try:
-                chat = self.client.start_chat(history=history)
+                chat = self.client.chats.create(
+                    model=self.model, history=history, config=self.generation_config
+                )
                 response = chat.send_message(last)
                 return response.text
 
