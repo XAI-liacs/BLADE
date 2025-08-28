@@ -530,15 +530,35 @@ def plot_boxplot_fitness_hue(
 
     if problems is None:
         problems = sorted(df["problem_name"].unique())
+
     df_filtered = df[df["problem_name"].isin(problems)]
 
-    # Create subplots, one per problem
-    fig, axes = plt.subplots(1, 1, figsize=(2.5 * len(problems), 4))
+    # Depending on the number of problems at hand, plot it within A-4 dimention 8x11
+    # If len(problems) > 1; plot in it 2 columns,
+    # The method count is aoutmatically scaled, as it is provided a min width of 4 inches.
+    prob_len = len(problems)
+    fig, axes = plt.subplots(
+        ncols=1 if prob_len <= 1 else 2,
+        nrows=int(np.ceil(prob_len / 2)),
+        figsize=(8, 5 if prob_len <= 2 else 5)
+    )
 
-    # Plot with Seaborn
-    sns.boxplot(x=x, y="fitness", hue=hue, data=df_filtered, ax=axes)
-    axes.set_xlabel(x_label)
-    axes.set_ylabel(y_label)
+    # Make sure axes is always a flat array for iteration
+    if isinstance(axes, np.ndarray):
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+
+    for j in range(prob_len, len(axes)):
+        fig.delaxes(axes[j])
+
+    for i, problem in enumerate(problems):
+        ax = axes[i]
+        df_problem = df_filtered[df_filtered[x] == problem]
+        sns.boxplot(x=x, y="fitness", hue=hue, data=df_problem, ax=ax)
+        ax.set_xlabel(x_label)
+        ax.set_ylabel(y_label)
+        ax.set_title(problem)
 
     plt.tight_layout()
     plt.show()
