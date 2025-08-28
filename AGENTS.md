@@ -20,8 +20,8 @@ Guidance for AI contributors, including Codex, on working with this repository.
 - Use `uv run` to execute commands in the environment.
 - Format code before committing:
   ```bash
-  uv run isort .
-  uv run black .
+  uv run isort iohblade/
+  uv run black iohblade/
   ```
 - Search the codebase with `rg`; avoid `grep -R` and `ls -R`.
 - Style guidelines:
@@ -33,7 +33,7 @@ Guidance for AI contributors, including Codex, on working with this repository.
 
 - Run tests for any code change:
   ```bash
-  uv run pytest
+  uv run pytest tests/
   ```
 - Documentation or comment only changes do not require tests or linters.
 
