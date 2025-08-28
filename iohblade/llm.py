@@ -2,16 +2,16 @@
 LLM modules to connect to different LLM providers. Also extracts code, name and description.
 """
 
+import copy
+import logging
 import re
 import time
 from abc import ABC, abstractmethod
-import logging
-import copy
 
-import google.generativeai as genai
+import anthropic
 import ollama
 import openai
-from ConfigSpace import ConfigurationSpace
+from google import genai
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -200,12 +200,16 @@ class LLM(ABC):
         Returns:
             ConfigSpace: Extracted configuration space object.
         """
+        if ConfigurationSpace == None:
+            raise Exception("Please install the ConfigSpace package first.")
         pattern = r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         c = None
         for m in re.finditer(pattern, message, re.DOTALL | re.IGNORECASE):
             try:
+                from ConfigSpace import ConfigurationSpace
+
                 c = ConfigurationSpace(eval(m.group(1)))
-            except Exception as e:
+            except Exception:
                 pass
         return c
 
@@ -355,12 +359,25 @@ class OpenAI_LLM(LLM):
         return new
 
 
+class DeepSeek_LLM(OpenAI_LLM):
+    """A manager class for the DeepSeek chat models."""
+
+    def __init__(self, api_key, model="deepseek-chat", temperature=0.8, **kwargs):
+        """Initializes DeepSeek LLM with required base URL."""
+        super().__init__(api_key, model=model, temperature=temperature, **kwargs)
+        self.base_url = "https://api.deepseek.com"
+        self._client_kwargs["base_url"] = self.base_url
+        self.client = openai.OpenAI(**self._client_kwargs)
+
+
 class Gemini_LLM(LLM):
     """
     A manager class for handling requests to Google's Gemini models.
     """
 
-    def __init__(self, api_key, model="gemini-2.0-flash", **kwargs):
+    def __init__(
+        self, api_key, model="gemini-2.0-flash", generation_config=None, **kwargs
+    ):
         """
         Initializes the LLM manager with an API key and model name.
 
@@ -370,20 +387,17 @@ class Gemini_LLM(LLM):
                 Options are: "gemini-1.5-flash","gemini-2.0-flash", and others from Googles models library.
         """
         super().__init__(api_key, model, None, **kwargs)
-        genai.configure(api_key=api_key)
-        generation_config = {
-            "temperature": 1,
-            "top_p": 0.95,
-            "top_k": 64,
-            "max_output_tokens": 8192,
-            "response_mime_type": "text/plain",
-        }
+        if generation_config is None:
+            generation_config = {
+                "temperature": 1,
+                "top_p": 0.95,
+                "top_k": 64,
+                "max_output_tokens": 65536,
+                "response_mime_type": "text/plain",
+            }
 
-        self.client = genai.GenerativeModel(
-            model_name=self.model,  # "gemini-1.5-flash","gemini-2.0-flash",
-            generation_config=generation_config,
-            system_instruction="You are a computer scientist and excellent Python programmer.",
-        )
+        self.client = genai.Client(api_key=api_key)
+        self.generation_config = generation_config
 
     def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
         """
@@ -405,7 +419,9 @@ class Gemini_LLM(LLM):
         attempt = 0
         while True:
             try:
-                chat = self.client.start_chat(history=history)
+                chat = self.client.chats.create(
+                    model=self.model, history=history, config=self.generation_config
+                )
                 response = chat.send_message(last)
                 return response.text
 
@@ -468,11 +484,91 @@ class Ollama_LLM(LLM):
                     raise
                 time.sleep(default_delay * attempt)
 
-            except Exception:
+
+class Claude_LLM(LLM):
+    """A manager class for handling requests to Anthropic's Claude models."""
+
+    def __init__(
+        self,
+        api_key,
+        model="claude-3-haiku-20240307",
+        base_url=None,
+        temperature=0.8,
+        max_tokens=4096,
+        **kwargs,
+    ):
+        """Initializes the LLM manager with an API key and model name."""
+
+        super().__init__(api_key, model, base_url, **kwargs)
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+        self._client_kwargs = {"api_key": api_key}
+        if base_url:
+            self._client_kwargs["base_url"] = base_url
+        self.client = anthropic.Anthropic(**self._client_kwargs)
+        logging.getLogger("anthropic").setLevel(logging.ERROR)
+
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+        """Sends a conversation history to the configured model and returns the response text."""
+
+        attempt = 0
+        while True:
+            try:
+                response = self.client.messages.create(
+                    model=self.model,
+                    messages=session_messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+
+                content = response.content
+                if isinstance(content, list):
+                    parts = []
+                    for block in content:
+                        parts.append(getattr(block, "text", block.get("text", "")))
+                    return "".join(parts)
+                return content
+
+            except anthropic.RateLimitError as err:
+                attempt += 1
+                if attempt > max_retries:
+                    raise
+                retry_after = None
+                if getattr(err, "response", None) is not None:
+                    retry_after = err.response.headers.get("Retry-After")
+                wait = int(retry_after) if retry_after else default_delay * attempt
+                time.sleep(wait)
+
+            except (
+                anthropic.APITimeoutError,
+                anthropic.APIConnectionError,
+                anthropic.APIError,
+            ) as err:
                 attempt += 1
                 if attempt > max_retries:
                     raise
                 time.sleep(default_delay * attempt)
+
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = anthropic.Anthropic(**self._client_kwargs)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.client = anthropic.Anthropic(**new._client_kwargs)
+        return new
 
 
 class Dummy_LLM(LLM):

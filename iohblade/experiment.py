@@ -161,6 +161,7 @@ class Experiment(ABC):
                     log_dir=logger.dirname,
                     seed=seed,
                 )
+                problem.cleanup()
                 if not self.show_stdout:
                     self._refresh_console()
                 else:
@@ -171,9 +172,11 @@ class Experiment(ABC):
         np.random.seed(seed)
         method.llm.set_logger(logger)
         if self.show_stdout:
+            problem._ensure_env()
             return method(problem)
         with contextlib.redirect_stdout(None):
             with contextlib.redirect_stderr(None):
+                problem._ensure_env()
                 return method(problem)
 
 

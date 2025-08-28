@@ -2,7 +2,11 @@ import time
 from unittest.mock import MagicMock
 
 import numpy as np
-import pytest
+
+try:
+    import pytest  # only used in tests, make sure cloudpickle doesn't care
+except ImportError:
+    pytest = None
 
 from iohblade import Problem, Solution, TimeoutException
 from iohblade.problem import evaluate_in_subprocess
@@ -24,31 +28,34 @@ class SlowProblem(Problem):
         return {}
 
 
+class DummyProblem(Problem):
+    def get_prompt(self):
+        return "Problem prompt"
+
+    def evaluate(self, s):
+        s.set_scores(1.0, "Feedback")
+        return s
+
+    def test(self, s):
+        return s
+
+    def to_dict(self):
+        return {}
+
+
 def test_problem_abstract_methods():
-    class DummyProblem(Problem):
-        def get_prompt(self):
-            return "Problem prompt"
-
-        def evaluate(self, s):
-            return s
-
-        def test(self, s):
-            return s
-
-        def to_dict(self):
-            return {}
-
     dp = DummyProblem(name="dummy")
     assert dp.name == "dummy"
     sol = Solution()
     # Just ensure that calling it doesn't blow up
-    dp(sol)
-    assert sol.fitness == -np.inf  # because evaluate didn't do anything
+    sol = dp(sol)
+    assert sol.feedback == "Feedback", sol.feedback
+    assert sol.fitness == 1.0, sol.fitness
 
 
 def test_problem_timeout():
     sp = SlowProblem(eval_timeout=1)  # 1 second
     sol = Solution()
-    sp(sol)
+    sol = sp(sol)
     # We expect a TimeoutException or similar
     assert "timed out" in str(sol.feedback)

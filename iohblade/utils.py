@@ -4,9 +4,26 @@ import json
 import re
 import textwrap
 from typing import Optional, Tuple
+import types
 
 import numpy as np
-from ioh import LogInfo, logger
+
+try:
+    from ioh import LogInfo, logger
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    LogInfo = None
+
+    class _DummyLogger:
+        class AbstractLogger:
+            pass
+
+        def __getattr__(self, name):
+            def _noop(*args, **kwargs):
+                pass
+
+            return _noop
+
+    logger = _DummyLogger()
 
 
 class TimeoutException(Exception):

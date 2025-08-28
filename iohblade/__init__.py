@@ -1,16 +1,9 @@
 import multiprocessing
 
-from .llm import LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
-from .method import Method
-from .plots import (
-    fitness_table,
-    plot_boxplot_fitness,
-    plot_boxplot_fitness_hue,
-    plot_code_evolution_graphs,
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_token_usage,
-)
+# Only import the minimal set of objects that do not pull in heavy
+# dependencies.  Modules such as ``llm`` or ``plots`` require optional
+# third-party packages and should be imported explicitly by consumers
+# that need them.
 from .problem import Problem
 from .solution import Solution
 from .utils import (
@@ -23,6 +16,19 @@ from .utils import (
     convert_to_serializable,
     correct_aoc,
 )
+
+__all__ = [
+    "Problem",
+    "Solution",
+    "NoCodeException",
+    "OverBudgetException",
+    "ThresholdReachedException",
+    "TimeoutException",
+    "aoc_logger",
+    "budget_logger",
+    "convert_to_serializable",
+    "correct_aoc",
+]
 
 
 def ensure_spawn_start_method():

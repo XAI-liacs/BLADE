@@ -83,6 +83,8 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
 | **Gemini**   | Google's multimodal LLM designed to process text, images, audio, and more. [Reference](https://en.wikipedia.org/wiki/Gemini_%28language_model%29) | Accessible via the Gemini API, compatible with OpenAI libraries. [Reference](https://ai.google.dev/gemini-api/docs/openai) |
 | **OpenAI**   | Developer of GPT series models, including GPT-4, widely used for natural language understanding and generation. [Reference](https://openai.com/) | Integration through OpenAI's REST API and client libraries.                                                    |
 | **Ollama**   | A platform offering access to various LLMs, enabling local and cloud-based model deployment. [Reference](https://www.ollama.ai/) | Integration details can be found in their official documentation.                                             |
+| **Claude**   | Anthropic's Claude models for safe and capable language generation. [Reference](https://www.anthropic.com/) | Accessed via the Anthropic API. |
+| **DeepSeek** | Developer of the DeepSeek family of models for code and chat. [Reference](https://www.deepseek.com/) | Access via OpenAI compatible API at `https://api.deepseek.com`. |
 
 
 ### Evaluating against Human Designed baselines
@@ -103,7 +105,7 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
 ```
 > [!Important]
 > The Python version **must** be larger or equal to Python 3.11.
-> You need an OpenAI/Gemini/Ollama API key for using LLM models.
+> You need an OpenAI/Gemini/Ollama/Claude/DeepSeek API key for using LLM models.
 
 You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).
 make sure you have `uv` installed.
@@ -128,8 +130,8 @@ make sure you have `uv` installed.
 
 ## 💻 Quick Start
 
-1. Set up an OpenAI API key:
-   - Obtain an API key from [OpenAI](https://openai.com/) or Gemini or another LLM provider.
+1. Set up an API key for your preferred provider:
+   - Obtain an API key from [OpenAI](https://openai.com/), Claude, Gemini, or another LLM provider.
    - Set the API key in your environment variables:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'
@@ -140,12 +142,13 @@ make sure you have `uv` installed.
     To run a benchmarking experiment using BLADE:
 
     ```python
-    from iohblade import Experiment
-    from iohblade import Ollama_LLM
+    import os
+
+    from iohblade.experiment import Experiment
+    from iohblade.llm import Ollama_LLM
     from iohblade.methods import LLaMEA, RandomSearch
     from iohblade.problems import BBOB_SBOX
     from iohblade.loggers import ExperimentLogger
-    import os
 
     llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
     budget = 50 #short budget for testing
@@ -200,9 +203,24 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 
 ## ✨ Citation
+If you use BLADE in your research, please cite the following work:
 
+```bibtex
+@inproceedings{vanstein2025blade,
+  author    = {Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas B{\"a}ck},
+  title     = {BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics},
+  booktitle = {Proceedings of the Genetic and Evolutionary Computation Conference Companion},
+  series    = {GECCO '25 Companion'},
+  year      = {2025},
+  pages     = {2336--2344},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  doi       = {10.1145/3712255.3734347},
+  url       = {https://doi.org/10.1145/3712255.3734347}
+}
+```
 
-TBA
+The repository also provides a [`CITATION.cff`](./CITATION.cff) file for use with GitHub's citation feature.
 
 -----
 Happy Benchmarking with IOH-BLADE! 🚀

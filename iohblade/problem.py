@@ -1,31 +1,89 @@
 import multiprocessing
+import os
+import shutil
+import subprocess
+import tempfile
 import traceback
 from abc import ABC, abstractmethod
+from pathlib import Path
 
+import cloudpickle
 import numpy as np
-from joblib.externals.loky import get_reusable_executor
+import json, tempfile, uuid
+
+# Standard packages installed in every evaluation environment
+BASE_DEPENDENCIES = [
+    "numpy>=1.26.3,<2",
+    "cloudpickle>=3.1.0,<4",
+    "joblib>=1.4.2,<2",
+    #    "pandas==2.0.3",
+    #    "polars==1.31.0",
+    #    "scikit-learn==1.3.0",
+]
 
 from .solution import Solution
 from .utils import TimeoutException
+import copy
 
 
 def evaluate_in_subprocess(problem, conn, solution):
-    """
-    Runs the evaluation and stores the result in a queue.
-    Args:
-        queue (multiprocessing.Queue): Queue for storing the evaluation result.
-        solution (Solution): Solution object to be evaluated.
-    """
+    """Evaluate a solution in a dedicated virtual environment."""
     try:
-        result = problem.evaluate(solution)
-        conn.send(result)  # Send result through the pipe
+        env_path = problem._env_path
+        python_bin = problem._python_bin
+
+        problem_pickle = env_path / "problem.pkl"
+        solution_pickle = env_path / "solution.pkl"
+        result_pickle = (
+            Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
+        )
+        problem_copy = copy.deepcopy(problem)
+        problem_copy.logger = None
+        with open(problem_pickle, "wb") as f:
+            cloudpickle.dump(problem_copy, f)
+        with open(solution_pickle, "wb") as f:
+            cloudpickle.dump(solution, f)
+
+        script_path = env_path / "run_eval.py"
+        deps_imports = []
+        imports_block = getattr(problem, "imports", "")
+        script_path.write_text(
+            (f"{imports_block}\n" if imports_block else "")
+            + "import cloudpickle as cp\n"
+            + "import os, json\n"
+            + f"problem_path = {json.dumps(str(problem_pickle))}\n"
+            + f"solution_path = {json.dumps(str(solution_pickle))}\n"
+            + f"result_path  = {json.dumps(str(result_pickle))}\n"
+            + "problem=cp.load(open(problem_path,'rb'))\n"
+            + "solution=cp.load(open(solution_path,'rb'))\n"
+            + "result=problem.evaluate(solution)\n"
+            + "with open(result_path,'wb') as f:\n"
+            + "    cp.dump(result, f)\n"
+        )
+
+        env = os.environ.copy()
+        repo_root = Path(__file__).resolve().parents[1]
+        env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
+
+        try:
+            res = subprocess.run(
+                [str(python_bin), str(script_path)],
+                check=True,
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+            with open(result_pickle, "rb") as f:
+                result = cloudpickle.load(f)
+            conn.send(result)
+        except subprocess.CalledProcessError as e:
+            # Process returned non-zero exit code
+            conn.send(e.stderr)
+
     except Exception as e:
-        # print(f"stracktrace: {traceback.format_exc()}")
-        conn.send(
-            f"{e} stracktrace: {traceback.format_exc()}"
-        )  # Send exception for handling in the parent
+        conn.send(f"{e} stracktrace: {traceback.format_exc()}")
     finally:
-        conn.close()  # Ensure pipe is closed after sending data
+        conn.close()
 
 
 class Problem(ABC):
@@ -40,6 +98,8 @@ class Problem(ABC):
         test_instances=None,
         name="Problem",
         eval_timeout=6000,
+        dependencies=None,
+        imports=None,
     ):
         """
         Initializes a problem instance with logging and dataset references.
@@ -51,8 +111,11 @@ class Problem(ABC):
             name (str, optional): Name of the problem.
             eval_timeout (int, optional): Number of seconds before a timeout error is raised.
             budget (int): number of algorithms are allowed to be generated per run.
+            dependencies (list, optional): a list of pypi packages to install before evaluation.
+            imports (string, optional): the python string to manage imports in the evaluation file.
         """
         self.logger = logger
+        self.logger_dir = ""
         self.training_instances = training_instances if training_instances else []
         self.test_instances = test_instances if test_instances else []
         self.task_prompt = "Write the problem description part here."
@@ -60,6 +123,18 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
+        # Combine the base dependencies with any problem specific ones
+        self.dependencies = BASE_DEPENDENCIES.copy()
+        if dependencies:
+            self.dependencies.extend(dependencies)
+        if imports is None:
+            self.imports = "import numpy as np\n"
+        else:
+            self.imports = imports
+
+        # Path to the virtual environment used for evaluations
+        self._env_path: Path | None = None
+        self._python_bin: Path | None = None
 
         # These settings are required for EoH, adapt them based on your problem.
         # The function name, inputs, and outputs should match the expected format.
@@ -97,6 +172,7 @@ class Problem(ABC):
         # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
         try:
+            self._ensure_env()
             (
                 parent_conn,
                 child_conn,
@@ -143,11 +219,42 @@ class Problem(ABC):
             self.logger.log_individual(solution)
         return solution
 
+    def _ensure_env(self):
+        """Create the virtual environment for evaluations if it does not exist."""
+        if self._env_path is not None:
+            return
+        import virtualenv
+
+        env_dir = tempfile.mkdtemp(prefix="blade_env_")
+        self._env_path = Path(env_dir)
+        virtualenv.cli_run([env_dir])
+        self._python_bin = (
+            self._env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
+        )
+
+        deps = getattr(self, "dependencies", [])
+        if deps:
+            subprocess.run(
+                [str(self._python_bin), "-m", "pip", "install", *deps],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+    def cleanup(self):
+        try:
+            if self._env_path and self._env_path.exists():
+                shutil.rmtree(self._env_path)
+        except Exception:
+            pass
+
     def set_logger(self, logger):
         """
         Sets the logger for this problem.
         """
         self.logger = logger
+        if logger != None:
+            self.logger_dir = logger.get_log_dir()
 
     def get_prompt(self):
         """

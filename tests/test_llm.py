@@ -1,13 +1,22 @@
+import copy
 import datetime as _dt
+import pickle
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
-import copy
-import pickle
 
 import iohblade.llm as llm_mod  # the module that defines _query
-import httpx
-from iohblade import LLM, Gemini_LLM, NoCodeException, Ollama_LLM, OpenAI_LLM, Dummy_LLM
+from iohblade.llm import (
+    LLM,
+    Claude_LLM,
+    Gemini_LLM,
+    NoCodeException,
+    Ollama_LLM,
+    OpenAI_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
+)
 
 
 class _DummyOpenAI:
@@ -16,12 +25,27 @@ class _DummyOpenAI:
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
+
 def _patch_openai(monkeypatch):
     """
     Helper that swaps out openai.OpenAI with _DummyOpenAI inside the
     already-imported iohblade.llm module.
     """
     monkeypatch.setattr(llm_mod.openai, "OpenAI", _DummyOpenAI)
+
+
+class _DummyAnthropic:
+    """Stand-in that just records the kwargs used to build it."""
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+        self.messages = MagicMock()
+
+
+def _patch_anthropic(monkeypatch):
+    """Helper that swaps out anthropic.Anthropic with _DummyAnthropic."""
+    monkeypatch.setattr(llm_mod.anthropic, "Anthropic", _DummyAnthropic)
+
 
 def test_openai_llm_getstate_strips_client(monkeypatch):
     _patch_openai(monkeypatch)
@@ -66,6 +90,7 @@ def test_openai_llm_pickle_roundtrip(monkeypatch):
     assert revived.model == llm.model
     assert isinstance(revived.client, _DummyOpenAI)
     assert revived.client.kwargs["api_key"] == "sk-test"
+
 
 def test_llm_instantiation():
     # Since LLM is abstract, we'll instantiate a child class
@@ -117,6 +142,18 @@ def test_gemini_llm_init():
     assert llm.model == "gemini-2.0-flash"
 
 
+def test_claude_llm_init():
+    llm = Claude_LLM(api_key="some_key", model="claude-3-haiku-20240307")
+    assert llm.model == "claude-3-haiku-20240307"
+
+
+def test_deepseek_llm_init(monkeypatch):
+    _patch_openai(monkeypatch)
+    llm = DeepSeek_LLM(api_key="ds-key")
+    assert llm.model == "deepseek-chat"
+    assert llm.client.kwargs.get("base_url") == "https://api.deepseek.com"
+
+
 def _resource_exhausted(delay_secs: int = 2) -> Exception:
     """
     Build a faux `ResourceExhausted`-style exception carrying a `retry_delay`
@@ -148,7 +185,7 @@ def test_gemini_llm_retries_then_succeeds(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
 
-    # First start_chat → chat.send_message raises; second returns text
+    # First chats.create → chat.send_message raises; second returns text
     chat_fail = MagicMock()
     chat_fail.send_message.side_effect = _resource_exhausted(2)
 
@@ -156,13 +193,13 @@ def test_gemini_llm_retries_then_succeeds(monkeypatch):
     chat_ok.send_message.return_value = type("R", (), {"text": "OK-DONE"})
 
     fake_client = MagicMock()
-    fake_client.start_chat.side_effect = [chat_fail, chat_ok]
+    fake_client.chats.create.side_effect = [chat_fail, chat_ok]
     llm.client = fake_client
 
     reply = llm._query([{"role": "user", "content": "hello"}], max_retries=3)
 
     assert reply == "OK-DONE"
-    assert fake_client.start_chat.call_count == 2  # 1 failure + 1 success
+    assert fake_client.chats.create.call_count == 2  # 1 failure + 1 success
     slept.assert_called_once_with(3)  # 2 s + 1 s safety buffer
 
 
@@ -177,7 +214,7 @@ def test_gemini_llm_gives_up_after_max_retries(monkeypatch):
     chat_fail.send_message.side_effect = _resource_exhausted(1)
 
     fake_client = MagicMock()
-    fake_client.start_chat.return_value = chat_fail
+    fake_client.chats.create.return_value = chat_fail
     llm.client = fake_client
 
     with pytest.raises(Exception):
@@ -218,6 +255,83 @@ def test_openai_llm_gives_up(monkeypatch):
     slept.assert_called_once_with(1)
 
 
+def _anthropic_rate_limit(retry_after: int = 2) -> Exception:
+    response = httpx.Response(
+        status_code=429,
+        headers={"Retry-After": str(retry_after)},
+        request=httpx.Request("POST", "http://test"),
+    )
+    return llm_mod.anthropic.RateLimitError("quota", response=response, body=None)
+
+
+def test_claude_llm_getstate_strips_client(monkeypatch):
+    _patch_anthropic(monkeypatch)
+
+    llm = Claude_LLM(api_key="sk-test", model="claude-test")
+    state = llm.__getstate__()
+
+    assert "client" not in state
+    assert state["model"] == "claude-test"
+
+
+def test_claude_llm_deepcopy_restores_client(monkeypatch):
+    _patch_anthropic(monkeypatch)
+
+    original = Claude_LLM(api_key="sk-test", model="claude-test", temperature=0.3)
+    clone = copy.deepcopy(original)
+
+    assert clone is not original
+    assert clone.model == original.model
+    assert clone.temperature == original.temperature
+    assert isinstance(clone.client, _DummyAnthropic)
+    assert clone.client is not original.client
+    assert clone.client.kwargs["api_key"] == "sk-test"
+
+    clone.temperature = 0.99
+    assert original.temperature != clone.temperature
+
+
+def test_claude_llm_pickle_roundtrip(monkeypatch):
+    _patch_anthropic(monkeypatch)
+
+    llm = Claude_LLM(api_key="sk-test", model="claude-test")
+    blob = pickle.dumps(llm)
+    revived = pickle.loads(blob)
+
+    assert revived.model == llm.model
+    assert isinstance(revived.client, _DummyAnthropic)
+    assert revived.client.kwargs["api_key"] == "sk-test"
+
+
+def test_claude_llm_retries_then_succeeds(monkeypatch):
+    llm = Claude_LLM(api_key="fake", model="claude-test")
+
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+
+    ok = MagicMock()
+    ok.content = [{"text": "DONE"}]
+    llm.client.messages.create = MagicMock(side_effect=[_anthropic_rate_limit(2), ok])
+
+    reply = llm._query([{"role": "user", "content": "hi"}], max_retries=2)
+    assert reply == "DONE"
+    assert llm.client.messages.create.call_count == 2
+    slept.assert_called_once_with(2)
+
+
+def test_claude_llm_gives_up(monkeypatch):
+    llm = Claude_LLM(api_key="fake", model="claude-test")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    llm.client.messages.create = MagicMock(
+        side_effect=[_anthropic_rate_limit(1), _anthropic_rate_limit(1)]
+    )
+
+    with pytest.raises(llm_mod.anthropic.RateLimitError):
+        llm._query([{"role": "user", "content": "boom"}], max_retries=1)
+    slept.assert_called_once_with(1)
+
+
 def test_ollama_llm_retries_then_succeeds(monkeypatch):
     llm = Ollama_LLM(model="llama-test")
     slept = MagicMock()
@@ -253,8 +367,13 @@ def test_ollama_llm_gives_up(monkeypatch):
         llm._query([{"role": "u", "content": "boom"}], max_retries=1)
     slept.assert_called_once_with(10)
 
+
 def test_dummy_llm():
     llm = Dummy_LLM(model="dummy-model")
     assert llm.model == "dummy-model"
     response = llm._query([{"role": "user", "content": "test"}])
-    assert len(response) == 946, "Dummy_LLM should return a 946-character string, returned length: {}".format(len(response))
+    assert (
+        len(response) == 946
+    ), "Dummy_LLM should return a 946-character string, returned length: {}".format(
+        len(response)
+    )
