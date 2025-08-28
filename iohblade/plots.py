@@ -540,7 +540,7 @@ def plot_boxplot_fitness_hue(
     fig, axes = plt.subplots(
         ncols=1 if prob_len <= 1 else 2,
         nrows=int(np.ceil(prob_len / 2)),
-        figsize=(8, 5 if prob_len <= 2 else 11)
+        figsize=(8, 5 if prob_len <= 2 else 11),
     )
 
     # Make sure axes is always a flat array for iteration
