@@ -394,7 +394,6 @@ class Gemini_LLM(LLM):
                 "top_k": 64,
                 "max_output_tokens": 65536,
                 "response_mime_type": "text/plain",
-                "system_instruction": "You are a computer scientist and excellent Python programmer.",
             }
 
         self.client = genai.Client(api_key=api_key)
