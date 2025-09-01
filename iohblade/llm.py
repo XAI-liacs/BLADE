@@ -74,7 +74,7 @@ class LLM(ABC):
         logging.getLogger("tokencost").setLevel(logging.ERROR)
 
     @abstractmethod
-    def _query(self, session: list):
+    def _query(self, session: list, **kwargs):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -139,7 +139,7 @@ class LLM(ABC):
         self.logger = logger
         self.log = True
 
-    def sample_solution(self, session_messages: list, parent_ids=[], HPO=False):
+    def sample_solution(self, session_messages: list, parent_ids=[], HPO=False, **kwargs):
         """
         Interacts with a language model to generate or mutate solutions based on the provided session messages.
 
@@ -150,12 +150,13 @@ class LLM(ABC):
 
         Returns:
             tuple: A tuple containing the new algorithm code, its class name, its full descriptive name and an optional configuration space object.
+            **kwargs: Additional LLM settings that can be used at query time.
 
         Raises:
             NoCodeException: If the language model fails to return any code.
             Exception: Captures and logs any other exceptions that occur during the interaction.
         """
-        message = self.query(session_messages)
+        message = self.query(session_messages, **kwargs)
 
         code = self.extract_algorithm_code(message)
         name = self.extract_classname(code)
@@ -295,7 +296,9 @@ class OpenAI_LLM(LLM):
         Args:
             session_messages (list of dict): A list of message dictionaries with keys
                 "role" (e.g. "user", "assistant") and "content" (the message text).
-            **kwargs
+            **kwargs: To add access to additional parameters that are avaiable
+            in openai's client.chat.completions.create, we allow users to add
+            their own parameters.
 
         Returns:
             str: The text content of the LLM's response.
@@ -402,7 +405,7 @@ class Gemini_LLM(LLM):
         self.client = genai.Client(api_key=api_key)
         self.generation_config = generation_config
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
         """
         Sends the conversation history to Gemini, retrying on 429 ResourceExhausted exceptions.
 
@@ -410,7 +413,9 @@ class Gemini_LLM(LLM):
             session_messages (list[dict]): [{"role": str, "content": str}, …]
             max_retries (int): how many times to retry before giving up.
             default_delay (int): fallback sleep when the error has no retry_delay.
-
+            kwargs: The generation_config is provided in __init__, to change a set
+            of these config, or adding extra parameters, use kwargs, or
+            additional named arguements to function.
         Returns:
             str: model's reply.
         """
@@ -422,8 +427,10 @@ class Gemini_LLM(LLM):
         attempt = 0
         while True:
             try:
+                config = self.generation_config.copy()
+                config = config.update(**kwargs)
                 chat = self.client.chats.create(
-                    model=self.model, history=history, config=self.generation_config
+                    model=self.model, history=history, config=config
                 )
                 response = chat.send_message(last)
                 return response.text
@@ -456,13 +463,17 @@ class Ollama_LLM(LLM):
         """
         super().__init__("", model, None, **kwargs)
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
         """
         Sends a conversation history to the configured model and returns the response text.
 
         Args:
             session_messages (list of dict): A list of message dictionaries with keys
                 "role" (e.g. "user", "assistant") and "content" (the message text).
+            **kwargs Can be used to add additional `chat` parameters to the query,
+                These queries are seperate queries placed under `option` parameter as
+                documented in https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
+
 
         Returns:
             str: The text content of the LLM's response.
@@ -478,6 +489,7 @@ class Ollama_LLM(LLM):
                 response = ollama.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
+                    options=kwargs
                 )
                 return response["message"]["content"]
 
