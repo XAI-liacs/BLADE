@@ -349,6 +349,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
     llm_mod.ollama.chat.assert_called_with(
         model=llm.model,
         messages=[{"role": "user", "content": "hi\n"}],
+        options = {}    # Options feature added.
     )
     slept.assert_called_once_with(10)
 
@@ -377,3 +378,64 @@ def test_dummy_llm():
     ), "Dummy_LLM should return a 919-character string, returned length: {}".format(
         len(response)
     )
+
+
+def test_ollama_llm_query_forwards_kwargs(monkeypatch):
+    # Create your LLM instance
+    llm = Ollama_LLM(model="llama-test")
+
+    # Mock the underlying chat function
+    mocked_chat = MagicMock(return_value={"message": {"content": "OK"}})
+    monkeypatch.setattr(llm_mod.ollama, "chat", mocked_chat)
+
+    session = [{"role": "user", "content": "Hello"}]
+    session_out = copy.deepcopy(session)    # Factoring long message combiner.
+    session_out[0]["content"] += "\n"
+    # Example kwargs to forward
+    extra_kwargs = {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "num_ctx": 512
+    }
+
+    # Call _query with session and kwargs
+    result = llm._query(session, **extra_kwargs)
+
+    # Assert the return value is as expected
+    assert result == "OK"
+
+    # Assert the underlying chat function was called with correct arguments
+    mocked_chat.assert_called_once_with(
+        model=llm.model,
+        messages=session_out,
+        options=extra_kwargs
+    )
+
+def test_gemini_query_forwards_kwargs(monkeypatch):
+    llm = Gemini_LLM(api_key="none", model="llamea-test")
+    base_config = copy.deepcopy(llm.generation_config)
+
+    # Prepare mocks
+    mocked_chat = MagicMock()
+    mocked_chat.send_message.return_value.text = "OK"
+
+    monkeypatch.setattr(llm_mod.genai.client.Chats , "create", MagicMock(return_value=mocked_chat))
+
+    session = [{"role": "user", "content": "Hello"}]
+    extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "top_k": 12}
+
+    # Expected config after merge
+    expected_config = copy.deepcopy(base_config)
+    expected_config.update(extra_kwargs)
+
+    # Call method
+    result = llm._query(session, **extra_kwargs)
+
+    # Assertions
+    assert result == "OK"
+    llm.client.chats.create.assert_called_once_with(
+        model="llamea-test",
+        history=[],
+        config=expected_config
+    )
+    mocked_chat.send_message.assert_called_once_with("Hello")

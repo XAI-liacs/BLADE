@@ -428,7 +428,7 @@ class Gemini_LLM(LLM):
         while True:
             try:
                 config = self.generation_config.copy()
-                config = config.update(**kwargs)
+                config.update(**kwargs)
                 chat = self.client.chats.create(
                     model=self.model, history=history, config=config
                 )
