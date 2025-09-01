@@ -7,6 +7,7 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from typing import Any
 
 import anthropic
 import ollama
@@ -287,13 +288,14 @@ class OpenAI_LLM(LLM):
         logging.getLogger("httpx").setLevel(logging.ERROR)
         self.temperature = temperature
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10):
+    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
         """
         Sends a conversation history to the configured model and returns the response text.
 
         Args:
             session_messages (list of dict): A list of message dictionaries with keys
                 "role" (e.g. "user", "assistant") and "content" (the message text).
+            **kwargs
 
         Returns:
             str: The text content of the LLM's response.
@@ -306,6 +308,7 @@ class OpenAI_LLM(LLM):
                     model=self.model,
                     messages=session_messages,
                     temperature=self.temperature,
+                    **kwargs
                 )
                 return response.choices[0].message.content
 
@@ -599,7 +602,7 @@ class Dummy_LLM(LLM):
         for msg in session_messages:
             big_message += msg["content"] + "\n"
         response = """This is a dummy response from the DUMMY LLM. It does not connect to any LLM provider.
-It is used for testing purposes only. 
+It is used for testing purposes only.
 # Description: A simple random search algorithm that samples points uniformly in the search space and returns the best found solution.
 # Code:
 ```python
@@ -615,12 +618,10 @@ class RandomSearch:
     def __call__(self, func):
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
-            
             f = func(x)
             if f < self.f_opt:
                 self.f_opt = f
                 self.x_opt = x
-            
         return self.f_opt, self.x_opt
 ```
 # Configuration Space:
