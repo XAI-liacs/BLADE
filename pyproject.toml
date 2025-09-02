@@ -75,7 +75,7 @@ default-groups = [
 ]
 
 [tool.uv.sources]
-eoh = { git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh" , rev = "8d679f821af8edc7fbe3a4b6d6538b1b0362b4fb"}
+eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev = "f0d21b2f2f62c452bac545fd7f68d3af50845321"}
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
