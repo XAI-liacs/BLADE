@@ -163,7 +163,7 @@ class Problem(ABC):
         if self.logger != None:
             if self.logger.budget_exhausted():
                 solution.set_scores(
-                    -np.Inf,
+                    -np.inf,
                     feedback="Budget is exhausted.",
                     error="Budget is exhausted.",
                 )
@@ -196,7 +196,7 @@ class Problem(ABC):
                 elif isinstance(result, str):
                     # If a string is returned, it is likely an error message
                     solution.set_scores(
-                        -np.Inf, feedback=f"An error occurred: {result}.", error=result
+                        -np.inf, feedback=f"An error occurred: {result}.", error=result
                     )
                 else:
                     raise Exception("No Solution object or string returned.")
@@ -204,7 +204,7 @@ class Problem(ABC):
                 raise Exception("Evaluation failed without an exception.")
         except Exception as e:
             solution.set_scores(
-                -np.Inf,
+                -np.inf,
                 feedback=f"An exception occurred: {e}.",
                 error=f"An exception occurred: {e}.",
             )

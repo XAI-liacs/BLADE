@@ -36,9 +36,9 @@ class brag_mirror(photonic_problem):
         x = list(x)
         # n = len(x)
         materials = [
-            self.mat_env**2,
-            self.mat1**2,
-            self.mat2**2,
+            self.mat_env ** 2,
+            self.mat1 ** 2,
+            self.mat2 ** 2,
         ]  # permittivities!
         # periodic stack. first layer: environment, last layer: substrate
         stack = [0] + [2, 1] * (self.n // 2) + [2]
