@@ -499,12 +499,15 @@ def code_diff_chain(
         parent_row = data.loc[parent_id]
         parent_code = parent_row["code"]
         current_code = row["code"]
+        parent_lines = parent_code.splitlines()
+        current_lines = current_code.splitlines()
         diff_lines = difflib.unified_diff(
-            parent_code.splitlines(),
-            current_code.splitlines(),
+            parent_lines,
+            current_lines,
             fromfile=str(parent_id),
             tofile=str(current),
             lineterm="",
+            n=max(len(parent_lines), len(current_lines)),
         )
         chain.append(
             {"parent": parent_row, "child": row, "diff": "\n".join(diff_lines)}
@@ -518,7 +521,20 @@ def code_diff_chain(
 def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
     """Print the code diff chain for ``solution_id``."""
 
-    for step, entry in enumerate(code_diff_chain(run_data, solution_id), start=1):
+    chain = code_diff_chain(run_data, solution_id)
+    if not chain:
+        return
+    root = chain[0]["parent"]
+    print(
+        "Initial {p} (gen {pg}, fit {pf})".format(
+            p=root.get("name", root["id"]),
+            pg=root.get("generation", "?"),
+            pf=root.get("fitness", "?"),
+        )
+    )
+    print(root["code"])
+    print()
+    for step, entry in enumerate(chain, start=1):
         parent = entry["parent"]
         child = entry["child"]
         diff = entry["diff"]

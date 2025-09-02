@@ -1,4 +1,3 @@
-import html
 import json
 import os
 import subprocess
@@ -12,6 +11,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
@@ -60,24 +62,38 @@ def _rgba(color: str, alpha: float) -> str:
     return color
 
 
+_PY_LEXER = PythonLexer()
+_HTML_FMT = HtmlFormatter(nowrap=True, style="default", noclasses=True)
+
+
+def _highlight_code(code: str) -> str:
+    """Return ``code`` highlighted as HTML."""
+
+    return highlight(code, _PY_LEXER, _HTML_FMT).rstrip()
+
+
 def _diff_to_html(diff: str) -> str:
-    """Render a unified diff string with GitHub-like coloring."""
+    """Render a unified diff string with GitHub-like coloring and syntax highlighting."""
 
     lines = diff.splitlines()
     html_lines = []
     for line in lines:
-        esc = html.escape(line)
-        if line.startswith("+++") or line.startswith("---"):
-            html_lines.append(f"<span style='color:#999'>{esc}</span>")
-        elif line.startswith("+"):
-            html_lines.append(f"<span style='color:green'>{esc}</span>")
-        elif line.startswith("-"):
-            html_lines.append(f"<span style='color:red'>{esc}</span>")
-        elif line.startswith("@@"):
-            html_lines.append(f"<span style='color:#999'>{esc}</span>")
+        if line.startswith("+++") or line.startswith("---") or line.startswith("@@"):
+            continue
+        tag = line[:1]
+        content = line[1:] if tag in {"+", "-", " "} else line
+        highlighted = _highlight_code(content)
+        if tag == "+":
+            html_lines.append(
+                f"<span style='background-color:#e6ffed;'>+{highlighted}</span>"
+            )
+        elif tag == "-":
+            html_lines.append(
+                f"<span style='background-color:#ffeef0;'>-{highlighted}</span>"
+            )
         else:
-            html_lines.append(esc)
-    return "<br>".join(html_lines)
+            html_lines.append(f"<span>{highlighted}</span>")
+    return "\n".join(html_lines)
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
@@ -325,7 +341,7 @@ def run() -> None:
                     range(len(solutions)),
                     key=lambda i: solutions[i].get("fitness", float("-inf")),
                 )
-                selected = st.selectbox(
+                solution_choice = st.selectbox(
                     "Solution",
                     solutions,
                     index=best_idx,
@@ -335,11 +351,24 @@ def run() -> None:
                         f" | fit {x.get('fitness', 'n/a')}"
                     ),
                 )
-                selected_sol = selected["id"]
+                selected_sol = solution_choice["id"]
                 if st.button("Show Diff Chain", key="show_diff_chain"):
                     diffs = code_diff_chain(run_df, selected_sol)
                     if diffs:
-                        cards = "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
+                        root = diffs[0]["parent"]
+                        root_header = (
+                            f"{root.get('name', root['id'])} "
+                            f"(gen {root.get('generation', '?')}, fit {root.get('fitness', 'n/a')})"
+                        )
+                        root_html = _highlight_code(root["code"])
+                        cards = (
+                            "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
+                            "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
+                            " border-radius:4px; padding:0.5rem;'>"
+                            f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{root_header}</div>"
+                            f"<pre style='font-size:0.75rem; background:#f6f8fa; padding:0.5rem; overflow:auto;'>{root_html}</pre>"
+                            "</div>"
+                        )
                         for entry in diffs:
                             parent = entry["parent"]
                             child = entry["child"]
