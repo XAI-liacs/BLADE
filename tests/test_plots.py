@@ -10,12 +10,15 @@ import pytest
 matplotlib.use("Agg")
 from unittest.mock import MagicMock
 
+import jsonlines
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+
 import iohblade
 
 # Adjust imports to match your actual package structure
 from iohblade.plots import (
+    code_diff_chain,
     fitness_table,
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,
@@ -265,3 +268,28 @@ def test_plot_token_usage(mock_logger):
     plot_token_usage(mock_logger, save=False)
     assert isinstance(plt.gcf(), plt.Figure)
     plt.close("all")
+
+
+def test_code_diff_chain(tmp_path):
+    log_path = tmp_path / "log.jsonl"
+    entries = [
+        {"id": "a", "code": "print('a')\n", "parent_ids": []},
+        {
+            "id": "b",
+            "code": "print('a')\nprint('b')\n",
+            "parent_ids": ["a"],
+        },
+        {
+            "id": "c",
+            "code": "print('a')\nprint('b')\nprint('c')\n",
+            "parent_ids": ["b"],
+            "operator": "mutate",
+        },
+    ]
+    with jsonlines.open(log_path, "w") as f:
+        for e in entries:
+            f.write(e)
+
+    diff = code_diff_chain(str(log_path), "c")
+    assert "print('c')" in diff
+    assert "print('b')" in diff

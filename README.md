@@ -176,7 +176,9 @@ After running experiments you can browse them using the built-in Streamlit app:
 uv run iohblade-webapp
 ```
 
-The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
+The app lists available experiments from the `results` directory, displays
+their progress, shows convergence plots, and lets you inspect code evolution
+graphs with annotated diff chains.
 
 ---
 

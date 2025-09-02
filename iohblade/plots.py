@@ -4,12 +4,11 @@ import difflib
 import os
 from collections import Counter
 
-import plotly.graph_objects as go
-
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA
@@ -112,6 +111,73 @@ def plot_convergence(
     if return_fig:
         return fig
     plt.close()
+
+
+def code_diff_chain(data: pd.DataFrame | str, solution_id: str) -> str:
+    """Return annotated code diffs along the ancestry of a solution.
+
+    The function reconstructs the parent chain for ``solution_id`` and
+    produces unified diffs between each parent and child pair.  ``data`` may
+    either be a ``pandas.DataFrame`` with the columns ``id``, ``code`` and
+    ``parent_ids`` or a path to a JSONL log file containing such entries.
+
+    Args:
+        data: DataFrame or path to a ``log.jsonl`` file.
+        solution_id: Identifier of the target solution.
+
+    Returns:
+        str: The concatenated diff text.  The text is also printed for
+        convenience.
+    """
+
+    if isinstance(data, str):
+        with jsonlines.open(data) as reader:
+            data = pd.DataFrame(list(reader))
+    else:
+        data = data.copy()
+
+    if {"id", "code", "parent_ids"} - set(data.columns):
+        raise ValueError("Data must contain 'id', 'code' and 'parent_ids' columns")
+
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+    lookup = data.set_index("id").to_dict("index")
+
+    chain = []
+    cur = solution_id
+    visited: set[str] = set()
+    while cur in lookup and cur not in visited:
+        entry = lookup[cur]
+        chain.append(entry)
+        visited.add(cur)
+        parents = entry.get("parent_ids") or []
+        cur = parents[0] if parents else None
+    chain.reverse()
+
+    diffs = []
+    for i in range(len(chain) - 1):
+        parent, child = chain[i], chain[i + 1]
+        parent_code = str(parent.get("code", "")).splitlines()
+        child_code = str(child.get("code", "")).splitlines()
+        op = child.get("operator", "")
+        header = f"# {parent.get('id')} -> {child.get('id')}"
+        if op:
+            header += f" ({op})"
+        diff = "\n".join(
+            difflib.unified_diff(
+                parent_code,
+                child_code,
+                fromfile=str(parent.get("id")),
+                tofile=str(child.get("id")),
+                lineterm="",
+            )
+        )
+        diffs.append(f"{header}\n{diff}")
+
+    diff_text = "\n\n".join(diffs)
+    print(diff_text)
+    return diff_text
 
 
 def plot_experiment_CEG(
