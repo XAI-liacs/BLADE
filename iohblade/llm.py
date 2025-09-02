@@ -139,7 +139,9 @@ class LLM(ABC):
         self.logger = logger
         self.log = True
 
-    def sample_solution(self, session_messages: list, parent_ids=[], HPO=False, **kwargs):
+    def sample_solution(
+        self, session_messages: list, parent_ids=[], HPO=False, **kwargs
+    ):
         """
         Interacts with a language model to generate or mutate solutions based on the provided session messages.
 
@@ -289,7 +291,9 @@ class OpenAI_LLM(LLM):
         logging.getLogger("httpx").setLevel(logging.ERROR)
         self.temperature = temperature
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
+    def _query(
+        self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
+    ):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -317,7 +321,7 @@ class OpenAI_LLM(LLM):
                     model=self.model,
                     messages=session_messages,
                     temperature=temperature,
-                    **kwargs
+                    **kwargs,
                 )
                 return response.choices[0].message.content
 
@@ -411,7 +415,9 @@ class Gemini_LLM(LLM):
         self.client = genai.Client(api_key=api_key)
         self.generation_config = generation_config
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
+    def _query(
+        self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
+    ):
         """
         Sends the conversation history to Gemini, retrying on 429 ResourceExhausted exceptions.
 
@@ -469,7 +475,9 @@ class Ollama_LLM(LLM):
         """
         super().__init__("", model, None, **kwargs)
 
-    def _query(self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs):
+    def _query(
+        self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
+    ):
         """
         Sends a conversation history to the configured model and returns the response text.
 
@@ -495,7 +503,7 @@ class Ollama_LLM(LLM):
                 response = ollama.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
-                    options=kwargs
+                    options=kwargs,
                 )
                 return response["message"]["content"]
 
