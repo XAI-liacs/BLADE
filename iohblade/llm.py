@@ -307,10 +307,16 @@ class OpenAI_LLM(LLM):
         attempt = 0
         while True:
             try:
+                ## Manage temeperature copy.
+                temperature = self.temperature
+                if "temperature" in kwargs:
+                    temperature = kwargs["temperature"]
+                    kwargs.pop("temperature")
+
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=session_messages,
-                    temperature=self.temperature,
+                    temperature=temperature,
                     **kwargs
                 )
                 return response.choices[0].message.content

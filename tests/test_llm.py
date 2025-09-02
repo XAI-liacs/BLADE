@@ -439,3 +439,47 @@ def test_gemini_query_forwards_kwargs(monkeypatch):
         config=expected_config
     )
     mocked_chat.send_message.assert_called_once_with("Hello")
+
+def test_openai_query_forwards_kwargs(monkeypatch):
+    llm = OpenAI_LLM(api_key="whatup", model="llamea-test")
+
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.content = "OK"
+    mocked_chat = MagicMock(return_value=mock_response)
+    monkeypatch.setattr(llm.client.chat.completions , "create", mocked_chat)
+
+    session = [{"role": "user", "content": "Hello"}]
+    extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "top_k": 12}
+
+    result = llm._query(session, **extra_kwargs)
+    local_temperature = copy.deepcopy(llm.temperature)
+
+    assert result == "OK"
+    temperature = llm.temperature
+    if "temperature" in extra_kwargs:
+        temperature = extra_kwargs["temperature"]
+        extra_kwargs.pop("temperature")
+
+    llm.client.chat.completions.create.assert_called_once_with(
+        model = "llamea-test",
+        messages=session,
+        temperature=temperature,
+        **extra_kwargs
+    )
+
+    assert llm.temperature == local_temperature
+
+def sample_solution_passes_kwargs(monkeypatch):
+    class LLM_mock(LLM):
+        pass
+
+    obj = LLM_mock(api_key="fake", model="llamea_test")
+    obj.query = MagicMock(return_value="mocked message")
+
+    session_messages = [{"role": "user", "content": "hello"}]
+    kwargs = {"temperature": 0.7, "max_tokens": 500}
+
+    obj.sample_solution(session_messages, **kwargs)
+
+    obj.query.assert_called_once_with(session_messages, **kwargs)
