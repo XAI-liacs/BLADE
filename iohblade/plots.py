@@ -460,7 +460,7 @@ def plotly_code_evolution(
 
 def code_diff_chain(
     run_data: pd.DataFrame, solution_id: str
-) -> list[tuple[str, str, str]]:
+) -> list[dict[str, pd.Series | str]]:
     """Return diffs along the lineage of ``solution_id``.
 
     The function follows the first parent of each solution until the root is
@@ -469,23 +469,25 @@ def code_diff_chain(
 
     Args:
         run_data: DataFrame containing at least ``id``, ``parent_ids`` and
-            ``code`` columns.
+            ``code`` columns. ``name``, ``generation`` and ``fitness`` are
+            optional but will be preserved if present.
         solution_id: Identifier of the final solution.
 
     Returns:
-        A list of ``(parent_id, child_id, diff)`` tuples ordered from the first
-        ancestor to ``solution_id``.
+        A list of dictionaries ordered from the first ancestor to
+        ``solution_id``. Each dictionary has ``parent`` and ``child`` keys with
+        the respective rows and a ``diff`` key containing a unified diff string.
     """
 
     data = run_data.copy()
     data["parent_ids"] = data["parent_ids"].apply(
         lambda x: ast.literal_eval(x) if isinstance(x, str) else x
     )
-    data = data.set_index("id")
+    data = data.set_index("id", drop=False)
     if solution_id not in data.index:
         raise ValueError(f"Unknown solution_id: {solution_id}")
 
-    chain: list[tuple[str, str, str]] = []
+    chain: list[dict[str, pd.Series | str]] = []
     current = solution_id
 
     while True:
@@ -493,18 +495,21 @@ def code_diff_chain(
         parents = row["parent_ids"]
         if not parents:
             break
-        parent = parents[0]
-        parent_code = data.loc[parent, "code"]
+        parent_id = parents[0]
+        parent_row = data.loc[parent_id]
+        parent_code = parent_row["code"]
         current_code = row["code"]
         diff_lines = difflib.unified_diff(
             parent_code.splitlines(),
             current_code.splitlines(),
-            fromfile=str(parent),
+            fromfile=str(parent_id),
             tofile=str(current),
             lineterm="",
         )
-        chain.append((parent, current, "\n".join(diff_lines)))
-        current = parent
+        chain.append(
+            {"parent": parent_row, "child": row, "diff": "\n".join(diff_lines)}
+        )
+        current = parent_id
 
     chain.reverse()
     return chain
@@ -513,10 +518,21 @@ def code_diff_chain(
 def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
     """Print the code diff chain for ``solution_id``."""
 
-    for step, (parent, child, diff) in enumerate(
-        code_diff_chain(run_data, solution_id), start=1
-    ):
-        print(f"Step {step}: {parent} -> {child}")
+    for step, entry in enumerate(code_diff_chain(run_data, solution_id), start=1):
+        parent = entry["parent"]
+        child = entry["child"]
+        diff = entry["diff"]
+        print(
+            "Step {step}: {p} (gen {pg}, fit {pf}) -> {c} (gen {cg}, fit {cf})".format(
+                step=step,
+                p=parent.get("name", parent["id"]),
+                pg=parent.get("generation", "?"),
+                pf=parent.get("fitness", "?"),
+                c=child.get("name", child["id"]),
+                cg=child.get("generation", "?"),
+                cf=child.get("fitness", "?"),
+            )
+        )
         print(diff)
         print()
 

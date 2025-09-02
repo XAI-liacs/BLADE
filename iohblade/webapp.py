@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import subprocess
@@ -57,6 +58,26 @@ def _rgba(color: str, alpha: float) -> str:
         return f"rgba({nums},{alpha})"
     # fallback: let Plotly parse; many qualitative colors are hex so this usually won’t hit
     return color
+
+
+def _diff_to_html(diff: str) -> str:
+    """Render a unified diff string with GitHub-like coloring."""
+
+    lines = diff.splitlines()
+    html_lines = []
+    for line in lines:
+        esc = html.escape(line)
+        if line.startswith("+++") or line.startswith("---"):
+            html_lines.append(f"<span style='color:#999'>{esc}</span>")
+        elif line.startswith("+"):
+            html_lines.append(f"<span style='color:green'>{esc}</span>")
+        elif line.startswith("-"):
+            html_lines.append(f"<span style='color:red'>{esc}</span>")
+        elif line.startswith("@@"):
+            html_lines.append(f"<span style='color:#999'>{esc}</span>")
+        else:
+            html_lines.append(esc)
+    return "<br>".join(html_lines)
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
@@ -299,18 +320,47 @@ def run() -> None:
 
             if not run_df.empty:
                 st.markdown("#### Code Diff Chain")
-                solutions = run_df["id"].tolist()
-                best_sol = run_df.loc[run_df["fitness"].idxmax(), "id"]
-                sol_index = solutions.index(best_sol) if best_sol in solutions else 0
-                selected_sol = st.selectbox(
-                    "Solution ID", solutions, index=sol_index, key="diff_chain_solution"
+                solutions = run_df.to_dict("records")
+                best_idx = max(
+                    range(len(solutions)),
+                    key=lambda i: solutions[i].get("fitness", float("-inf")),
                 )
+                selected = st.selectbox(
+                    "Solution",
+                    solutions,
+                    index=best_idx,
+                    key="diff_chain_solution",
+                    format_func=lambda x: (
+                        f"{x.get('name', x['id'])} (gen {x.get('generation', '?')})"
+                        f" | fit {x.get('fitness', 'n/a')}"
+                    ),
+                )
+                selected_sol = selected["id"]
                 if st.button("Show Diff Chain", key="show_diff_chain"):
                     diffs = code_diff_chain(run_df, selected_sol)
                     if diffs:
-                        for parent, child, diff in diffs:
-                            st.markdown(f"**{parent} -> {child}**")
-                            st.code(diff)
+                        cards = "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
+                        for entry in diffs:
+                            parent = entry["parent"]
+                            child = entry["child"]
+                            header = (
+                                f"{parent.get('name', parent['id'])} "
+                                f"(gen {parent.get('generation', '?')}, "
+                                f"fit {parent.get('fitness', 'n/a')}) &rarr; "
+                                f"{child.get('name', child['id'])} "
+                                f"(gen {child.get('generation', '?')}, "
+                                f"fit {child.get('fitness', 'n/a')})"
+                            )
+                            diff_html = _diff_to_html(entry["diff"])
+                            cards += (
+                                "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
+                                " border-radius:4px; padding:0.5rem;'>"
+                                f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{header}</div>"
+                                f"<pre style='font-size:0.75rem; background:#f6f8fa; padding:0.5rem; overflow:auto;'>{diff_html}</pre>"
+                                "</div>"
+                            )
+                        cards += "</div>"
+                        st.markdown(cards, unsafe_allow_html=True)
                     else:
                         st.write("No parent chain found.")
 

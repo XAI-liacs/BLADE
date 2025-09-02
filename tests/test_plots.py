@@ -237,6 +237,8 @@ def test_code_diff_chain_produces_diffs():
             "id": ["0", "1", "2"],
             "parent_ids": ["[]", '["0"]', '["1"]'],
             "fitness": [0.0, 0.1, 0.2],
+            "generation": [0, 1, 2],
+            "name": ["zero", "one", "two"],
             "code": [
                 "print('zero')",
                 "print('one')",
@@ -246,9 +248,10 @@ def test_code_diff_chain_produces_diffs():
     )
     chain = iohblade.plots.code_diff_chain(df, "2")
     assert len(chain) == 2
-    first_parent, first_child, first_diff = chain[0]
-    assert first_parent == "0" and first_child == "1"
-    assert "-print('zero')" in first_diff
+    first = chain[0]
+    assert first["parent"]["id"] == "0" and first["child"]["id"] == "1"
+    assert first["child"]["generation"] == 1
+    assert "-print('zero')" in first["diff"]
 
 
 def test_plot_boxplot_fitness(mock_logger):
