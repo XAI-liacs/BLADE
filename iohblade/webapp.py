@@ -2,20 +2,24 @@ import json
 import os
 import subprocess
 import time
+import urllib
 from pathlib import Path
 
+import jsonlines
 import matplotlib
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-import jsonlines
+import plotly.graph_objects as go
 import streamlit as st
-import urllib
-
-from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+from iohblade.plots import (
+    CEG_FEATURE_LABELS,
+    CEG_FEATURES,
+    code_diff_chain,
+    plotly_code_evolution,
+)
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
@@ -292,6 +296,23 @@ def run() -> None:
                     st.plotly_chart(ceg_fig, use_container_width=True)
                 else:
                     st.write("No data for selected run.")
+
+            if not run_df.empty:
+                st.markdown("#### Code Diff Chain")
+                solutions = run_df["id"].tolist()
+                best_sol = run_df.loc[run_df["fitness"].idxmax(), "id"]
+                sol_index = solutions.index(best_sol) if best_sol in solutions else 0
+                selected_sol = st.selectbox(
+                    "Solution ID", solutions, index=sol_index, key="diff_chain_solution"
+                )
+                if st.button("Show Diff Chain", key="show_diff_chain"):
+                    diffs = code_diff_chain(run_df, selected_sol)
+                    if diffs:
+                        for parent, child, diff in diffs:
+                            st.markdown(f"**{parent} -> {child}**")
+                            st.code(diff)
+                    else:
+                        st.write("No parent chain found.")
 
             st.markdown("#### Top Solutions")
             runs = logger.get_data()

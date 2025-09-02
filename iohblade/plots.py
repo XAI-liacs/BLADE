@@ -4,12 +4,11 @@ import difflib
 import os
 from collections import Counter
 
-import plotly.graph_objects as go
-
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA
@@ -457,6 +456,69 @@ def plotly_code_evolution(
         yaxis_title=feature.replace("_", " "),
     )
     return fig
+
+
+def code_diff_chain(
+    run_data: pd.DataFrame, solution_id: str
+) -> list[tuple[str, str, str]]:
+    """Return diffs along the lineage of ``solution_id``.
+
+    The function follows the first parent of each solution until the root is
+    reached. For every parent-child pair a unified diff of their code is
+    produced.
+
+    Args:
+        run_data: DataFrame containing at least ``id``, ``parent_ids`` and
+            ``code`` columns.
+        solution_id: Identifier of the final solution.
+
+    Returns:
+        A list of ``(parent_id, child_id, diff)`` tuples ordered from the first
+        ancestor to ``solution_id``.
+    """
+
+    data = run_data.copy()
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+    data = data.set_index("id")
+    if solution_id not in data.index:
+        raise ValueError(f"Unknown solution_id: {solution_id}")
+
+    chain: list[tuple[str, str, str]] = []
+    current = solution_id
+
+    while True:
+        row = data.loc[current]
+        parents = row["parent_ids"]
+        if not parents:
+            break
+        parent = parents[0]
+        parent_code = data.loc[parent, "code"]
+        current_code = row["code"]
+        diff_lines = difflib.unified_diff(
+            parent_code.splitlines(),
+            current_code.splitlines(),
+            fromfile=str(parent),
+            tofile=str(current),
+            lineterm="",
+        )
+        chain.append((parent, current, "\n".join(diff_lines)))
+        current = parent
+
+    chain.reverse()
+    return chain
+
+
+def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
+    """Print the code diff chain for ``solution_id``."""
+
+    for step, (parent, child, diff) in enumerate(
+        code_diff_chain(run_data, solution_id), start=1
+    ):
+        print(f"Step {step}: {parent} -> {child}")
+        print(diff)
+        print()
 
 
 def plot_boxplot_fitness(
