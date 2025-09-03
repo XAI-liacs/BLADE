@@ -1,5 +1,7 @@
+import difflib
 import json
 import os
+import re
 import subprocess
 import time
 import urllib
@@ -17,12 +19,14 @@ from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+
 from iohblade.plots import (
     CEG_FEATURE_LABELS,
     CEG_FEATURES,
     code_diff_chain,
     plotly_code_evolution,
 )
+
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
@@ -62,38 +66,29 @@ def _rgba(color: str, alpha: float) -> str:
     return color
 
 
-_PY_LEXER = PythonLexer()
-_HTML_FMT = HtmlFormatter(nowrap=True, style="default", noclasses=True)
-
 
 def _highlight_code(code: str) -> str:
-    """Return ``code`` highlighted as HTML."""
+    formatter = HtmlFormatter(nowrap=True, noclasses=True)
+    html = highlight(code, PythonLexer(), formatter)
+    return re.sub(r'<span style="', '<span style="white-space:pre; ', html)
 
-    return highlight(code, _PY_LEXER, _HTML_FMT).rstrip()
 
-
-def _diff_to_html(diff: str) -> str:
-    """Render a unified diff string with GitHub-like coloring and syntax highlighting."""
-
-    lines = diff.splitlines()
-    html_lines = []
-    for line in lines:
-        if line.startswith("+++") or line.startswith("---") or line.startswith("@@"):
+def _diff_to_html(old: str, new: str) -> str:
+    diff = difflib.ndiff(old.splitlines(), new.splitlines())
+    lines = []
+    for line in diff:
+        tag, text = line[:2], line[2:]
+        if tag == "+ ":
+            cls = "added"
+        elif tag == "- ":
+            cls = "removed"
+        elif tag == "? ":
             continue
-        tag = line[:1]
-        content = line[1:] if tag in {"+", "-", " "} else line
-        highlighted = _highlight_code(content)
-        if tag == "+":
-            html_lines.append(
-                f"<span style='background-color:#e6ffed;'>+{highlighted}</span>"
-            )
-        elif tag == "-":
-            html_lines.append(
-                f"<span style='background-color:#ffeef0;'>-{highlighted}</span>"
-            )
         else:
-            html_lines.append(f"<span>{highlighted}</span>")
-    return "\n".join(html_lines)
+            cls = "context"
+        lines.append(f'<span class="{cls}">{_highlight_code(text)}</span>')
+    return "<br>".join(lines)
+
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
