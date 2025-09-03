@@ -377,7 +377,7 @@ def run() -> None:
                                 f"(gen {child.get('generation', '?')}, "
                                 f"fit {child.get('fitness', 'n/a')})"
                             )
-                            diff_html = _diff_to_html(entry["diff"])
+                            diff_html = _diff_to_html(parent["code"], child["code"])
                             cards += (
                                 "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
                                 " border-radius:4px; padding:0.5rem;'>"
@@ -442,7 +442,7 @@ def run() -> None:
 
 
 def main() -> None:
-    subprocess.run(["streamlit", "run", str(Path(__file__))], check=True)
+    subprocess.run(["streamlit", "run", str(Path(__file__)), "--server.fileWatcherType", "none"], check=True)
 
 
 if __name__ == "__main__":
