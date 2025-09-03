@@ -1,21 +1,25 @@
+import difflib
 import json
 import os
+import re
 import subprocess
 import time
+import urllib
 from pathlib import Path
 
+import jsonlines
 import matplotlib
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-import jsonlines
+import plotly.graph_objects as go
 import streamlit as st
-import urllib
-
-from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+from iohblade.plots import CEG_FEATURE_LABELS, CEG_FEATURES, plotly_code_evolution
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
@@ -53,6 +57,29 @@ def _rgba(color: str, alpha: float) -> str:
         return f"rgba({nums},{alpha})"
     # fallback: let Plotly parse; many qualitative colors are hex so this usually won’t hit
     return color
+
+
+def _highlight_code(code: str) -> str:
+    formatter = HtmlFormatter(nowrap=True, noclasses=True)
+    html = highlight(code, PythonLexer(), formatter)
+    return re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+
+
+def _diff_to_html(old: str, new: str) -> str:
+    diff = difflib.ndiff(old.splitlines(), new.splitlines())
+    lines = []
+    for line in diff:
+        tag, text = line[:2], line[2:]
+        if tag == "+ ":
+            cls = "added"
+        elif tag == "- ":
+            cls = "removed"
+        elif tag == "? ":
+            continue
+        else:
+            cls = "context"
+        lines.append(f'<span class="{cls}">{_highlight_code(text)}</span>')
+    return "<br>".join(lines)
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
