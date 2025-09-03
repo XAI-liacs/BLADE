@@ -1,10 +1,15 @@
 import json
 import os
+import sys
 from datetime import datetime
 from unittest.mock import MagicMock, call, patch
 
-import mlflow
 import pytest
+
+sys.modules.setdefault("mlflow", MagicMock())
+sys.modules.setdefault("mlflow.exceptions", MagicMock())
+sys.modules.setdefault("mlflow.pyfunc", MagicMock())
+import mlflow
 
 from iohblade.llm import LLM
 

@@ -68,6 +68,9 @@ kerneltuner = [
     "kernel-tuner",
     "autotuning_methodology",
 ]
+trackio = [
+    "trackio>=0.3.2,<1",
+]
 
 [tool.uv]
 default-groups = [
