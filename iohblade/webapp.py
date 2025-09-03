@@ -19,14 +19,12 @@ from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
-
 from iohblade.plots import (
     CEG_FEATURE_LABELS,
     CEG_FEATURES,
     code_diff_chain,
     plotly_code_evolution,
 )
-
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
@@ -66,11 +64,16 @@ def _rgba(color: str, alpha: float) -> str:
     return color
 
 
-
-def _highlight_code(code: str) -> str:
+def _highlight_code(code: str, *, wrap: bool = False) -> str:
     formatter = HtmlFormatter(nowrap=True, noclasses=True)
     html = highlight(code, PythonLexer(), formatter)
-    return re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+    html = re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+    if wrap:
+        return (
+            "<pre style='font-size:0.75rem; background:#f6f8fa; "
+            "padding:0.5rem; overflow:auto;'>" + html + "</pre>"
+        )
+    return html
 
 
 def _diff_to_html(old: str, new: str) -> str:
@@ -88,7 +91,6 @@ def _diff_to_html(old: str, new: str) -> str:
             cls = "context"
         lines.append(f'<span class="{cls}">{_highlight_code(text)}</span>')
     return "<br>".join(lines)
-
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
@@ -355,13 +357,13 @@ def run() -> None:
                             f"{root.get('name', root['id'])} "
                             f"(gen {root.get('generation', '?')}, fit {root.get('fitness', 'n/a')})"
                         )
-                        root_html = _highlight_code(root["code"])
+                        root_html = _highlight_code(root["code"], wrap=True)
                         cards = (
                             "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
                             "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
                             " border-radius:4px; padding:0.5rem;'>"
                             f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{root_header}</div>"
-                            f"<pre style='font-size:0.75rem; background:#f6f8fa; padding:0.5rem; overflow:auto;'>{root_html}</pre>"
+                            f"{root_html}"
                             "</div>"
                         )
                         for entry in diffs:
