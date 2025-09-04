@@ -48,30 +48,21 @@ class MLFlowExperimentLogger(ExperimentLogger):
         self._mlflow_run_active = False  # Track if we have an active run
         self._current_run_id = None
 
-    def open_run(self, method, problem, budget=100, seed=0):
-        """
-        Opens (starts) a new MLflow run for logging.
-        Typically call this right before your run, so that the RunLogger can log step data.
-        """
-        if self._mlflow_run_active:
-            print("Warning: An MLflow run is already active. Not starting a new one.")
-            return
-        run_name = f"{method.name}-{problem.name}-{seed}"
-
+    def _before_open_run(self, run_name, method, problem, budget, seed):
         run = mlflow.start_run(experiment_id=self.experiment_id, run_name=run_name)
         self._mlflow_run_active = True
         self._current_run_id = run.info.run_id
 
-        self.run_logger = MLFlowRunLogger(
+    def _create_run_logger(self, run_name, budget, progress_cb):
+        return MLFlowRunLogger(
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
-            progress_callback=lambda: self.increment_eval(
-                method.name, problem.name, seed
-            ),
+            progress_callback=progress_cb,
         )
-        problem.set_logger(self.run_logger)
-        return self.run_logger
+
+    def open_run(self, method, problem, budget=100, seed=0):
+        return super().open_run(method, problem, budget, seed)
 
     def add_run(
         self,
