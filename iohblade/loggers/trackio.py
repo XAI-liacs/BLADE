@@ -24,7 +24,7 @@ class TrackioExperimentLogger(ExperimentLogger):
     def __init__(self, name: str = "", read: bool = False):
         if trackio is None:
             raise ImportError(
-                "Trackio is not installed. Install with `uv sync --group trackio`."
+                "Trackio is not installed. Install with `pip install trackio`."
             ) from _import_error
         super().__init__(name=name, read=read)
         self.project = name

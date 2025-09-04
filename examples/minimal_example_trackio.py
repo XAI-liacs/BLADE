@@ -1,7 +1,7 @@
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
 from iohblade.methods import LLaMEA, RandomSearch
-from iohblade.loggers import ExperimentLogger
+from iohblade.loggers import TrackioExperimentLogger
 from iohblade import Problem, Solution
 import numpy as np
 import os
@@ -132,7 +132,7 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
     # make sure the "results" directory exist.
     if not os.path.exists("results"):
         os.mkdir("results")
-    logger = ExperimentLogger("results/minimal-test")
+    logger = TrackioExperimentLogger("results/minimal-test-trackio")
     problems = [MinimalProblem()] # our dummy problem
     experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=False, exp_logger=logger, budget=budget, n_jobs=2) #normal run using 2 parallel jobs
 

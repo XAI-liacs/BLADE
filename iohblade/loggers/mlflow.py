@@ -2,9 +2,7 @@ import json
 import os
 from datetime import datetime
 
-import mlflow
-import mlflow.exceptions
-import mlflow.pyfunc
+
 import pandas as pd
 from ConfigSpace.read_and_write import json as cs_json
 
@@ -14,6 +12,17 @@ from ..problem import Problem
 from ..solution import Solution
 from ..utils import convert_to_serializable
 from .base import ExperimentLogger, RunLogger
+
+try:  # pragma: no cover - import guard
+    import mlflow
+    import mlflow.exceptions
+    import mlflow.pyfunc
+except Exception as e:  # pragma: no cover - handled in __init__
+    mlflow = None
+    _import_error = e
+else:
+    _import_error = None
+
 
 
 class MLFlowExperimentLogger(ExperimentLogger):
@@ -33,6 +42,10 @@ class MLFlowExperimentLogger(ExperimentLogger):
             mlflow_tracking_uri (str): The MLflow Tracking URI (e.g. 'file:/tmp/mlruns',
                                        or your remote server).
         """
+        if mlflow is None:
+            raise ImportError(
+                "MLflow is not installed. Install with `pip install mlflow`."
+            ) from _import_error
         super().__init__(name=name, read=read)
         # If you want to store the logs in some custom place
         if mlflow_tracking_uri:
