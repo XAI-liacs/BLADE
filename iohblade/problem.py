@@ -1,15 +1,17 @@
+import inspect
+import json
 import multiprocessing
 import os
 import shutil
 import subprocess
 import tempfile
 import traceback
+import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import cloudpickle
 import numpy as np
-import json, tempfile, uuid
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
@@ -21,9 +23,10 @@ BASE_DEPENDENCIES = [
     #    "scikit-learn==1.3.0",
 ]
 
+import copy
+
 from .solution import Solution
 from .utils import TimeoutException
-import copy
 
 
 def evaluate_in_subprocess(problem, conn, solution):
@@ -291,3 +294,80 @@ class Problem(ABC):
             dict: Dictionary representation of the problem.
         """
         pass
+
+
+def wrap_problem(
+    evaluate_fn,
+    *,
+    name="Problem",
+    eval_timeout=6000,
+    training_instances=None,
+    test_instances=None,
+    dependencies=None,
+    imports=None,
+    task_prompt="",
+    example_prompt="",
+    logger=None,
+):
+    """Create a :class:`Problem` instance from a plain evaluate function.
+
+    This helper removes the need to explicitly define a subclass of
+    :class:`Problem`.  It is particularly useful in scripts where the class
+    definition would be hard to pickle.
+
+    Args:
+        evaluate_fn (Callable): Function used to evaluate a solution.  It can
+            accept either ``(problem, solution)`` or just ``(solution)``.
+        name (str): Name of the problem.
+        eval_timeout (int): Evaluation timeout in seconds.
+        training_instances (list): Training instances.
+        test_instances (list): Test instances.
+        dependencies (list): Additional pip packages to install.
+        imports (str): Python import statements executed in the evaluation
+            environment.
+        task_prompt (str): The task description shown to the model.
+        example_prompt (str): Example code shown to the model.
+        logger (RunLogger, optional): Logger for evaluations.
+
+    Returns:
+        Problem: A problem instance using ``evaluate_fn`` for evaluation.
+    """
+
+    sig = inspect.signature(evaluate_fn)
+    takes_self = len(sig.parameters) > 1
+
+    class WrappedProblem(Problem):
+        def __init__(self):
+            super().__init__(
+                logger=logger,
+                training_instances=training_instances,
+                test_instances=test_instances,
+                name=name,
+                eval_timeout=eval_timeout,
+                dependencies=dependencies,
+                imports=imports,
+            )
+            if task_prompt:
+                self.task_prompt = task_prompt
+            if example_prompt:
+                self.example_prompt = example_prompt
+
+        def evaluate(self, solution: Solution):
+            if takes_self:
+                return evaluate_fn(self, solution)
+            return evaluate_fn(solution)
+
+        def test(self, solution: Solution):
+            return self.evaluate(solution)
+
+        def to_dict(self):
+            return {
+                "name": self.name,
+                "eval_timeout": self.eval_timeout,
+                "training_instances": self.training_instances,
+                "test_instances": self.test_instances,
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+            }
+
+    return WrappedProblem()

@@ -4,7 +4,7 @@ import multiprocessing
 # dependencies.  Modules such as ``llm`` or ``plots`` require optional
 # third-party packages and should be imported explicitly by consumers
 # that need them.
-from .problem import Problem
+from .problem import Problem, wrap_problem
 from .solution import Solution
 from .utils import (
     NoCodeException,
@@ -19,6 +19,7 @@ from .utils import (
 
 __all__ = [
     "Problem",
+    "wrap_problem",
     "Solution",
     "NoCodeException",
     "OverBudgetException",
