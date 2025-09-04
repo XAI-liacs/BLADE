@@ -48,7 +48,6 @@ def evaluate_in_subprocess(problem, conn, solution):
             cloudpickle.dump(solution, f)
 
         script_path = env_path / "run_eval.py"
-        deps_imports = []
         imports_block = getattr(problem, "imports", "")
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
@@ -73,7 +72,7 @@ def evaluate_in_subprocess(problem, conn, solution):
                 [str(python_bin), str(script_path)],
                 check=True,
                 env=env,
-                capture_output=True,
+                capture_output=False,
                 text=True,
             )
             with open(result_pickle, "rb") as f:
@@ -81,6 +80,7 @@ def evaluate_in_subprocess(problem, conn, solution):
             conn.send(result)
         except subprocess.CalledProcessError as e:
             # Process returned non-zero exit code
+            print(e.stderr)
             conn.send(e.stderr)
 
     except Exception as e:
@@ -159,6 +159,7 @@ class Problem(ABC):
         Returns:
             Solution: The evaluated solution with updated fitness and scores.
         """
+        print("in __call__")
         if logger != None:
             print("LOGGER is NOT NONE (UNEXPECTED)")
             self.logger = logger
@@ -217,7 +218,7 @@ class Problem(ABC):
                 process.join()
             except Exception:
                 pass
-
+        print("sol", solution.name)
         if self.logger is not None:
             self.logger.log_individual(solution)
         return solution

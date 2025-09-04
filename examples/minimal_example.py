@@ -3,6 +3,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
 from iohblade.methods import LLaMEA, RandomSearch
 from iohblade.loggers import TrackioExperimentLogger, ExperimentLogger
 from iohblade import Problem, Solution, wrap_problem
+from iohblade.problems import AutoML
 import numpy as np
 import os
 import logging
@@ -79,13 +80,13 @@ minimal_problem = wrap_problem(f,
 if __name__ == "__main__": # Because we call stuff in parallel, make sure the experiment setup is inside this if.
 
     llm = Dummy_LLM("dummy-model")
-    budget = 6 # a test budget for 10 evaluations (normally you should use 100+)
+    budget = 4 # a test budget for 4 evaluations (normally you should use 100+)
 
     # Set up the LLaMEA algorithm
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.", 
     ]
-    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=2, n_offspring=4, elitism=True)
+    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=1, n_offspring=1, elitism=True)
     
     # Set up a random search baseline
     RS = RandomSearch(llm, budget=budget, name="RS")
@@ -97,6 +98,6 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
 
     logger = ExperimentLogger("results/minimal-test")
     problems = [minimal_problem] # our dummy problem
-    experiment = Experiment(methods=methods, problems=problems, runs=3, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=1) #normal run using 2 parallel jobs
+    experiment = Experiment(methods=methods, problems=problems, runs=2, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=2) #normal run using 2 parallel jobs
 
     experiment() #run the experiment

@@ -140,7 +140,13 @@ class LLM(ABC):
         self.log = True
 
     def sample_solution(
-        self, session_messages: list, parent_ids=[], HPO=False, **kwargs
+        self,
+        session_messages: list,
+        parent_ids=[],
+        HPO=False,
+        base_code: str | None = None,
+        diff_mode: bool = False,
+        **kwargs,
     ):
         """
         Interacts with a language model to generate or mutate solutions based on the provided session messages.
@@ -149,6 +155,7 @@ class LLM(ABC):
             session_messages (list): A list of dictionaries with keys 'role' and 'content' to simulate a conversation with the language model.
             parent_ids (list, optional): The id of the parent the next sample will be generated from (if any).
             HPO (boolean, optional): If HPO is enabled, a configuration space will also be extracted (if possible).
+            base_code and diff_mode are for now only there to support latest LLaMEA, they are not implemented yet.
 
         Returns:
             tuple: A tuple containing the new algorithm code, its class name, its full descriptive name and an optional configuration space object.
