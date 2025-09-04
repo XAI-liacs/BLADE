@@ -7,16 +7,16 @@ requires-python = ">=3.11, <4"
 readme = "README.md"
 license = "MIT"
 dependencies = [
-    "numpy>=1.26.3,<2",
-    "pandas==2.0.3",
-    "openai>=1.25.2,<2",
+    "numpy>=2,<3",
+    "pandas>=2.2.3,<3",
+    "openai>=1.99.1,<2",
     "anthropic>=0.57,<1",
-    "ollama>=0.2.1,<0.3",
+    "ollama>=0.5.3,<1",
     "jsonlines>=4.0.0,<5",
     "google-genai>=1,<2",
     "joblib>=1.4.2,<2",
-    "tokencost>=0.1.18,<0.2",
-    "llamea>=1.1.0,<2",
+    "tokencost>=0.1.26,<0.2",
+    "llamea>=1.1.3,<2",
     "ipykernel>=6.29.5,<7",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
@@ -24,7 +24,7 @@ dependencies = [
     "streamlit>=1.35.0,<2",
     "jsonschema>=4.24.0,<5",
     "plotly>=6.2.0",
-    "ioh>=0.3.18",
+    "ioh>=0.3.19",
     "seaborn>=0.13.2",
     "lizard>=1.17.31",
     "networkx>=3.5",
@@ -78,10 +78,10 @@ default-groups = [
 ]
 
 [tool.uv.sources]
-eoh = { git = "https://github.com/FeiLiu36/EoH.git", subdirectory = "eoh" , rev = "8d679f821af8edc7fbe3a4b6d6538b1b0362b4fb"}
+eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev = "f0d21b2f2f62c452bac545fd7f68d3af50845321"}
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
-kernel-tuner = { git = "https://github.com/XAI-liacs/kernel_tuner.git", branch = "hyperparametertuning_custom_strategies" }
-autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "6a9a50a5a49bc104469b3b753fd43a5324241702" }
+kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
+autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
 
 [build-system]
 requires = ["hatchling"]
