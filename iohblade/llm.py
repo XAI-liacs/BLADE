@@ -420,6 +420,7 @@ class Gemini_LLM(LLM):
             }
 
         self.client = genai.Client(api_key=api_key)
+        self.api_key = api_key
         self.generation_config = generation_config
 
     def _query(
@@ -469,6 +470,27 @@ class Gemini_LLM(LLM):
                     wait = int(m.group(1)) if m else default_delay * attempt
 
                 time.sleep(wait)
+
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = genai.Client(api_key=self.api_key)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.client = genai.Client(api_key=new.api_key)
+        return new
 
 
 class Ollama_LLM(LLM):

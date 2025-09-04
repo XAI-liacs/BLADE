@@ -15,12 +15,9 @@ import numpy as np
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
-    "numpy>=1.26.3,<2",
+    "numpy>=2",
     "cloudpickle>=3.1.0,<4",
     "joblib>=1.4.2,<2",
-    #    "pandas==2.0.3",
-    #    "polars==1.31.0",
-    #    "scikit-learn==1.3.0",
 ]
 
 import copy
@@ -72,7 +69,7 @@ def evaluate_in_subprocess(problem, conn, solution):
                 [str(python_bin), str(script_path)],
                 check=True,
                 env=env,
-                capture_output=False,
+                capture_output=True,
                 text=True,
             )
             with open(result_pickle, "rb") as f:
@@ -80,7 +77,6 @@ def evaluate_in_subprocess(problem, conn, solution):
             conn.send(result)
         except subprocess.CalledProcessError as e:
             # Process returned non-zero exit code
-            print(e.stderr)
             conn.send(e.stderr)
 
     except Exception as e:
@@ -159,7 +155,6 @@ class Problem(ABC):
         Returns:
             Solution: The evaluated solution with updated fitness and scores.
         """
-        print("in __call__")
         if logger != None:
             print("LOGGER is NOT NONE (UNEXPECTED)")
             self.logger = logger
@@ -218,7 +213,6 @@ class Problem(ABC):
                 process.join()
             except Exception:
                 pass
-        print("sol", solution.name)
         if self.logger is not None:
             self.logger.log_individual(solution)
         return solution
