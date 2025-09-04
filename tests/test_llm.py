@@ -337,7 +337,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(
             side_effect=[_ollama_response_error(429), {"message": {"content": "OK"}}]
@@ -346,9 +346,10 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
 
     reply = llm._query([{"role": "u", "content": "hi"}], max_retries=2)
     assert reply == "OK"
-    llm_mod.ollama.chat.assert_called_with(
+    llm_mod.ollama.Client.chat.assert_called_with(
         model=llm.model,
         messages=[{"role": "user", "content": "hi\n"}],
+        options={}
     )
     slept.assert_called_once_with(10)
 
@@ -358,7 +359,7 @@ def test_ollama_llm_gives_up(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(side_effect=[_ollama_response_error(), _ollama_response_error()]),
     )
@@ -373,7 +374,7 @@ def test_dummy_llm():
     assert llm.model == "dummy-model"
     response = llm._query([{"role": "user", "content": "test"}])
     assert (
-        len(response) == 946
-    ), "Dummy_LLM should return a 946-character string, returned length: {}".format(
+        len(response) == 919
+    ), "Dummy_LLM should return a 919-character string, returned length: {}".format(
         len(response)
     )

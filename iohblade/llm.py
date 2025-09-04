@@ -475,8 +475,7 @@ class Ollama_LLM(LLM):
             port: TCP/UDP port on which localhost for ollama is available. Defaults to 11434.
         """
         self.client = ollama.Client(
-            host = f"http://localhost:{port}",
-            headers={'x-some-header': 'some-value'}
+            host=f"http://localhost:{port}", headers={"x-some-header": "some-value"}
         )
 
         super().__init__("", model, None, **kwargs)
@@ -644,7 +643,7 @@ class RandomSearch:
     def __init__(self, budget=10000, dim=10):
         self.budget = budget
         self.dim = dim
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
 
     def __call__(self, func):
