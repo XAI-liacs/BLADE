@@ -157,7 +157,7 @@ class AlgorithmName(OptAlg):
         self.searchspace = searchspace
         self.tune_params = searchspace.tune_params.copy()
 
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
         # create initial population and run the search till func.budget_spent_fraction is 1.0.
         # evaluate a solution using `func(x)` where `x` is a list of parameter values.
