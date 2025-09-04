@@ -1,21 +1,30 @@
+import difflib
 import json
 import os
+import re
 import subprocess
 import time
+import urllib
 from pathlib import Path
 
+import jsonlines
 import matplotlib
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-import jsonlines
+import plotly.graph_objects as go
 import streamlit as st
-import urllib
-
-from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+from iohblade.plots import (
+    CEG_FEATURE_LABELS,
+    CEG_FEATURES,
+    code_diff_chain,
+    plotly_code_evolution,
+)
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
@@ -53,6 +62,35 @@ def _rgba(color: str, alpha: float) -> str:
         return f"rgba({nums},{alpha})"
     # fallback: let Plotly parse; many qualitative colors are hex so this usually won’t hit
     return color
+
+
+def _highlight_code(code: str, *, wrap: bool = False) -> str:
+    formatter = HtmlFormatter(nowrap=True, noclasses=True)
+    html = highlight(code, PythonLexer(), formatter)
+    html = re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+    if wrap:
+        return (
+            "<pre style='font-size:0.75rem; background:#f6f8fa; "
+            "padding:0.5rem; overflow:auto;'>" + html + "</pre>"
+        )
+    return html
+
+
+def _diff_to_html(old: str, new: str) -> str:
+    diff = difflib.ndiff(old.splitlines(), new.splitlines())
+    lines = []
+    for line in diff:
+        tag, text = line[:2], line[2:]
+        if tag == "+ ":
+            cls = "added"
+        elif tag == "- ":
+            cls = "removed"
+        elif tag == "? ":
+            continue
+        else:
+            cls = "context"
+        lines.append(f'<span class="{cls}">{_highlight_code(text)}</span>')
+    return "<br>".join(lines)
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
@@ -293,6 +331,65 @@ def run() -> None:
                 else:
                     st.write("No data for selected run.")
 
+            if not run_df.empty:
+                st.markdown("#### Code Diff Chain")
+                solutions = run_df.to_dict("records")
+                best_idx = max(
+                    range(len(solutions)),
+                    key=lambda i: solutions[i].get("fitness", float("-inf")),
+                )
+                solution_choice = st.selectbox(
+                    "Solution",
+                    solutions,
+                    index=best_idx,
+                    key="diff_chain_solution",
+                    format_func=lambda x: (
+                        f"{x.get('name', x['id'])} (gen {x.get('generation', '?')})"
+                        f" | fit {x.get('fitness', 'n/a')}"
+                    ),
+                )
+                selected_sol = solution_choice["id"]
+                if st.button("Show Diff Chain", key="show_diff_chain"):
+                    diffs = code_diff_chain(run_df, selected_sol)
+                    if diffs:
+                        root = diffs[0]["parent"]
+                        root_header = (
+                            f"{root.get('name', root['id'])} "
+                            f"(gen {root.get('generation', '?')}, fit {root.get('fitness', 'n/a')})"
+                        )
+                        root_html = _highlight_code(root["code"], wrap=True)
+                        cards = (
+                            "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
+                            "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
+                            " border-radius:4px; padding:0.5rem;'>"
+                            f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{root_header}</div>"
+                            f"{root_html}"
+                            "</div>"
+                        )
+                        for entry in diffs:
+                            parent = entry["parent"]
+                            child = entry["child"]
+                            header = (
+                                f"{parent.get('name', parent['id'])} "
+                                f"(gen {parent.get('generation', '?')}, "
+                                f"fit {parent.get('fitness', 'n/a')}) &rarr; "
+                                f"{child.get('name', child['id'])} "
+                                f"(gen {child.get('generation', '?')}, "
+                                f"fit {child.get('fitness', 'n/a')})"
+                            )
+                            diff_html = _diff_to_html(parent["code"], child["code"])
+                            cards += (
+                                "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
+                                " border-radius:4px; padding:0.5rem;'>"
+                                f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{header}</div>"
+                                f"<pre style='font-size:0.75rem; background:#f6f8fa; padding:0.5rem; overflow:auto;'>{diff_html}</pre>"
+                                "</div>"
+                            )
+                        cards += "</div>"
+                        st.markdown(cards, unsafe_allow_html=True)
+                    else:
+                        st.write("No parent chain found.")
+
             st.markdown("#### Top Solutions")
             runs = logger.get_data()
             for m in method_sel:
@@ -345,7 +442,7 @@ def run() -> None:
 
 
 def main() -> None:
-    subprocess.run(["streamlit", "run", str(Path(__file__))], check=True)
+    subprocess.run(["streamlit", "run", str(Path(__file__)), "--server.fileWatcherType", "none"], check=True)
 
 
 if __name__ == "__main__":
