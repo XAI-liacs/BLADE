@@ -28,11 +28,16 @@ class TrackioExperimentLogger(ExperimentLogger):
             ) from _import_error
         super().__init__(name=name, read=read)
         self.project = name
-        self._run_active = False
+        self._current_run = {}
 
     def _before_open_run(self, run_name, method, problem, budget, seed):
-        trackio.init(project=self.project, name=run_name)
-        self._run_active = True
+        # Store metadata for the upcoming run so the run logger can
+        # initialise Trackio in the executing thread.
+        self._current_run = {
+            "method_name": method.name,
+            "problem_name": problem.name,
+            "seed": seed,
+        }
 
     def _create_run_logger(self, run_name, budget, progress_cb):
         return TrackioRunLogger(
@@ -40,6 +45,10 @@ class TrackioExperimentLogger(ExperimentLogger):
             root_dir=self.dirname,
             budget=budget,
             progress_callback=progress_cb,
+            project=self.project,
+            method_name=self._current_run.get("method_name", ""),
+            problem_name=self._current_run.get("problem_name", ""),
+            seed=self._current_run.get("seed"),
         )
 
     def add_run(
@@ -51,23 +60,6 @@ class TrackioExperimentLogger(ExperimentLogger):
         log_dir: str = "",
         seed: int | None = None,
     ):
-        if not self._run_active:
-            super().open_run(method, problem, budget=method.budget, seed=seed)
-
-        trackio.log(
-            {
-                "method_name": method.name,
-                "problem_name": problem.name,
-                "llm_name": llm.model,
-                "seed": seed,
-                "final_fitness": (
-                    solution.fitness if solution.fitness is not None else float("nan")
-                ),
-            }
-        )
-        trackio.finish()
-        self._run_active = False
-
         super().add_run(
             method=method,
             problem=problem,
@@ -81,7 +73,57 @@ class TrackioExperimentLogger(ExperimentLogger):
 class TrackioRunLogger(RunLogger):
     """Run logger that mirrors data to Trackio."""
 
+    def __init__(
+        self,
+        *args,
+        project: str = "",
+        method_name: str = "",
+        problem_name: str = "",
+        seed: int | None = None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.project = project
+        self.method_name = method_name
+        self.problem_name = problem_name
+        self.seed = seed
+        self._run_name = args[0] if args else ""
+        self._initialized = False
+        self.llm_name = ""
+
+    def _ensure_init(self):
+        if not self._initialized:
+            trackio.init(project=self.project, name=self._run_name)
+            self._initialized = True
+
+    def start_run(self, llm: LLM):
+        """Initialise Trackio and log run metadata."""
+        self.llm_name = llm.model
+        self._ensure_init()
+        trackio.log(
+            {
+                "method_name": self.method_name,
+                "problem_name": self.problem_name,
+                "llm_name": self.llm_name,
+                "seed": self.seed,
+            }
+        )
+
+    def finish_run(self, solution: Solution):
+        """Log final fitness and finish the Trackio run."""
+        self._ensure_init()
+        trackio.log(
+            {
+                "final_fitness": (
+                    solution.fitness if solution.fitness is not None else float("nan")
+                )
+            }
+        )
+        trackio.finish()
+        self._initialized = False
+
     def log_conversation(self, role, content, cost: float = 0.0, tokens: int = 0):
+        self._ensure_init()
         trackio.log(
             {
                 "role": role,
@@ -94,6 +136,7 @@ class TrackioRunLogger(RunLogger):
         super().log_conversation(role, content, cost, tokens)
 
     def log_individual(self, individual):
+        self._ensure_init()
         ind_dict = individual.to_dict()
         if "fitness" in ind_dict:
             trackio.log({"fitness": ind_dict["fitness"]})
@@ -101,10 +144,12 @@ class TrackioRunLogger(RunLogger):
         super().log_individual(individual)
 
     def log_code(self, individual):
+        self._ensure_init()
         trackio.log({"code": individual.code})
         super().log_code(individual)
 
     def log_configspace(self, individual):
+        self._ensure_init()
         if individual.configspace is not None:
             text = cs_json.write(individual.configspace)
         else:
