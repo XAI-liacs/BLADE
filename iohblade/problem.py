@@ -1,15 +1,16 @@
+import json
 import multiprocessing
 import os
 import shutil
 import subprocess
 import tempfile
 import traceback
+import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 import cloudpickle
 import numpy as np
-import json, tempfile, uuid
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
@@ -21,9 +22,10 @@ BASE_DEPENDENCIES = [
     #    "scikit-learn==1.3.0",
 ]
 
+import copy
+
 from .solution import Solution
 from .utils import TimeoutException
-import copy
 
 
 def evaluate_in_subprocess(problem, conn, solution):
@@ -75,13 +77,19 @@ def evaluate_in_subprocess(problem, conn, solution):
             )
             with open(result_pickle, "rb") as f:
                 result = cloudpickle.load(f)
-            conn.send(result)
+            conn.send({"result": result, "stdout": res.stdout, "stderr": res.stderr})
         except subprocess.CalledProcessError as e:
             # Process returned non-zero exit code
-            conn.send(e.stderr)
+            conn.send({"error": e.stderr, "stdout": e.stdout, "stderr": e.stderr})
 
     except Exception as e:
-        conn.send(f"{e} stracktrace: {traceback.format_exc()}")
+        conn.send(
+            {
+                "error": f"{e} stracktrace: {traceback.format_exc()}",
+                "stdout": "",
+                "stderr": "",
+            }
+        )
     finally:
         conn.close()
 
@@ -171,6 +179,10 @@ class Problem(ABC):
 
         # solution = self.evaluate(solution) #old fashioned way
         # Else create a new process for evaluation with timeout
+        stdout = ""
+        stderr = ""
+        self._last_stdout = ""
+        self._last_stderr = ""
         try:
             self._ensure_env()
             (
@@ -189,14 +201,37 @@ class Problem(ABC):
                 )
             if parent_conn.poll():
                 result = parent_conn.recv()
-                if isinstance(result, Exception):
+                if isinstance(result, dict):
+                    stdout = result.get("stdout", "")
+                    stderr = result.get("stderr", "")
+                    if "error" in result:
+                        err = result["error"]
+                        solution.set_scores(
+                            -np.inf,
+                            feedback=f"An error occurred: {err}.",
+                            error=err,
+                        )
+                    else:
+                        data = result.get("result")
+                        if isinstance(data, Solution):
+                            solution = data
+                        elif isinstance(data, str):
+                            solution.set_scores(
+                                -np.inf,
+                                feedback=f"An error occurred: {data}.",
+                                error=data,
+                            )
+                        else:
+                            raise Exception("No Solution object or string returned.")
+                elif isinstance(result, Exception):
                     raise result
                 elif isinstance(result, Solution):
                     solution = result
                 elif isinstance(result, str):
-                    # If a string is returned, it is likely an error message
                     solution.set_scores(
-                        -np.inf, feedback=f"An error occurred: {result}.", error=result
+                        -np.inf,
+                        feedback=f"An error occurred: {result}.",
+                        error=result,
                     )
                 else:
                     raise Exception("No Solution object or string returned.")
@@ -215,6 +250,8 @@ class Problem(ABC):
             except Exception:
                 pass
 
+        self._last_stdout = stdout
+        self._last_stderr = stderr
         if self.logger is not None:
             self.logger.log_individual(solution)
         return solution
