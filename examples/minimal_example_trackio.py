@@ -134,6 +134,6 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
         os.mkdir("results")
     logger = TrackioExperimentLogger("results/minimal-test-trackio")
     problems = [MinimalProblem()] # our dummy problem
-    experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=False, exp_logger=logger, budget=budget, n_jobs=2) #normal run using 2 parallel jobs
+    experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=1) #normal run using 2 parallel jobs
 
     experiment() #run the experiment

@@ -5,6 +5,7 @@ import re
 import textwrap
 from typing import Optional, Tuple
 import types
+import math
 
 import numpy as np
 
@@ -87,6 +88,15 @@ def is_jsonable(x):
     except (TypeError, OverflowError):
         return False
 
+def sanitize(o):
+    """Helper for sanitizing json data."""
+    if isinstance(o, float):
+        return o if math.isfinite(o) else str(o)
+    if isinstance(o, dict):
+        return {k: sanitize(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple, set)):
+        return [sanitize(v) for v in o]
+    return o
 
 def convert_to_serializable(data):
     if isinstance(data, dict):
@@ -96,12 +106,12 @@ def convert_to_serializable(data):
     elif isinstance(data, np.integer):
         return int(data)
     elif isinstance(data, np.floating):
-        return float(data)
+        return sanitize(float(data))
     if isinstance(data, np.ndarray):
         return data.tolist()
     else:
         if is_jsonable(data):
-            return data
+            return sanitize(data)
         else:
             return str(data)
 

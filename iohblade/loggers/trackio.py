@@ -18,6 +18,8 @@ else:
     _import_error = None
 
 
+
+
 class TrackioExperimentLogger(ExperimentLogger):
     """Experiment logger that also logs runs to Trackio."""
 
@@ -36,7 +38,7 @@ class TrackioExperimentLogger(ExperimentLogger):
         self._current_run = {
             "method_name": method.name,
             "problem_name": problem.name,
-            "seed": seed,
+            "seed": int(seed),
         }
 
     def _create_run_logger(self, run_name, budget, progress_cb):
@@ -105,7 +107,7 @@ class TrackioRunLogger(RunLogger):
                 "method_name": self.method_name,
                 "problem_name": self.problem_name,
                 "llm_name": self.llm_name,
-                "seed": self.seed,
+                "seed": int(self.seed),
             }
         )
 
@@ -115,7 +117,7 @@ class TrackioRunLogger(RunLogger):
         trackio.log(
             {
                 "final_fitness": (
-                    solution.fitness if solution.fitness is not None else float("nan")
+                    convert_to_serializable(solution.fitness) if solution.fitness is not None else float("nan")
                 )
             }
         )
@@ -127,9 +129,9 @@ class TrackioRunLogger(RunLogger):
         trackio.log(
             {
                 "role": role,
-                "time": str(datetime.now()),
+                "reply_time": str(datetime.now()),
                 "content": content,
-                "cost": float(cost),
+                "cost": convert_to_serializable(cost),
                 "tokens": int(tokens),
             }
         )
@@ -139,22 +141,15 @@ class TrackioRunLogger(RunLogger):
         self._ensure_init()
         ind_dict = individual.to_dict()
         if "fitness" in ind_dict:
-            trackio.log({"fitness": ind_dict["fitness"]})
+            #print(convert_to_serializable(ind_dict["fitness"]))
+            trackio.log({"fitness": convert_to_serializable(ind_dict["fitness"])})
         trackio.log({"solution": convert_to_serializable(ind_dict)})
         super().log_individual(individual)
 
     def log_code(self, individual):
-        self._ensure_init()
-        trackio.log({"code": individual.code})
         super().log_code(individual)
 
     def log_configspace(self, individual):
-        self._ensure_init()
-        if individual.configspace is not None:
-            text = cs_json.write(individual.configspace)
-        else:
-            text = "Failed to extract config space"
-        trackio.log({"configspace": text})
         super().log_configspace(individual)
 
     def budget_exhausted(self):  # pragma: no cover - same as parent
