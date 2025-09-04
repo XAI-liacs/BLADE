@@ -30,19 +30,17 @@ class TrackioExperimentLogger(ExperimentLogger):
         self.project = name
         self._run_active = False
 
-    def open_run(self, method, problem, budget: int = 100, seed: int = 0):
-        run_name = f"{method.name}-{problem.name}-{seed}"
+    def _before_open_run(self, run_name, method, problem, budget, seed):
         trackio.init(project=self.project, name=run_name)
         self._run_active = True
-        progress_cb = lambda: self.increment_eval(method.name, problem.name, seed)
-        self.run_logger = TrackioRunLogger(
+
+    def _create_run_logger(self, run_name, budget, progress_cb):
+        return TrackioRunLogger(
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
             progress_callback=progress_cb,
         )
-        problem.set_logger(self.run_logger)
-        return self.run_logger
 
     def add_run(
         self,
@@ -54,9 +52,7 @@ class TrackioExperimentLogger(ExperimentLogger):
         seed: int | None = None,
     ):
         if not self._run_active:
-            run_name = f"{method.name}-{problem.name}-{seed}"
-            trackio.init(project=self.project, name=run_name)
-            self._run_active = True
+            super().open_run(method, problem, budget=method.budget, seed=seed)
 
         trackio.log(
             {
