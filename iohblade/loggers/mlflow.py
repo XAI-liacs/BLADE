@@ -24,7 +24,6 @@ else:
     _import_error = None
 
 
-
 class MLFlowExperimentLogger(ExperimentLogger):
     """
     An ExperimentLogger subclass that keeps the original file-based logging,

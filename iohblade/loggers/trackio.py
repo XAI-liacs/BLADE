@@ -18,8 +18,6 @@ else:
     _import_error = None
 
 
-
-
 class TrackioExperimentLogger(ExperimentLogger):
     """Experiment logger that also logs runs to Trackio."""
 
@@ -117,7 +115,9 @@ class TrackioRunLogger(RunLogger):
         trackio.log(
             {
                 "final_fitness": (
-                    convert_to_serializable(solution.fitness) if solution.fitness is not None else float("nan")
+                    convert_to_serializable(solution.fitness)
+                    if solution.fitness is not None
+                    else float("nan")
                 )
             }
         )
@@ -141,7 +141,7 @@ class TrackioRunLogger(RunLogger):
         self._ensure_init()
         ind_dict = individual.to_dict()
         if "fitness" in ind_dict:
-            #print(convert_to_serializable(ind_dict["fitness"]))
+            # print(convert_to_serializable(ind_dict["fitness"]))
             trackio.log({"fitness": convert_to_serializable(ind_dict["fitness"])})
         trackio.log({"solution": convert_to_serializable(ind_dict)})
         super().log_individual(individual)

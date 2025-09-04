@@ -1,41 +1,47 @@
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
 from iohblade.methods import LLaMEA, RandomSearch
-from iohblade.loggers import TrackioExperimentLogger
-from iohblade import Problem, Solution
+from iohblade.loggers import TrackioExperimentLogger, ExperimentLogger
+from iohblade import Problem, Solution, wrap_problem
 import numpy as np
 import os
 import logging
 
 # Let's first define our Dummy problem.
 
-class MinimalProblem(Problem):
+# First we define our evaluate function (how to evaluate a solution)
+# It can also access the problem object, for example to get training and testing instance information.
+def f(problem:Problem, solution: Solution):
     """
-    A sample Problem class with all the required ingredients to use in BLADE.
-
+    Evaluate a solution (example), this just returns a random fitness instead and waits a bit.
     """
+    code = solution.code
+    algorithm_name = solution.name
 
-    def __init__(
-        self, logger=None, name="minimal example", eval_timeout=30
-    ):
-        super().__init__(
-            logger,
-            [], # training instances (not used)
-            [], # testing instances (not used)
-            name,
-            eval_timeout,
-        )
+    # # Wait a bit (max 1 sec) (so we can see the progress of the experiment nicely)
+    # waittime = np.random.rand()
+    # sleep(waittime)
 
-        # The next four variables are actually the default, we include them here to explain them.
-        self.func_name = "__call__" # the name of the generated function that will be evaluated (defaults to __call__)
-        self.init_inputs = ["budget", "dim"] # The variables that the generated class will receive upon initialization. (__init__)
-        self.func_inputs = ["func"] # The variables the generated function of the class will receive. (__call__)
-        self.func_outputs = ["f_opt", "x_opt"] # The expected output variables of the function. (__call__)
+    # Excecute the code. (errors are handled automatically and would set the fitness to -inf)
+    exec(code, globals())
 
-        # Now we have to setup the prompt parts of the task. In this case we just use placeholders
-        self.task_prompt = "Write the problem description part here."
-        # Next define a code example (it should be runnable! ReEVO even uses it to seed the algorithm)
-        self.example_prompt = """
+    # Instantiate the generated class.
+    algorithm = None
+    algorithm = globals()[algorithm_name](budget=5, dim=5)
+    # Now we can also call the algorithm, but for this example we omit that.
+    # res = algorithm()
+
+    score = np.random.rand()
+    # we pass the score and a textual feedback to the solution.
+    solution.set_scores(
+        score,
+        f"The algorithm {algorithm_name} scored {score:.3f} (higher is better, 1.0 is the best).",
+    )
+    # we finally return the updated solution object.
+    return solution
+
+task_prompt = "Write the problem description part here."
+example_prompt = """
 An example code is as follows:
 ```python
 import numpy as np
@@ -59,65 +65,21 @@ class RandomSearch:
         return self.f_opt, self.x_opt
 ```
 """
-        # Next we define the output format. Just leave this the default, otherwise you also need to change the regex options to extract code and descriptions.
-        self.format_prompt = """
-Give the response in the format:
-# Description: <short-description>
-# Code: 
-```python
-<code>
-```
-"""
 
-    # Now the most important part of a problem is the `evaluate` function. 
-    # Here you should take the code from the solution and evaluate it on YOUR problem instances.
-    # In the end you should give the fitness back to the solution with solution.set_scores(fitness, feedback).
-    def evaluate(self, solution: Solution):
-        """
-        Evaluate a solution (example), this just returns a random fitness instead and waits a bit.
-        """
-        code = solution.code
-        algorithm_name = solution.name
-
-        # Wait a bit (max 1 sec) (so we can see the progress of the experiment nicely)
-        waittime = np.random.rand()
-        os.sleep(waittime)
-
-        # Excecute the code. (errors are handled automatically and would set the fitness to -inf)
-        exec(code, globals())
-
-        # Instantiate the generated class.
-        algorithm = None
-        algorithm = globals()[algorithm_name](budget=5, dim=5)
-        # Now we can also call the algorithm, but for this example we omit that.
-        # res = algorithm()
-
-        score = np.random.rand()
-        # we pass the score and a textual feedback to the solution.
-        solution.set_scores(
-            score,
-            f"The algorithm {algorithm_name} scored {score:.3f} (higher is better, 1.0 is the best).",
-        )
-        # we finally return the updated solution object.
-        return solution
-
-    def to_dict(self):
-        """
-        Converts the problem to a dictionary.
-        """
-        return {
-            "name": self.name,
-        }
-
-    def test(self): 
-        # The test function can be used to run the evaluation on the test instances. This is only used for post-validation.
-        pass
-
-
+minimal_problem = wrap_problem(f, 
+                            eval_timeout=30, 
+                            training_instances=[], #not used
+                            test_instances = [], #not used
+                            dependencies = None, #Default dependencies
+                            imports = "import numpy as np", # Load numpy for evaluation
+                            task_prompt = task_prompt,
+                            example_prompt = example_prompt,
+                            )
 
 if __name__ == "__main__": # Because we call stuff in parallel, make sure the experiment setup is inside this if.
+
     llm = Dummy_LLM("dummy-model")
-    budget = 10 # a test budget for 10 evaluations (normally you should use 100+)
+    budget = 6 # a test budget for 10 evaluations (normally you should use 100+)
 
     # Set up the LLaMEA algorithm
     mutation_prompts = [
@@ -132,8 +94,9 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
     # make sure the "results" directory exist.
     if not os.path.exists("results"):
         os.mkdir("results")
+
     logger = TrackioExperimentLogger("results/minimal-test-trackio")
-    problems = [MinimalProblem()] # our dummy problem
-    experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=1) #normal run using 2 parallel jobs
+    problems = [minimal_problem] # our dummy problem
+    experiment = Experiment(methods=methods, problems=problems, runs=3, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=1) #normal run using 2 parallel jobs
 
     experiment() #run the experiment

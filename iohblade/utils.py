@@ -88,6 +88,7 @@ def is_jsonable(x):
     except (TypeError, OverflowError):
         return False
 
+
 def sanitize(o):
     """Helper for sanitizing json data."""
     if isinstance(o, float):
@@ -97,6 +98,7 @@ def sanitize(o):
     if isinstance(o, (list, tuple, set)):
         return [sanitize(v) for v in o]
     return o
+
 
 def convert_to_serializable(data):
     if isinstance(data, dict):
