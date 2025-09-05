@@ -25,6 +25,12 @@ jobs:
           # Install a specific version of uv.
           version: "0.7.19"
 
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+
       #----------------------------------------------
       #       load cached venv if cache exists
       #----------------------------------------------
