@@ -1,15 +1,15 @@
 import contextlib
 import copy
+import logging
+import sys
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from tqdm import tqdm
-import sys
 
 from .loggers import ExperimentLogger
 from .problems import MA_BBOB
-import logging
 
 BLADE_ASCII = r"""
     ____  __    ___    ____  ______
@@ -171,13 +171,19 @@ class Experiment(ABC):
     def _run_single(self, method, problem, logger, seed):
         np.random.seed(seed)
         method.llm.set_logger(logger)
+        if hasattr(logger, "start_run"):
+            logger.start_run(method.llm)
         if self.show_stdout:
             problem._ensure_env()
-            return method(problem)
-        with contextlib.redirect_stdout(None):
-            with contextlib.redirect_stderr(None):
-                problem._ensure_env()
-                return method(problem)
+            result = method(problem)
+        else:
+            with contextlib.redirect_stdout(None):
+                with contextlib.redirect_stderr(None):
+                    problem._ensure_env()
+                    result = method(problem)
+        if hasattr(logger, "finish_run"):
+            logger.finish_run(result)
+        return result
 
 
 class MA_BBOB_Experiment(Experiment):

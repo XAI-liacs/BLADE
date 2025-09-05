@@ -2,9 +2,7 @@ import json
 import os
 from datetime import datetime
 
-import mlflow
-import mlflow.exceptions
-import mlflow.pyfunc
+
 import pandas as pd
 from ConfigSpace.read_and_write import json as cs_json
 
@@ -14,6 +12,16 @@ from ..problem import Problem
 from ..solution import Solution
 from ..utils import convert_to_serializable
 from .base import ExperimentLogger, RunLogger
+
+try:  # pragma: no cover - import guard
+    import mlflow
+    import mlflow.exceptions
+    import mlflow.pyfunc
+except Exception as e:  # pragma: no cover - handled in __init__
+    mlflow = None
+    _import_error = e
+else:
+    _import_error = None
 
 
 class MLFlowExperimentLogger(ExperimentLogger):
@@ -33,6 +41,10 @@ class MLFlowExperimentLogger(ExperimentLogger):
             mlflow_tracking_uri (str): The MLflow Tracking URI (e.g. 'file:/tmp/mlruns',
                                        or your remote server).
         """
+        if mlflow is None:
+            raise ImportError(
+                "MLflow is not installed. Install with `pip install mlflow`."
+            ) from _import_error
         super().__init__(name=name, read=read)
         # If you want to store the logs in some custom place
         if mlflow_tracking_uri:
@@ -48,30 +60,21 @@ class MLFlowExperimentLogger(ExperimentLogger):
         self._mlflow_run_active = False  # Track if we have an active run
         self._current_run_id = None
 
-    def open_run(self, method, problem, budget=100, seed=0):
-        """
-        Opens (starts) a new MLflow run for logging.
-        Typically call this right before your run, so that the RunLogger can log step data.
-        """
-        if self._mlflow_run_active:
-            print("Warning: An MLflow run is already active. Not starting a new one.")
-            return
-        run_name = f"{method.name}-{problem.name}-{seed}"
-
+    def _before_open_run(self, run_name, method, problem, budget, seed):
         run = mlflow.start_run(experiment_id=self.experiment_id, run_name=run_name)
         self._mlflow_run_active = True
         self._current_run_id = run.info.run_id
 
-        self.run_logger = MLFlowRunLogger(
+    def _create_run_logger(self, run_name, budget, progress_cb):
+        return MLFlowRunLogger(
             name=run_name,
             root_dir=self.dirname,
             budget=budget,
-            progress_callback=lambda: self.increment_eval(
-                method.name, problem.name, seed
-            ),
+            progress_callback=progress_cb,
         )
-        problem.set_logger(self.run_logger)
-        return self.run_logger
+
+    def open_run(self, method, problem, budget=100, seed=0):
+        return super().open_run(method, problem, budget, seed)
 
     def add_run(
         self,

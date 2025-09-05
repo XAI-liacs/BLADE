@@ -45,7 +45,7 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if dependencies is None:
-            dependencies = ["ioh==0.3.18", "pandas==2.0.3"]
+            dependencies = ["ioh==0.3.19", "pandas==2.2.3"]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
 
@@ -85,7 +85,7 @@ class RandomSearch:
         self.dim = dim
 
     def __call__(self, func):
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
