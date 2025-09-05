@@ -2,7 +2,6 @@ import json
 import os
 from datetime import datetime
 
-
 import pandas as pd
 from ConfigSpace.read_and_write import json as cs_json
 
@@ -114,7 +113,10 @@ class MLFlowExperimentLogger(ExperimentLogger):
         mlflow.log_metric("final_fitness", final_fitness)
 
         # Log a serialized object as an artifact
-        rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        try:
+            rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        except ValueError:
+            rel_log_dir = log_dir
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,

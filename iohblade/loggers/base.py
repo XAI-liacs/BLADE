@@ -172,7 +172,10 @@ class ExperimentLogger:
             log_dir (str): The directory where the run is logged.
             seed (int): The seed used in the run.
         """
-        rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        try:
+            rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        except ValueError:
+            rel_log_dir = log_dir
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
