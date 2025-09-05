@@ -518,7 +518,8 @@ class Ollama_LLM(LLM):
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.client = ollama.Client(
-            host=f"http://localhost:{self.port}", headers={"x-some-header": "some-value"}
+            host=f"http://localhost:{self.port}",
+            headers={"x-some-header": "some-value"},
         )
 
     def _query(
