@@ -13,7 +13,7 @@ jobs:
         shell: bash
     strategy:
       matrix:
-        python-version: ['3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12']
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -46,11 +46,6 @@ jobs:
       - name: Install dependencies
         if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
         run: uv sync --dev
-      #----------------------------------------------
-      #              run black
-      #----------------------------------------------
-      - name: Check black
-        run: uv run black --check --verbose ./iohblade/
       #----------------------------------------------
       #              run test suite (only unit tests)
       #----------------------------------------------

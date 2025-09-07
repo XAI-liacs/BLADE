@@ -1,4 +1,4 @@
-name: Test
+name: Test (Ubuntu)
 permissions:
   contents: read
   id-token: write
@@ -6,8 +6,11 @@ permissions:
 on: [pull_request]
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12', '3.13']
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
@@ -15,7 +18,7 @@ jobs:
         id: setup-python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       #----------------------------------------------
       #  -----  install & configure uv  -----
       #----------------------------------------------

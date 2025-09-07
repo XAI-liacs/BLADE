@@ -1,4 +1,4 @@
-name: Test
+name: End-to-End Tests
 permissions:
   contents: read
   id-token: write
@@ -6,7 +6,7 @@ permissions:
 on: [pull_request]
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
