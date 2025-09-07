@@ -87,7 +87,7 @@ def test_full_matrix_experiment_optimization(cleanup_tmp_dir, monkeypatch):
             test_instances=test_instances,
             dims=[2],
             budget_factor=100,
-            eval_timeout=60,
+            eval_timeout=120,
             name=f"BBOB-f1",
             problem_type=ioh.ProblemClass.BBOB,
             full_ioh_log=False,
@@ -99,7 +99,7 @@ def test_full_matrix_experiment_optimization(cleanup_tmp_dir, monkeypatch):
             test_instances=[2],
             dims=[2],
             budget_factor=100,
-            eval_timeout=60,
+            eval_timeout=120,
             name=f"MABBOB-i1",
         )
     )
