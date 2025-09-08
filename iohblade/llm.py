@@ -504,9 +504,7 @@ class Ollama_LLM(LLM):
             port: TCP/UDP port on which localhost for ollama is available. Defaults to 11434.
         """
         self.port = port
-        self.client = ollama.Client(
-            host=f"http://localhost:{port}", headers={"x-some-header": "some-value"}
-        )
+        self.client = ollama.Client(host=f"http://localhost:{port}")
 
         super().__init__("", model, None, **kwargs)
 
@@ -517,10 +515,7 @@ class Ollama_LLM(LLM):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.client = ollama.Client(
-            host=f"http://localhost:{self.port}",
-            headers={"x-some-header": "some-value"},
-        )
+        self.client = ollama.Client(host=f"http://localhost:{self.port}")
 
     def _query(
         self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
