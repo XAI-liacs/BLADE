@@ -494,15 +494,28 @@ class Gemini_LLM(LLM):
 
 
 class Ollama_LLM(LLM):
-    def __init__(self, model="llama3.2", **kwargs):
+    def __init__(self, model="llama3.2", port=11434, **kwargs):
         """
         Initializes the Ollama LLM manager with a model name. See https://ollama.com/search for models.
 
         Args:
             model (str, optional): model abbreviation. Defaults to "llama3.2".
                 See for options: https://ollama.com/search.
+            port: TCP/UDP port on which localhost for ollama is available. Defaults to 11434.
         """
+        self.port = port
+        self.client = ollama.Client(host=f"http://localhost:{port}")
+
         super().__init__("", model, None, **kwargs)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = ollama.Client(host=f"http://localhost:{self.port}")
 
     def _query(
         self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
@@ -529,7 +542,7 @@ class Ollama_LLM(LLM):
         attempt = 0
         while True:
             try:
-                response = ollama.chat(
+                response = self.client.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
                     options=kwargs,
