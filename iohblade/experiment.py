@@ -125,6 +125,9 @@ class Experiment(ABC):
             self._print_welcome_message()
             self._print_run_overview()
         tasks = {}  # future -> (method, problem, logger, seed)
+        # set up problem envs
+        for problem in self.problems:
+            problem._ensure_env()
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             for problem in self.problems:
                 for method in self.methods:
@@ -161,11 +164,13 @@ class Experiment(ABC):
                     log_dir=logger.dirname,
                     seed=seed,
                 )
-                problem.cleanup()
+
                 if not self.show_stdout:
                     self._refresh_console()
                 else:
                     self._print_run_overview()
+        for problem in self.problems:
+            problem.cleanup()
         return
 
     def _run_single(self, method, problem, logger, seed):
