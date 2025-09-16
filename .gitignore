@@ -177,3 +177,6 @@ BBOB*.zip
 /run/
 /setup/
 .vscode/
+
+# Apple File System
+.DS_Store

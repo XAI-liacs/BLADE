@@ -2,24 +2,32 @@ import math, random
 import numpy as np
 from scipy.signal import convolve
 
-from auto_correlation_base_spec import AutoCorrBaseSpec
-from llamea import Solution, ExperimentLogger
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
-class AutoCorreIneq1(AutoCorrBaseSpec):
+if __name__ == "__main__":          #Weird $PYTHONPATH conflict.
+    from auto_correlation_base_spec import AutoCorrBaseSpec
+else:
+    from .auto_correlation_base_spec import AutoCorrBaseSpec
+
+class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
     r"""
     Auto Correlation Inequality 1:
         Takes 0 arugements, instantiates evaluator and base class with appropritate
         functionality.
         Optimisation:
             \[\min \max_t frac{(f*f)(t)}{(\int f)^2}\]
-
+        Best known auto-correlation 1 score is C₁ <= 1.5053 (prev 1.5098).
     """
     def __init__(self):
-        super().__init__(task_name="auto_corr_ineq_1", n_bins=600)
+        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_1", n_bins=600)
+        Problem.__init__(self, name=self.task_name)
         self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
         self.example_prompt = self.make_example_prompt("AutoCorrCandidate")
+        self.format_prompt = self.make_format_prompt()
+        self.dependencies += ["scipy"]
 
-    def evaluate(self, solution:Solution, explogger:ExperimentLogger=None):
+    def evaluate(self, solution:Solution) -> Solution:
         code = solution.code
 
         local_parameters = {}
@@ -50,7 +58,14 @@ class AutoCorreIneq1(AutoCorrBaseSpec):
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution
 
+    def test(self, solution: Solution) -> Solution:
+        return self.evaluate(solution)
+
+    def to_dict(self):
+        return self.__dict__
 
 if __name__ == "__main__":
-    ac1 = AutoCorreIneq1()
+    ac1 = AutoCorrIneq1()
     print(ac1.task_prompt)
+    print(ac1.eval_timeout)
+    print(ac1._env_path)

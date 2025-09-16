@@ -1,3 +1,4 @@
+from iohblade.problem import Problem
 """
     Autocorrelation measures how similar a signal is to a shifted version of itself.
     It is commonly used to detect repeating patterns, periodicity, or structure in data.
@@ -67,21 +68,36 @@ class AutoCorrBaseSpec:
                 "The runner will L2-normalize f; you do not need to")
 
         return f"""
+
 Write a python class with function `__call__`, that returns a list of floats f of length N.
 - Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
 - Auto-convolution of `g = dx * conv(f, f, mode="full")`, where g lies in range [-1/2, 1/2].
 - Optimise for objective of {formula}, where {positivity} and {norm}.
 - Symmetry or piecewise-constant structure is allowed if helpful.
 - Set N = {self.n_bins} as default.
-        """
+
+"""
 
     def make_example_prompt(self, class_name: str) -> str:
-        return f"""```python
+        return f"""
+
+An example template of such program is given by:
+```python
 class {class_name}:
     def __call__(self):
         return [0,0]*{self.n_bins}
-        """
+```
 
-if __name__ == "__main__":
-    auto_corr_ineq_1 = AutoCorrBaseSpec("auto_corr_ineq_3", 10)
-    print(auto_corr_ineq_1.make_task_prompt(formula="minimise max_t [(f *f)(t)]/(∫f)^2"))
+"""
+
+    def make_format_prompt(self):
+        return """
+
+Give an excellent and novel algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
+# Description: <short-description>
+# Code:
+```python
+<code>
+```
+
+"""
