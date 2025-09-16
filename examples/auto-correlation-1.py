@@ -10,6 +10,8 @@ from os import environ
 #   Provide it as an instance of Problem in Experiment
 
 if __name__ == "__main__":
+    budget=10
+
     api_key = environ.get("GOOGLE_API_KEY")
 
     ollama_llm = Ollama_LLM()
@@ -21,14 +23,19 @@ if __name__ == "__main__":
     for llm in [gemini_llm]:
         method = LLaMEA(
             llm,
-            budget=10
+            n_parents=1,
+            n_offspring=1,
+            budget=budget,
+            minimization=True
         )
         methods.append(method)
-    logger=ExperimentLogger("Auto-Correlation-Inequality-1")
+    logger=ExperimentLogger("results/Auto-Correlation-Inequality-1")
     experiment = Experiment(
         methods,
         [autocor1],
         runs=1,
+        budget=budget,
+        show_stdout=True,
         exp_logger=logger
     )
 

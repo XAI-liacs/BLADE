@@ -1,6 +1,8 @@
-import math, random
+import scipy
 import numpy as np
-from scipy.signal import convolve
+import math, random
+
+from scipy.optimize import minimize
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -25,13 +27,20 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
         self.example_prompt = self.make_example_prompt("AutoCorrCandidate")
         self.format_prompt = self.make_format_prompt()
-        self.dependencies += ["scipy"]
+        self.dependencies += ["scipy"]      #Allow scipy to be accessed in the isolate environment.
 
     def evaluate(self, solution:Solution) -> Solution:
         code = solution.code
 
         local_parameters = {}
-        global_parameters = {"math": math, "random": random, "np": np, "convolve": convolve}
+        global_parameters = {
+            "math": math,
+            "random": random,
+            "np": np,
+            "scipy": scipy,
+            "minimize": minimize
+        }
+
         try:
             exec(code, global_parameters, local_parameters)
             cls = next(v for v in local_parameters.values() if isinstance(v, type))
