@@ -2,9 +2,9 @@ from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
-from iohblade.benchmarks.analysis import AutoCorrIneq1
-from iohblade.benchmarks.analysis import AutoCorrIneq2
 from os import environ
+
+from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2, AutoCorrIneq3
 
 # The prompts, and the evaluation function are provided in the autocorrIneq1 class
 # as does all other benchmarks..
@@ -19,9 +19,11 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     #Pick one of the following benchmarks to run.
-    autocorrineq = AutoCorrIneq1()
-    autocorrineq = AutoCorrIneq2()
-
+    #===============================================
+    # autocorrineq = AutoCorrIneq1()
+    # autocorrineq = AutoCorrIneq2()
+    autocorrineq = AutoCorrIneq3()
+    #================================================
 
     methods = []
     for llm in [gemini_llm]:

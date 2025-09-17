@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 from typing import Optional
 from scipy.optimize import minimize
 from iohblade.problem import Problem
+
 """
     Autocorrelation measures how similar a signal is to a shifted version of itself.
     It is commonly used to detect repeating patterns, periodicity, or structure in data.
@@ -25,6 +26,7 @@ from iohblade.problem import Problem
             * autocorr_ineq_2: TRUE
             * autocorr_ineq_3: FALSE
 """
+
 
 class AutoCorrBaseSpec:
     """
@@ -46,7 +48,9 @@ class AutoCorrBaseSpec:
     def __init__(self, task_name: str, n_bins: int):
         valid_task_names = ["auto_corr_ineq_1", "auto_corr_ineq_2", "auto_corr_ineq_3"]
         if task_name not in valid_task_names:
-            error_msg = "Expected task_name to be one of the following: " + " | ".join(valid_task_names)
+            error_msg = "Expected task_name to be one of the following: " + " | ".join(
+                valid_task_names
+            )
             raise ValueError(error_msg)
         if n_bins <= 0 or not isinstance(n_bins, int):
             raise ValueError("n_bins must be positive integer.")
@@ -59,20 +63,23 @@ class AutoCorrBaseSpec:
 
         self.normalise_l2 = False
         self.L = 0.25
-        self.dx = (2 * self.L) / self.n_bins                # Δx = 0.5 / N
+        self.dx = (2 * self.L) / self.n_bins  # Δx = 0.5 / N
 
     def __repr__(self):
         return f"Auto-Correlation Base Class for {self.task_name}, with discretisation level of {self.n_bins}; require non-negative set to {self.require_non_negative}."
 
     def make_task_prompt(self, formula: str) -> str:
-        positivity = ("all entries in the list f must be greater than or equal to 0"
-            if self.require_non_negative else
-            "entries in the list f may be positive or negative"
+        positivity = (
+            "all entries in the list f must be greater than or equal to 0"
+            if self.require_non_negative
+            else "entries in the list f may be positive or negative"
         )
 
-        norm= ("do not normalise the f, scaling does not change the score"
-            if not self.normalise_l2 else
-                "The runner will L2-normalize f; you do not need to")
+        norm = (
+            "do not normalise the f, scaling does not change the score"
+            if not self.normalise_l2
+            else "The runner will L2-normalize f; you do not need to"
+        )
 
         return f"""
 
@@ -116,7 +123,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             "random": random,
             "np": np,
             "scipy": scipy,
-            "minimize": minimize
+            "minimize": minimize,
         }
 
         try:
@@ -126,4 +133,11 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             return f, None
         except Exception as e:
             print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
-            return np.ndarray([0,]), e
+            return (
+                np.ndarray(
+                    [
+                        0,
+                    ]
+                ),
+                e,
+            )
