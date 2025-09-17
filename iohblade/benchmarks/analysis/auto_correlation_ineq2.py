@@ -1,3 +1,4 @@
+import math, random
 import numpy as np
 
 from iohblade.problem import Problem
@@ -8,25 +9,27 @@ if __name__ == "__main__":          #Weird $PYTHONPATH conflict.
 else:
     from .auto_correlation_base_spec import AutoCorrBaseSpec
 
-class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
+class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
     r"""
     Auto Correlation Inequality 1:
         Takes 0 arugements, instantiates evaluator and base class with appropritate
         functionality.
         Optimisation:
-            \[\min \max_t frac{(f*f)(t)}{(\int f)^2}\]
-        Best known auto-correlation 1 score by alpha evolve: is C₁ <= 1.5053 (prev 1.5098).
+            \[\min -(||f*f||_2^2 / (||f*f||_1 • ||f*f||_\infty))\]
+        Best known auto-correlation 1 score by alpha evolve: is C_2 <= -0.8962 (prev -0.8892).
     """
+
     def __init__(self):
-        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_1", n_bins=600)
+        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_2", n_bins=50)
         Problem.__init__(self, name=self.task_name)
 
-        self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
-        self.example_prompt = self.make_example_prompt("AutoCorrCandidate")
+        self.task_prompt = self.make_task_prompt("minimize  -( ||f*f||_2^2 / ( ||f*f||_1 · ||f*f||_∞ ) )")
+        self.example_prompt = self.make_example_prompt("AutoCorreCandidate_2")
         self.format_prompt = self.make_format_prompt()
-        self.dependencies += ["scipy"]              #Allow scipy to be accessed in the isolate environment.
 
-        self.minimisation = True                    #Provide tool to instantiate LLaMEA with appropritate max/min
+        self.dependencies += ["scipy"]
+
+        self.minimisation = True
 
     def evaluate(self, solution:Solution) -> Solution:
         code = solution.code
@@ -36,23 +39,28 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
             if err is not None:
                 raise err
         except Exception as e:
-            print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
+            print("\t Exception in `auto_correlation_ineq2.py`, " + e.__repr__())
             solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed"); return solution
 
         try:
-            if f.ndim != 1 or f.size != self.n_bins:
-                raise ValueError(f"f must be 1D with length N={self.n_bins}")
+            if f.ndim != 1 or f.size == 0:
+                raise ValueError("f must be a non-empty 1D array")
             if self.require_non_negative and np.any(f < 0):
-                raise ValueError("C1 requires f ≥ 0")
+                raise ValueError("C2 requires f ≥ 0")
 
             dx = self.dx
             g  = dx * np.convolve(f, f, mode="full")
-            I  = dx * float(np.sum(f))
-            if I <= 0:
-                raise ValueError("Integral ∫f must be > 0 for C1")
 
-            score = float(np.max(g) / (I * I))   # minimize
-            solution.set_scores(score, f"C1 ratio = {score:.6g}")
+            L1   = dx * float(np.sum(np.abs(g)))   # ∫|g|
+            L2sq = dx * float(np.sum(g * g))       # ∫g^2
+            Linf = float(np.max(g))                # max_t g(t)
+            den  = L1 * Linf
+            if den == 0.0:
+                raise ValueError("Denominator zero in C2 ratio")
+
+            ratio = L2sq / den                     # maximize in paper
+            score = -ratio                          # minimize here
+            solution.set_scores(score, f"C2 ratio = {ratio:.6g} (score is negated)")
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution
@@ -62,9 +70,3 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
 
     def to_dict(self):
         return self.__dict__
-
-if __name__ == "__main__":
-    ac1 = AutoCorrIneq1()
-    print(ac1.task_prompt)
-    print(ac1.eval_timeout)
-    print(ac1._env_path)
