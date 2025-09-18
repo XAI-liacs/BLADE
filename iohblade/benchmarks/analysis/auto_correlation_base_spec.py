@@ -1,9 +1,9 @@
 import math
-import scipy
 import random
 import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
+from scipy.signal import convolve
 from scipy.optimize import minimize
 from iohblade.problem import Problem
 
@@ -122,7 +122,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             "math": math,
             "random": random,
             "np": np,
-            "scipy": scipy,
+            "convolve": convolve,
             "minimize": minimize,
         }
 

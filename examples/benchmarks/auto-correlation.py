@@ -35,7 +35,7 @@ if __name__ == "__main__":
             minimization=autocorrineq.minimisation
         )
         methods.append(method)
-    logger=ExperimentLogger("results/Auto-Correlation-Inequality-1")
+    logger=ExperimentLogger("results/Auto-Correlation-Inequality")
     experiment = Experiment(
         methods,
         [autocorrineq],
