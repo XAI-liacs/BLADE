@@ -1,0 +1,111 @@
+import numpy as np
+from iohblade.problem import Problem
+from iohblade.misc.prepare_namespace import prepare_namespace
+
+class MinMaxMinDistanceRatio(Problem):
+    """
+    Minimize (max_pairwise_distance / min_pairwise_distance)^2 for n points in R^d.
+    We operate on squared distances to match the paper’s reporting; score = -ratio^2.
+    """
+
+    def __init__(self, n_points: int, dim: int, tolerance: float = 1e-12):
+        super().__init__(name="min_max_min_distance_ratio")
+        self.n_points = int(n_points)
+        self.dim = int(dim)
+        self.tolerance = float(tolerance)
+        if self.n_points < 2:
+            raise ValueError("n_points must be >= 2")
+
+        if self.dim < 1:
+            raise ValueError("dim must be >= 1")
+
+        self.minimisation = True
+        self.dependencies += ["scipy"]
+
+        # Prompt declarations.....
+
+        formula = "minimise [max_{i < j} d(i, j) / min{i < j} d(i, j)]^2"
+
+        self.task_prompt = f"""
+* Write a python class with `__call__` method that:
+    * Returns a set of {self.n_points} points, in {self.dim}-D hypervolume.
+    * The Optimisation goal is to {formula}.
+    * The tolerance for the point overlap is set to {self.tolerance}
+"""
+
+        self.example_prompt = f"""
+Must follow the following template for code:
+Description: A short one line description of technique used.
+```
+class MinMaxDistanceSolver:
+    def __init__(self, n_points : int, dimensions : int):
+        pass
+
+    def __call__(self) -> list[tuple[float, float]]:
+        return [(0.0,) * {self.dim}] * {self.n_points}
+```
+"""
+
+        self.format_prompt = """
+
+Give an excellent and novel algorithm to solve this task and also give it a
+one-line description, describing the main idea. Give the response in the format:
+# Description: <short-description>
+# Code:
+```python
+<code>
+```
+
+"""
+
+    @staticmethod
+    def _pairwise_d2(P: np.ndarray) -> np.ndarray:
+        G = P @ P.T
+        diag = np.diag(G)
+        D2 = diag[:, None] + diag[None, :] - 2.0 * G
+        np.fill_diagonal(D2, np.inf)
+        return D2
+
+    def evaluate(self, solution, explogger=None):
+        code = solution.code
+        allowed = self.dependencies
+        allowed.append("math")
+        allowed.append("random")
+        safe = prepare_namespace(code, self.dependencies)
+        try:
+            local_ns = {}
+            exec(code, safe, local_ns)
+            cls = next(v for v in local_ns.values() if isinstance(v, type))
+            P = cls(self.n_points, self.dim)()
+        except Exception as e:
+            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            return solution
+
+        try:
+            P = np.asarray(P, dtype=np.float64)
+            if P.ndim != 2 or P.shape != (self.n_points, self.dim):
+                raise ValueError(f"expected shape (n={self.n_points}, d={self.dim})")
+            if not np.isfinite(P).all():
+                raise ValueError("non-finite coordinates")
+
+            D2 = self._pairwise_d2(P)
+            d2_min = float(np.min(D2))
+            if not np.isfinite(d2_min) or d2_min <= self.tolerance:
+                raise ValueError("minimum distance too small or zero")
+            d2_max = float(np.max(D2[np.isfinite(D2)]))
+            ratio_sq = d2_max / d2_min
+            score = float(ratio_sq)
+            solution.set_scores(score, f"ratio_sq={ratio_sq:.12g}")
+        except Exception as e:
+            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
+        return solution
+
+    def test(self, solution):
+        return self.evaluate(solution)
+
+    def to_dict(self):
+        return self.__dict__
+
+if __name__ == "__main__":
+    mmd = MinMaxMinDistanceRatio(n_points=10, dim=2)
+    print(mmd.get_prompt())

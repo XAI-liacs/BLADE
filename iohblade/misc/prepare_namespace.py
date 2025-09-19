@@ -1,4 +1,7 @@
 import ast, importlib
+from copy import deepcopy
+
+from typing import Optional
 
 def collect_imports(code: str):
     """Collect import info from code using AST."""
@@ -24,10 +27,15 @@ def collect_imports(code: str):
     return imports
 
 
-def prepare_namespace(code: str, allowed=None):
+def prepare_namespace(code: str, allowed:list[str]):
     """Prepare exec namespace with only whitelisted imports preloaded."""
     ns = {}
     imports = collect_imports(code)
+
+    allowed = list(map(
+        lambda x: x.split(">")[0],
+        allowed
+    ))
 
     for imp in imports:
         if imp["type"] == "import":
