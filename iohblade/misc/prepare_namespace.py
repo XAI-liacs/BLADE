@@ -1,6 +1,6 @@
 import ast, importlib
 
-from typing import Optional
+from typing import Any
 
 def collect_imports(code: str):
     """Collect import info from code using AST."""
@@ -67,3 +67,9 @@ def prepare_namespace(code: str, allowed:list[str]):
             ns[imp["alias"] or imp["name"]] = obj
 
     return ns
+
+def clean_local_namespace(local_namespace : dict["str", Any], global_namespace: dict["str", Any]):
+    for key in global_namespace:
+        if key in local_namespace:
+            local_namespace.pop(key)
+    return local_namespace

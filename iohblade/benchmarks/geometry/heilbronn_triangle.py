@@ -1,9 +1,7 @@
-import math
-import numpy as np
 import traceback
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
-from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.problem import Problem
 
 class HeilbronnTriangle(GeometryBase, Problem):
@@ -17,7 +15,7 @@ class HeilbronnTriangle(GeometryBase, Problem):
     """
 
     def __init__(self, n_points: int, tolerance: float = 1e-12):
-        GeometryBase.__init__(self, task_name="heilbronn_triangle", n_points=n_points, tolerance=tolerance)
+        GeometryBase.__init__(self, task_name=f"heilbronn_triangle-n{n_points}", n_points=n_points, tolerance=tolerance)
         Problem.__init__(self, name=f"heilbronn_triangle-n{n_points}")
 
         self.task_prompt = """
@@ -51,7 +49,7 @@ def __call__(self):
 Must follow the following template for code:
 Description: A short one line description of technique used.
 ```
-class HeilbronnTriangle:
+class HeilbronnTriangle-n{self.n_points}:
     def __init__(self, n_points : int):
         pass
     {call_format}
@@ -79,6 +77,7 @@ one-line description, describing the main idea. Give the response in the format:
         try:
             local_ns = {}
             exec(code, safe, local_ns)
+            local_ns = clean_local_namespace(local_ns, safe)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             result = cls(self.n_points)()
         except Exception as e:
