@@ -1,11 +1,8 @@
-import math
-import random
 import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
-from scipy.signal import convolve
-from scipy.optimize import minimize
-from iohblade.problem import Problem
+
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 """
     Autocorrelation measures how similar a signal is to a shifted version of itself.
@@ -118,13 +115,10 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
     def _get_time_series(self, code) -> tuple[NDArray[np.float64], Optional[Exception]]:
         local_parameters = {}
-        global_parameters = {
-            "math": math,
-            "random": random,
-            "np": np,
-            "convolve": convolve,
-            "minimize": minimize,
-        }
+
+        allowed = ["numpy", "scipy"]
+
+        global_parameters = prepare_namespace(code, allowed)
 
         try:
             exec(code, global_parameters, local_parameters)
@@ -133,11 +127,4 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             return f, None
         except Exception as e:
             print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
-            return (
-                np.ndarray(
-                    [
-                        0,
-                    ]
-                ),
-                e,
-            )
+            return (np.ndarray([0,]), e)

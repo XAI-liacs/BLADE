@@ -12,7 +12,7 @@ class GeometryBase:
     Utilities provided here implement the paper’s unit-area normalizations
     and hard feasibility checks (Appendix B.9–B.10).
     """
-    def __init__(self, task_name: str, n_points: Optional[str] = None, tolerance: float = 1e-12):
+    def __init__(self, task_name: str, n_points: Optional[int] = None, tolerance: float = 1e-12):
         self.task_name = task_name
         self.n_points = None if n_points is None else int(n_points)
         self.tolerance = tolerance

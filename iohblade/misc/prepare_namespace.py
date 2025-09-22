@@ -1,5 +1,4 @@
 import ast, importlib
-from copy import deepcopy
 
 from typing import Optional
 
@@ -26,17 +25,27 @@ def collect_imports(code: str):
                 })
     return imports
 
+def _add_builtins_into(allowed_list):
+    allowed_list += [
+            "math",
+            "random",
+            "statistics",
+            "itertools",
+            "operator"
+        ]
 
 def prepare_namespace(code: str, allowed:list[str]):
     """Prepare exec namespace with only whitelisted imports preloaded."""
     ns = {}
     imports = collect_imports(code)
 
+    allowed = allowed.copy()
     allowed = list(map(
         lambda x: x.split(">")[0],
         allowed
     ))
-
+    _add_builtins_into(allowed)
+    print(allowed)
     for imp in imports:
         if imp["type"] == "import":
             module = imp["module"]

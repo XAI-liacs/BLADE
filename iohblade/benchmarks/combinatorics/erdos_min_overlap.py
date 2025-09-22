@@ -25,7 +25,7 @@ class ErdosMinOverlap(Problem):
         self.tolerance = tolerance
 
         self.minimisation = True
-        self.dependencies += ["scipy", "numpy"]
+        self.dependencies += ["scipy"]
 
         self.task_prompt = """
 * Write a Python class whose `__call__` returns a list f of length N with values in range [0,1], such that:
