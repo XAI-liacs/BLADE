@@ -32,8 +32,8 @@ class KissingNumber11D(Problem):
 
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for the """ + f"{self.dim}-D Kissing Number problem." + """
-- The `__call__` method must return n points as array of """ + f"{self.dim} dimensional tuples." + r"""
-- The solution is scored as |C| = (C\subset\mathbb{Z}^{11}\setminus{0}) where:
+- The `__call__` method must return n points as array of """ + f"{self.dim} dimensional integer tuples." + r"""
+- The solution is scored as n = |(C\subset\mathbb{Z}^{11}\setminus{0})| where:
     - (\min_{x\ne y}|x-y|\ge \max_x|x|)
 - The optimisation goal is to maximise the score.
 """
