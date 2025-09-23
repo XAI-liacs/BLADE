@@ -1,5 +1,3 @@
-import traceback
-
 import math
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase

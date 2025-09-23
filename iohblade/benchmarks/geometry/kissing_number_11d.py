@@ -4,6 +4,7 @@ import numpy as np
 
 from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.solution import Solution
 
 class KissingNumber11D(Problem):
     """
@@ -20,10 +21,50 @@ class KissingNumber11D(Problem):
     """
 
     def __init__(self, tolerance: float = 0.0):
-        super().__init__("kissing_number_11d")
+        super().__init__(name="kissing_number_11d")
         self.dim = 11
         self.tolerance = float(tolerance)
 
+        self.dependencies += ["scipy"]
+        self.minimisation = False
+
+        # allowed = self.dependencies.copy()
+
+        self.task_prompt = """
+Write a python class with function `__call__`, that generate a solution for the """ + f"{self.dim}-D Kissing Number problem." + """
+- The `__call__` method must return n points as array of """ + f"{self.dim} dimensional tuples." + r"""
+- The solution is scored as |C| = (C\subset\mathbb{Z}^{11}\setminus{0}) where:
+    - (\min_{x\ne y}|x-y|\ge \max_x|x|)
+- The optimisation goal is to maximise the score.
+"""
+# - The environment only provides access to the libraries:
+#     - {"\n    - ".join(allowed)}
+
+        self.example_prompt = f"""
+Must follow the following template for code:
+Description: A short one line description of technique used.
+```
+class KissingNumber-{self.dim}d:
+def __init__(self):
+pass
+def __call__(self):
+return np.zeros((n, {self.dim}))        #Maximise n.
+
+```
+"""
+
+        self.format_prompt = """
+
+Give an excellent and novel algorithm to solve this task and also give it a
+one-line description, describing the main idea. Give the response in the format:
+# Description: <short-description>
+# Code:
+```python
+<code>
+```
+
+"""
+        self.minimisation = False
 
     @staticmethod
     def _pairwise_d2(P: np.ndarray) -> np.ndarray:
@@ -39,9 +80,11 @@ class KissingNumber11D(Problem):
         code = solution.code
         safe_globals = prepare_namespace(code, allowed=self.dependencies)
         try:
+
             local_ns = {}
             exec(code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
+
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             C = np.array(cls()(), dtype=float)
 
@@ -65,3 +108,14 @@ class KissingNumber11D(Problem):
         except Exception as e:
             solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
         return solution
+
+    def test(self, solution: Solution):
+        return self.evaluate(solution)
+
+    def to_dict(self):
+        return self.__dict__
+
+
+if __name__ == "__main__":
+    kiss = KissingNumber11D()
+    print(kiss.get_prompt())
