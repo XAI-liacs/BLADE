@@ -31,7 +31,8 @@ def _add_builtins_into(allowed_list):
             "random",
             "statistics",
             "itertools",
-            "operator"
+            "operator",
+            "heapq"
         ]
 
 def prepare_namespace(code: str, allowed:list[str]):
