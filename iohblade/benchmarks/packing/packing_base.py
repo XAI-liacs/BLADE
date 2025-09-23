@@ -24,6 +24,31 @@ class PackingBase:
 - Output contract:
     - {contract}"""
 
+    def make_hexagon_task_prompt(self, tolerance) -> str:
+        return f"""
+- Write a Python class with a __call__ method that generates and returns a NumPy array of shape (n, 3). Each row of the array represents one inner hexagon that is fitted inside a larger outer hexagon, with the following values:
+    - x: the x-coordinate of the hexagon’s center.
+    - y: the y-coordinate of the hexagon’s center.
+    - theta: the rotation angle of the hexagon (in radians)
+- The constranits on the hexagons are:
+    - No two hexagons must overlap.
+    - Hexagon must lie fully inside outer regular hexagon, with side s, and theta 0.
+    - Each hexagons are assumed to be regular, with side 1.
+- Objective is to minimise s; the side of outer hexagon.
+- The tolerance for evaluation in given by {tolerance}.
+"""
+
+    def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
+        return f"""
+```python
+class {class_name}:
+    def __init__(self, n_hexagons: int = {n_hexagon}):
+        self.n_hexagons = int(n_hexagons)
+    def __call__(self):
+        return [(0, ) * 3] {n_hexagon}      # {n_hexagon} disjoint hexagons, with (x, y, theta).
+```
+"""
+
     def make_example_prompt(self, class_name: str, body_hint: Optional[str] = None) -> str:
         hint = body_hint or """import numpy as np
 
