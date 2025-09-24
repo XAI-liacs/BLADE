@@ -12,13 +12,18 @@ class GeometryBase:
     Utilities provided here implement the paper’s unit-area normalizations
     and hard feasibility checks (Appendix B.9–B.10).
     """
-    def __init__(self, task_name: str, n_points: Optional[int] = None, tolerance: float = 1e-12):
+
+    def __init__(
+        self, task_name: str, n_points: Optional[int] = None, tolerance: float = 1e-12
+    ):
         self.task_name = task_name
         self.n_points = None if n_points is None else int(n_points)
         self.tolerance = tolerance
 
     @staticmethod
-    def to_np_points(obj: Any, expected_n: Optional[int] = None) -> np.ndarray:      #throws error.
+    def to_np_points(
+        obj: Any, expected_n: Optional[int] = None
+    ) -> np.ndarray:  # throws error.
         P = np.asarray(obj, dtype=np.float64)
         if P.ndim != 2 or P.shape[1] != 2:
             raise ValueError("expected array with shape (n,2)")
@@ -28,17 +33,20 @@ class GeometryBase:
             raise ValueError("non-finite coordinates")
         return P
 
-    #-----------------------------Geometric Primitives----------------------------------#
+    # -----------------------------Geometric Primitives----------------------------------#
     @staticmethod
     def triangle_area(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
-        return abs(0.5 * float((b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0])))
+        return abs(
+            0.5 * float((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+        )
 
     @staticmethod
     def polygon_area(poly: np.ndarray) -> float:
         P = GeometryBase.to_np_points(poly)
         if P.shape[0] < 3:
             return 0.0
-        x = P[:,0]; y = P[:, 1]
+        x = P[:, 0]
+        y = P[:, 1]
         s = float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
         return 0.5 * s
 
@@ -51,7 +59,7 @@ class GeometryBase:
             return P2.copy()
 
         def cross(o, a, b):
-            return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+            return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
 
         lower = []
         for p in P2:
@@ -67,16 +75,18 @@ class GeometryBase:
         return hull
 
     @staticmethod
-    def point_in_triangle(p: np.ndarray, a: np.ndarray, b: np.ndarray, c: np.ndarray, tol: float = 0.0) -> bool:
+    def point_in_triangle(
+        p: np.ndarray, a: np.ndarray, b: np.ndarray, c: np.ndarray, tol: float = 0.0
+    ) -> bool:
         # Barycentric with inclusive boundary
         v0 = b - a
         v1 = c - a
         v2 = p - a
-        den = v0[0]*v1[1] - v0[1]*v1[0]
+        den = v0[0] * v1[1] - v0[1] * v1[0]
         if abs(den) <= tol:
             return False
-        u = (v2[0]*v1[1] - v2[1]*v1[0]) / den
-        v = (v0[0]*v2[1] - v0[1]*v2[0]) / den
+        u = (v2[0] * v1[1] - v2[1] * v1[0]) / den
+        v = (v0[0] * v2[1] - v0[1] * v2[0]) / den
         return (u >= -tol) and (v >= -tol) and (u + v <= 1.0 + tol)
 
     def min_triangle_area(self, P: np.ndarray, tol: float | None = None) -> float:
@@ -126,10 +136,14 @@ class GeometryBase:
             pts = result.get("points", None)
             if tri is None or pts is None:
                 raise ValueError("dict must contain 'triangle' and 'points'")
-            return self.to_np_points(tri, expected_n=3), self.to_np_points(pts, expected_n=self.n_points)
+            return self.to_np_points(tri, expected_n=3), self.to_np_points(
+                pts, expected_n=self.n_points
+            )
         if isinstance(result, (tuple, list)) and len(result) == 2:
             tri, pts = result
-            return self.to_np_points(tri, expected_n=3), self.to_np_points(pts, expected_n=self.n_points)
+            return self.to_np_points(tri, expected_n=3), self.to_np_points(
+                pts, expected_n=self.n_points
+            )
         # assume points only
         pts = self.to_np_points(result, expected_n=self.n_points)
         return self._default_unit_triangle(), pts

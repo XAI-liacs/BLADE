@@ -5,6 +5,7 @@ This module exposes a callable utility `decremental_rank_search` that performs t
 rank loop but delegates single-run execution to a `run_fn` callback to avoid
 coupling to the main driver and to prevent circular imports.
 """
+
 from __future__ import annotations
 
 from typing import Callable, Optional, Tuple

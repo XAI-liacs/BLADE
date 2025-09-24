@@ -24,17 +24,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=min_max_min_distance.minimisation
+            minimization=min_max_min_distance.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/MinMaxDistRatio")
+    logger = ExperimentLogger("results/MinMaxDistRatio")
     experiment = Experiment(
         methods,
         [min_max_min_distance],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

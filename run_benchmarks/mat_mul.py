@@ -28,17 +28,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=random_mat_mul_problem.minimisation
+            minimization=random_mat_mul_problem.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/MatrixMultiplication")
+    logger = ExperimentLogger("results/MatrixMultiplication")
     experiment = Experiment(
         methods,
         [random_mat_mul_problem],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

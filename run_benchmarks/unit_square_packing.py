@@ -25,17 +25,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=unit_square_packing.minimisation
+            minimization=unit_square_packing.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/UnitSquarePacking")
+    logger = ExperimentLogger("results/UnitSquarePacking")
     experiment = Experiment(
         methods,
         [unit_square_packing],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

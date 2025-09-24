@@ -26,17 +26,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=kissing_11d.minimisation
+            minimization=kissing_11d.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/Kissing-11D")
+    logger = ExperimentLogger("results/Kissing-11D")
     experiment = Experiment(
         methods,
         [kissing_11d],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

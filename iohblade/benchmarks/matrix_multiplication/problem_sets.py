@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, List, Tuple
 
-from iohblade.benchmarks.matrix_multiplication.task_specification import MatMulTensorDecomposition
+from iohblade.benchmarks.matrix_multiplication.task_specification import (
+    MatMulTensorDecomposition,
+)
 
 from .constants import MATMUL_RANKS
 

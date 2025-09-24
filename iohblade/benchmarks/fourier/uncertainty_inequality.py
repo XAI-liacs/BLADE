@@ -15,6 +15,7 @@ class UncertaintyInequality(FourierBase, Problem):
     Minimize r_max^2 / (2*pi) per Appendix B.4.
     r_max = largest positive root beyond which P(x) >= 0.
     """
+
     def __init__(self, n_terms: int = 3):
         FourierBase.__init__(self, task_name="fourier_uncertainty_C4", n_terms=n_terms)
         Problem.__init__(self, name="fourier_uncertainty_C4")
@@ -56,7 +57,9 @@ class UncertaintyInequality(FourierBase, Problem):
             x += self.grid_step
 
         if bracket is None:
-            raise ValueError("No positive root found in [0, x_max]. Increase x_max or adjust coefficients.")
+            raise ValueError(
+                "No positive root found in [0, x_max]. Increase x_max or adjust coefficients."
+            )
 
         a, b = bracket
         fa = float(self._P(np.array([a]), hcoef))
@@ -77,16 +80,20 @@ class UncertaintyInequality(FourierBase, Problem):
         return 0.5 * (a + b)
 
     def _check_tail_nonnegative(self, hcoef: np.ndarray, r: float) -> None:
-        xs = np.linspace(max(r + 5 * self.grid_step, r + 1e-6), self.x_max, self.check_points)
+        xs = np.linspace(
+            max(r + 5 * self.grid_step, r + 1e-6), self.x_max, self.check_points
+        )
         if xs.size == 0:
             return
         vals = self._P(xs, hcoef)
         if np.min(vals) < -1e-9:
-            raise ValueError("P(x) becomes negative beyond r_max; tail nonnegativity violated.")
+            raise ValueError(
+                "P(x) becomes negative beyond r_max; tail nonnegativity violated."
+            )
 
     # ---- evaluation ----------------------------------------------------------
 
-    def evaluate(self, solution : Solution, explogger=None):
+    def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
         safe_globals = prepare_namespace(code, self.dependencies)
 
@@ -105,7 +112,9 @@ class UncertaintyInequality(FourierBase, Problem):
         # 2) validate and score
         try:
             if c.ndim != 1 or c.size != self.n_terms:
-                raise ValueError(f"Expected {self.n_terms} coefficients for H_0,H_4,...")
+                raise ValueError(
+                    f"Expected {self.n_terms} coefficients for H_0,H_4,..."
+                )
 
             # scale invariance: normalize so that leading coeff = 1 (if nonzero)
             if not np.isfinite(c[-1]) or abs(c[-1]) < self.tolerance:

@@ -1,4 +1,3 @@
-
 class NumberTheoryBase:
     """
     Base spec for number-theory benchmarks.

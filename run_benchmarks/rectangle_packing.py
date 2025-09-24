@@ -25,17 +25,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=rectangle_packing.minimisation
+            minimization=rectangle_packing.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/RectanglePacking")
+    logger = ExperimentLogger("results/RectanglePacking")
     experiment = Experiment(
         methods,
         [rectangle_packing],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

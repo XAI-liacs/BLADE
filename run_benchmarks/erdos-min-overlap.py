@@ -25,17 +25,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=erdos_min_overlap.minimisation
+            minimization=erdos_min_overlap.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/Erdos_Min_overlap")
+    logger = ExperimentLogger("results/Erdos_Min_overlap")
     experiment = Experiment(
         methods,
         [erdos_min_overlap],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

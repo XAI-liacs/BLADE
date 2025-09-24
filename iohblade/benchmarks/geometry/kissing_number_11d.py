@@ -6,6 +6,7 @@ from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.solution import Solution
 
+
 class KissingNumber11D(Problem):
     """
     Kissing number lower bound in 11D via Lemma 1 (AlphaEvolve Appendix B.11).
@@ -30,15 +31,21 @@ class KissingNumber11D(Problem):
 
         # allowed = self.dependencies.copy()
 
-        self.task_prompt = """
-Write a python class with function `__call__`, that generate a solution for the """ + f"{self.dim}-D Kissing Number problem." + """
-- The `__call__` method must return n points as array of """ + f"{self.dim} dimensional integer tuples." + r"""
+        self.task_prompt = (
+            """
+Write a python class with function `__call__`, that generate a solution for the """
+            + f"{self.dim}-D Kissing Number problem."
+            + """
+- The `__call__` method must return n points as array of """
+            + f"{self.dim} dimensional integer tuples."
+            + r"""
 - The solution is scored as n = |(C\subset\mathbb{Z}^{11}\setminus{0})| where:
     - (\min_{x\ne y}|x-y|\ge \max_x|x|)
 - The optimisation goal is to maximise the score.
 """
-# - The environment only provides access to the libraries:
-#     - {"\n    - ".join(allowed)}
+        )
+        # - The environment only provides access to the libraries:
+        #     - {"\n    - ".join(allowed)}
 
         self.example_prompt = f"""
 Must follow the following template for code:

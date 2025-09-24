@@ -26,17 +26,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=uncertain_ineq.minimisation
+            minimization=uncertain_ineq.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/UncertainInequality")
+    logger = ExperimentLogger("results/UncertainInequality")
     experiment = Experiment(
         methods,
         [uncertain_ineq],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

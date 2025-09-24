@@ -26,17 +26,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=hexagon_packing.minimisation
+            minimization=hexagon_packing.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/HexagonPacking")
+    logger = ExperimentLogger("results/HexagonPacking")
     experiment = Experiment(
         methods,
         [hexagon_packing],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

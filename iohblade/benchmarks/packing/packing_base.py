@@ -1,5 +1,6 @@
 from typing import Optional
 
+
 class PackingBase:
     """Base class for circle packing optimization problems (geometry/packing).
 
@@ -8,6 +9,7 @@ class PackingBase:
       - Coordinates are in the ambient box of the problem.
       - Radii must be positive.
     """
+
     def __init__(self, name):
         self.task_name = name
 
@@ -36,7 +38,8 @@ class PackingBase:
     - Each hexagons are assumed to be regular, with side 1.
 - Objective is to minimise s; the side of outer hexagon.
 """
-# - The tolerance for evaluation in given by {tolerance}.
+
+    # - The tolerance for evaluation in given by {tolerance}.
 
     def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
         return f"""
@@ -49,8 +52,12 @@ class {class_name}:
 ```
 """
 
-    def make_example_prompt(self, class_name: str, body_hint: Optional[str] = None) -> str:
-        hint = body_hint or """import numpy as np
+    def make_example_prompt(
+        self, class_name: str, body_hint: Optional[str] = None
+    ) -> str:
+        hint = (
+            body_hint
+            or """import numpy as np
 
 rng = np.random.default_rng(0)
 n = getattr(self, 'n_circles', 8)
@@ -68,6 +75,7 @@ for i in range(n):
     pts.append([x, y, r])
 return np.array(pts, dtype=float)
 """
+        )
         return f"""
 
 ```python

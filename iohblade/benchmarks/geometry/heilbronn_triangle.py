@@ -4,6 +4,7 @@ from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.problem import Problem
 
+
 class HeilbronnTriangle(GeometryBase, Problem):
     """
     Heilbronn on a unit-area triangle (Appendix B.9).
@@ -15,7 +16,12 @@ class HeilbronnTriangle(GeometryBase, Problem):
     """
 
     def __init__(self, n_points: int, tolerance: float = 1e-12):
-        GeometryBase.__init__(self, task_name=f"heilbronn_triangle-n{n_points}", n_points=n_points, tolerance=tolerance)
+        GeometryBase.__init__(
+            self,
+            task_name=f"heilbronn_triangle-n{n_points}",
+            n_points=n_points,
+            tolerance=tolerance,
+        )
         Problem.__init__(self, name=f"heilbronn_triangle-n{n_points}")
 
         self.task_prompt = """
@@ -27,9 +33,11 @@ Write a python class with function `__call__`, that generate a solution for Heil
 - The solution is scored as minimum triangle area formed by picking 3 of the n points.
 - The optimisation goal is to maximise the score.
 """
-        self.task_prompt += f"- The tolerence of the solution is set to {self.tolerance}"
+        self.task_prompt += (
+            f"- The tolerence of the solution is set to {self.tolerance}"
+        )
 
-        call_format  = f"""
+        call_format = f"""
 def __call__(self):
     # The return value must be one of the following (ndarray-based) formats:
 
@@ -40,11 +48,15 @@ def __call__(self):
     return (np.zeros((3, 2)), np.zeros(({self.n_points}, 2)))
     # Option 3: dictionary with triangle and points
     return """
-        call_format += r"""{
+        call_format += (
+            r"""{
         'triangle': np.zeros((3, 2)),
-        'points': np.zeros((""" + str(self.n_points) + """, 2))
+        'points': np.zeros(("""
+            + str(self.n_points)
+            + """, 2))
     }
 """
+        )
         self.example_prompt = f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
@@ -82,7 +94,11 @@ one-line description, describing the main idea. Give the response in the format:
             result = cls(self.n_points)()
         except Exception as e:
             tb = e.__traceback__
-            solution.set_scores(float("-inf"), f"exec-error {"\n".join(traceback.format_tb(tb))}", "exec-failed")
+            solution.set_scores(
+                float("-inf"),
+                f"exec-error {"\n".join(traceback.format_tb(tb))}",
+                "exec-failed",
+            )
             return solution
 
         try:
@@ -107,6 +123,7 @@ one-line description, describing the main idea. Give the response in the format:
 
     def to_dict(self):
         return self.__dict__
+
 
 if __name__ == "__main__":
     hbt = HeilbronnTriangle(n_points=10)

@@ -7,6 +7,7 @@ from iohblade.solution import Solution
 from iohblade.benchmarks.number_theory.number_theory_base import NumberTheoryBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
+
 class SumDifference(NumberTheoryBase, Problem):
     """
     Sums vs differences implemented via the single-set U evaluator (Appendix B.6, eq. (3)).
@@ -32,7 +33,6 @@ class SumDifference(NumberTheoryBase, Problem):
 
         self.minimisation = False
         self.dependencies += []
-
 
     def evaluate(self, solution: Solution, explogger=None) -> Solution:
         """
@@ -141,6 +141,7 @@ class SumDifference(NumberTheoryBase, Problem):
 
     def to_dict(self):
         return self.__dict__
+
 
 if __name__ == "__main__":
     sd = SumDifference()

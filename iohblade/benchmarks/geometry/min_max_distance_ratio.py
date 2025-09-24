@@ -2,6 +2,7 @@ import numpy as np
 from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace
 
+
 class MinMaxMinDistanceRatio(Problem):
     """
     Minimize (max_pairwise_distance / min_pairwise_distance)^2 for n points in R^d.
@@ -105,6 +106,7 @@ one-line description, describing the main idea. Give the response in the format:
 
     def to_dict(self):
         return self.__dict__
+
 
 if __name__ == "__main__":
     mmd = MinMaxMinDistanceRatio(n_points=10, dim=2)

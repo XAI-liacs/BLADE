@@ -127,4 +127,11 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             return f, None
         except Exception as e:
             print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
-            return (np.ndarray([0,]), e)
+            return (
+                np.ndarray(
+                    [
+                        0,
+                    ]
+                ),
+                e,
+            )

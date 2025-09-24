@@ -14,19 +14,22 @@ class FourierBase:
       - Constraints: P(0) < 0; leading coefficient > 0; P(x) >= 0 for large |x|.
       - Scale invariance: multiply c by s>0 ⇒ same score.
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         task_name: str,
         n_terms: int = 3,
         tolerance: float = 1e-9,
         x_max: float = 12.0,
         grid_step: float = 1e-2,
-        check_points: int = 800):
+        check_points: int = 800,
+    ):
         self.task_name = task_name
-        self.n_terms = n_terms              # H0, H4, H8 by default
+        self.n_terms = n_terms  # H0, H4, H8 by default
         self.tolerance = tolerance
-        self.x_max = x_max                  # search window for roots/positivity
-        self.grid_step = grid_step          # coarse scan step for root bracketing
-        self.check_points = check_points    # positivity checks beyond r_max
+        self.x_max = x_max  # search window for roots/positivity
+        self.grid_step = grid_step  # coarse scan step for root bracketing
+        self.check_points = check_points  # positivity checks beyond r_max
 
         if self.n_terms < 1:
             raise ValueError("n_terms must be >= 1")
@@ -35,7 +38,8 @@ class FourierBase:
         return f"{self.task_name} | Hermite degrees 0..{4*(self.n_terms-1)} step 4"
 
     def make_task_prompt(self, formula: str) -> str:
-        return """
+        return (
+            """
 - Write a class whose __call__() yields a list of floats c of length K (= n_terms).
 - Define P(x) = sum_{k=0..K-1} c[k] * H_{4k}(x) using physicists' Hermite H_n.
 - Test function: f(x) = P(x) * exp(-pi * x^2). Evenness holds by construction.
@@ -44,10 +48,13 @@ class FourierBase:
     - the leading coefficient c[K-1] > 0
     - P(x) >= 0 for large |x|.
 - Objective (minimize):
-    - """ + formula + """
+    - """
+            + formula
+            + """
 - Tip: enforce structure (e.g., small |c|, P(0)≈0) to aid root placement.
 K = {self.n_terms}."
 """
+        )
 
     def make_example_prompt(self, class_name: str) -> str:
         return f"""

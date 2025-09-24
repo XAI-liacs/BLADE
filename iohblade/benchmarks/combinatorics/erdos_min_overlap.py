@@ -8,6 +8,7 @@ from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
 
+
 class ErdosMinOverlap(Problem):
     """
     The continuous Erdős minimum-overlap problem seeks to find measurable functions f,g: [-1,1] → [0,1] that satisfy:
@@ -18,7 +19,10 @@ class ErdosMinOverlap(Problem):
         * Minimise superposition of x in [-2, 2], over f(t)g(x+t).
         * Alpha evolve: C_5 ≤ 0.380924 (previous best: 0.380927).
     """
-    def __init__(self, task_name="erdos_min_overlap", n_bins: int = 800, tolerance=1e-6):
+
+    def __init__(
+        self, task_name="erdos_min_overlap", n_bins: int = 800, tolerance=1e-6
+    ):
         super().__init__(name=task_name)
         self.task_name = task_name
         self.n_bins = n_bins
@@ -73,7 +77,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
     def problem_description(self) -> str:
         return f"{self.task_name} | N={self.n_bins} bins on [-1,1], dx={self.dx:g}"
 
-    def _sup_overlap(self, f:np.ndarray, g: np.ndarray) -> float:
+    def _sup_overlap(self, f: np.ndarray, g: np.ndarray) -> float:
         N = f.size
         dx = self.dx
 
@@ -81,8 +85,8 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
         for s in range(-(N - 1), N):
             if s >= 0:
-                a = f[:N - s]
-                b = g[s: ]
+                a = f[: N - s]
+                b = g[s:]
             else:
                 a = f[-s:]
                 b = g[: N + s]
@@ -119,7 +123,9 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             g = 1.0 - f  # f+g=1 pointwise
 
             score = self._sup_overlap(f, g)  # minimize
-            msg = f"sup overlap = {score:.6g}; N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}"
+            msg = (
+                f"sup overlap = {score:.6g}; N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}"
+            )
             solution.set_scores(score, msg)
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")

@@ -1,8 +1,13 @@
 import math
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
-from iohblade.misc.prepare_namespace import prepare_namespace, _add_builtins_into, clean_local_namespace
+from iohblade.misc.prepare_namespace import (
+    prepare_namespace,
+    _add_builtins_into,
+    clean_local_namespace,
+)
 from iohblade.problem import Problem
+
 
 class HeilbronnConvexRegion(GeometryBase, Problem):
     """
@@ -12,7 +17,12 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
     """
 
     def __init__(self, n_points: int, tolerance: float = 1e-12):
-        GeometryBase.__init__(self, task_name=f"heilbronn_convex_region-n{n_points}", n_points=n_points, tolerance=tolerance)
+        GeometryBase.__init__(
+            self,
+            task_name=f"heilbronn_convex_region-n{n_points}",
+            n_points=n_points,
+            tolerance=tolerance,
+        )
         Problem.__init__(self, name=f"heilbronn_convex_region-n{n_points}")
 
         self.dependencies += ["scipy", "shapely"]
@@ -28,7 +38,9 @@ Write a python class with function `__call__`, that generate a solution for the 
 - The environment only provides access to the libraries:
     - {"\n    - ".join(allowed)}
 """
-        self.task_prompt += f"- The tolerence of the solution is set to {self.tolerance}"
+        self.task_prompt += (
+            f"- The tolerence of the solution is set to {self.tolerance}"
+        )
 
         self.example_prompt = f"""
 Must follow the following template for code:
@@ -96,6 +108,7 @@ one-line description, describing the main idea. Give the response in the format:
 
     def to_dict(self):
         return self.__dict__
+
 
 if __name__ == "__main__":
     hbc = HeilbronnConvexRegion(n_points=10)

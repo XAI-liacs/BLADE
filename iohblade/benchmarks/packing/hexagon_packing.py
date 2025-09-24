@@ -27,14 +27,16 @@ class HexagonPacking(PackingBase, Problem):
         self.minimisation = True
         self.dependencies += ["scipy"]
 
-
         self.task_prompt = self.make_hexagon_task_prompt(tolerance=self.tolerance)
-        self.example_prompt = self.make_hexagon_example_prompt(f"HexagonPacking-n{n_hex}", self.n_hex)
+        self.example_prompt = self.make_hexagon_example_prompt(
+            f"HexagonPacking-n{n_hex}", self.n_hex
+        )
         self.format_prompt = self.make_format_prompt()
 
-
     # ---------- geometry ----------
-    def _unit_hex_vertices(self, center: Tuple[float, float], theta: float) -> np.ndarray:
+    def _unit_hex_vertices(
+        self, center: Tuple[float, float], theta: float
+    ) -> np.ndarray:
         cx, cy = float(center[0]), float(center[1])
         ang = float(theta)
         verts = []
@@ -46,8 +48,8 @@ class HexagonPacking(PackingBase, Problem):
 
     def _projections_ranges(self, V: np.ndarray):
         u0 = np.array([1.0, 0.0])
-        u1 = np.array([0.5, math.sqrt(3)/2.0])
-        u2 = np.array([-0.5, math.sqrt(3)/2.0])
+        u1 = np.array([0.5, math.sqrt(3) / 2.0])
+        u2 = np.array([-0.5, math.sqrt(3) / 2.0])
         ranges = []
         for u in (u0, u1, u2):
             p = V @ u
@@ -60,25 +62,34 @@ class HexagonPacking(PackingBase, Problem):
         a = 0.5 * max(r0, r1, r2)
         return 2.0 * a / math.sqrt(3.0)
 
-    def _intervals_overlap_strict(self, a_min, a_max, b_min, b_max, tolerance: float) -> bool:
+    def _intervals_overlap_strict(
+        self, a_min, a_max, b_min, b_max, tolerance: float
+    ) -> bool:
         # strict interior overlap; touching allowed
         return not (a_max <= b_min + tolerance or b_max <= a_min + tolerance)
 
-    def _overlap_strict(self, poly1: np.ndarray, poly2: np.ndarray, tolerance: float) -> bool:
+    def _overlap_strict(
+        self, poly1: np.ndarray, poly2: np.ndarray, tolerance: float
+    ) -> bool:
         # SAT for convex polygons; treat boundary contact as non-overlap
         def edges(poly):
             return np.roll(poly, -1, axis=0) - poly
+
         def axes(poly):
             E = edges(poly)
             N = np.stack([np.array([-e[1], e[0]]) for e in E], axis=0)
             L = np.linalg.norm(N, axis=1, keepdims=True)
-            mask = (L[:, 0] > 0)
+            mask = L[:, 0] > 0
             N[mask] /= L[mask]
             return N
+
         for N in (axes(poly1), axes(poly2)):
             for n in N:
-                p1 = poly1 @ n; p2 = poly2 @ n
-                if not self._intervals_overlap_strict(p1.min(), p1.max(), p2.min(), p2.max(), tolerance):
+                p1 = poly1 @ n
+                p2 = poly2 @ n
+                if not self._intervals_overlap_strict(
+                    p1.min(), p1.max(), p2.min(), p2.max(), tolerance
+                ):
                     return False
         return True  # interior overlap
 

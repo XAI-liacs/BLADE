@@ -26,17 +26,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=sum_vs_difference.minimisation
+            minimization=sum_vs_difference.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/Sum_vs_Difference")
+    logger = ExperimentLogger("results/Sum_vs_Difference")
     experiment = Experiment(
         methods,
         [sum_vs_difference],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

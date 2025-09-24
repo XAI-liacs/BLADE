@@ -26,17 +26,17 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=heilbronn_convex_region.minimisation
+            minimization=heilbronn_convex_region.minimisation,
         )
         methods.append(method)
-    logger=ExperimentLogger("results/Heilbronn-Convex-Region")
+    logger = ExperimentLogger("results/Heilbronn-Convex-Region")
     experiment = Experiment(
         methods,
         [heilbronn_convex_region],
         runs=1,
         budget=budget,
         show_stdout=True,
-        exp_logger=logger
+        exp_logger=logger,
     )
 
     experiment()

@@ -26,7 +26,6 @@ class UnitSquarePacking(PackingBase, Problem):
         self.minimisation = False
         self.dependencies += ["scipy"]
 
-
     # ---------- evaluation ----------
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
@@ -45,30 +44,48 @@ class UnitSquarePacking(PackingBase, Problem):
         try:
             U = np.asarray(circles, dtype=float)
             if U.shape != (self.n_circles, 3):
-                solution.set_scores(float("-inf"), f"expected ({self.n_circles},3), got {U.shape}", "format-error")
+                solution.set_scores(
+                    float("-inf"),
+                    f"expected ({self.n_circles},3), got {U.shape}",
+                    "format-error",
+                )
                 return solution
 
             # radii positive
-            if np.any(U[:,2] <= 0):
-                idx = int(np.where(U[:,2] <= 0)[0][0])
-                solution.set_scores(float("-inf"), f"non-positive radius at index {idx}", "invalid-radius")
+            if np.any(U[:, 2] <= 0):
+                idx = int(np.where(U[:, 2] <= 0)[0][0])
+                solution.set_scores(
+                    float("-inf"),
+                    f"non-positive radius at index {idx}",
+                    "invalid-radius",
+                )
                 return solution
 
             # containment in unit square
-            x, y, r = U[:,0], U[:,1], U[:,2]
-            if np.any(x - r < -self.tolerance) or np.any(x + r > 1 + self.tolerance) or np.any(y - r < -self.tolerance) or np.any(y + r > 1 + self.tolerance):
-                solution.set_scores(float("-inf"), "circle outside the unit square", "out-of-bounds")
+            x, y, r = U[:, 0], U[:, 1], U[:, 2]
+            if (
+                np.any(x - r < -self.tolerance)
+                or np.any(x + r > 1 + self.tolerance)
+                or np.any(y - r < -self.tolerance)
+                or np.any(y + r > 1 + self.tolerance)
+            ):
+                solution.set_scores(
+                    float("-inf"), "circle outside the unit square", "out-of-bounds"
+                )
                 return solution
 
             # pairwise disjoint
             for i in range(self.n_circles):
-                for j in range(i+1, self.n_circles):
-                    dx = U[i,0] - U[j,0]; dy = U[i,1] - U[j,1]
-                    if dx*dx + dy*dy < (U[i,2] + U[j,2] - self.tolerance)**2:
-                        solution.set_scores(float("-inf"), f"overlap between {i} and {j}", "overlap")
+                for j in range(i + 1, self.n_circles):
+                    dx = U[i, 0] - U[j, 0]
+                    dy = U[i, 1] - U[j, 1]
+                    if dx * dx + dy * dy < (U[i, 2] + U[j, 2] - self.tolerance) ** 2:
+                        solution.set_scores(
+                            float("-inf"), f"overlap between {i} and {j}", "overlap"
+                        )
                         return solution
 
-            score = float(np.sum(U[:,2]))
+            score = float(np.sum(U[:, 2]))
             solution.set_scores(score, f"sum_of_radii={score:.6f}; n={self.n_circles}")
             return solution
         except Exception as e:
@@ -85,6 +102,6 @@ class UnitSquarePacking(PackingBase, Problem):
 if __name__ == "__main__":
     u26 = UnitSquarePacking()
     print(u26.get_prompt())
-    dictionary= u26.to_dict()
+    dictionary = u26.to_dict()
     for key in dictionary:
         print(key, dictionary[key], sep="\t")
