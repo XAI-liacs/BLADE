@@ -35,8 +35,8 @@ class PackingBase:
     - Hexagon must lie fully inside outer regular hexagon, with side s, and theta 0.
     - Each hexagons are assumed to be regular, with side 1.
 - Objective is to minimise s; the side of outer hexagon.
-- The tolerance for evaluation in given by {tolerance}.
 """
+# - The tolerance for evaluation in given by {tolerance}.
 
     def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
         return f"""
