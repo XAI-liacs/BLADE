@@ -240,7 +240,15 @@ class LLM(ABC):
         pattern = r"```(?:python)?\n(.*?)\n```"
         match = re.search(pattern, message, re.DOTALL | re.IGNORECASE)
         if match:
-            return match.group(1)
+            code = match.group(1)
+            main_guard_pattern = re.compile(
+                r"^\s*if __name__\s*={1,2}\s*['\"]__main__['\"]\s*:\s*$",
+                re.MULTILINE,
+            )
+            guard_match = main_guard_pattern.search(code)
+            if guard_match:
+                code = code[: guard_match.start()].rstrip()
+            return code
         else:
             return """raise Exception("Could not extract generated code. The code should be encapsulated with ``` in your response.")"""  # trick to later raise this exception when the algorithm is evaluated.
 

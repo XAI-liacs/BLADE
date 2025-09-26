@@ -519,3 +519,146 @@ def test_ollama_deep_copies(monkeypatch):
     )
 
     mocked_chat2.assert_not_called()
+
+def test_extraction_filters_main():
+    base_llm = Dummy_LLM()
+
+    testReply = {"input": """
+# Description : Kissing number 11D solution using Voronoi.
+
+# Code :
+```python
+import numpy as np
+from scipy.spatial import Voronoi, distance_matrix
+from scipy.optimize import minimize
+
+class KissingNumber_11d:
+    def __init__(self):
+        pass
+
+    def __call__(self, n_points=150, iterations=500, initial_repulsion_strength=0.1, radius=1.0, annealing_rate=0.99):
+
+        dim = 11
+
+        # Initialize points randomly on the hypersphere
+        points = np.random.randn(n_points, dim)
+        lengths = np.linalg.norm(points, axis=1, keepdims=True)
+        points = radius * points / lengths
+
+        repulsion_strength = initial_repulsion_strength
+
+        # Optimization loop with simulated annealing
+        for _ in range(iterations):
+            # 1. Voronoi Diagram Calculation (using a more robust approach)
+            try:
+                vor = Voronoi(points)
+            except Exception as e:
+                print(f"Voronoi error: {e}. Re-initializing points.")
+                points = np.random.randn(n_points, dim)
+                lengths = np.linalg.norm(points, axis=1, keepdims=True)
+                points = radius * points / lengths
+                continue  # Restart this iteration
+
+            # 2. Force Calculation and Application
+            dist_matrix = distance_matrix(points, points)
+            np.fill_diagonal(dist_matrix, np.inf)  # Avoid self-repulsion
+
+            forces = points[:, None, :] - points[None, :, :]
+            force_magnitudes = repulsion_strength / (dist_matrix**2 + 1e-6)
+            forces = forces / (np.linalg.norm(forces, axis=2, keepdims=True) + 1e-6) * force_magnitudes[:, :, None]
+            net_forces = np.sum(forces, axis=1)
+
+            # 3. Adaptive Step Size (scaling based on Voronoi region size)
+            # Approximating Voronoi region "size" using nearest neighbor distance
+            nearest_neighbor_distances = np.min(dist_matrix, axis=1)
+            step_sizes = nearest_neighbor_distances / np.mean(nearest_neighbor_distances)  # Normalize
+
+            # Scale forces with adaptive step sizes
+            points = points + net_forces * step_sizes[:, None]
+
+            # 4. Projection onto Hypersphere
+            lengths = np.linalg.norm(points, axis=1, keepdims=True)
+            points = radius * points / lengths
+
+            # 5. Simulated Annealing: Reduce repulsion strength
+            repulsion_strength *= annealing_rate
+
+        return points
+
+
+if __name__ == '__main__':
+    # Example usage
+    kissing_number_solver = KissingNumber_11d()
+    points = kissing_number_solver(n_points=150, iterations=500, initial_repulsion_strength=0.1)
+
+    print(f"Number of kissing points found: {points.shape[0]}")
+
+    # Basic validation (optional): Check minimum distance and maximum radius
+    if points.shape[0] > 0:
+        distances = distance_matrix(points, points)
+        np.fill_diagonal(distances, np.inf)
+        min_distance = np.min(distances)
+        max_radius = np.max(np.linalg.norm(points, axis=1))
+
+        print(f"Minimum distance between points: {min_distance}")
+        print(f"Maximum radius of points: {max_radius}")
+```
+""",
+    "output" : """import numpy as np
+from scipy.spatial import Voronoi, distance_matrix
+from scipy.optimize import minimize
+
+class KissingNumber_11d:
+    def __init__(self):
+        pass
+
+    def __call__(self, n_points=150, iterations=500, initial_repulsion_strength=0.1, radius=1.0, annealing_rate=0.99):
+
+        dim = 11
+
+        # Initialize points randomly on the hypersphere
+        points = np.random.randn(n_points, dim)
+        lengths = np.linalg.norm(points, axis=1, keepdims=True)
+        points = radius * points / lengths
+
+        repulsion_strength = initial_repulsion_strength
+
+        # Optimization loop with simulated annealing
+        for _ in range(iterations):
+            # 1. Voronoi Diagram Calculation (using a more robust approach)
+            try:
+                vor = Voronoi(points)
+            except Exception as e:
+                print(f"Voronoi error: {e}. Re-initializing points.")
+                points = np.random.randn(n_points, dim)
+                lengths = np.linalg.norm(points, axis=1, keepdims=True)
+                points = radius * points / lengths
+                continue  # Restart this iteration
+
+            # 2. Force Calculation and Application
+            dist_matrix = distance_matrix(points, points)
+            np.fill_diagonal(dist_matrix, np.inf)  # Avoid self-repulsion
+
+            forces = points[:, None, :] - points[None, :, :]
+            force_magnitudes = repulsion_strength / (dist_matrix**2 + 1e-6)
+            forces = forces / (np.linalg.norm(forces, axis=2, keepdims=True) + 1e-6) * force_magnitudes[:, :, None]
+            net_forces = np.sum(forces, axis=1)
+
+            # 3. Adaptive Step Size (scaling based on Voronoi region size)
+            # Approximating Voronoi region "size" using nearest neighbor distance
+            nearest_neighbor_distances = np.min(dist_matrix, axis=1)
+            step_sizes = nearest_neighbor_distances / np.mean(nearest_neighbor_distances)  # Normalize
+
+            # Scale forces with adaptive step sizes
+            points = points + net_forces * step_sizes[:, None]
+
+            # 4. Projection onto Hypersphere
+            lengths = np.linalg.norm(points, axis=1, keepdims=True)
+            points = radius * points / lengths
+
+            # 5. Simulated Annealing: Reduce repulsion strength
+            repulsion_strength *= annealing_rate
+
+        return points"""}
+    
+    assert base_llm.extract_algorithm_code(testReply["input"]) == testReply["output"]
