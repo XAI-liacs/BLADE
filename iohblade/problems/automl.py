@@ -34,7 +34,7 @@ class AutoML(Problem):
         imports=None,
     ):
         if dependencies is None:
-            dependencies = ["pandas==2.0.3", "polars==1.31.0", "scikit-learn==1.3.0"]
+            dependencies = ["pandas==2.2.3", "polars==1.31.0", "scikit-learn==1.3.0"]
         if imports is None:
             imports = "import pandas as pd\nimport polars\nimport sklearn\n"
 

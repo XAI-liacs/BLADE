@@ -19,6 +19,7 @@ class Solution:
         generation=0,
         parent_ids=[],
         operator=None,
+        task_prompt="",
     ):
         """
         Initializes an individual with optional attributes.
@@ -31,6 +32,7 @@ class Solution:
             generation (int): The generation this individual belongs to.
             parent_ids (list): UUID of the parent individuals in a list.
             operator (str): Optional identifier of the LLM operation that created this individual.
+            task_prompt (str): The task prompt used to generate this solution.
         """
         self.id = str(uuid.uuid4())  # Unique ID for this individual
         self.code = code
@@ -38,12 +40,21 @@ class Solution:
         self.description = description
         self.configspace = configspace
         self.generation = generation
-        self.fitness = -np.Inf
+        self.fitness = -np.inf
         self.feedback = ""
         self.error = ""
         self.parent_ids = parent_ids
         self.metadata = {}  # Dictionary to store additional metadata
         self.operator = operator
+        self.task_prompt = task_prompt
+
+    def __getstate__(self):
+        return self.to_dict()
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.configspace == "":
+            self.configspace = None
 
     def set_operator(self, operator):
         """
@@ -103,8 +114,27 @@ class Solution:
             generation=self.generation + 1,
             parent_ids=[self.id],  # Link this solution as the parent
             operator=self.operator,
+            task_prompt=self.task_prompt,
         )
         new_solution.metadata = self.metadata.copy()  # Copy the metadata as well
+        return new_solution
+
+    def empty_copy(self):
+        """
+        Returns a copy of this solution, with a new unique ID and a reference to the current solution as its parent but without other fields.
+
+        Returns:
+            Individual: A new instance of Individual with the same attributes but a different ID.
+        """
+        new_solution = Solution(
+            code="",
+            name="",
+            description="",
+            configspace=None,
+            generation=self.generation + 1,
+            parent_ids=[self.id],  # Link this solution as the parent
+            operator=self.operator,
+        )
         return new_solution
 
     def to_dict(self):
@@ -117,7 +147,7 @@ class Solution:
         try:
             cs = self.configspace
             cs = cs.to_serialized_dict()
-        except Exception as e:
+        except Exception:
             cs = ""
         return {
             "id": self.id,
@@ -132,15 +162,14 @@ class Solution:
             "parent_ids": self.parent_ids,
             "operator": self.operator,
             "metadata": self.metadata,
+            "task_prompt": self.task_prompt,
         }
 
     def from_dict(self, data):
         """
         Updates the Solution instance from a dictionary.
-
         Args:
             data (dict): A dictionary representation of the individual.
-
         Returns:
             None
         """

@@ -90,6 +90,21 @@ class ExperimentLogger:
         os.mkdir(dirname)
         return dirname
 
+    def _before_open_run(self, run_name, method, problem, budget, seed):
+        """Hook executed before a run is opened."""
+        return None
+
+    def _create_run_logger(self, run_name, budget, progress_cb):
+        """Create and return the run logger for a run."""
+        from .base import RunLogger
+
+        return RunLogger(
+            name=run_name,
+            root_dir=self.dirname,
+            budget=budget,
+            progress_callback=progress_cb,
+        )
+
     def open_run(self, method, problem, budget=100, seed=0):
         """
         Opens (starts) a new run for logging.
@@ -97,14 +112,11 @@ class ExperimentLogger:
         """
         run_name = f"{method.name}-{problem.name}-{seed}"
 
+        self._before_open_run(run_name, method, problem, budget, seed)
+
         progress_cb = partial(self.increment_eval, method.name, problem.name, seed)
 
-        self.run_logger = RunLogger(
-            name=run_name,
-            root_dir=self.dirname,
-            budget=budget,
-            progress_callback=progress_cb,
-        )
+        self.run_logger = self._create_run_logger(run_name, budget, progress_cb)
         problem.set_logger(self.run_logger)
         with self._lock:
             entry = self._get_run_entry(method.name, problem.name, seed)
@@ -160,7 +172,10 @@ class ExperimentLogger:
             log_dir (str): The directory where the run is logged.
             seed (int): The seed used in the run.
         """
-        rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        try:
+            rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        except ValueError:
+            rel_log_dir = log_dir
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
