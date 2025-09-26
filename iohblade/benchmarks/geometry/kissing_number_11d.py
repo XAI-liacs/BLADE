@@ -87,7 +87,6 @@ one-line description, describing the main idea. Give the response in the format:
         code = solution.code
         safe_globals = prepare_namespace(code, allowed=self.dependencies)
         try:
-
             local_ns = {}
             exec(code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
