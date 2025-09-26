@@ -1,4 +1,4 @@
-import traceback
+# import traceback
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
@@ -49,7 +49,7 @@ def __call__(self):
     # Option 3: dictionary with triangle and points
     return """
         call_format += (
-            r"""{
+            """{
         'triangle': np.zeros((3, 2)),
         'points': np.zeros(("""
             + str(self.n_points)
@@ -93,10 +93,10 @@ one-line description, describing the main idea. Give the response in the format:
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             result = cls(self.n_points)()
         except Exception as e:
-            tb = e.__traceback__
+            # tb = e.__traceback__
             solution.set_scores(
                 float("-inf"),
-                f"exec-error {"\n".join(traceback.format_tb(tb))}",
+                f"exec-error {e}",
                 "exec-failed",
             )
             return solution
