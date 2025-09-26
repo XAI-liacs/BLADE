@@ -31,8 +31,20 @@ def _add_builtins_into(allowed_list):
     allowed_list += ["math", "random", "statistics", "itertools", "operator", "heapq"]
 
 
-def prepare_namespace(code: str, allowed: list[str]):
-    """Prepare exec namespace with only whitelisted imports preloaded."""
+def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
+    """Prepare exec global_namespace, with the libraries imported in the text, `code` parameter accepts.
+    
+    Args:
+        `code: str`: Code parameter that is to be passed to `exec` function. 
+        `allowed: list[str]`: A list of allowed pip installable libraries, that are acceptable to be imported.
+
+    Returns:
+        Returns a prepared global_namespace dictionary for exec, of type `{str, Any}`.
+    
+    Raises:
+        When `code` tries to import library that is not listed in `allowed` or is not in allowed `__builtin__` list, 
+        `ImportError` is raised.
+    """
     ns = {}
     imports = collect_imports(code)
 
@@ -68,8 +80,18 @@ def prepare_namespace(code: str, allowed: list[str]):
 
 
 def clean_local_namespace(
-    local_namespace: dict["str", Any], global_namespace: dict["str", Any]
+    local_namespace: dict[str, Any], global_namespace: dict[str, Any]
 ):
+    """The exec command upon execution, adds global_namespace parameters to local_namespace parameters.
+    This function returns local_ns - gobal_ns, so that sweeping for object type never returns a library imported objects.
+    
+    Args:
+        `local_namespace : dict[str, Any]`: Dictionary that was passed as local_namespace to `exec` block.
+        `global_namespace : dict[str, Any]`: Dictionary/Mapping passed as global_namespace to `exec` block.
+
+    Returns:
+        Original `local_namespace`, that is `local_namespace` - `global_namespace`.
+    """
     for key in global_namespace:
         if key in local_namespace:
             local_namespace.pop(key)
