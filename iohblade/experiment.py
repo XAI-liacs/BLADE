@@ -72,18 +72,26 @@ class Experiment(ABC):
         """Clear the console using ANSI escape codes."""
         print("\033c", end="")
 
+    def _status_tokens(self):
+        enc = (getattr(sys.__stdout__, "encoding", "") or "").lower()
+        if "utf" in enc or "65001" in enc:  # utf-8 or Windows UTF-8 codepage
+            return {"done": "✅", "running": "🔄", "pending": "⏳"}
+        else:
+            return {"done": "[DONE]", "running": "[RUN]", "pending": "[WAIT]"}
+
     def _print_run_overview(self) -> None:
         """Pretty print the planned runs and their status."""
         runs = getattr(self.exp_logger, "progress", {}).get("runs", [])
         header = f"{'Method':<15} {'Problem':<15} {'Seed':<5} Status"
         lines = ["Run overview:", header, "-" * len(header)]
+        tokens = self._status_tokens()
         for r in runs:
             if r.get("end_time"):
-                status = "✅"
+                status = tokens["done"]
             elif r.get("start_time"):
-                status = "🔄"
+                status = tokens["running"]
             else:
-                status = "⏳"
+                status = tokens["pending"]
             lines.append(
                 f"{r['method_name']:<15} {r['problem_name']:<15} {r['seed']:<5} {status}"
             )
