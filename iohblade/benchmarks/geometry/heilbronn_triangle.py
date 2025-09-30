@@ -1,4 +1,4 @@
-# import traceback
+from typing import Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
@@ -13,16 +13,28 @@ class HeilbronnTriangle(GeometryBase, Problem):
       - (triangle, points) with triangle shape (3,2), which we rescale to area 1, or
       - {'triangle': tri, 'points': pts}.
     Score = minimum triangle area among the n points (maximize).
+    Best Known = 0.0365 for n = 11
     """
 
-    def __init__(self, n_points: int, tolerance: float = 1e-12):
+    def __init__(
+        self, n_points: int, best_known: Optional[float], tolerance: float = 1e-12
+    ):
         GeometryBase.__init__(
             self,
             task_name=f"heilbronn_triangle-n{n_points}",
             n_points=n_points,
             tolerance=tolerance,
+            best_known=best_known if best_known is not None else float("-inf"),
         )
         Problem.__init__(self, name=f"heilbronn_triangle-n{n_points}")
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
 
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for Heilbronn on a unit area triangle.
@@ -113,7 +125,10 @@ one-line description, describing the main idea. Give the response in the format:
 
             min_area = self.min_triangle_area(P, tol=self.tolerance)
             score = float(min_area)  # maximize
-            solution.set_scores(score, f"Area of Smallest Triangle={min_area:.6g}")
+            solution.set_scores(
+                score,
+                f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
+            )
         except Exception as e:
             solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
         return solution
@@ -126,5 +141,5 @@ one-line description, describing the main idea. Give the response in the format:
 
 
 if __name__ == "__main__":
-    hbt = HeilbronnTriangle(n_points=10)
+    hbt = HeilbronnTriangle(n_points=10, best_known=1.11)
     print(hbt.get_prompt())

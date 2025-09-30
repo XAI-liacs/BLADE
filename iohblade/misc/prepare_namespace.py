@@ -3,7 +3,7 @@ import ast, importlib
 from typing import Any
 
 
-def collect_imports(code: str):
+def _collect_imports(code: str):
     """Collect import info from code using AST."""
     tree = ast.parse(code)
     imports = []
@@ -33,20 +33,20 @@ def _add_builtins_into(allowed_list):
 
 def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
     """Prepare exec global_namespace, with the libraries imported in the text, `code` parameter accepts.
-    
+
     Args:
-        `code: str`: Code parameter that is to be passed to `exec` function. 
+        `code: str`: Code parameter that is to be passed to `exec` function.
         `allowed: list[str]`: A list of allowed pip installable libraries, that are acceptable to be imported.
 
     Returns:
-        Returns a prepared global_namespace dictionary for exec, of type `{str, Any}`.
-    
+        Returns a prepared global_namespace dictionary for exec, of type `dict[str, Any]`.
+
     Raises:
-        When `code` tries to import library that is not listed in `allowed` or is not in allowed `__builtin__` list, 
+        When `code` tries to import library that is not listed in `allowed` or is not in allowed `__builtin__` list,
         `ImportError` is raised.
     """
     ns = {}
-    imports = collect_imports(code)
+    imports = _collect_imports(code)
 
     allowed = allowed.copy()
     allowed = list(map(lambda x: x.split(">")[0], allowed))
@@ -84,7 +84,7 @@ def clean_local_namespace(
 ):
     """The exec command upon execution, adds global_namespace parameters to local_namespace parameters.
     This function returns local_ns - gobal_ns, so that sweeping for object type never returns a library imported objects.
-    
+
     Args:
         `local_namespace : dict[str, Any]`: Dictionary that was passed as local_namespace to `exec` block.
         `global_namespace : dict[str, Any]`: Dictionary/Mapping passed as global_namespace to `exec` block.

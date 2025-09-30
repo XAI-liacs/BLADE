@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.number_theory import SumDifference
+from iohblade.benchmarks.number_theory import get_sum_vs_difference_problem
 
 
 if __name__ == "__main__":
@@ -16,8 +16,8 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    # Helibronn n11 benchmark.
-    sum_vs_difference = SumDifference()
+    # Get sums vs differences benchmark, this one only has one instance.
+    sum_vs_difference = get_sum_vs_difference_problem()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=sum_vs_difference.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Sum_vs_Difference")
+    logger = ExperimentLogger(f"results/{sum_vs_difference.task_name}")
     experiment = Experiment(
         methods,
         [sum_vs_difference],

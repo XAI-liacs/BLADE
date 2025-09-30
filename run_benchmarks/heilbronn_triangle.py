@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.geometry import HeilbronnTriangle
+from iohblade.benchmarks.geometry import get_heilbronn_triangle_problems
 
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Helibronn n11 benchmark.
-    heilbronn_triangle = HeilbronnTriangle(n_points=11)
+    heilbronn_triangle = get_heilbronn_triangle_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=heilbronn_triangle.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Heilbronn-Triangle")
+    logger = ExperimentLogger(f"results/{heilbronn_triangle.task_name}")
     experiment = Experiment(
         methods,
         [heilbronn_triangle],

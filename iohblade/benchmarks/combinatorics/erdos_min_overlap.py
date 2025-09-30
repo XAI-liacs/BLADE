@@ -21,12 +21,25 @@ class ErdosMinOverlap(Problem):
     """
 
     def __init__(
-        self, task_name="erdos_min_overlap", n_bins: int = 800, tolerance=1e-6
+        self,
+        task_name="erdos_min_overlap",
+        n_bins: int = 800,
+        tolerance=1e-6,
+        best_known=0.380924,
     ):
         super().__init__(name=task_name)
         self.task_name = task_name
         self.n_bins = n_bins
         self.tolerance = tolerance
+        self.best_known = best_known
+
+        print(
+            f"""
+-------------------------------------------------------------------
+Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
+-------------------------------------------------------------------
+"""
+        )
 
         self.minimisation = True
         self.dependencies += ["scipy"]
@@ -94,7 +107,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             max_val = max(max_val, v)
         return max_val
 
-    def evaluate(self, solution, explogger=None):
+    def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
 
         local_ns = {}
@@ -123,9 +136,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             g = 1.0 - f  # f+g=1 pointwise
 
             score = self._sup_overlap(f, g)  # minimize
-            msg = (
-                f"sup overlap = {score:.6g}; N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}"
-            )
+            msg = f"Score = {score:.6g}; with configuration: N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}.\n\t Best known score = {self.best_known}"
             solution.set_scores(score, msg)
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")

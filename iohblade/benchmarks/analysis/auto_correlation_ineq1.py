@@ -3,10 +3,7 @@ import numpy as np
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
-if __name__ == "__main__":  # Weird $PYTHONPATH conflict.
-    from auto_correlation_base_spec import AutoCorrBaseSpec
-else:
-    from .auto_correlation_base_spec import AutoCorrBaseSpec
+from .auto_correlation_base_spec import AutoCorrBaseSpec
 
 
 class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
@@ -19,8 +16,15 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         Best known auto-correlation 1 score by alpha evolve: is C₁ <= 1.5053 (prev 1.5098).
     """
 
-    def __init__(self):
-        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_1", n_bins=600)
+    def __init__(self, best_known: float = 1.5053):
+        """Initialisation of Auto Correlation Inequality 1, sets task_name, n_bins = know benchmark configuration.
+
+        Args:
+            `best_known : float`: Set the best known evalution of Auto Correlation 1.
+        """
+        AutoCorrBaseSpec.__init__(
+            self, task_name="auto_corr_ineq_1", n_bins=600, best_known=best_known
+        )
         Problem.__init__(self, name=self.task_name)
 
         self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
@@ -59,7 +63,9 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
                 raise ValueError("Integral ∫f must be > 0 for C1")
 
             score = float(np.max(g) / (I * I))  # minimize
-            solution.set_scores(score, f"C1 ratio = {score:.6g}")
+            solution.set_scores(
+                score, f"C1 ratio = {score:.6g}, best known = {self.best_known:.6g}"
+            )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution

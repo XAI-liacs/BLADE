@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.packing import UnitSquarePacking
+from iohblade.benchmarks.packing import get_square_packing_problems
 
 
 if __name__ == "__main__":
@@ -16,7 +16,12 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    unit_square_packing = UnitSquarePacking()
+    #----------------------------------------------------------------------------------
+    # Gets benchmarks for unit square packing problems:
+    #   arr[0]:  Unit Square Packing benchmark for Unit Square, packing 26 circles.
+    #   arr[1] = Unit Square Packing benchmark for Unit Square, packing 32 circles.
+    #----------------------------------------------------------------------------------
+    unit_square_packing = get_square_packing_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -28,7 +33,7 @@ if __name__ == "__main__":
             minimization=unit_square_packing.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/UnitSquarePacking")
+    logger = ExperimentLogger(f"results/{unit_square_packing.task_name}")
     experiment = Experiment(
         methods,
         [unit_square_packing],

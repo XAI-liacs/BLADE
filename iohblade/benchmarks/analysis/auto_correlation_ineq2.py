@@ -16,11 +16,13 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
         functionality.
         Optimisation:
             \[\min -(||f*f||_2^2 / (||f*f||_1 • ||f*f||_\infty))\]
-        Best known auto-correlation 1 score by alpha evolve: is C_2 <= -0.8962 (prev -0.8892).
+        Best known auto-correlation 1 score by alpha evolve: is C_2 >= 0.8962 (prev 0.8892).
     """
 
-    def __init__(self):
-        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_2", n_bins=50)
+    def __init__(self, best_known: float = 0.8962):
+        AutoCorrBaseSpec.__init__(
+            self, task_name="auto_corr_ineq_2", n_bins=50, best_known=best_known
+        )
         Problem.__init__(self, name=self.task_name)
 
         self.task_prompt = self.make_task_prompt(
@@ -31,7 +33,7 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
 
         self.dependencies += ["scipy"]
 
-        self.minimisation = True
+        self.minimisation = False
 
     def evaluate(self, solution: Solution) -> Solution:
         code = solution.code
@@ -42,7 +44,7 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
                 raise err
         except Exception as e:
             print("\t Exception in `auto_correlation_ineq2.py`, " + e.__repr__())
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("-inf"), f"exec-error {e}", "exec-failed")
             return solution
 
         try:
@@ -61,11 +63,12 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
             if den == 0.0:
                 raise ValueError("Denominator zero in C2 ratio")
 
-            ratio = L2sq / den  # maximize in paper
-            score = -ratio  # minimize here
-            solution.set_scores(score, f"C2 ratio = {ratio:.6g} (score is negated)")
+            score = L2sq / den  # maximize in paper
+            solution.set_scores(
+                score, f"C2 ratio = {score:.6g}, best known = {self.best_known:.6g}"
+            )
         except Exception as e:
-            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
         return solution
 
     def test(self, solution: Solution) -> Solution:

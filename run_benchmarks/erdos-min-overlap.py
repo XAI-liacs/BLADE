@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.combinatorics import ErdosMinOverlap
+from iohblade.benchmarks.combinatorics import get_combinatorics_problems
 
 
 if __name__ == "__main__":
@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    erdos_min_overlap = ErdosMinOverlap()
+    erdos_min_overlap = get_combinatorics_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -28,7 +28,7 @@ if __name__ == "__main__":
             minimization=erdos_min_overlap.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Erdos_Min_overlap")
+    logger = ExperimentLogger("results/ErdosMinOverlap")
     experiment = Experiment(
         methods,
         [erdos_min_overlap],

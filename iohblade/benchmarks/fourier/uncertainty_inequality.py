@@ -16,12 +16,22 @@ class UncertaintyInequality(FourierBase, Problem):
     r_max = largest positive root beyond which P(x) >= 0.
     """
 
-    def __init__(self, n_terms: int = 3):
+    def __init__(self, n_terms: int = 3, best_known: float = 0.3216):
         FourierBase.__init__(self, task_name="fourier_uncertainty_C4", n_terms=n_terms)
         Problem.__init__(self, name="fourier_uncertainty_C4")
         self.task_prompt = self.make_task_prompt("minimize  r_max^2 / (2*pi)")
         self.example_prompt = self.make_example_prompt("FourierCandidate")
         self.format_prompt = self.make_format_prompt()
+
+        self.best_known = best_known
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Fourier Uncertainty Inequality problem with number of terms = {self.n_terms}, best known {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
 
         self.dependencies += ["scipy"]
         self.minimisation = True
@@ -138,7 +148,10 @@ class UncertaintyInequality(FourierBase, Problem):
             self._check_tail_nonnegative(hcoef, r)
 
             score = float(r * r / (2.0 * math.pi))  # paper’s bound
-            solution.set_scores(score, f"C4 upper-bound = {score:.9g}; r_max={r:.6g}")
+            solution.set_scores(
+                score,
+                f"Score = {score:.9g}; r_max={r:.6g}; best known score = {self.best_known}",
+            )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
 

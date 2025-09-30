@@ -3,8 +3,8 @@ import math, random
 import numpy as np
 
 from iohblade.problem import Problem
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.solution import Solution
+from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class KissingNumber11D(Problem):
@@ -14,6 +14,7 @@ class KissingNumber11D(Problem):
     Candidate returns an array C with shape (m, 11) of non-zero points.
     Feasible iff   min_{x != y} ||x - y|| >= max_x ||x||   and   0 \notin C.
     Score (to maximize) = m = |C|.
+    Best Known: 593.
 
     Notes:
     - The AlphaEvolve lemma does not require integrality. It only needs the inequality
@@ -21,15 +22,21 @@ class KissingNumber11D(Problem):
       integer coordinates.
     """
 
-    def __init__(self, tolerance: float = 0.0):
+    def __init__(self, tolerance: float = 0.0, best_known: int = 593):
         super().__init__(name="kissing_number_11d")
         self.dim = 11
         self.tolerance = float(tolerance)
 
+        self.best_known = best_known
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Kissing Number {self.dim}D, and best solution: {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
         self.dependencies += ["scipy"]
         self.minimisation = False
-
-        # allowed = self.dependencies.copy()
 
         self.task_prompt = (
             """
@@ -83,7 +90,7 @@ one-line description, describing the main idea. Give the response in the format:
         D2[D2 < 0] = 0.0
         return D2
 
-    def evaluate(self, solution, explogger=None):
+    def evaluate(self, solution: Solution, explogger=None) -> Solution:
         code = solution.code
         safe_globals = prepare_namespace(code, allowed=self.dependencies)
         try:
@@ -115,7 +122,7 @@ one-line description, describing the main idea. Give the response in the format:
             solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
         return solution
 
-    def test(self, solution: Solution):
+    def test(self, solution: Solution) -> Solution:
         return self.evaluate(solution)
 
     def to_dict(self):

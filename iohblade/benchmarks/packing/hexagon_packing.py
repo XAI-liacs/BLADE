@@ -13,16 +13,24 @@ class HexagonPacking(PackingBase, Problem):
     """
     Pack n disjoint unit regular hexagons (side length = 1) inside a regular outer hexagon.
     Candidate returns an array with shape (n,3): rows [x, y, theta] for each inner hex.
-    Score (to maximize) = - outer_side_length required to contain all inner hexes.
+    Score (to minimise) = outer_side_length required to contain all inner hexes.
     Boundary contact allowed; interiors must be disjoint.
     """
 
-    def __init__(self, n_hex: int, tolerance: float = 1e-12):
+    def __init__(self, n_hex: int, best_known: float, tolerance: float = 1e-12):
         task_name = f"hexagon_packing-n{n_hex}"
+        self.best_known = best_known
         PackingBase.__init__(self, name=task_name)
         Problem.__init__(self, name=task_name)
-
         self.n_hex = int(n_hex)
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and best solution: {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
         self.tolerance = float(tolerance)
         self.minimisation = True
         self.dependencies += ["scipy"]
@@ -130,7 +138,10 @@ class HexagonPacking(PackingBase, Problem):
             V = np.vstack(polys)
             side = self._outer_side_from_vertices(V)
             score = float(side)
-            solution.set_scores(score, f"outer_side_length={side:.6g}")
+            solution.set_scores(
+                score,
+                f"outer_side_length={side:.6g}, best known side length={self.best_known}",
+            )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution
@@ -143,5 +154,5 @@ class HexagonPacking(PackingBase, Problem):
 
 
 if __name__ == "__main__":
-    hex = HexagonPacking(11)
+    hex = HexagonPacking(11, 1.167)
     print(hex.get_prompt())

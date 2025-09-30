@@ -12,17 +12,34 @@ class RectanglePacking(PackingBase, Problem):
     Candidate output:
       - Prefer: (circles, width, height) where circles is (n,3) and 2*(width+height)=P.
       - Fallback: circles only ⇒ evaluated in a square with width=height=P/4.
+
+      - Score: Sum of radii of the internal circles.
+      -Best Score: 2.3658
     """
 
     def __init__(
-        self, n_circles: int = 21, perimeter: float = 4.0, tolerance: float = 1e-12
+        self,
+        n_circles: int = 21,
+        perimeter: float = 4.0,
+        tolerance: float = 1e-12,
+        best_known=2.3658,
     ):
         self.n_circles = int(n_circles)
         self.perimeter = float(perimeter)
         self.tolerance = float(tolerance)
+        self.best_known = float(best_known)
+
         task_name = f"rectangle_packing_n{self.n_circles}_perim{self.perimeter:g}"
         PackingBase.__init__(self, task_name)
         Problem.__init__(self, name=task_name)
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Rectangle packing problem with rectangle perimeter = {self.perimeter}, and best solution: {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
 
         headline = (
             f"Pack n disjoint circles inside a rectangle of perimeter {self.perimeter}."
@@ -138,7 +155,7 @@ class RectanglePacking(PackingBase, Problem):
             score = float(np.sum(U[:, 2]))
             solution.set_scores(
                 score,
-                f"sum_of_radii={score:.6f}; dims={width:.6f}×{height:.6f}; n={self.n_circles}",
+                f"sum_of_radii={score:.6f}; dims={width:.6f}×{height:.6f}; n={self.n_circles}, best known={self.best_known}",
             )
             return solution
         except Exception as e:

@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.fourier import UncertaintyInequality
+from iohblade.benchmarks.fourier import get_fourier_problems
 
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Helibronn n11 benchmark.
-    uncertain_ineq = UncertaintyInequality()
+    uncertain_ineq = get_fourier_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=uncertain_ineq.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/UncertainInequality")
+    logger = ExperimentLogger(f"results/{uncertain_ineq.task_name}")
     experiment = Experiment(
         methods,
         [uncertain_ineq],

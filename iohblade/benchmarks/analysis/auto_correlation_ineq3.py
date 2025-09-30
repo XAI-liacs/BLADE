@@ -19,8 +19,10 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         Best known auto-correlation 1 score by alpha evolve: is C_3 <= 1.4557 (prev 1.4581).
     """
 
-    def __init__(self):
-        AutoCorrBaseSpec.__init__(self, task_name="auto_corr_ineq_3", n_bins=400)
+    def __init__(self, best_known: float = 1.4557):
+        AutoCorrBaseSpec.__init__(
+            self, task_name="auto_corr_ineq_3", n_bins=400, best_known=best_known
+        )
         Problem.__init__(self, name=self.task_name)
 
         self.task_prompt = self.make_task_prompt("minimize  max_t |(f*f)(t)| / (∫ f)^2")
@@ -54,7 +56,9 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
                 raise ValueError("Integral ∫f must be nonzero for C3")
 
             score = float(np.max(np.abs(g)) / (I * I))  # minimize
-            solution.set_scores(score, f"C3 ratio = {score:.6g}")
+            solution.set_scores(
+                score, f"C3 ratio = {score:.6g}, best known = {self.best_known:.6g}"
+            )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution

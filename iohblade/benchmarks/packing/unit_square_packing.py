@@ -10,12 +10,22 @@ from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_names
 class UnitSquarePacking(PackingBase, Problem):
     """Appendix B.12: Pack n disjoint circles in the unit square [0,1]×[0,1] to maximize the sum of radii."""
 
-    def __init__(self, n_circles: int = 26, tolerance: float = 1e-12):
+    def __init__(self, n_circles: int = 26, best_known=2.635, tolerance: float = 1e-12):
         self.n_circles = int(n_circles)
         self.tolerance = float(tolerance)
+        self.best_known = float(best_known)
+
         task_name = f"unit_square_packing_n{self.n_circles}"
         PackingBase.__init__(self, task_name)
         Problem.__init__(self, name=task_name)
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Unit Square Packing problem, with {self.n_circles} circles, best known score {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
 
         headline = "Packing n disjoint circles inside the unit square [0,1]×[0,1]."
         contract = "Return a numpy array U with shape (n,3), U[i]=[x_i, y_i, r_i]."
@@ -86,7 +96,10 @@ class UnitSquarePacking(PackingBase, Problem):
                         return solution
 
             score = float(np.sum(U[:, 2]))
-            solution.set_scores(score, f"sum_of_radii={score:.6f}; n={self.n_circles}")
+            solution.set_scores(
+                score,
+                f"sum_of_radii={score:.6f}; n={self.n_circles}, best known={self.best_known}",
+            )
             return solution
         except Exception as e:
             solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")

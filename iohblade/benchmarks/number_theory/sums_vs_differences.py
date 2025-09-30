@@ -16,12 +16,21 @@ class SumDifference(NumberTheoryBase, Problem):
     with constraints U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size.
     """
 
-    def __init__(self, max_set_size: int = 1000):
+    def __init__(self, max_set_size: int = 1000, best_score=1.1584):
         task_name = "sums_vs_differences"
         self.max_set_size = int(max_set_size)
+        self.best_score = best_score
 
         NumberTheoryBase.__init__(self, task_name)
         Problem.__init__(self, task_name)
+
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Sums vs Difference benchmark with best known solution {self.best_score}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
 
         # Prompting strings used by the outer orchestration, if any.
         self.task_prompt = self.make_task_prompt(
@@ -103,7 +112,7 @@ class SumDifference(NumberTheoryBase, Problem):
             c = 1.0 + math.log(diff_sz / sum_sz) / denom
             solution.set_scores(
                 c,
-                f"C6 ≥ {c:.6f}; |U-U|={diff_sz}, |U+U|={sum_sz}, max(U)={M}, |U|={len(U)}",
+                f"C6 ≥ {c:.6f}; |U-U|={diff_sz}, |U+U|={sum_sz}, max(U)={M}, |U|={len(U)}, best known score {self.best_score}",
             )
 
         except Exception as e:

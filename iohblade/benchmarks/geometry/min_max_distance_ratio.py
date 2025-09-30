@@ -1,16 +1,23 @@
 import numpy as np
 from iohblade.problem import Problem
-from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class MinMaxMinDistanceRatio(Problem):
     """
     Minimize (max_pairwise_distance / min_pairwise_distance)^2 for n points in R^d.
-    We operate on squared distances to match the paper’s reporting; score = -ratio^2.
+    We operate on squared distances to match the paper's reporting; score = ratio^2.
+    Best Known Score is: 12.889266 for 16 points in 2D and 4.1658 in 14 points 3D.
     """
 
-    def __init__(self, n_points: int, dim: int, tolerance: float = 1e-12):
-        super().__init__(name="min_max_min_distance_ratio")
+    def __init__(
+        self,
+        n_points: int,
+        dim: int,
+        best_known: float | None,
+        tolerance: float = 1e-12,
+    ):
+        super().__init__(name=f"min_max_min_distance_ratio-{dim}d")
         self.n_points = int(n_points)
         self.dim = int(dim)
         self.tolerance = float(tolerance)
@@ -20,6 +27,14 @@ class MinMaxMinDistanceRatio(Problem):
         if self.dim < 1:
             raise ValueError("dim must be >= 1")
 
+        self.best_known = best_known
+        print(
+            f"""
+--------------------------------------------------------------------------------------------------------------------
+Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}.
+--------------------------------------------------------------------------------------------------------------------
+"""
+        )
         self.minimisation = True
         self.dependencies += ["scipy"]
 
@@ -69,13 +84,11 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
-        allowed = self.dependencies
-        allowed.append("math")
-        allowed.append("random")
-        safe = prepare_namespace(code, self.dependencies)
         try:
             local_ns = {}
+            safe = prepare_namespace(code, self.dependencies)
             exec(code, safe, local_ns)
+            local_ns = clean_local_namespace(local_ns, safe)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             P = cls(self.n_points, self.dim)()
         except Exception as e:
@@ -96,7 +109,10 @@ one-line description, describing the main idea. Give the response in the format:
             d2_max = float(np.max(D2[np.isfinite(D2)]))
             ratio_sq = d2_max / d2_min
             score = float(ratio_sq)
-            solution.set_scores(score, f"ratio_sq={ratio_sq:.12g}")
+            msg = f"ratio_sq={ratio_sq:.12g}."
+            if self.best_known is not None:
+                msg += f" Best known score is {self.best_known}."
+            solution.set_scores(score, msg)
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
         return solution
@@ -109,5 +125,5 @@ one-line description, describing the main idea. Give the response in the format:
 
 
 if __name__ == "__main__":
-    mmd = MinMaxMinDistanceRatio(n_points=10, dim=2)
+    mmd = MinMaxMinDistanceRatio(n_points=10, dim=2, best_known=0)
     print(mmd.get_prompt())

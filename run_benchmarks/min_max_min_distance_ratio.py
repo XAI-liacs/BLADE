@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.geometry import MinMaxMinDistanceRatio
+from iohblade.benchmarks.geometry import get_min_max_dist_ratio_problem
 
 if __name__ == "__main__":
     budget = 10
@@ -15,7 +15,11 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    min_max_min_distance = MinMaxMinDistanceRatio(n_points=16, dim=2)
+    ## Min max Distance ratio problem;
+    # a[0] = 2-D min max distance ration problem.
+    # a[1] = 3-D min max distance ration problem.
+
+    min_max_min_distance = get_min_max_dist_ratio_problem()[1]
 
     methods = []
     for llm in [gemini_llm]:
@@ -27,7 +31,7 @@ if __name__ == "__main__":
             minimization=min_max_min_distance.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/MinMaxDistRatio")
+    logger = ExperimentLogger(f"results/{min_max_min_distance.name}")
     experiment = Experiment(
         methods,
         [min_max_min_distance],

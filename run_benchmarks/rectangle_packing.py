@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.packing import RectanglePacking
+from iohblade.benchmarks.packing import get_rectangle_packing_problems
 
 
 if __name__ == "__main__":
@@ -16,7 +16,8 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    rectangle_packing = RectanglePacking()
+    # RectangleProblem(perimeter=4, circles=21)
+    rectangle_packing = get_rectangle_packing_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:

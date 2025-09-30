@@ -1,4 +1,5 @@
 import math
+from typing import Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import (
@@ -14,14 +15,27 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
     Heilbronn on a unit-area convex region (Appendix B.10).
     Input: n points. We use their convex hull as the region and rescale to area 1.
     Score = minimum triangle area after rescaling (maximize).
+    Best Known:
+        * 0.0309 for n = 13
+        * 0.0278 for n = 14.
     """
 
-    def __init__(self, n_points: int, tolerance: float = 1e-12):
+    def __init__(
+        self, n_points: int, best_known: Optional[float], tolerance: float = 1e-12
+    ):
         GeometryBase.__init__(
             self,
             task_name=f"heilbronn_convex_region-n{n_points}",
             n_points=n_points,
             tolerance=tolerance,
+            best_known=best_known if best_known is not None else float("-inf"),
+        )
+        print(
+            f"""
+------------------------------------------------------------------------------------------------------------------------
+Instantiated Heibronn Convex Region Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
+------------------------------------------------------------------------------------------------------------------------
+"""
         )
         Problem.__init__(self, name=f"heilbronn_convex_region-n{n_points}")
 
@@ -98,7 +112,10 @@ one-line description, describing the main idea. Give the response in the format:
 
             min_area = self.min_triangle_area(P1, tol=self.tolerance)
             score = float(min_area)
-            solution.set_scores(score, f"min_triangle_area={min_area:.6g}")
+            solution.set_scores(
+                score,
+                f"min_triangle_area={min_area:.6g}, {'best known = ' + str(self.best_known) if self.best_known is not None else ''}.",
+            )
         except Exception as e:
             solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
         return solution
@@ -111,5 +128,5 @@ one-line description, describing the main idea. Give the response in the format:
 
 
 if __name__ == "__main__":
-    hbc = HeilbronnConvexRegion(n_points=10)
+    hbc = HeilbronnConvexRegion(n_points=10, best_known=None)
     print(hbc.get_prompt())

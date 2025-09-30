@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.geometry import HeilbronnConvexRegion
+from iohblade.benchmarks.geometry import get_heilbronn_convex_region_problems
 
 
 if __name__ == "__main__":
@@ -16,8 +16,10 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    # Helibronn n11 benchmark.
-    heilbronn_convex_region = HeilbronnConvexRegion(n_points=11)
+    heilbronn_convex_region = get_heilbronn_convex_region_problems()
+    #Pick a Heilbronn problem, with known best solution.
+    # heilbronn_convex_region[0] is 13 points problem and a[1] 14.
+    heilbronn_convex_region = heilbronn_convex_region[1]
 
     methods = []
     for llm in [gemini_llm]:
@@ -29,7 +31,7 @@ if __name__ == "__main__":
             minimization=heilbronn_convex_region.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Heilbronn-Convex-Region")
+    logger = ExperimentLogger(f"results/{heilbronn_convex_region.task_name}")
     experiment = Experiment(
         methods,
         [heilbronn_convex_region],

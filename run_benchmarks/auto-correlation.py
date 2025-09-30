@@ -4,7 +4,7 @@ from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 from os import environ
 
-from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2, AutoCorrIneq3
+from iohblade.benchmarks.analysis import get_analysis_problems
 
 # The prompts, and the evaluation function are provided in the autocorrIneq1 class
 # as does all other benchmarks..
@@ -18,12 +18,11 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    # Pick one of the following benchmarks to run.
+    # Select the instances of Auto-Correlation 1-3.
     # ===============================================
-    # autocorrineq = AutoCorrIneq1()
-    # autocorrineq = AutoCorrIneq2()
-    autocorrineq = AutoCorrIneq3()
+    autocorrineq = get_analysis_problems()[0]
     # ================================================
+
 
     methods = []
     for llm in [gemini_llm]:
@@ -32,10 +31,10 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=autocorrineq.minimisation,
+            minimization=autocorrineq.minimisation,         
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Auto-Correlation-Inequality")
+    logger = ExperimentLogger(f"results/{autocorrineq.task_name}")
     experiment = Experiment(
         methods,
         [autocorrineq],

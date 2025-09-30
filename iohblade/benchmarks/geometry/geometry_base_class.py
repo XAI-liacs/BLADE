@@ -14,11 +14,17 @@ class GeometryBase:
     """
 
     def __init__(
-        self, task_name: str, n_points: Optional[int] = None, tolerance: float = 1e-12
+        self,
+        task_name: str,
+        best_known: float,
+        n_points: Optional[int] = None,
+        tolerance: float = 1e-12,
     ):
         self.task_name = task_name
         self.n_points = None if n_points is None else int(n_points)
         self.tolerance = tolerance
+
+        self.best_known = best_known
 
     @staticmethod
     def to_np_points(

@@ -37,12 +37,18 @@ class AutoCorrBaseSpec:
     Args:
         * `task_name: str` Could be one of the following.
                 * autocorr_ineq_1: minimise ‖f∗f‖₁
-                * autocorr_ineq_2: minimise -||f*f||_2^2
+                * autocorr_ineq_2: maximise ||f*f||_2^2
                 * autocorr_ineq_3: minimise max(f*f)
         * `n_bins`: Level of discretisation, number of bins in [-1/4, 1/4], **MUST** be positive.
     """
 
-    def __init__(self, task_name: str, n_bins: int):
+    def __init__(self, task_name: str, n_bins: int, best_known: float):
+        print(
+            f"""
+              --------------------------------------------------------
+              Instantiated {task_name}, best known score is {best_known}.
+              --------------------------------------------------------"""
+        )
         valid_task_names = ["auto_corr_ineq_1", "auto_corr_ineq_2", "auto_corr_ineq_3"]
         if task_name not in valid_task_names:
             error_msg = "Expected task_name to be one of the following: " + " | ".join(
@@ -61,6 +67,7 @@ class AutoCorrBaseSpec:
         self.normalise_l2 = False
         self.L = 0.25
         self.dx = (2 * self.L) / self.n_bins  # Δx = 0.5 / N
+        self.best_known = best_known
 
     def __repr__(self):
         return f"Auto-Correlation Base Class for {self.task_name}, with discretisation level of {self.n_bins}; require non-negative set to {self.require_non_negative}."

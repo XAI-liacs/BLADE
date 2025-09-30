@@ -5,7 +5,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
-from iohblade.benchmarks.geometry import KissingNumber11D
+from iohblade.benchmarks.geometry import get_kissing_number_11D_problems
 
 
 if __name__ == "__main__":
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Kissing 11d
-    kissing_11d = KissingNumber11D()
+    kissing_11d = get_kissing_number_11D_problems()[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=kissing_11d.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/Kissing-11D")
+    logger = ExperimentLogger(f"results/{kissing_11d.name}")
     experiment = Experiment(
         methods,
         [kissing_11d],
