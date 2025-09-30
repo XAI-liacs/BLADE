@@ -193,8 +193,8 @@ class Experiment(ABC):
             logger.start_run(method.llm)
         if self.show_stdout:
             problem._ensure_env()
-            return method(problem)
-        if self.log_stdout:
+            result = method(problem)
+        elif self.log_stdout:
             import io
 
             stdout_buf = io.StringIO()
