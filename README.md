@@ -168,6 +168,22 @@ make sure you have `uv` installed.
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
+### Trackio logging
+
+To mirror results to a [Trackio](https://github.com/gradio-app/trackio) dashboard,
+install the optional dependency and use ``TrackioExperimentLogger``:
+
+```bash
+uv sync --group trackio
+```
+
+```python
+from iohblade.loggers import TrackioExperimentLogger
+
+logger = TrackioExperimentLogger("my-project")
+experiment = Experiment(methods=methods, problems=problems, runs=5, exp_logger=logger)
+```
+
 ## 🌐 Webapp
 
 After running experiments you can browse them using the built-in Streamlit app:

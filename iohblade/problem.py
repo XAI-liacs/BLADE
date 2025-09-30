@@ -1,3 +1,4 @@
+import inspect
 import json
 import multiprocessing
 import os
@@ -14,12 +15,9 @@ import numpy as np
 
 # Standard packages installed in every evaluation environment
 BASE_DEPENDENCIES = [
-    "numpy>=1.26.3,<2",
+    "numpy>=2",
     "cloudpickle>=3.1.0,<4",
     "joblib>=1.4.2,<2",
-    #    "pandas==2.0.3",
-    #    "polars==1.31.0",
-    #    "scikit-learn==1.3.0",
 ]
 
 import copy
@@ -47,7 +45,6 @@ def evaluate_in_subprocess(problem, conn, solution):
             cloudpickle.dump(solution, f)
 
         script_path = env_path / "run_eval.py"
-        deps_imports = []
         imports_block = getattr(problem, "imports", "")
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
@@ -328,3 +325,91 @@ class Problem(ABC):
             dict: Dictionary representation of the problem.
         """
         pass
+
+
+class WrappedProblem(Problem):
+    def __init__(
+        self,
+        evaluate_fn,
+        *,
+        name="Problem",
+        eval_timeout=600,
+        training_instances=None,
+        test_instances=None,
+        dependencies=None,
+        imports=None,
+        task_prompt="",
+        example_prompt="",
+        logger=None,
+    ):
+        super().__init__(
+            logger=logger,
+            training_instances=training_instances,
+            test_instances=test_instances,
+            name=name,
+            eval_timeout=eval_timeout,
+            dependencies=dependencies,
+            imports=imports,
+        )
+        if task_prompt:
+            self.task_prompt = task_prompt
+        if example_prompt:
+            self.example_prompt = example_prompt
+
+        self._evaluate_fn = evaluate_fn
+        # support both signatures: (solution) and (self, solution)
+        self._takes_self = len(inspect.signature(evaluate_fn).parameters) > 1
+        # store by value
+        self._evaluate_fn_bytes = cloudpickle.dumps(evaluate_fn)
+        self._evaluate_fn = None  # reconstructed lazily
+
+    def _get_evaluate_fn(self):
+        if self._evaluate_fn is None:
+            self._evaluate_fn = cloudpickle.loads(self._evaluate_fn_bytes)
+        return self._evaluate_fn
+
+    def evaluate(self, solution: Solution):
+        fn = self._get_evaluate_fn()
+        if self._takes_self:
+            return fn(self, solution)
+        return fn(solution)
+
+    def test(self, solution: Solution):
+        return self.evaluate(solution)
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "eval_timeout": self.eval_timeout,
+            "training_instances": self.training_instances,
+            "test_instances": self.test_instances,
+            "dependencies": self.dependencies,
+            "imports": self.imports,
+        }
+
+
+def wrap_problem(
+    evaluate_fn,
+    *,
+    name="Problem",
+    eval_timeout=6000,
+    training_instances=None,
+    test_instances=None,
+    dependencies=None,
+    imports=None,
+    task_prompt="",
+    example_prompt="",
+    logger=None,
+):
+    return WrappedProblem(
+        evaluate_fn,
+        name=name,
+        eval_timeout=eval_timeout,
+        training_instances=training_instances,
+        test_instances=test_instances,
+        dependencies=dependencies,
+        imports=imports,
+        task_prompt=task_prompt,
+        example_prompt=example_prompt,
+        logger=logger,
+    )

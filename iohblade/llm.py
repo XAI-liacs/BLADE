@@ -140,7 +140,13 @@ class LLM(ABC):
         self.log = True
 
     def sample_solution(
-        self, session_messages: list, parent_ids=[], HPO=False, **kwargs
+        self,
+        session_messages: list,
+        parent_ids=[],
+        HPO=False,
+        base_code: str | None = None,
+        diff_mode: bool = False,
+        **kwargs,
     ):
         """
         Interacts with a language model to generate or mutate solutions based on the provided session messages.
@@ -149,6 +155,7 @@ class LLM(ABC):
             session_messages (list): A list of dictionaries with keys 'role' and 'content' to simulate a conversation with the language model.
             parent_ids (list, optional): The id of the parent the next sample will be generated from (if any).
             HPO (boolean, optional): If HPO is enabled, a configuration space will also be extracted (if possible).
+            base_code and diff_mode are for now only there to support latest LLaMEA, they are not implemented yet.
 
         Returns:
             tuple: A tuple containing the new algorithm code, its class name, its full descriptive name and an optional configuration space object.
@@ -413,6 +420,7 @@ class Gemini_LLM(LLM):
             }
 
         self.client = genai.Client(api_key=api_key)
+        self.api_key = api_key
         self.generation_config = generation_config
 
     def _query(
@@ -463,17 +471,51 @@ class Gemini_LLM(LLM):
 
                 time.sleep(wait)
 
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = genai.Client(api_key=self.api_key)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.client = genai.Client(api_key=new.api_key)
+        return new
+
 
 class Ollama_LLM(LLM):
-    def __init__(self, model="llama3.2", **kwargs):
+    def __init__(self, model="llama3.2", port=11434, **kwargs):
         """
         Initializes the Ollama LLM manager with a model name. See https://ollama.com/search for models.
 
         Args:
             model (str, optional): model abbreviation. Defaults to "llama3.2".
                 See for options: https://ollama.com/search.
+            port: TCP/UDP port on which localhost for ollama is available. Defaults to 11434.
         """
+        self.port = port
+        self.client = ollama.Client(host=f"http://localhost:{port}")
+
         super().__init__("", model, None, **kwargs)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = ollama.Client(host=f"http://localhost:{self.port}")
 
     def _query(
         self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
@@ -500,7 +542,7 @@ class Ollama_LLM(LLM):
         attempt = 0
         while True:
             try:
-                response = ollama.chat(
+                response = self.client.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
                     options=kwargs,

@@ -78,8 +78,8 @@ class Kerneltuner(Problem):
             dependencies = [
                 "kernel-tuner @ git+https://github.com/XAI-liacs/kernel_tuner.git@hyperparametertuning_custom_strategies",
                 "autotuning-methodology @ git+https://github.com/AutoTuningAssociation/autotuning_methodology.git@6a9a50a5a49bc104469b3b753fd43a5324241702",
-                "pandas==2.0.3",
-                "ioh==0.3.18",
+                "pandas==2.2.3",
+                "ioh==0.3.19",
                 "configspace==1.2.1",
                 "smac==2.3.1",
             ]

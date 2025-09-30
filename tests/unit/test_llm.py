@@ -337,7 +337,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(
             side_effect=[_ollama_response_error(429), {"message": {"content": "OK"}}]
@@ -346,7 +346,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
 
     reply = llm._query([{"role": "u", "content": "hi"}], max_retries=2)
     assert reply == "OK"
-    llm_mod.ollama.chat.assert_called_with(
+    llm_mod.ollama.Client.chat.assert_called_with(
         model=llm.model,
         messages=[{"role": "user", "content": "hi\n"}],
         options = {}    # Options feature added.
@@ -359,7 +359,7 @@ def test_ollama_llm_gives_up(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(side_effect=[_ollama_response_error(), _ollama_response_error()]),
     )
@@ -381,12 +381,11 @@ def test_dummy_llm():
 
 
 def test_ollama_llm_query_forwards_kwargs(monkeypatch):
-    # Create your LLM instance
     llm = Ollama_LLM(model="llama-test")
 
     # Mock the underlying chat function
     mocked_chat = MagicMock(return_value={"message": {"content": "OK"}})
-    monkeypatch.setattr(llm_mod.ollama, "chat", mocked_chat)
+    monkeypatch.setattr(llm_mod.ollama.Client, "chat", mocked_chat)
 
     session = [{"role": "user", "content": "Hello"}]
     session_out = copy.deepcopy(session)    # Factoring long message combiner.
@@ -483,3 +482,40 @@ def sample_solution_passes_kwargs(monkeypatch):
     obj.sample_solution(session_messages, **kwargs)
 
     obj.query.assert_called_once_with(session_messages, **kwargs)
+
+def test_ollama_deep_copies(monkeypatch):
+    llm1 = Ollama_LLM(model="llama-test")
+    llm2 = copy.deepcopy(llm1)
+
+    assert llm1.__getstate__() == llm2.__getstate__()
+
+    mocked_chat1 = MagicMock(return_value={"message": {"content": "OK"}})
+    monkeypatch.setattr(llm1.client, "chat", mocked_chat1)
+
+    mocked_chat2 = MagicMock(return_value={"message": {"content": "OK"}})
+    monkeypatch.setattr(llm2.client, "chat", mocked_chat2)
+
+    session = [{"role": "user", "content": "Hello"}]
+    session_out = copy.deepcopy(session)    # Factoring long message combiner.
+    session_out[0]["content"] += "\n"
+
+    extra_kwargs = {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "num_ctx": 512
+    }
+
+    # Call _query with session and kwargs
+    result = llm1._query(session, **extra_kwargs)
+
+    # Assert the return value is as expected
+    assert result == "OK"
+
+    # Assert the underlying chat function was called with correct arguments
+    mocked_chat1.assert_called_once_with(
+        model=llm1.model,
+        messages=session_out,
+        options=extra_kwargs
+    )
+
+    mocked_chat2.assert_not_called()

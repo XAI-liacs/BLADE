@@ -35,6 +35,8 @@ extensions = [
     "sphinx_copybutton",
 ]
 
+nbsphinx_allow_errors = True  # Continue through errors in notebook cells
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
