@@ -5,7 +5,7 @@
 
 
 BLADE
-===================================================
+===========================================================
 
 .. image:: https://badge.fury.io/py/blade.svg
    :target: https://pypi.org/project/blade/
@@ -37,7 +37,7 @@ It focuses on **continuous black-box optimization** and integrates a diverse set
 
 
 🔥 News
-----
+--------
 
 - 2025.03 ✨✨ **iohblade v0.0.1 released**!
 
@@ -147,7 +147,7 @@ For the final validation, **BLADE** uses **IOHprofiler**, providing detailed tra
 
 
 🤖 Contributing
-------------
+-----------------
 
 Contributions to BLADE are welcome! Here are a few ways you can help:
 
@@ -158,7 +158,7 @@ Contributions to BLADE are welcome! Here are a few ways you can help:
 Please refer to ``CONTRIBUTING.md`` for more details on contributing guidelines.
 
 License
--------
+---------
 
 Distributed under the `MIT <https://choosealicense.com/licenses/mit/>`_ License.
 See ``LICENSE`` for more information.
