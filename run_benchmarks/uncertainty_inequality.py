@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Helibronn n11 benchmark.
-    uncertain_ineq = get_fourier_problems()[0]
+    uncertain_ineq = get_fourier_problems(use_best=True)[0]
 
     methods = []
     for llm in [gemini_llm]:

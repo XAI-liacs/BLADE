@@ -6,7 +6,7 @@ import numpy as np
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class ErdosMinOverlap(Problem):
@@ -26,13 +26,14 @@ class ErdosMinOverlap(Problem):
         n_bins: int = 800,
         tolerance=1e-6,
         best_known=0.380924,
+        best_solution: list[float] | None = None
     ):
         super().__init__(name=task_name)
         self.task_name = task_name
         self.n_bins = n_bins
         self.tolerance = tolerance
         self.best_known = best_known
-
+        self.best_solution = best_solution
         print(
             f"""
 -------------------------------------------------------------------
@@ -61,11 +62,21 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
     * The tolerance of f + g similar to 1 is set to {self.tolerance}
         """
 
+        best_known_initialiser = ""
+        if best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, best_known_configuration: list[float] | None):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+"""
         self.example_prompt = f"""
 
 An example template of such program is given by:
 ```python
 class ErdosCandidate:
+
+    {best_known_initialiser}
+
     def __call__(self):
         return [0,0]*{self.n_bins}
 ```
@@ -108,15 +119,20 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
         return max_val
 
     def evaluate(self, solution: Solution, explogger=None):
+        local_ns = {}
         code = solution.code
 
-        local_ns = {}
-        safe_globals = prepare_namespace(code, self.dependencies)
-
         try:
+            safe_globals = prepare_namespace(code, self.dependencies)
+            
             exec(code, safe_globals, local_ns)
+            local_ns = clean_local_namespace(local_ns, safe_globals)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            f = np.asarray(cls()(), dtype=np.float64)
+
+            try:
+                f = np.asarray(cls(best_known_configuration=self.best_solution)(), dtype=np.float64)
+            except:
+                f = np.asarray(cls()(), dtype=np.float64)
         except Exception as e:
             solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
             return solution

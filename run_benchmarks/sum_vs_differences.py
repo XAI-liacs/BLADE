@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Get sums vs differences benchmark, this one only has one instance.
-    sum_vs_difference = get_sum_vs_difference_problem()[0]
+    sum_vs_difference = get_sum_vs_difference_problem(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

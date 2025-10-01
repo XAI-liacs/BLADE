@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    erdos_min_overlap = get_combinatorics_problems()[0]
+    erdos_min_overlap = get_combinatorics_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:
@@ -28,7 +28,7 @@ if __name__ == "__main__":
             minimization=erdos_min_overlap.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/ErdosMinOverlap")
+    logger = ExperimentLogger(f"results/{erdos_min_overlap.name}")
     experiment = Experiment(
         methods,
         [erdos_min_overlap],

@@ -11,8 +11,9 @@ class NumberTheoryBase:
     with 0 ∈ U and |U| ≤ max_size.
     """
 
-    def __init__(self, name) -> None:
+    def __init__(self, name, best_soluton : list[int] | None = None) -> None:
         self.task_name = name
+        self.best_solution = best_soluton
 
     def make_task_prompt(self, formula: str) -> str:
         # Single-set U specification; matches Appendix B.6, eq. (3).
@@ -43,12 +44,23 @@ class NumberTheoryBase:
 
     def make_example_prompt(self, class_name: str) -> str:
         # Minimal, valid example that returns a simple U.
+        best_known_initialiser = """
+    def __init__(self, max_size=100):
+        self.max_size = max_size
+        """
+        if self.best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, max_size=100, best_known_configuration: list[float] | None = None):
+        self.max_size = max_size
+        self.best_known_configuration = best_known_configuration
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        # optimised for better results.
+"""
         return f"""
 An example template of the program is:
 ```python
 class {class_name}:
-    def __init__(self, max_size=100):
-        self.max_size = max_size
+    {best_known_initialiser}
 
     def __call__(self):
         # Must return U ⊂ ℤ≥0 with 0 ∈ U and |U| ≤ self.max_size.

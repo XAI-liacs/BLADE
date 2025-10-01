@@ -102,7 +102,7 @@ Write a python class with function `__call__`, that returns a list of floats f o
     def make_example_prompt(self, class_name: str) -> str:
         best_known_initialiser = ""
         if self.best_solution is not None:
-            best_known_initialiser = f"""
+            best_known_initialiser = """
     def __init__(self, best_known_configuration: list[float] | None):
         # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
         optimised for better results.

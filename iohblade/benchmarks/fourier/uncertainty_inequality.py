@@ -16,15 +16,14 @@ class UncertaintyInequality(FourierBase, Problem):
     r_max = largest positive root beyond which P(x) >= 0.
     """
 
-    def __init__(self, n_terms: int = 3, best_known: float = 0.3216):
-        FourierBase.__init__(self, task_name="fourier_uncertainty_C4", n_terms=n_terms)
+    def __init__(self, n_terms: int = 3, best_known: float = 0.3216, best_solution : list[float] | None = None):
+        FourierBase.__init__(self, task_name="fourier_uncertainty_C4", n_terms=n_terms, best_known_configuration=best_solution)
         Problem.__init__(self, name="fourier_uncertainty_C4")
         self.task_prompt = self.make_task_prompt("minimize  r_max^2 / (2*pi)")
         self.example_prompt = self.make_example_prompt("FourierCandidate")
         self.format_prompt = self.make_format_prompt()
 
         self.best_known = best_known
-
         print(
             f"""
 --------------------------------------------------------------------------------------------------------------------
@@ -105,16 +104,19 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
 
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
-        safe_globals = prepare_namespace(code, self.dependencies)
 
         # 1) execute candidate
         try:
+            safe_globals = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
-
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            c = np.asarray(cls(self.n_terms)(), dtype=np.float64)
+            try:
+                c = np.asanyarray(cls(self.best_known_configuration)(), dtype=np.float64)
+            except:
+                c = np.asarray(cls(self.n_terms)(), dtype=np.float64)
+
         except Exception as e:
             solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
             return solution
