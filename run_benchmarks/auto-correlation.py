@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     # Select the instances of Auto-Correlation 1-3.
     # ===============================================
-    autocorrineq = get_analysis_problems()[0]
+    autocorrineq = get_analysis_problems()[2]
     # ================================================
 
 

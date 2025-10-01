@@ -7,7 +7,7 @@ from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
-from .fourier_base import FourierBase
+from iohblade.benchmarks.fourier.fourier_base import FourierBase
 
 
 class UncertaintyInequality(FourierBase, Problem):

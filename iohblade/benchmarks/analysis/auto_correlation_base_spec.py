@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
 
-from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 """
     Autocorrelation measures how similar a signal is to a shifted version of itself.
@@ -39,16 +39,19 @@ class AutoCorrBaseSpec:
                 * autocorr_ineq_1: minimise ‖f∗f‖₁
                 * autocorr_ineq_2: maximise ||f*f||_2^2
                 * autocorr_ineq_3: minimise max(f*f)
-        * `n_bins`: Level of discretisation, number of bins in [-1/4, 1/4], **MUST** be positive.
+        * `n_bins` int: Level of discretisation, number of bins in [-1/4, 1/4], **MUST** be positive.
+        * `best_known` float: Best known evaluation of the benchmark.
+        * `best_solution` list[float]: Best known configuration of the benchmark.
     """
 
-    def __init__(self, task_name: str, n_bins: int, best_known: float):
+    def __init__(self, task_name: str, n_bins: int, best_known: float, best_solution : list[float] | None):
         print(
             f"""
               --------------------------------------------------------
               Instantiated {task_name}, best known score is {best_known}.
               --------------------------------------------------------"""
         )
+        self.best_solution = best_solution
         valid_task_names = ["auto_corr_ineq_1", "auto_corr_ineq_2", "auto_corr_ineq_3"]
         if task_name not in valid_task_names:
             error_msg = "Expected task_name to be one of the following: " + " | ".join(
@@ -97,11 +100,20 @@ Write a python class with function `__call__`, that returns a list of floats f o
 """
 
     def make_example_prompt(self, class_name: str) -> str:
+        best_known_initialiser = ""
+        if self.best_solution is not None:
+            best_known_initialiser = f"""
+    def __init__(self, best_known_configuration: list[float] | None):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+"""
+
         return f"""
 
 An example template of such program is given by:
 ```python
 class {class_name}:
+    {best_known_initialiser}
     def __call__(self):
         return [0,0]*{self.n_bins}
 ```
@@ -125,12 +137,16 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
         allowed = ["numpy", "scipy"]
 
-        global_parameters = prepare_namespace(code, allowed)
-
         try:
+            global_parameters = prepare_namespace(code, allowed)
             exec(code, global_parameters, local_parameters)
+            local_parameters = clean_local_namespace(local_parameters, global_parameters)
             cls = next(v for v in local_parameters.values() if isinstance(v, type))
-            f = np.asarray(cls()(), dtype=np.float64)
+            try:
+                f = np.asarray(cls(best_known_configuration=self.best_known)(), dtype=np.float64)                #Runs if class has __init__(self, best_known_solution)
+            except:
+                f = np.asarray(cls()(), dtype=np.float64)                               #Rollback to empty initantiation.
+
             return f, None
         except Exception as e:
             print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
