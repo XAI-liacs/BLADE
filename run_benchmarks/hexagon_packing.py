@@ -21,7 +21,7 @@ if __name__ == "__main__":
     # * a[0] = n11 problem.
     # * a[1] = n12 problem.
     #----------------------------------------------
-    hexagon_packing = get_hexagon_packing_problems()[0]
+    hexagon_packing = get_hexagon_packing_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Helibronn n11 benchmark.
-    heilbronn_triangle = get_heilbronn_triangle_problems()[0]
+    heilbronn_triangle = get_heilbronn_triangle_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

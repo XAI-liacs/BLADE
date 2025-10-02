@@ -19,7 +19,7 @@ if __name__ == "__main__":
     # a[0] = 2-D min max distance ration problem.
     # a[1] = 3-D min max distance ration problem.
 
-    min_max_min_distance = get_min_max_dist_ratio_problem()[1]
+    min_max_min_distance = get_min_max_dist_ratio_problem(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

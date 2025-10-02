@@ -22,11 +22,16 @@ class KissingNumber11D(Problem):
       integer coordinates.
     """
 
-    def __init__(self, tolerance: float = 0.0, best_known: int = 593):
+    def __init__(
+        self,
+        tolerance: float = 0.0,
+        best_known: int = 593,
+        best_solution: list[list[int]] | None = None,
+    ):
         super().__init__(name="kissing_number_11d")
         self.dim = 11
         self.tolerance = float(tolerance)
-
+        self.best_solution = best_solution
         self.best_known = best_known
         print(
             f"""
@@ -53,16 +58,28 @@ Write a python class with function `__call__`, that generate a solution for the 
         )
         # - The environment only provides access to the libraries:
         #     - {"\n    - ".join(allowed)}
+        best_known_initialiser = """
+    def__init__(self):
+        pass
+"""
+        if self.best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, best_known_configuration: list[float] | None):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+        pass
+"""
 
         self.example_prompt = f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 ```
 class KissingNumber-{self.dim}d:
-def __init__(self):
-pass
-def __call__(self):
-return np.zeros((n, {self.dim}))        #Maximise n.
+
+    {best_known_initialiser}
+
+    def __call__(self):
+        return np.zeros((n, {self.dim}))        #Maximise n.
 
 ```
 """
@@ -99,7 +116,10 @@ one-line description, describing the main idea. Give the response in the format:
             local_ns = clean_local_namespace(local_ns, safe_globals)
 
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            C = np.array(cls()(), dtype=float)
+            try:
+                C = np.array(cls(self.best_solution)(), dtype=float)
+            except:
+                C = np.array(cls()(), dtype=float)
 
             if C.ndim != 2 or C.shape[1] != self.dim:
                 raise ValueError(f"expected shape (m, {self.dim})")

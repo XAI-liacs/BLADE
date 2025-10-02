@@ -10,10 +10,17 @@ from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_names
 class UnitSquarePacking(PackingBase, Problem):
     """Appendix B.12: Pack n disjoint circles in the unit square [0,1]×[0,1] to maximize the sum of radii."""
 
-    def __init__(self, n_circles: int = 26, best_known=2.635, tolerance: float = 1e-12):
+    def __init__(
+        self,
+        n_circles: int,
+        best_known: float,
+        tolerance: float = 1e-12,
+        best_solution: list[tuple[float, float, float]] | None = None,
+    ):
         self.n_circles = int(n_circles)
         self.tolerance = float(tolerance)
         self.best_known = float(best_known)
+        self.best_solution = best_solution
 
         task_name = f"unit_square_packing_n{self.n_circles}"
         PackingBase.__init__(self, task_name)
@@ -31,7 +38,9 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
         contract = "Return a numpy array U with shape (n,3), U[i]=[x_i, y_i, r_i]."
         objective = "Maximize the sum of radii ∑_i r_i."
         self.task_prompt = self.make_task_prompt(headline, contract, objective)
-        self.example_prompt = self.make_example_prompt("UnitSquareCandidate")
+        self.example_prompt = self.make_example_prompt(
+            "UnitSquareCandidate", n_circles=self.n_circles
+        )
         self.format_prompt = self.make_format_prompt()
         self.minimisation = False
         self.dependencies += ["scipy"]

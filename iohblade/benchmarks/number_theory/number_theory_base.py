@@ -11,7 +11,7 @@ class NumberTheoryBase:
     with 0 ∈ U and |U| ≤ max_size.
     """
 
-    def __init__(self, name, best_soluton : list[int] | None = None) -> None:
+    def __init__(self, name, best_soluton: list[int] | None = None) -> None:
         self.task_name = name
         self.best_solution = best_soluton
 

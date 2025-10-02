@@ -16,9 +16,15 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         Best known auto-correlation 1 score by alpha evolve: is C_3 <= 1.4557 (prev 1.4581).
     """
 
-    def __init__(self, best_known: float = 1.4557, best_solution:list[float] | None = None):
+    def __init__(
+        self, best_known: float = 1.4557, best_solution: list[float] | None = None
+    ):
         AutoCorrBaseSpec.__init__(
-            self, task_name="auto_corr_ineq_3", n_bins=400, best_known=best_known, best_solution=best_solution
+            self,
+            task_name="auto_corr_ineq_3",
+            n_bins=400,
+            best_known=best_known,
+            best_solution=best_solution,
         )
         Problem.__init__(self, name=self.task_name)
 

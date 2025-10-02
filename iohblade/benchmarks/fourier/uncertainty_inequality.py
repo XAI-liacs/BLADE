@@ -16,8 +16,18 @@ class UncertaintyInequality(FourierBase, Problem):
     r_max = largest positive root beyond which P(x) >= 0.
     """
 
-    def __init__(self, n_terms: int = 3, best_known: float = 0.3216, best_solution : list[float] | None = None):
-        FourierBase.__init__(self, task_name="fourier_uncertainty_C4", n_terms=n_terms, best_known_configuration=best_solution)
+    def __init__(
+        self,
+        n_terms: int = 3,
+        best_known: float = 0.3216,
+        best_solution: list[float] | None = None,
+    ):
+        FourierBase.__init__(
+            self,
+            task_name="fourier_uncertainty_C4",
+            n_terms=n_terms,
+            best_known_configuration=best_solution,
+        )
         Problem.__init__(self, name="fourier_uncertainty_C4")
         self.task_prompt = self.make_task_prompt("minimize  r_max^2 / (2*pi)")
         self.example_prompt = self.make_example_prompt("FourierCandidate")
@@ -113,7 +123,9 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
             local_ns = clean_local_namespace(local_ns, safe_globals)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             try:
-                c = np.asanyarray(cls(self.best_known_configuration)(), dtype=np.float64)
+                c = np.asanyarray(
+                    cls(self.best_known_configuration)(), dtype=np.float64
+                )
             except:
                 c = np.asarray(cls(self.n_terms)(), dtype=np.float64)
 

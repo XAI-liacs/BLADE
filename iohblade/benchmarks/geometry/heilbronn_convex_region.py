@@ -8,6 +8,7 @@ from iohblade.misc.prepare_namespace import (
     clean_local_namespace,
 )
 from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 class HeilbronnConvexRegion(GeometryBase, Problem):
@@ -21,7 +22,11 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
     """
 
     def __init__(
-        self, n_points: int, best_known: Optional[float], tolerance: float = 1e-12
+        self,
+        n_points: int,
+        best_known: Optional[float],
+        tolerance: float = 1e-12,
+        best_solution: list[tuple[float, float]] | None = None,
     ):
         GeometryBase.__init__(
             self,
@@ -30,6 +35,12 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
             tolerance=tolerance,
             best_known=best_known if best_known is not None else float("-inf"),
         )
+
+        if best_solution and len(best_solution) == self.n_points:
+            self.best_solution = best_solution
+        else:
+            self.best_solution = None
+
         print(
             f"""
 ------------------------------------------------------------------------------------------------------------------------
@@ -56,13 +67,24 @@ Write a python class with function `__call__`, that generate a solution for the 
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
 
+        best_known_initialiser = """
+    def __init__(self, n_points : int):
+        pass
+"""
+        if self.best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, n_points: int, best_known_configuration: list[float] | None):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+        pass
+"""
+
         self.example_prompt = f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 ```
 class HeilbronnConvexRegion-n{self.n_points}:
-    def __init__(self, n_points : int):
-        pass
+    {best_known_initialiser}
     def __call__(self):
         return np.zeros(({self.n_points}, 2))
 
@@ -82,16 +104,18 @@ one-line description, describing the main idea. Give the response in the format:
 """
         self.minimisation = False
 
-    def evaluate(self, solution, explogger=None):
+    def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
-        safe = prepare_namespace(code, self.dependencies)
         try:
+            safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
             local_ns = clean_local_namespace(local_ns, safe)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            result = cls(self.n_points)()
-            print(result)
+            try:
+                result = cls(self.n_points, self.best_solution)()
+            except:
+                result = cls(self.n_points)()
             P = self.to_np_points(result)
         except Exception as e:
             # tb = e.__traceback__

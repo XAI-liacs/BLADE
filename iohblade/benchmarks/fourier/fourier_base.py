@@ -1,5 +1,3 @@
-
-
 class FourierBase:
     """
     Base spec for the uncertainty inequality (Appendix B.4).
@@ -25,7 +23,7 @@ class FourierBase:
         x_max: float = 12.0,
         grid_step: float = 1e-2,
         check_points: int = 800,
-        best_known_configuration : list[float] | None = None
+        best_known_configuration: list[float] | None = None,
     ):
         self.task_name = task_name
         self.n_terms = n_terms  # H0, H4, H8 by default
@@ -33,7 +31,9 @@ class FourierBase:
         self.x_max = x_max  # search window for roots/positivity
         self.grid_step = grid_step  # coarse scan step for root bracketing
         self.check_points = check_points  # positivity checks beyond r_max
-        self.best_known_configuration = best_known_configuration   #Best known configuation.
+        self.best_known_configuration = (
+            best_known_configuration  # Best known configuation.
+        )
 
         if self.n_terms < 1:
             raise ValueError("n_terms must be >= 1")

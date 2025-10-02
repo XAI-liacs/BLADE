@@ -33,6 +33,7 @@ def _add_builtins_into(allowed_list):
 
 def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
     """Prepare exec global_namespace, with the libraries imported in the text, `code` parameter accepts.
+        If the imports are not allowed in the environment, a generic object is provided.
 
     Args:
         `code: str`: Code parameter that is to be passed to `exec` function.
@@ -40,10 +41,6 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
 
     Returns:
         Returns a prepared global_namespace dictionary for exec, of type `dict[str, Any]`.
-
-    Raises:
-        When `code` tries to import library that is not listed in `allowed` or is not in allowed `__builtin__` list,
-        `ImportError` is raised.
     """
     ns = {}
     imports = _collect_imports(code)
@@ -59,10 +56,10 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
             if allowed and not any(
                 module == a or module.startswith(a + ".") for a in allowed
             ):
-                raise ImportError(f"Import of {module} not allowed")
-
-            mod = importlib.import_module(module)
-            ns[imp["alias"] or module.split(".")[0]] = mod
+                ns[imp["alias"] or module.split(".")[0]] = object
+            else:
+                mod = importlib.import_module(module)
+                ns[imp["alias"] or module.split(".")[0]] = mod
 
         elif imp["type"] == "from":
             module = imp["module"]
@@ -70,11 +67,11 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
             if allowed and not any(
                 module == a or module.startswith(a + ".") for a in allowed
             ):
-                raise ImportError(f"Import of {module} not allowed")
-
-            mod = importlib.import_module(module)
-            obj = getattr(mod, imp["name"])
-            ns[imp["alias"] or imp["name"]] = obj
+                ns[imp["alias"] or imp["name"]] = object
+            else:
+                mod = importlib.import_module(module)
+                obj = getattr(mod, imp["name"])
+                ns[imp["alias"] or imp["name"]] = obj
 
     return ns
 

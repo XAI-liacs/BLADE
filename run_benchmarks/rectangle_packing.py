@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # RectangleProblem(perimeter=4, circles=21)
-    rectangle_packing = get_rectangle_packing_problems()[0]
+    rectangle_packing = get_rectangle_packing_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

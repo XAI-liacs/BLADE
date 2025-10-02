@@ -17,7 +17,7 @@ if __name__ == "__main__":
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Kissing 11d
-    kissing_11d = get_kissing_number_11D_problems()[0]
+    kissing_11d = get_kissing_number_11D_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

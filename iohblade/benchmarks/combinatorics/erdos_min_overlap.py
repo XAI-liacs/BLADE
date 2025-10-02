@@ -26,7 +26,7 @@ class ErdosMinOverlap(Problem):
         n_bins: int = 800,
         tolerance=1e-6,
         best_known=0.380924,
-        best_solution: list[float] | None = None
+        best_solution: list[float] | None = None,
     ):
         super().__init__(name=task_name)
         self.task_name = task_name
@@ -124,13 +124,15 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
         try:
             safe_globals = prepare_namespace(code, self.dependencies)
-            
+
             exec(code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
 
             try:
-                f = np.asarray(cls(best_known_configuration=self.best_solution)(), dtype=np.float64)
+                f = np.asarray(
+                    cls(best_known_configuration=self.best_solution)(), dtype=np.float64
+                )
             except:
                 f = np.asarray(cls()(), dtype=np.float64)
         except Exception as e:

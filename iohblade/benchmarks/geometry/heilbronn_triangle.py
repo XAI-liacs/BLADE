@@ -17,7 +17,12 @@ class HeilbronnTriangle(GeometryBase, Problem):
     """
 
     def __init__(
-        self, n_points: int, best_known: Optional[float], tolerance: float = 1e-12
+        self,
+        n_points: int,
+        best_known: Optional[float],
+        tolerance: float = 1e-12,
+        best_solution: list[tuple[float, float]] | None = None,
+        triangle_best_solution: list[tuple[float, float]] | None = None,
     ):
         GeometryBase.__init__(
             self,
@@ -27,6 +32,15 @@ class HeilbronnTriangle(GeometryBase, Problem):
             best_known=best_known if best_known is not None else float("-inf"),
         )
         Problem.__init__(self, name=f"heilbronn_triangle-n{n_points}")
+
+        if best_solution:
+            if triangle_best_solution is None:
+                self.triangle_best_solution = [(0.0, 0.0), (1.0, 0.0), (0.0, 2.0)]
+            else:
+                self.triangle_best_solution = triangle_best_solution
+        else:
+            self.triangle_best_solution = None
+        self.best_solution = best_solution
 
         print(
             f"""
@@ -39,9 +53,9 @@ Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, a
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for Heilbronn on a unit area triangle.
 - The `__call__` method may return:
-  - points (`pts`): ndarray (n,2) interpreted inside a default unit-area triangle, or
-  - (triangle, points) (`(tri, pts)`): with triangle shape (3,2), which we rescale to area 1, and `pts` from above, or
-  - A dictionary of {'triangle': tri, 'points': pts}.
+  - (None, points) where points is ndarray (n,2) interpreted inside a default unit-area triangle, or
+  - (triangle, points): with triangle shape (3,2), both of which we rescale similarly as to have area of triangle = 1.
+    - Upon scaling points must lie inside the tringle, within the given tolerance.
 - The solution is scored as minimum triangle area formed by picking 3 of the n points.
 - The optimisation goal is to maximise the score.
 """
@@ -49,33 +63,37 @@ Write a python class with function `__call__`, that generate a solution for Heil
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
 
+        best_known_initialiser = """
+    def __init__(self, n_points : int):
+        pass
+"""
+        if self.best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, n_points: int, best_known_configuration: list[tuple[float, float]] | None, in_triangle: list[tuple[float, float]]):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+        pass
+"""
+
         call_format = f"""
 def __call__(self):
-    # The return value must be one of the following (ndarray-based) formats:
-
     # Option 1: points only
-    return np.zeros(({self.n_points}, 2))
+    return (None, np.zeros(({self.n_points}, 2)))
 
     # Option 2: (triangle, points)
     return (np.zeros((3, 2)), np.zeros(({self.n_points}, 2)))
-    # Option 3: dictionary with triangle and points
-    return """
-        call_format += (
-            """{
-        'triangle': np.zeros((3, 2)),
-        'points': np.zeros(("""
-            + str(self.n_points)
-            + """, 2))
-    }
 """
-        )
+
         self.example_prompt = f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
-```
+
+```python
+
 class HeilbronnTriangle-n{self.n_points}:
-    def __init__(self, n_points : int):
-        pass
+    
+    {best_known_initialiser}
+
     {call_format}
 
 ```
@@ -97,13 +115,16 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
-        safe = prepare_namespace(code, self.dependencies)
         try:
+            safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
             local_ns = clean_local_namespace(local_ns, safe)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            result = cls(self.n_points)()
+            try:
+                triangle, points = cls(self.n_points)()
+            except:
+                triangle, points = cls(self.n_points)()
         except Exception as e:
             # tb = e.__traceback__
             solution.set_scores(
@@ -114,7 +135,10 @@ one-line description, describing the main idea. Give the response in the format:
             return solution
 
         try:
-            T, P = self._parse_candidate(result)
+            if triangle:
+                T, P = self._parse_candidate((triangle, points))
+            else:
+                T, P = self._parse_candidate(points)
             T = self._ensure_unit_area(self.to_np_points(T, expected_n=3))
             P = self.to_np_points(P, expected_n=self.n_points)
 

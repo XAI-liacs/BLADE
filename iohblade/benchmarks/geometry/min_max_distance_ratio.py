@@ -16,11 +16,25 @@ class MinMaxMinDistanceRatio(Problem):
         dim: int,
         best_known: float | None,
         tolerance: float = 1e-12,
+        best_solution: list[tuple] | None = None,
     ):
         super().__init__(name=f"min_max_min_distance_ratio-{dim}d")
         self.n_points = int(n_points)
         self.dim = int(dim)
         self.tolerance = float(tolerance)
+        self.best_solution = best_solution
+
+        # Guard against bad "best_solution."
+        if best_solution:
+            if len(best_solution) != self.n_points:
+                best_solution = None
+
+        if best_solution:
+            for point in best_solution:
+                if len(point) != dim:
+                    self.best_solution = None
+                    break
+
         if self.n_points < 2:
             raise ValueError("n_points must be >= 2")
 
@@ -48,18 +62,29 @@ Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best
     * The Optimisation goal is to {formula}.
     * The tolerance for the point overlap is set to {self.tolerance}
 """
+        best_known_initialiser = """
+    def __init__(self, n_points : int, dimensions : int):
+        pass"""
+        if self.best_solution is not None:
+            best_known_initialiser = """
+    def __init__(self, n_points: int, dimensions: int, best_known_configuration: list[float] | None):
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        optimised for better results.
+        pass
+"""
 
         self.example_prompt = f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
-```
+
+```python
 class MinMaxDistanceSolver:
-    def __init__(self, n_points : int, dimensions : int):
-        pass
+    {best_known_initialiser}
 
     def __call__(self) -> list[tuple[float, float]]:
         return [(0.0,) * {self.dim}] * {self.n_points}
 ```
+
 """
 
         self.format_prompt = """
@@ -90,7 +115,10 @@ one-line description, describing the main idea. Give the response in the format:
             exec(code, safe, local_ns)
             local_ns = clean_local_namespace(local_ns, safe)
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            P = cls(self.n_points, self.dim)()
+            try:
+                P = cls(self.n_points, self.dim, self.best_solution)()
+            except:
+                P = cls(self.n_points, self.dim)()
         except Exception as e:
             solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
             return solution

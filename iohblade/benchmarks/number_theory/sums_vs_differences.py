@@ -16,7 +16,12 @@ class SumDifference(NumberTheoryBase, Problem):
     with constraints U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size.
     """
 
-    def __init__(self, max_set_size: int = 1000, best_score=1.1584, best_solution: list[int] | None = None):
+    def __init__(
+        self,
+        max_set_size: int = 1000,
+        best_score=1.1584,
+        best_solution: list[int] | None = None,
+    ):
         task_name = "sums_vs_differences"
         self.max_set_size = int(max_set_size)
         self.best_score = best_score
@@ -61,7 +66,9 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             cls = next(v for v in local_ns.values() if isinstance(v, type))
             U = []
             try:
-                U = cls(self.max_set_size, best_known_configuration=self.best_solution)()
+                U = cls(
+                    self.max_set_size, best_known_configuration=self.best_solution
+                )()
             except:
                 U = cls(self.max_set_size)()
         except Exception as e:

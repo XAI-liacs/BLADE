@@ -10,7 +10,7 @@ class PackingBase:
       - Radii must be positive.
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.task_name = name
 
     ## Prompt helpers:
@@ -42,18 +42,32 @@ class PackingBase:
     # - The tolerance for evaluation in given by {tolerance}.
 
     def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
+        best_known_initialiser = f"""
+    def __init__(self, n_hexagons: int = {n_hexagon}):
+        self.n_hexagons = int(n_hexagons)
+"""
+        if self.best_solution is not None:
+            best_known_initialiser = f"""
+    def __init__(self, n_hexagons: int={n_hexagon}, best_known_configuration: list[float] | None = None):
+        self.best_known_configuration = best_known_configuration
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        # optimised for better results.
+        self.n_hexagons = int(n_hexagons)
+"""
         return f"""
 ```python
 class {class_name}:
-    def __init__(self, n_hexagons: int = {n_hexagon}):
-        self.n_hexagons = int(n_hexagons)
+    {best_known_initialiser}
     def __call__(self):
-        return [(0, ) * 3] {n_hexagon}      # {n_hexagon} disjoint hexagons, with (x, y, theta).
+        return [(0, ) * 3] * {n_hexagon}      # {n_hexagon} disjoint hexagons, with (x, y, theta).
 ```
 """
 
     def make_example_prompt(
-        self, class_name: str, body_hint: Optional[str] = None
+        self,
+        class_name: str,
+        n_circles: int,
+        body_hint: Optional[str] = None,
     ) -> str:
         hint = (
             body_hint
@@ -76,12 +90,26 @@ for i in range(n):
 return np.array(pts, dtype=float)
 """
         )
+
+        best_known_initialiser = f"""
+    def __init__(self, n_circles: int = {n_circles}):
+        self.n_circles = int(n_circles)
+"""
+        if self.best_solution is not None:
+            best_known_initialiser = f"""
+    def __init__(self, n_circles: int={n_circles}, best_known_configuration: list[float] | None):
+        self.best_known_configuration = best_known_configuration
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        # optimised for better results.
+        self.n_circles = int(n_circles)
+"""
+
         return f"""
 
 ```python
 class {class_name}:
-    def __init__(self, n_circles: int = 8):
-        self.n_circles = int(n_circles)
+    {best_known_initialiser}
+
     def __call__(self):
         {"\n\t".join(hint.split("\n"))}
 ```

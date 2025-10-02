@@ -23,11 +23,13 @@ class RectanglePacking(PackingBase, Problem):
         perimeter: float = 4.0,
         tolerance: float = 1e-12,
         best_known=2.3658,
+        best_solution: list[tuple[float, float, float]] | None = None,
     ):
         self.n_circles = int(n_circles)
         self.perimeter = float(perimeter)
         self.tolerance = float(tolerance)
         self.best_known = float(best_known)
+        self.best_solution = best_solution
 
         task_name = f"rectangle_packing_n{self.n_circles}_perim{self.perimeter:g}"
         PackingBase.__init__(self, task_name)
@@ -66,6 +68,7 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
     U.append([x, y, r])
     return np.array(U, dtype=float), w, h
 """,
+            n_circles=self.n_circles,
         )
         self.format_prompt = self.make_format_prompt()
         self.dependencies += ["scipy"]
@@ -73,14 +76,17 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
 
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
-        safe = prepare_namespace(code, self.dependencies)
         try:
+            safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
             local_ns = clean_local_namespace(local_ns, safe)
 
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            result = cls(self.n_circles)()
+            try:
+                result = cls(self.n_circles, self.best_solution)()
+            except:
+                result = cls(self.n_circles)()
 
             if isinstance(result, tuple) and len(result) == 3:
                 U, width, height = result

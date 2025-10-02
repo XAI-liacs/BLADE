@@ -44,7 +44,13 @@ class AutoCorrBaseSpec:
         * `best_solution` list[float]: Best known configuration of the benchmark.
     """
 
-    def __init__(self, task_name: str, n_bins: int, best_known: float, best_solution : list[float] | None):
+    def __init__(
+        self,
+        task_name: str,
+        n_bins: int,
+        best_known: float,
+        best_solution: list[float] | None,
+    ):
         print(
             f"""
               --------------------------------------------------------
@@ -140,12 +146,18 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
         try:
             global_parameters = prepare_namespace(code, allowed)
             exec(code, global_parameters, local_parameters)
-            local_parameters = clean_local_namespace(local_parameters, global_parameters)
+            local_parameters = clean_local_namespace(
+                local_parameters, global_parameters
+            )
             cls = next(v for v in local_parameters.values() if isinstance(v, type))
             try:
-                f = np.asarray(cls(best_known_configuration=self.best_known)(), dtype=np.float64)                #Runs if class has __init__(self, best_known_solution)
+                f = np.asarray(
+                    cls(best_known_configuration=self.best_known)(), dtype=np.float64
+                )  # Runs if class has __init__(self, best_known_solution)
             except:
-                f = np.asarray(cls()(), dtype=np.float64)                               #Rollback to empty initantiation.
+                f = np.asarray(
+                    cls()(), dtype=np.float64
+                )  # Rollback to empty initantiation.
 
             return f, None
         except Exception as e:

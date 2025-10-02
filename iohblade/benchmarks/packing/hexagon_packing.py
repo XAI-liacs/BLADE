@@ -1,4 +1,4 @@
-from __future__ import annotations
+from typing import Any
 import math
 import numpy as np
 from typing import Tuple
@@ -17,10 +17,16 @@ class HexagonPacking(PackingBase, Problem):
     Boundary contact allowed; interiors must be disjoint.
     """
 
-    def __init__(self, n_hex: int, best_known: float, tolerance: float = 1e-12):
+    def __init__(
+        self,
+        n_hex: int,
+        best_known: float,
+        tolerance: float = 1e-12,
+        best_solution: list[Any] | None = None,
+    ):
         task_name = f"hexagon_packing-n{n_hex}"
         self.best_known = best_known
-        PackingBase.__init__(self, name=task_name)
+        PackingBase.__init__(self, name=task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name)
         self.n_hex = int(n_hex)
 
@@ -104,15 +110,18 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
     # ---------- evaluation ----------
     def evaluate(self, solution, explogger=None):
         code = solution.code
-        safe = prepare_namespace(code, self.dependencies)
 
         try:
+            safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
             local_ns = clean_local_namespace(local_ns, safe)
 
             cls = next(v for v in local_ns.values() if isinstance(v, type))
-            arr = cls(self.n_hex)()
+            try:
+                arr = cls(self.n_hex, best_known_configuration=self.best_known)()
+            except:
+                arr = cls(self.n_hex)()
         except Exception as e:
             solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
             return solution

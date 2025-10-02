@@ -5,6 +5,7 @@ from iohblade.solution import Solution
 
 from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 
+
 class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
     r"""
     Auto Correlation Inequality 1:
@@ -15,7 +16,9 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         Best known auto-correlation 1 score by alpha evolve: is C₁ <= 1.5053 (prev 1.5098).
     """
 
-    def __init__(self, best_known: float = 1.5053, best_solution: list[float] | None = None):
+    def __init__(
+        self, best_known: float = 1.5053, best_solution: list[float] | None = None
+    ):
         """Initialisation of Auto Correlation Inequality 1, sets task_name, n_bins = know benchmark configuration.
 
         Args:
@@ -23,7 +26,11 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
             `best_solution: list[float]`: Pass best known solution to LLM's solution as a base configuration.
         """
         AutoCorrBaseSpec.__init__(
-            self, task_name="auto_corr_ineq_1", n_bins=600, best_known=best_known, best_solution=best_solution
+            self,
+            task_name="auto_corr_ineq_1",
+            n_bins=600,
+            best_known=best_known,
+            best_solution=best_solution,
         )
         Problem.__init__(self, name=self.task_name)
 

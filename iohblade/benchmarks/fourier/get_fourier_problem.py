@@ -3,8 +3,10 @@ from iohblade.benchmarks.fourier import UncertaintyInequality
 best_known_configuration = [
     0.3292519302257546,
     -0.01158510802599293,
-    -8.921606035407065e-05
+    -8.921606035407065e-05,
 ]
+
+
 def get_fourier_problems(use_best: bool) -> list[UncertaintyInequality]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Fourier Uncertianity Inequality benchamarks, as an array.

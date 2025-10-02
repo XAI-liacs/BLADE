@@ -21,7 +21,7 @@ if __name__ == "__main__":
     #   arr[0]:  Unit Square Packing benchmark for Unit Square, packing 26 circles.
     #   arr[1] = Unit Square Packing benchmark for Unit Square, packing 32 circles.
     #----------------------------------------------------------------------------------
-    unit_square_packing = get_square_packing_problems()[0]
+    unit_square_packing = get_square_packing_problems(True)[0]
 
     methods = []
     for llm in [gemini_llm]:

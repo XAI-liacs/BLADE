@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
-    heilbronn_convex_region = get_heilbronn_convex_region_problems()
+    heilbronn_convex_region = get_heilbronn_convex_region_problems(True)
     #Pick a Heilbronn problem, with known best solution.
     # heilbronn_convex_region[0] is 13 points problem and a[1] 14.
     heilbronn_convex_region = heilbronn_convex_region[1]
