@@ -534,3 +534,20 @@ class RunLogger:
             else:
                 file.write("Failed to extract config space")
         self.attempt += 1
+
+    def log_output(self, stdout: str = "", stderr: str = "", append: bool = False):
+        """Log captured standard output and error to files.
+
+        Args:
+            stdout (str): Captured text from ``stdout``.
+            stderr (str): Captured text from ``stderr``.
+            append (bool): If ``True``, append to existing log files instead of
+                overwriting them.
+        """
+        mode = "a" if append else "w"
+        if stdout:
+            with open(os.path.join(self.dirname, "stdout.log"), mode) as file:
+                file.write(stdout)
+        if stderr:
+            with open(os.path.join(self.dirname, "stderr.log"), mode) as file:
+                file.write(stderr)

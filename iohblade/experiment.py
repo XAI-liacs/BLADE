@@ -33,6 +33,7 @@ class Experiment(ABC):
         budget=100,
         seeds=None,
         show_stdout=False,
+        log_stdout=False,
         exp_logger=None,
         n_jobs=1,
     ):
@@ -46,6 +47,8 @@ class Experiment(ABC):
             budget (int): Number of evaluations per run for each method.
             seeds (list, optional): The exact seeds to use for the runs, len(seeds) overwrites the number of runs if set.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
+            log_stdout (bool): If True, capture stdout and stderr to files via the
+                logger when output is hidden.
             exp_logger (ExperimentLogger, optiona): The logger object, can be a standard file logger or a WandB or MLFlow logger.
             n_jobs (int): Number of runs to execute in parallel.
         """
@@ -59,6 +62,7 @@ class Experiment(ABC):
             self.seeds = seeds
             self.runs = len(seeds)
         self.show_stdout = show_stdout
+        self.log_stdout = log_stdout
         self.n_jobs = n_jobs
         if exp_logger is None:
             exp_logger = ExperimentLogger("results/experiment")
@@ -68,18 +72,26 @@ class Experiment(ABC):
         """Clear the console using ANSI escape codes."""
         print("\033c", end="")
 
+    def _status_tokens(self):
+        enc = (getattr(sys.__stdout__, "encoding", "") or "").lower()
+        if "utf" in enc or "65001" in enc:  # utf-8 or Windows UTF-8 codepage
+            return {"done": "✅", "running": "🔄", "pending": "⏳"}
+        else:
+            return {"done": "[DONE]", "running": "[RUN]", "pending": "[WAIT]"}
+
     def _print_run_overview(self) -> None:
         """Pretty print the planned runs and their status."""
         runs = getattr(self.exp_logger, "progress", {}).get("runs", [])
         header = f"{'Method':<15} {'Problem':<15} {'Seed':<5} Status"
         lines = ["Run overview:", header, "-" * len(header)]
+        tokens = self._status_tokens()
         for r in runs:
             if r.get("end_time"):
-                status = "✅"
+                status = tokens["done"]
             elif r.get("start_time"):
-                status = "🔄"
+                status = tokens["running"]
             else:
-                status = "⏳"
+                status = tokens["pending"]
             lines.append(
                 f"{r['method_name']:<15} {r['problem_name']:<15} {r['seed']:<5} {status}"
             )
@@ -176,11 +188,30 @@ class Experiment(ABC):
     def _run_single(self, method, problem, logger, seed):
         np.random.seed(seed)
         method.llm.set_logger(logger)
+        logger.log_stdout = self.log_stdout
         if hasattr(logger, "start_run"):
             logger.start_run(method.llm)
         if self.show_stdout:
             problem._ensure_env()
             result = method(problem)
+        elif self.log_stdout:
+            import io
+
+            stdout_buf = io.StringIO()
+            stderr_buf = io.StringIO()
+            with contextlib.redirect_stdout(stdout_buf):
+                with contextlib.redirect_stderr(stderr_buf):
+                    problem._ensure_env()
+                    result = method(problem)
+            logger.log_output(stdout_buf.getvalue(), stderr_buf.getvalue(), append=True)
+            if getattr(problem, "_last_stdout", "") or getattr(
+                problem, "_last_stderr", ""
+            ):
+                logger.log_output(
+                    getattr(problem, "_last_stdout", ""),
+                    getattr(problem, "_last_stderr", ""),
+                    append=True,
+                )
         else:
             with contextlib.redirect_stdout(None):
                 with contextlib.redirect_stderr(None):
@@ -196,6 +227,7 @@ class MA_BBOB_Experiment(Experiment):
         self,
         methods: list,
         show_stdout=False,
+        log_stdout=False,
         runs=5,
         budget=100,
         seeds=None,
@@ -211,6 +243,8 @@ class MA_BBOB_Experiment(Experiment):
         Args:
             methods (list): List of method instances.
             show_stdout (bool): Whether to show stdout and stderr (standard output) or not.
+            log_stdout (bool): If True, capture stdout and stderr to files via the
+                logger when output is hidden.
             runs (int): Number of runs for each method.
             budget (int): Number of algorithm evaluations per run per method.
             seeds (list, optional): Seeds for each run.
@@ -234,6 +268,7 @@ class MA_BBOB_Experiment(Experiment):
             budget=budget,
             seeds=seeds,
             show_stdout=show_stdout,
+            log_stdout=log_stdout,
             exp_logger=exp_logger,
             n_jobs=n_jobs,
         )
