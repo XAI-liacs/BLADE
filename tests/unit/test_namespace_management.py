@@ -1,4 +1,5 @@
 import pytest
+import types
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace, _add_builtins_into
 
 def test_prepare_namespace_imports_all():
@@ -18,8 +19,8 @@ import math""",
     for key in soln:
         assert key in expected_allowed_list
     
-def test_prepare_namespace_rejects_not_white_listed():
-    #Test 2 All libraries are not avaialble: Raise Error.
+def test_prepare_namespace_returns_generic_objects_for_not_allowed_libraries():
+    #Test 2 If a library to be imported is not in the allowed list, test return of generic object.
     test2 = {
         "code": """import numpy as np
 import random
@@ -28,8 +29,12 @@ import math""",
         "allowed" : ["numpy>=0.1.0"],
         "namespace_keys": ["np", "random", "math"]
     }
-    with pytest.raises(ImportError, match=f"Import of scipy not allowed"):
-        _ = prepare_namespace(test2["code"], test2["allowed"])
+    name_space = prepare_namespace(test2["code"], test2["allowed"])
+    for key, value in name_space.items():
+        assert isinstance(value, object)
+        if key in test2["allowed"]:
+            assert isinstance(value, type.ModuleType)
+
 
 def test_clean_local_namespace_generates_purely_local_namespace():
     global_ns = {

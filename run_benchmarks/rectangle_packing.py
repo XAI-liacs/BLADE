@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=rectangle_packing.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger("results/RectanglePacking")
+    logger = ExperimentLogger(f"results/{rectangle_packing.task_name}")
     experiment = Experiment(
         methods,
         [rectangle_packing],
