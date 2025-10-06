@@ -5,7 +5,7 @@
 
 
 BLADE
-===================================================
+===========================================================
 
 .. image:: https://badge.fury.io/py/blade.svg
    :target: https://pypi.org/project/blade/
@@ -17,11 +17,14 @@ BLADE
 .. image:: https://img.shields.io/badge/Python-3.11+-blue.svg
    :alt: Python 3.11+
    :height: 18
-.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7 
+.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7
    :target: https://codecov.io/gh/XAI-liacs/BLADE
    :alt: Codecov
    :height: 18
-
+.. image:: https://colab.research.google.com/img/colab_favicon_256px.png
+   :target: https://colab.research.google.com/drive/1gJPpQPvCGu0v2LoSsxtdGmot73A-ypSf?usp=sharing
+   :alt: Colab Notebook
+   :height: 18
 
 .. image:: blade-framework.png
    :align: center
@@ -34,7 +37,7 @@ It focuses on **continuous black-box optimization** and integrates a diverse set
 
 
 🔥 News
-----
+--------
 
 - 2025.03 ✨✨ **iohblade v0.0.1 released**!
 
@@ -144,7 +147,7 @@ For the final validation, **BLADE** uses **IOHprofiler**, providing detailed tra
 
 
 🤖 Contributing
-------------
+-----------------
 
 Contributions to BLADE are welcome! Here are a few ways you can help:
 
@@ -155,7 +158,7 @@ Contributions to BLADE are welcome! Here are a few ways you can help:
 Please refer to ``CONTRIBUTING.md`` for more details on contributing guidelines.
 
 License
--------
+---------
 
 Distributed under the `MIT <https://choosealicense.com/licenses/mit/>`_ License.
 See ``LICENSE`` for more information.
@@ -178,7 +181,11 @@ If you use BLADE in your research, please consider citing the associated paper:
    Installation
    webapp
    modules
+   notebooks/simple_experiment
+   notebooks/custom_problem
+   notebooks/custom_method
    notebooks/mabbob_example
+   notebooks/visualization_options
 
 
 Indices and tables

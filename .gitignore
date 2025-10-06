@@ -180,3 +180,4 @@ BBOB*.zip
 
 # Apple File System
 .DS_Store
+_site/

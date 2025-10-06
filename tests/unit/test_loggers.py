@@ -87,6 +87,15 @@ def test_run_logger_budget_exhausted(cleanup_tmp_dir):
     assert run_logger.budget_exhausted() is True
 
 
+def test_run_logger_log_output(cleanup_tmp_dir):
+    run_logger = RunLogger(name="test_run", root_dir=cleanup_tmp_dir)
+    run_logger.log_output("stdout text", "stderr text")
+    with open(os.path.join(run_logger.dirname, "stdout.log")) as f:
+        assert "stdout text" in f.read()
+    with open(os.path.join(run_logger.dirname, "stderr.log")) as f:
+        assert "stderr text" in f.read()
+
+
 def test_experiment_logger_get_data(cleanup_tmp_dir):
     exp_logger = ExperimentLogger(
         name=os.path.join(cleanup_tmp_dir, "my_experiment_data")
