@@ -1,55 +1,53 @@
 import os
 
 from iohblade.experiment import Experiment
-from iohblade.llm import Gemini_LLM, Ollama_LLM
+from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA, RandomSearch
 from iohblade.problems import BBOB_SBOX
 
 if __name__ == "__main__":  # prevents weird restarting behaviour
     api_key = os.getenv("GEMINI_API_KEY")
-    ai_model = "gemini-2.0-flash"
+    ai_model = "gemini-2.5-flash"
     llm1 = Gemini_LLM(api_key, ai_model)
-    llm2 = Ollama_LLM("codestral")
+    llm2 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-mini")
     llm3 = Ollama_LLM("qwen2.5-coder:14b")  # qwen2.5-coder:14b, deepseek-coder-v2:16b
-    llm4 = Ollama_LLM("deepseek-coder-v2:16b")
-    llm5 = Gemini_LLM(api_key, "gemini-1.5-flash")
-    budget = 10  # short budgets
+    #llm4 = Ollama_LLM("deepseek-coder-v2:16b")
+    llm4 = Gemini_LLM(api_key, "gemini-1.5-flash")
+    budget = 100  # short budgets
 
     mutation_prompts = [
-        "Refine and simplify the selected algorithm to improve it.",  # simplify
+        "Refine and simplofy the selected solution to improve it.",  # small mutation
+        "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
     ]
 
-    LLaMEA_method1 = LLaMEA(
-        llm1,
-        budget=budget,
-        name=f"LLaMEA-{llm1.model}",
-        mutation_prompts=mutation_prompts,
-        n_parents=1,
-        n_offspring=1,
-        elitism=True,
-    )
-    LLaMEA_method2 = LLaMEA(
-        llm2,
-        budget=budget,
-        name=f"LLaMEA-{llm2.model}",
-        mutation_prompts=mutation_prompts,
-        n_parents=1,
-        n_offspring=1,
-        elitism=True,
-    )
-    LLaMEA_method3 = LLaMEA(
-        llm5,
-        budget=budget,
-        name=f"LLaMEA-{llm5.model}",
-        mutation_prompts=mutation_prompts,
-        n_parents=1,
-        n_offspring=1,
-        elitism=True,
-    )
-
-    methods = [LLaMEA_method1, LLaMEA_method2, LLaMEA_method3]
-
+    llms = [llm1,llm2,llm3,llm4]
+    llamea_methods = []
+    for llm in llms:
+        llamea_methods.append(
+            LLaMEA(
+                llm,
+                budget=budget,
+                name=f"Baseline-{llm.model}",
+                mutation_prompts=mutation_prompts,
+                n_parents=4,
+                n_offspring=4,
+                elitism=True,
+                provide_errors=False,
+                )
+            )
+        llamea_methods.append(
+            LLaMEA(
+                llm,
+                budget=budget,
+                name=f"Error-context-{llm.model}",
+                mutation_prompts=mutation_prompts,
+                n_parents=4,
+                n_offspring=4,
+                elitism=True,
+                provide_errors=True
+                )
+            )
     # List containing function IDs per group
     group_functions = [
         [],  # starting at 1
@@ -61,43 +59,29 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     ]
 
     problems = []
-    for fid in [2]:  # a selection of single functions , 5, 13, 15, 21
+    for fid in [2, 5, 13, 15, 21]:  # a selection of single functions , 5, 13, 15, 21
         training_instances = [(fid, i) for i in range(1, 6)]
         test_instances = [(fid, i) for i in range(5, 16)]  # 10 test instances
         problems.append(
             BBOB_SBOX(
                 training_instances=training_instances,
                 test_instances=test_instances,
-                dims=[5],
+                dims=[10],
                 budget_factor=2000,
                 name=f"SBOX_COST_fid{fid}",
                 specific_fid=fid,
             )
         )
-    for group in range(1, 2):  # 6
-        training_instances = [
-            (f, i) for f in group_functions[group] for i in range(1, 6)
-        ]
-        test_instances = [(f, i) for f in group_functions[group] for i in range(5, 16)]
-        problems.append(
-            BBOB_SBOX(
-                training_instances=training_instances,
-                test_instances=test_instances,
-                dims=[5],
-                budget_factor=2000,
-                name=f"SBOX_COST_group{group}",
-                specific_group=group,
-            )
-        )
 
-    logger = ExperimentLogger("results/SBOX-new")
+    logger = ExperimentLogger("results/SBOX-error")
     experiment = Experiment(
         methods=methods,
         problems=problems,
         runs=2,
-        show_stdout=True,
+        show_stdout=False,
+        log_stdout=True,
         exp_logger=logger,
-        n_jobs=3,
+        n_jobs=6,
         budget=budget,
     )  # normal run
     experiment()  # run the experiment

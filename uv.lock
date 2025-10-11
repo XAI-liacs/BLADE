@@ -1927,7 +1927,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", specifier = ">=1.1.8,<2" },
+    { name = "llamea", git = "https://github.com/XAI-liacs/LLaMEA?rev=b8253474a6fe3ac639541c8ebe75bd2422a32485" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2571,8 +2571,8 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.1.8"
-source = { registry = "https://pypi.org/simple" }
+version = "1.1.9"
+source = { git = "https://github.com/XAI-liacs/LLaMEA?rev=b8253474a6fe3ac639541c8ebe75bd2422a32485#b8253474a6fe3ac639541c8ebe75bd2422a32485" }
 dependencies = [
     { name = "configspace" },
     { name = "google-generativeai" },
@@ -2582,10 +2582,6 @@ dependencies = [
     { name = "ollama" },
     { name = "openai" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/70/15449dd0cf11c02356a34e8c144e8717e046e033bda011f97ec6522cb9b9/llamea-1.1.8.tar.gz", hash = "sha256:7edcb249969a8ff9d600bde3a71682a63e4ec1a82ec5b970be17cb020900b675", size = 8232256, upload-time = "2025-09-29T09:57:03.531Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/1f/b1252b663a0e1c3765185e9867047cdb0031885cee4be417c3ded3f20fd6/llamea-1.1.8-py3-none-any.whl", hash = "sha256:6c418caf103fe6c5bc06d7692f554f63184cf90f8491fa4da7326464ea0b3194", size = 30221, upload-time = "2025-09-29T09:57:02.094Z" },
 ]
 
 [[package]]
