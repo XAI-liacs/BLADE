@@ -45,7 +45,7 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if dependencies is None:
-            dependencies = ["ioh==0.3.19", "pandas==2.2.3"]
+            dependencies = ["ioh==0.3.22", "pandas==2.2.3"]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
 

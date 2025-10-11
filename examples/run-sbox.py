@@ -8,23 +8,25 @@ from iohblade.problems import BBOB_SBOX
 
 if __name__ == "__main__":  # prevents weird restarting behaviour
     api_key = os.getenv("GEMINI_API_KEY")
-    ai_model = "gemini-2.5-flash"
-    llm1 = Gemini_LLM(api_key, ai_model)
-    llm2 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-mini")
-    llm3 = Ollama_LLM("qwen2.5-coder:14b")  # qwen2.5-coder:14b, deepseek-coder-v2:16b
+    ai_model = "gemini-2.0-flash"
+    llm1 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-nano-2025-08-07")
+    llm2 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-mini-2025-08-07")
+    #llm2 = Gemini_LLM(api_key, ai_model)
+    
+    #llm3 = Ollama_LLM("qwen2.5-coder:14b")  # qwen2.5-coder:14b, deepseek-coder-v2:16b
     #llm4 = Ollama_LLM("deepseek-coder-v2:16b")
-    llm4 = Gemini_LLM(api_key, "gemini-1.5-flash")
+    #llm4 = Gemini_LLM(api_key, "gemini-1.5-flash")
     budget = 100  # short budgets
 
     mutation_prompts = [
-        "Refine and simplofy the selected solution to improve it.",  # small mutation
+        "Refine and simplify the selected solution to improve it.",  # small mutation
         "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
     ]
 
-    llms = [llm1,llm2,llm3,llm4]
-    llamea_methods = []
+    llms = [llm1,llm2]#,llm3,llm4]
+    methods = []
     for llm in llms:
-        llamea_methods.append(
+        methods.append(
             LLaMEA(
                 llm,
                 budget=budget,
@@ -36,7 +38,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
                 provide_errors=False,
                 )
             )
-        llamea_methods.append(
+        methods.append(
             LLaMEA(
                 llm,
                 budget=budget,
@@ -66,10 +68,10 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
             BBOB_SBOX(
                 training_instances=training_instances,
                 test_instances=test_instances,
-                dims=[10],
+                dims=[10, 20],
                 budget_factor=2000,
                 name=f"SBOX_COST_fid{fid}",
-                specific_fid=fid,
+                specific_fid=None,
             )
         )
 
@@ -77,7 +79,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     experiment = Experiment(
         methods=methods,
         problems=problems,
-        runs=2,
+        runs=3,
         show_stdout=False,
         log_stdout=True,
         exp_logger=logger,
