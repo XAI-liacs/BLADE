@@ -9,9 +9,9 @@ from iohblade.problems import BBOB_SBOX
 if __name__ == "__main__":  # prevents weird restarting behaviour
     api_key = os.getenv("GEMINI_API_KEY")
     ai_model = "gemini-2.0-flash"
-    llm1 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-nano-2025-08-07")
-    llm2 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-mini-2025-08-07")
-    #llm2 = Gemini_LLM(api_key, ai_model)
+    #llm1 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-nano-2025-08-07",temperature=1.0)
+    #llm2 = OpenAI_LLM(os.getenv("OPENAI_API_KEY"),"gpt-5-mini-2025-08-07", temperature=1.0)
+    llm1 = Gemini_LLM(api_key, ai_model)
     
     #llm3 = Ollama_LLM("qwen2.5-coder:14b")  # qwen2.5-coder:14b, deepseek-coder-v2:16b
     #llm4 = Ollama_LLM("deepseek-coder-v2:16b")
@@ -23,7 +23,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
     ]
 
-    llms = [llm1,llm2]#,llm3,llm4]
+    llms = [llm1]#,llm2]#,llm3,llm4]
     methods = []
     for llm in llms:
         methods.append(
@@ -61,7 +61,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     ]
 
     problems = []
-    for fid in [2, 5, 13, 15, 21]:  # a selection of single functions , 5, 13, 15, 21
+    for fid in [2]:#, 5, 13, 15, 21]:  # a selection of single functions , 5, 13, 15, 21
         training_instances = [(fid, i) for i in range(1, 6)]
         test_instances = [(fid, i) for i in range(5, 16)]  # 10 test instances
         problems.append(
@@ -79,11 +79,11 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     experiment = Experiment(
         methods=methods,
         problems=problems,
-        runs=3,
-        show_stdout=False,
-        log_stdout=True,
+        runs=1,
+        show_stdout=True,
+        log_stdout=False,
         exp_logger=logger,
-        n_jobs=6,
+        n_jobs=1,
         budget=budget,
     )  # normal run
     experiment()  # run the experiment

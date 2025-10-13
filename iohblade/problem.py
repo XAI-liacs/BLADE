@@ -69,7 +69,7 @@ def evaluate_in_subprocess(problem, conn, solution):
                 [str(python_bin), str(script_path)],
                 check=True,
                 env=env,
-                capture_output=True,
+                capture_output=False,
                 text=True,
             )
             with open(result_pickle, "rb") as f:
