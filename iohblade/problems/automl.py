@@ -26,20 +26,28 @@ from sklearn.metrics import (
 from ..problem import Problem
 from ..solution import Solution
 
+
 def _summarize_dataset(X, y):
     df = pd.DataFrame(X)
     n_samples, n_features = df.shape
-    rounded_samples = f"~{int(round(n_samples, -3)):,} samples" if n_samples >= 1000 else f"{n_samples} samples"
+    rounded_samples = (
+        f"~{int(round(n_samples, -3)):,} samples"
+        if n_samples >= 1000
+        else f"{n_samples} samples"
+    )
     bools = sum(pd.api.types.is_bool_dtype(df[col]) for col in df.columns)
     ints = sum(pd.api.types.is_integer_dtype(df[col]) for col in df.columns)
     reals = n_features - bools - ints
-    feats_desc = f"~{n_features} features: {bools} boolean, {ints} integer, {reals} real"
+    feats_desc = (
+        f"~{n_features} features: {bools} boolean, {ints} integer, {reals} real"
+    )
     return rounded_samples, feats_desc
 
 
 def _is_classification_task(task):
     # OpenML: task.task_type contains 'Supervised Classification' / 'Supervised Regression' etc.
     return "classification" in str(task.task_type).lower()
+
 
 class AutoML(Problem):
     """
@@ -61,7 +69,7 @@ class AutoML(Problem):
         and uses the official train/test split.
         """
         self.openml_task_id = openml_task_id
-        self.eval_name = None 
+        self.eval_name = None
         self.split_info = {}
         self.le_ = None
         self.cat_enc_ = None
@@ -71,11 +79,19 @@ class AutoML(Problem):
             self.task = openml.tasks.get_task(openml_task_id)
             self.eval_name = self.task.evaluation_measure
             if self.eval_name is None:
-                self.eval_name = "predictive_accuracy" if _is_classification_task(self.task) else "root_mean_squared_error"
+                self.eval_name = (
+                    "predictive_accuracy"
+                    if _is_classification_task(self.task)
+                    else "root_mean_squared_error"
+                )
 
             # data
             X, y = self.task.get_X_and_y(dataset_format="dataframe")
-            self.n_repeats, self.n_folds, self.n_samples = self.task.get_split_dimensions()
+            (
+                self.n_repeats,
+                self.n_folds,
+                self.n_samples,
+            ) = self.task.get_split_dimensions()
 
             # Label-encode globally so label ids are consistent across folds
             self.le_ = LabelEncoder()
@@ -90,7 +106,9 @@ class AutoML(Problem):
             }
 
             samples_desc, feats_desc = _summarize_dataset(X, y)
-            task_type = "classification" if _is_classification_task(self.task) else "regression"
+            task_type = (
+                "classification" if _is_classification_task(self.task) else "regression"
+            )
 
         self.task_prompt = f""" 
         You can use the following Python packages: scikit-learn, numpy, scipy, pandas.
@@ -146,32 +164,31 @@ class AutoML(Problem):
         """
 
         super().__init__(
-        logger,
-        [],
-        [],
-        name,
-        eval_timeout,
-    )
+            logger,
+            [],
+            [],
+            name,
+            eval_timeout,
+        )
         self.func_name = "__call__"
         self.init_inputs = ["X", "y"]
         self.func_inputs = ["X"]
         self.func_outputs = ["y_pred"]
 
         self.METRIC_MAP = {
-        "predictive_accuracy": accuracy_score,
-        "f1": f1_score,  
-        "area_under_roc_curve": roc_auc_score,
-        "root_mean_squared_error": root_mean_squared_error,
-        "mean_absolute_error": mean_absolute_error,
-    }
+            "predictive_accuracy": accuracy_score,
+            "f1": f1_score,
+            "area_under_roc_curve": roc_auc_score,
+            "root_mean_squared_error": root_mean_squared_error,
+            "mean_absolute_error": mean_absolute_error,
+        }
 
-        
     def get_prompt(self):
         """
         Returns the problem description and answer format.
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
-    
+
     def prepare_split(self, repeat: int, fold: int, sample: int):
         # 1) indices
         train_idx, test_idx = self.task.get_train_test_split_indices(
@@ -202,9 +219,7 @@ class AutoML(Problem):
         X_tr = pd.DataFrame(
             imp.fit_transform(X_tr), columns=X_tr.columns, index=X_tr.index
         )
-        X_te = pd.DataFrame(
-            imp.transform(X_te), columns=X_te.columns, index=X_te.index
-        )
+        X_te = pd.DataFrame(imp.transform(X_te), columns=X_te.columns, index=X_te.index)
 
         return X_tr, X_te, y_tr, y_te
 
@@ -243,7 +258,10 @@ class AutoML(Problem):
         # If y_pred are probabilities or floats for binary, convert to labels
         if hasattr(y_pred, "shape") and getattr(y_pred, "ndim", 1) == 2:
             y_pred = np.argmax(y_pred, axis=1)
-        elif np.issubdtype(np.asarray(y_pred).dtype, np.floating) and len(np.unique(self.y_train)) == 2:
+        elif (
+            np.issubdtype(np.asarray(y_pred).dtype, np.floating)
+            and len(np.unique(self.y_train)) == 2
+        ):
             y_pred = (np.asarray(y_pred) >= 0.5).astype(int)
 
         scorer = self.METRIC_MAP.get(metric_name, accuracy_score)
@@ -256,8 +274,7 @@ class AutoML(Problem):
         else:
             score = scorer(self.y_test, y_pred)
             return score, metric_name, False  # higher is better
-    
-    
+
     def evaluate(self, solution: Solution, test=False, ioh_dir=""):
         """
         Evaluate a generated pipeline on the OpenML task, optionally doing in-the-loop HPO
@@ -291,7 +308,10 @@ class AutoML(Problem):
             "root_mean_squared_error": root_mean_squared_error,
             "mean_absolute_error": mean_absolute_error,
         }
-        is_error_metric = metric_name in {"root_mean_squared_error", "mean_absolute_error"}
+        is_error_metric = metric_name in {
+            "root_mean_squared_error",
+            "mean_absolute_error",
+        }
 
         # fold evaluation helper
         def eval_single_fold(config_dict, r, s, f):
@@ -323,7 +343,10 @@ class AutoML(Problem):
                     y_pred = alg(X_te)
                     if hasattr(y_pred, "shape") and y_pred.ndim == 2:
                         y_pred = np.argmax(y_pred, axis=1)
-                    elif np.issubdtype(np.asarray(y_pred).dtype, np.floating) and len(np.unique(y_tr)) == 2:
+                    elif (
+                        np.issubdtype(np.asarray(y_pred).dtype, np.floating)
+                        and len(np.unique(y_tr)) == 2
+                    ):
                         y_pred = (np.asarray(y_pred) >= 0.5).astype(int)
                     return accuracy_score(y_te, y_pred)
 
@@ -331,7 +354,10 @@ class AutoML(Problem):
             y_pred = alg(X_te)
             if hasattr(y_pred, "shape") and getattr(y_pred, "ndim", 1) == 2:
                 y_pred = np.argmax(y_pred, axis=1)
-            elif np.issubdtype(np.asarray(y_pred).dtype, np.floating) and len(np.unique(y_tr)) == 2:
+            elif (
+                np.issubdtype(np.asarray(y_pred).dtype, np.floating)
+                and len(np.unique(y_tr)) == 2
+            ):
                 y_pred = (np.asarray(y_pred) >= 0.5).astype(int)
 
             scorer = METRIC_MAP.get(metric_name, accuracy_score)
@@ -354,7 +380,7 @@ class AutoML(Problem):
 
         cs: ConfigurationSpace | None = getattr(solution, "configspace", None)
         if cs is not None:
-            # Use a subset of instances for quicker HPO 
+            # Use a subset of instances for quicker HPO
             rng = np.random.RandomState(42)
             max_hpo_instances = min(12, len(all_splits))
             hpo_instances = all_splits.copy()
@@ -363,7 +389,9 @@ class AutoML(Problem):
 
             # Map instances to strings so SMAC can pass them back
             instance_ids = [f"r{r},s{s},f{f}" for (r, s, f) in hpo_instances]
-            inst_feats = {iid: [r, s, f] for iid, (r, s, f) in zip(instance_ids, hpo_instances)}
+            inst_feats = {
+                iid: [r, s, f] for iid, (r, s, f) in zip(instance_ids, hpo_instances)
+            }
 
             def target(cfg: Configuration, instance: str, seed: int = 0) -> float:
                 """SMAC target function: return a MINIMIZATION loss."""
@@ -384,7 +412,7 @@ class AutoML(Problem):
                 else:
                     # higher is better -> minimize (1 - score), clamp to [0, 1]
                     return float(max(0.0, min(1.0, 1.0 - score)))
-                
+
             out_dir = None
             if getattr(self, "logger", None) and getattr(self.logger, "dirname", None):
                 out_dir = os.path.join(self.logger.dirname, "smac")
@@ -396,13 +424,15 @@ class AutoML(Problem):
                 cs,
                 name=f"automl-{self.openml_task_id}-{int(time.time())}",
                 deterministic=True,
-                n_trials=100,            
+                n_trials=100,
                 instances=instance_ids,
                 instance_features=inst_feats,
                 output_directory=out_dir,
             )
 
-            smac = AlgorithmConfigurationFacade(scenario, target_function=target, logging_level=30)
+            smac = AlgorithmConfigurationFacade(
+                scenario, target_function=target, logging_level=30
+            )
             incumbent = smac.optimize()
             incumbent_dict = dict(incumbent)
             solution.add_metadata("incumbent", incumbent_dict)
@@ -411,7 +441,7 @@ class AutoML(Problem):
         # Final validation on all splits
         fold_scores = []
         n_failed = 0
-        for (r, s, f) in all_splits:
+        for r, s, f in all_splits:
             try:
                 fold_score = eval_single_fold(incumbent_dict, r, s, f)
                 fold_scores.append(float(fold_score))
@@ -436,7 +466,6 @@ class AutoML(Problem):
         solution.add_metadata("fold_scores", fold_scores)
         solution.set_scores(fitness, msg)
         return solution
-        
 
     def test(self, solution: Solution, ioh_dir=""):
         """
