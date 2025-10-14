@@ -518,8 +518,7 @@ def code_diff_chain(
     return chain
 
 
-def get_code_lineage(run_data: pd.DataFrame, solution_id: str
-) -> list[pd.Series]:
+def get_code_lineage(run_data: pd.DataFrame, solution_id: str) -> list[pd.Series]:
     """Return lineage of an individual with id ``solution_id``, across generation.
 
     The function follows the first parent of each solution until the root is
@@ -549,15 +548,14 @@ def get_code_lineage(run_data: pd.DataFrame, solution_id: str
         except:
             parent = None
         if parent is not None:
-            lineage.append(
-                parent
-            )
+            lineage.append(parent)
         pid = parent["parent_ids"]
         if pid:
             id = pid[0]
         else:
             id = None
     return lineage[::-1]
+
 
 def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
     """Print the code diff chain for ``solution_id``."""

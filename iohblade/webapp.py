@@ -26,14 +26,16 @@ from iohblade.plots import (
     CEG_FEATURES,
     code_diff_chain,
     plotly_code_evolution,
-    get_code_lineage
+    get_code_lineage,
 )
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
 
-index = 0
-max_index = 0
+if "index" not in st.session_state:
+    st.session_state.index = 0
+if "max_index" not in st.session_state:
+    st.session_state.max_index = 0
 
 
 def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
@@ -195,16 +197,15 @@ def read_progress(exp_dir):
             return json.load(f)
     return None
 
+
 def up_index():
-    global index, max_index
-    if max_index - index > 1:
-        index += 1
+    if st.session_state.index < st.session_state.max_index - 1:
+        st.session_state.index += 1
 
 
 def down_index():
-    global index
-    if index > 0:
-        index -= 1
+    if st.session_state.index > 0:
+        st.session_state.index -= 1
 
 
 def run() -> None:
@@ -370,20 +371,24 @@ def run() -> None:
                 index = 0
 
                 if st.button("Show Diff Chain"):
-                    diffs = code_diff_chain(run_df, selected_sol)
                     lineage = get_code_lineage(run_df, selected_sol)
-                    max_index = len(lineage) - 1
-                    index = 0
-                    if st.button("prev", key="down_index"):
-                        pass
-                    if st.button("next", key="up_index"):
-                        pass
                     if len(lineage) >= 2:
-                        diff_viewer(lineage[index]["code"], 
+                        tabs = st.tabs(
+                            list(
+                                map(
+                                    lambda x: f"{x['name']}-{x['generation']}",
+                                    lineage[1:],
+                                )
+                            )
+                        )
+                        for index, tab_data in enumerate(tabs):
+                            with tab_data:
+                                diff_viewer(
+                                    lineage[index]["code"],
                                     lineage[index + 1]["code"],
                                     left_title=f"{lineage[index]['name']}, gen: {lineage[index]['generation']}, Fitness: {lineage[index]['fitness'] : 0.3f}",
-                                    right_title=f"{lineage[index + 1]['name']}, gen: {lineage[index + 1]['generation']}, Fitness: {lineage[index + 1]['fitness']: 0.3f}"
-                                    )
+                                    right_title=f"{lineage[index + 1]['name']}, gen: {lineage[index + 1]['generation']}, Fitness: {lineage[index + 1]['fitness']: 0.3f}",
+                                )
                     else:
                         st.write("No parent chain found.")
 
@@ -439,7 +444,10 @@ def run() -> None:
 
 
 def main() -> None:
-    subprocess.run(["streamlit", "run", str(Path(__file__)), "--server.fileWatcherType", "none"], check=True)
+    subprocess.run(
+        ["streamlit", "run", str(Path(__file__)), "--server.fileWatcherType", "none"],
+        check=True,
+    )
 
 
 if __name__ == "__main__":
