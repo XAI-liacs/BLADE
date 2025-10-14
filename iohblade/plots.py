@@ -518,6 +518,47 @@ def code_diff_chain(
     return chain
 
 
+def get_code_lineage(run_data: pd.DataFrame, solution_id: str
+) -> list[pd.Series]:
+    """Return lineage of an individual with id ``solution_id``, across generation.
+
+    The function follows the first parent of each solution until the root is
+    reached. Generating a chin from first generation to the last generation.
+    Args:
+        run_data: DataFrame containing at least ``id``, ``parent_ids`` and
+            ``code`` columns. ``name``, ``generation`` and ``fitness`` are
+            optional but will be preserved if present.
+        solution_id: Identifier of the final solution.
+
+    Returns:
+        A list of pd.Series `rows` that present individual lineage in ascending order, oldest -> newest.
+    """
+    data = run_data.copy()
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+    data = data.set_index("id", drop=False)
+    if solution_id not in data.index:
+        raise ValueError(f"Unknown solution_id: {solution_id}")
+
+    lineage: list[pd.Series] = []
+    id = solution_id
+    while id:
+        try:
+            parent = data.loc[data["id"] == id].iloc[0]
+        except:
+            parent = None
+        if parent is not None:
+            lineage.append(
+                parent
+            )
+        pid = parent["parent_ids"]
+        if pid:
+            id = pid[0]
+        else:
+            id = None
+    return lineage[::-1]
+
 def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
     """Print the code diff chain for ``solution_id``."""
 

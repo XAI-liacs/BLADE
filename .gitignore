@@ -177,3 +177,4 @@ BBOB*.zip
 /run/
 /setup/
 .vscode/
+.python-version

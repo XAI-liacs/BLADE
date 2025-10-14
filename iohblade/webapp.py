@@ -13,6 +13,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from st_diff_viewer import diff_viewer
+
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import PythonLexer
@@ -24,10 +26,14 @@ from iohblade.plots import (
     CEG_FEATURES,
     code_diff_chain,
     plotly_code_evolution,
+    get_code_lineage
 )
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
+
+index = 0
+max_index = 0
 
 
 def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
@@ -67,7 +73,7 @@ def _rgba(color: str, alpha: float) -> str:
 def _highlight_code(code: str, *, wrap: bool = False) -> str:
     formatter = HtmlFormatter(nowrap=True, noclasses=True)
     html = highlight(code, PythonLexer(), formatter)
-    html = re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+    # html = re.sub(r'<span style="', '<span style="white-space:pre; ', html)
     if wrap:
         return (
             "<pre style='font-size:0.75rem; background:#f6f8fa; "
@@ -82,14 +88,14 @@ def _diff_to_html(old: str, new: str) -> str:
     for line in diff:
         tag, text = line[:2], line[2:]
         if tag == "+ ":
-            cls = "added"
+            cls = "background-color:MediumSeaGreen;"
         elif tag == "- ":
-            cls = "removed"
+            cls = "background-color:Tomato;"
         elif tag == "? ":
             continue
         else:
             cls = "context"
-        lines.append(f'<span class="{cls}">{_highlight_code(text)}</span>')
+        lines.append(f'<span style="{cls}">{_highlight_code(text)}</span>')
     return "<br>".join(lines)
 
 
@@ -188,6 +194,17 @@ def read_progress(exp_dir):
         with open(path) as f:
             return json.load(f)
     return None
+
+def up_index():
+    global index, max_index
+    if max_index - index > 1:
+        index += 1
+
+
+def down_index():
+    global index
+    if index > 0:
+        index -= 1
 
 
 def run() -> None:
@@ -349,44 +366,24 @@ def run() -> None:
                     ),
                 )
                 selected_sol = solution_choice["id"]
-                if st.button("Show Diff Chain", key="show_diff_chain"):
+                global index, max_index
+                index = 0
+
+                if st.button("Show Diff Chain"):
                     diffs = code_diff_chain(run_df, selected_sol)
-                    if diffs:
-                        root = diffs[0]["parent"]
-                        root_header = (
-                            f"{root.get('name', root['id'])} "
-                            f"(gen {root.get('generation', '?')}, fit {root.get('fitness', 'n/a')})"
-                        )
-                        root_html = _highlight_code(root["code"], wrap=True)
-                        cards = (
-                            "<div style='display:flex; overflow-x:auto; gap:1rem;'>"
-                            "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
-                            " border-radius:4px; padding:0.5rem;'>"
-                            f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{root_header}</div>"
-                            f"{root_html}"
-                            "</div>"
-                        )
-                        for entry in diffs:
-                            parent = entry["parent"]
-                            child = entry["child"]
-                            header = (
-                                f"{parent.get('name', parent['id'])} "
-                                f"(gen {parent.get('generation', '?')}, "
-                                f"fit {parent.get('fitness', 'n/a')}) &rarr; "
-                                f"{child.get('name', child['id'])} "
-                                f"(gen {child.get('generation', '?')}, "
-                                f"fit {child.get('fitness', 'n/a')})"
-                            )
-                            diff_html = _diff_to_html(parent["code"], child["code"])
-                            cards += (
-                                "<div style='flex:0 0 auto; width:400px; border:1px solid #ccc;"
-                                " border-radius:4px; padding:0.5rem;'>"
-                                f"<div style='font-weight:bold; margin-bottom:0.5rem;'>{header}</div>"
-                                f"<pre style='font-size:0.75rem; background:#f6f8fa; padding:0.5rem; overflow:auto;'>{diff_html}</pre>"
-                                "</div>"
-                            )
-                        cards += "</div>"
-                        st.markdown(cards, unsafe_allow_html=True)
+                    lineage = get_code_lineage(run_df, selected_sol)
+                    max_index = len(lineage) - 1
+                    index = 0
+                    if st.button("prev", key="down_index"):
+                        pass
+                    if st.button("next", key="up_index"):
+                        pass
+                    if len(lineage) >= 2:
+                        diff_viewer(lineage[index]["code"], 
+                                    lineage[index + 1]["code"],
+                                    left_title=f"{lineage[index]['name']}, gen: {lineage[index]['generation']}, Fitness: {lineage[index]['fitness'] : 0.3f}",
+                                    right_title=f"{lineage[index + 1]['name']}, gen: {lineage[index + 1]['generation']}, Fitness: {lineage[index + 1]['fitness']: 0.3f}"
+                                    )
                     else:
                         st.write("No parent chain found.")
 
