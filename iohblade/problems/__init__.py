@@ -15,3 +15,7 @@ try:
     from .mabbob import MA_BBOB
 except Exception:
     MA_BBOB = None
+try:
+    from .tsplib import TSPLibProblem
+except Exception:
+    TSPLibProblem = None

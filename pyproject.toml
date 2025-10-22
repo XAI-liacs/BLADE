@@ -27,6 +27,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "lizard>=1.17.31",
     "networkx>=3.5",
+    "cloudpickle>=3.1.0,<4",
     "smac>=2.3.1",
     "virtualenv>=20.34.0",
 ]
@@ -90,6 +91,7 @@ build-backend = "hatchling.build"
 packages = ["iohblade"]
 include = [
   "iohblade/.streamlit/*",
+  "iohblade/problems/tsplib_instances/*.tsp",
 ]
 
 

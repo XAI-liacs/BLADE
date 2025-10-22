@@ -1862,6 +1862,7 @@ version = "0.2.3"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
+    { name = "cloudpickle" },
     { name = "google-genai" },
     { name = "ioh" },
     { name = "joblib" },
@@ -1921,6 +1922,7 @@ trackio = [
 [package.metadata]
 requires-dist = [
     { name = "anthropic", specifier = ">=0.57,<1" },
+    { name = "cloudpickle", specifier = ">=3.1.0,<4" },
     { name = "google-genai", specifier = ">=1,<2" },
     { name = "ioh", specifier = ">=0.3.22" },
     { name = "joblib", specifier = ">=1.4.2,<2" },

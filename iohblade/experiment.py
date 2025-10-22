@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .loggers import ExperimentLogger
-from .problems import MA_BBOB
+from .problems import MA_BBOB, TSPLibProblem
 
 BLADE_ASCII = r"""
     ____  __    ___    ____  ______
@@ -264,6 +264,49 @@ class MA_BBOB_Experiment(Experiment):
                     **kwargs,
                 )
             ],
+            runs=runs,
+            budget=budget,
+            seeds=seeds,
+            show_stdout=show_stdout,
+            log_stdout=log_stdout,
+            exp_logger=exp_logger,
+            n_jobs=n_jobs,
+        )
+
+
+class TSPLibExperiment(Experiment):
+    """Predefined experiment that groups TSPLIB Euclidean instances by size."""
+
+    GROUPS = (
+        "euclidean_small",
+        "euclidean_medium",
+        "euclidean_large",
+    )
+
+    def __init__(
+        self,
+        methods: list,
+        *,
+        runs: int = 3,
+        budget: int = 1_000,
+        seeds=None,
+        show_stdout: bool = False,
+        log_stdout: bool = False,
+        exp_logger=None,
+        n_jobs: int = 1,
+        problem_kwargs: dict | None = None,
+    ) -> None:
+        if problem_kwargs is None:
+            problem_kwargs = {}
+
+        problems = [
+            TSPLibProblem(group=group, **problem_kwargs)
+            for group in self.GROUPS
+        ]
+
+        super().__init__(
+            methods=methods,
+            problems=problems,
             runs=runs,
             budget=budget,
             seeds=seeds,
