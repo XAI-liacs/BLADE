@@ -1927,7 +1927,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", specifier = ">=1.1.8,<2" },
+    { name = "llamea", specifier = ">=1.1.10,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2571,7 +2571,7 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.1.8"
+version = "1.1.10"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "configspace" },
@@ -2583,9 +2583,9 @@ dependencies = [
     { name = "openai" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2e/70/15449dd0cf11c02356a34e8c144e8717e046e033bda011f97ec6522cb9b9/llamea-1.1.8.tar.gz", hash = "sha256:7edcb249969a8ff9d600bde3a71682a63e4ec1a82ec5b970be17cb020900b675", size = 8232256, upload-time = "2025-09-29T09:57:03.531Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8e/92/3cdb810312ff2cdec5176ffbf8d128b07f785cf375e29ee579ceb679de5d/llamea-1.1.10.tar.gz", hash = "sha256:c6106eafc0cd304f7cf26fbaca0bef61d34994cfa045e2bc3831632970d08357", size = 8239547, upload-time = "2025-10-23T14:34:43.838Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a9/1f/b1252b663a0e1c3765185e9867047cdb0031885cee4be417c3ded3f20fd6/llamea-1.1.8-py3-none-any.whl", hash = "sha256:6c418caf103fe6c5bc06d7692f554f63184cf90f8491fa4da7326464ea0b3194", size = 30221, upload-time = "2025-09-29T09:57:02.094Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/34/64072290f3418d2b5376fe426228c2cca96e4ba880cc9bbcb68d425f548b/llamea-1.1.10-py3-none-any.whl", hash = "sha256:f6790bb7ef5cc657beb91dbfeefbd0296c21f77e4ba485a1912621423c61a97a", size = 34183, upload-time = "2025-10-23T14:34:41.984Z" },
 ]
 
 [[package]]
