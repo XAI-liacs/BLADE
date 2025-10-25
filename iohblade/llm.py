@@ -599,6 +599,7 @@ class Claude_LLM(LLM):
         api_key,
         model="claude-3-haiku-20240307",
         base_url=None,
+        max_tokens=12000,
         temperature=0.8,
         **kwargs,
     ):
@@ -607,6 +608,7 @@ class Claude_LLM(LLM):
         super().__init__(api_key, model, base_url, **kwargs)
         self.temperature = temperature
         self._client_kwargs = {"api_key": api_key}
+        self.max_tokens = max_tokens
         if base_url:
             self._client_kwargs["base_url"] = base_url
         self.client = anthropic.Anthropic(**self._client_kwargs)
@@ -619,6 +621,7 @@ class Claude_LLM(LLM):
         while True:
             try:
                 response = self.client.messages.create(
+                    max_tokens=self.max_tokens,
                     model=self.model,
                     messages=session_messages,
                     temperature=self.temperature,
@@ -628,9 +631,14 @@ class Claude_LLM(LLM):
                 if isinstance(content, list):
                     parts = []
                     for block in content:
-                        parts.append(getattr(block, "text", block.get("text", "")))
-                    return "".join(parts)
-                return content
+                        if hasattr(block, "text"):
+                            parts.append(block.text)
+                        elif isinstance(block, dict) and "text" in block:
+                            parts.append(block["text"])
+                    text_output = "".join(parts)
+                else:
+                    text_output = str(content)
+                return text_output
 
             except anthropic.RateLimitError as err:
                 attempt += 1
