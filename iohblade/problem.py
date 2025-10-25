@@ -25,6 +25,43 @@ import copy
 from .solution import Solution
 from .utils import TimeoutException
 
+import re
+
+def simplify_subprocess_error(stderr: str, solution=None):
+    """
+    Parse a Python traceback string and produce a concise error summary.
+    Optionally include the offending line of code from `solution.code`.
+    """
+    if not stderr:
+        return "Unknown error."
+
+    # Extract the last "File ..." block and the final exception line
+    # This regex catches the last occurrence of: File "...", line X, in Y
+    file_line_match = list(re.finditer(r'File ".*?", line (\d+), in (.+)', stderr))
+    exc_match = re.search(r'([A-Za-z_]+Error): (.*)', stderr.splitlines()[-1])
+
+    if not file_line_match or not exc_match:
+        # fallback: just return the final line
+        return stderr.strip()
+
+    last = file_line_match[-1]
+    line_no = int(last.group(1))
+    func = last.group(2).strip()
+    exc_type, exc_msg = exc_match.groups()
+
+    # Optional: fetch offending code line if available
+    code_line = ""
+    if solution and hasattr(solution, "code"):
+        code_lines = solution.code.splitlines()
+        if 1 <= line_no <= len(code_lines):
+            code_line = code_lines[line_no - 1].strip()
+
+    msg = f"In the code, line {line_no}, in {func}, the following error occurred:\n{exc_type}: {exc_msg}"
+    if code_line:
+        msg += f"\nOn line: {code_line}"
+    return msg
+
+"""Evaluate a solution in a dedicated virtual environment."""
 
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
@@ -77,8 +114,8 @@ def evaluate_in_subprocess(problem, conn, solution):
                 result = cloudpickle.load(f)
             conn.send({"result": result, "stdout": res.stdout, "stderr": res.stderr})
         except subprocess.CalledProcessError as e:
-            # Process returned non-zero exit code
-            conn.send({"error": e.stderr, "stdout": e.stdout, "stderr": e.stderr})
+            error_msg = simplify_subprocess_error(e.stderr, solution)
+            conn.send({"error": error_msg, "stdout": e.stdout, "stderr": e.stderr})
 
     except Exception as e:
 
