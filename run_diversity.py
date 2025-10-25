@@ -58,8 +58,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     
     
     methods = [LLaMEA_claude, LLaMEA_gemini, LLaMEA_gpt, LLaMEA_multi1, LLaMEA_multi2]#LLaMEA_gemini, LLaMEA_gpt, LLaMEA_multi1, LLaMEA_multi2] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
-    logger = ExperimentLogger("results/MA-BBOB-multi-full")
-    experiment = MA_BBOB_Experiment(methods=methods, runs=3, seeds=[1,2,3], dims=[5], budget_factor=2000, budget=budget, eval_timeout=180, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
+    logger = ExperimentLogger("results/MA-BBOB-multi-1")
+    experiment = MA_BBOB_Experiment(methods=methods, runs=1, seeds=[1], dims=[5], budget_factor=2000, budget=budget, eval_timeout=180, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment
 
 

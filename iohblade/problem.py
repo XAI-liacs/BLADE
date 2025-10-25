@@ -256,7 +256,7 @@ class Problem(ABC):
                         err = result["error"]
                         solution.set_scores(
                             -np.inf,
-                            feedback=f"An error occurred: {err}.",
+                            feedback=err,
                             error=err,
                         )
                     else:
@@ -266,7 +266,7 @@ class Problem(ABC):
                         elif isinstance(data, str):
                             solution.set_scores(
                                 -np.inf,
-                                feedback=f"An error occurred: {data}.",
+                                feedback=data,
                                 error=data,
                             )
                         else:
@@ -278,7 +278,7 @@ class Problem(ABC):
                 elif isinstance(result, str):
                     solution.set_scores(
                         -np.inf,
-                        feedback=f"An error occurred: {result}.",
+                        feedback=result,
                         error=result,
                     )
                 else:
@@ -288,8 +288,8 @@ class Problem(ABC):
         except Exception as e:
             solution.set_scores(
                 -np.inf,
-                feedback=f"An exception occurred: {e}.",
-                error=f"An exception occurred: {e}.",
+                feedback=f"{e}",
+                error=f"{e}",
             )
         finally:
             try:
