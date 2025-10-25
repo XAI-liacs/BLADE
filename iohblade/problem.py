@@ -81,9 +81,22 @@ def evaluate_in_subprocess(problem, conn, solution):
             conn.send({"error": e.stderr, "stdout": e.stdout, "stderr": e.stderr})
 
     except Exception as e:
+
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        line_no = tb.lineno
+        code_line = ""
+
+        code_lines = solution.code.split("\n")
+        if line_no and len(code_lines) >= line_no:
+            code_line = code_lines[line_no - 1]
+        error_type = type(e).__name__
+        error_msg = str(e)
+        error = f"{error_type}: {error_msg}.\n"
+        if code_lines:
+            error += f"On line {line_no}: {code_line}.\n"
         conn.send(
             {
-                "error": f"{e} stracktrace: {traceback.format_exc()}",
+                "error": error,
                 "stdout": "",
                 "stderr": "",
             }
