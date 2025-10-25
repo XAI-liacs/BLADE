@@ -100,17 +100,18 @@ class LLM(ABC):
             str: The text content of the LLM's response.
         """
         if self.log:
+            input_msg = "\n".join([d["content"] for d in session])
             try:
-                cost = calculate_prompt_cost(session, self.model)
+                cost = calculate_prompt_cost(input_msg, self.model)
             except Exception:
                 cost = 0
             try:
-                tokens = count_message_tokens(session, model=self.model)
+                tokens = count_message_tokens(input_msg, model=self.model)
             except Exception:
                 tokens = 0
             self.logger.log_conversation(
                 "client",
-                "\n".join([d["content"] for d in session]),
+                input_msg,
                 cost,
                 tokens,
             )
