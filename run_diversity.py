@@ -40,7 +40,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     llm4 = Multi_LLM([llm1, llm2])
     llm5 = Multi_LLM([llm1, llm2, llm3])
-    budget = 4
+    budget = 200
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
@@ -57,9 +57,9 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     LLaMEA_multi2 = LLaMEA(llm5, budget=budget, name="multi-3", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=4, elitism=True)
     
     
-    methods = [LLaMEA_gemini, LLaMEA_gpt, LLaMEA_claude]#, LLaMEA_multi1, LLaMEA_multi2] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
-    logger = ExperimentLogger("results/MA-BBOB-multi")
-    experiment = MA_BBOB_Experiment(methods=methods, runs=1, seeds=[1], dims=[5], budget_factor=2000, budget=budget, eval_timeout=120, show_stdout=True, exp_logger=logger, n_jobs=3) #normal run
+    methods = [LLaMEA_claude, LLaMEA_gemini, LLaMEA_gpt, LLaMEA_multi1, LLaMEA_multi2]#LLaMEA_gemini, LLaMEA_gpt, LLaMEA_multi1, LLaMEA_multi2] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
+    logger = ExperimentLogger("results/MA-BBOB-multi-full")
+    experiment = MA_BBOB_Experiment(methods=methods, runs=3, seeds=[1,2,3], dims=[5], budget_factor=2000, budget=budget, eval_timeout=180, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment
 
 

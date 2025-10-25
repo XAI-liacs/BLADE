@@ -33,14 +33,15 @@ def evaluate_in_subprocess(problem, conn, solution):
         python_bin = problem._python_bin
 
         problem_pickle = env_path / "problem.pkl"
-        solution_pickle = env_path / "solution.pkl"
+        solution_pickle = env_path / f"solution_{uuid.uuid4().hex}.pkl"
         result_pickle = (
             Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
         )
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
-        with open(problem_pickle, "wb") as f:
-            cloudpickle.dump(problem_copy, f)
+        if not os.path.exists(problem_pickle):
+            with open(problem_pickle, "wb") as f:
+                cloudpickle.dump(problem_copy, f)
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
