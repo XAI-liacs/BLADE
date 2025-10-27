@@ -1,7 +1,7 @@
 from .funsearch import funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch
-
+from .mcts_ahd import MCTS
 try:
     from .eoh import EoH
     from .reevo import ReEvo
