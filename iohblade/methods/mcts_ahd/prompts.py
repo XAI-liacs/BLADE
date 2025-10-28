@@ -7,7 +7,7 @@ class MCTS_Prompts:
     """
 
     @classmethod
-    def get_prompt_post(cls, task_prompt:str, solution: MCTS_Node):
+    def get_desctiption_prompt(cls, task_prompt: str, solution: MCTS_Node) -> str:
 
         prompt_content = task_prompt + "\n" + "Following is the a Code implementing a heuristic algorithm with function name " + solution.name + " to solve the above mentioned problem.\n"
         prompt_content += "\n\nCode:\n" + solution.code
@@ -116,6 +116,7 @@ Please identify the main algorithm parameters and help me in creating a new algo
         return prompt_content
 
 if __name__ == "__main__":
+    # Test functionality of the class functions.
     from iohblade.benchmarks.geometry import HeilbronnConvexRegion
     from iohblade import Solution
     hb = HeilbronnConvexRegion(14, None)
@@ -150,7 +151,7 @@ def prod(a, b):
     sol3.fitness = 32
 
     print("=====================Prompt Post===========================")
-    print(MCTS_Prompts.get_prompt_post(hb.task_prompt, sol1))
+    print(MCTS_Prompts.get_desctiption_prompt(hb.task_prompt, sol1))
     
     print("=====================Prompt Refine===========================")
     print(MCTS_Prompts.get_prompt_refine(hb.task_prompt, sol1))

@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import math
-from typing import Optional
+from typing import Optional, Callable
+
+from .prompts import MCTS_Prompts
 
 from iohblade import Solution, Problem, LLM
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 class MCTS_Node(Solution):
     def __init__(self, solution: Solution, 
                  depth: int = 0, 
                  parent: Optional[MCTS_Node]=None, 
                  visit: int=0,
-                 Q: int = 0):
+                 Q: float = 0):
         """
             MCTS Node is a derivative of `iohblade.Solution`, with extra paramters in `children`, establishing heirarchy in
             the Tree, `rewards`, `depth` and `Q`, for calculating which subtree to explore.
@@ -76,12 +79,13 @@ class MCTS_Node(Solution):
         ) or self.is_root
 
 class MCTS:
-    def __init__(self, 
+    def __init__(self,
                  llm: LLM,
                  problem: Problem,
                  lambda_0: float = 0.1,
                  alpha: float = 0.5,
-                 maximisation:bool = True
+                 maximisation:bool = True,
+                 max_children:int = 5,
     ):
         """
         MCTS method for solving a given `Problem` using LLMs.
@@ -92,6 +96,7 @@ class MCTS:
         `lambda_0: float`: A constant $\lambda_0$ used in UCT calculation.\\
         `alpha: float`: Expansion coefficient for progressive widening the tree.
         `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).
+        `max_children: int`: A limit to maximum number of children any given node can have.
         """
         self.llm = llm
         self.problem = problem
@@ -106,10 +111,147 @@ class MCTS:
         self.q_min = 0
         self.q_max = -1e4       #-10,000
         self.rank_list = []
+        self.max_children = max_children
 
-
+        #Instantiate the root node, with empty solution.
         solution = Solution()
         self.root = MCTS_Node(solution)
+
+        self.best_solution = self.root          #Best solution node used as reference for e2 expansion.
+
+    
+    def _get_node(self, approach: str, relevant_nodes: list[MCTS_Node]) -> MCTS_Node:
+        """
+        Given a generation, approcach in {i1, e1, e2, m1, m2, s1}, get a mcts node.
+        ## Note
+        Diffrerent approaces require different set of relevant nodes:\\
+        `i1`: Needs empty list as relevant node, (initialisation method).\\
+        `e1`: Needs sibling nodes of the root node, can only be used to generate root's children.\\
+        `e2`: Needs a parent and a reference (Elite) node.\\
+        `m1 and m2`: Needs the parent node.\\
+        `s1`: Needs all the parent node, i.e. trace for root node to leaf node.
+        
+        ## Args:
+            `approach: str`: Asserted to be one of the following {i1, e1, e2, m1, m2, s1}.
+            `relevant_nodes: [MCTS_Node]`: A list of relevant `MCTS_Node`s, that can are in relationship with returning nodes as decribed in notes above.
+        
+            
+        ## Returns:
+            `MCTS_Node`: Generate with LLM, a node with the code, and re-gererated description.
+
+        ## Raises:
+            `ValueError` raised if the approach string is not in [i1, e1, e2, m1, m2, s1].
+            `NoCodeException` raised when LLM fails to return code in expected format (llm.sample_solution failure.)
+            `Exception` All other interaction failures with LLM.
+        """
+        prompt = ""
+        task_prompt = self.problem.task_prompt
+        example_prompt = self.problem.example_prompt
+        format_prompt = self.problem.format_prompt
+
+        match approach:
+            case "i1":
+                prompt = MCTS_Prompts.get_prompt_i1(task_prompt, example_prompt, format_prompt)
+            case "e1":
+                prompt = MCTS_Prompts.get_prompt_e1(task_prompt, example_prompt, format_prompt, relevant_nodes)
+            case "e2":
+                prompt = MCTS_Prompts.get_prompt_e2(task_prompt, example_prompt, format_prompt, relevant_nodes)
+            case "m1":
+                relevant_node = relevant_nodes[-1]
+                prompt = MCTS_Prompts.get_prompt_m1(task_prompt, example_prompt, format_prompt, relevant_node)
+            case "m2":
+                relevant_node = relevant_nodes[-1]
+                prompt = MCTS_Prompts.get_prompt_m2(task_prompt, example_prompt, format_prompt, relevant_node)
+            case "s1":
+                prompt = MCTS_Prompts.get_prompt_s1(task_prompt, example_prompt, format_prompt, relevant_nodes)
+            case _:
+                error_msg = f"Error enconutered {approach} method, which is not in expected list [i1, m1, m2, e1, e2, s1]."
+                raise ValueError(error_msg)
+        message = [{"role": "client", "content": prompt}]
+        
+        solution = None
+        for i in range(5):      #Try upto 5 times.
+            try:
+                solution = self.llm.sample_solution(message)
+                break
+            except Exception as e:
+                if i == 4:
+                    raise e     # Forward error.
+        if solution:
+            mcts_node = MCTS_Node(solution)
+            refine_description_prompt = MCTS_Prompts.get_desctiption_prompt(task_prompt, mcts_node)
+            message = [{"role": "client", "content": refine_description_prompt}]
+            descrpition = self.llm.query(message)
+            mcts_node.description = descrpition
+            return mcts_node
+        return MCTS_Node(Solution("error"))
+
+    def initialise(self, initial_node_count:int = 3):
+        """
+        Initialises the algorithm, by appending predefined number of nodes to the root node.
+        
+        ## Args:
+            `initial_node_count: int = 3` Number of initial nodes to be added to the tree.
+
+        ## Returns:
+            `None`: Inline algorithm, changes the data-structure, but returns nothing.
+        """
+        for _ in range(initial_node_count):
+            node = self._get_node("i1", [])
+            self.simulate(node)
+            self.root.add_child(node)
+        
+    def simulate(self, node: MCTS_Node):
+        """
+        Evaluate the node, and set it's fitness value based on the performance of the algorithm.
+        
+        ## Args:
+        `node: MCTS_Node`: A node that is being simulated; to evaluate the performance.    
+        """
+        self.problem.evaluate(node)
+        if not self.maximisation:           # The paper only refers to maximisation problem.
+            node.fitness *= -1
+            node.Q = node.fitness
+        if self.best_solution.fitness < node.fitness:
+            self.best_solution = node
+
+    def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
+        """
+        Iteratively pick fittest child from root node, to the leaf node, while adhering to progressive widening.
+
+        ## Args:
+            `None`: The function is an inplace mutation, that updates the underlying data-structure, and does not need any arugements.
+
+        ## Returns:
+        The function returns a tuple of [NCTS_Node], and NCTS_Node, which is to be interpreted as:\\
+            `expanded_node : [MCTS_Node]`: A list of nodes added to tree adhering to `Progressive Widening`.\\
+            `selected_node : MCTS_Node`: A leaf node that is selected for expansion.
+        """
+        current = self.root
+        expanded_nodes = []
+        while not current.is_leaf:
+            #Find best child.
+            best_child = current.children[0]
+            for child in current.children:
+                if best_child.Q < child.Q:
+                    best_child = child
+            
+            if not current.is_fully_expanded(self.max_children):
+                if current.is_root:
+                    node = self._get_node("e1", current.children)
+                else:
+                    relevant_nodes = [current]
+                    if not self.best_solution.is_root:
+                        relevant_nodes.append(self.best_solution)
+                    node = self._get_node("e2", relevant_nodes)
+                current.add_child(node)
+                expanded_nodes.append(node)
+            
+            current = best_child
+        return expanded_nodes, current
+
+
+
     
     def backpropogate(self, node: MCTS_Node):
         """
