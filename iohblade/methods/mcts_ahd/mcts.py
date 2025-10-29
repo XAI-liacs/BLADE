@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import math
-from typing import Optional, Callable
+from typing import Optional
 
 from .prompts import MCTS_Prompts
 
 from iohblade import Solution, Problem, LLM
-from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.method import Method
 
 class MCTS_Node(Solution):
     def __init__(self, solution: Solution, 
@@ -82,10 +82,12 @@ class MCTS:
     def __init__(self,
                  llm: LLM,
                  problem: Problem,
+                 budget: int,
                  lambda_0: float = 0.1,
                  alpha: float = 0.5,
                  maximisation:bool = True,
                  max_children:int = 5,
+                 expansion_factor:int = 2           #Referred to as k in (https://arxiv.org/pdf/2501.08603) algorithm 1.
     ):
         """
         MCTS method for solving a given `Problem` using LLMs.
@@ -93,16 +95,22 @@ class MCTS:
         ## Args:
         `llm:iohblade.LLM` Any LLM model from `iohblade.llm.py`.\\
         `problem: iohblade.Problem`: An iohblade problem instance with appropriate prompts, and evaluation function for solving the problem.\\
-        `lambda_0: float`: A constant $\lambda_0$ used in UCT calculation.\\
-        `alpha: float`: Expansion coefficient for progressive widening the tree.
-        `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).
-        `max_children: int`: A limit to maximum number of children any given node can have.
+        `buget: int`: Number of evaluations allowed for the method.\\
+        `lambda_0: float`: A constant λ_0 used in UCT calculation.\\
+        `alpha: float`: Expansion coefficient for progressive widening the tree.\\
+        `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).\\
+        `max_children: int`: A limit to maximum number of children any given node can have.\\
+        `expansion_factor: int` Number of m1 and m2 mutations allowed during the expansion phase.
         """
         self.llm = llm
         self.problem = problem
         self.maximisation = maximisation
         self.lambda_0 = lambda_0
         self.alpha = alpha
+        self.expansion_factor = expansion_factor
+        self.eval_remain = budget
+        
+        self.budget = budget
         
         #Prefedined parameters.
         self.max_depth = 10
@@ -117,10 +125,10 @@ class MCTS:
         solution = Solution()
         self.root = MCTS_Node(solution)
 
-        self.best_solution = self.root          #Best solution node used as reference for e2 expansion.
+        self.best_solution: MCTS_Node = self.root          #Best solution node used as reference for e2 expansion.
 
     
-    def _get_node(self, approach: str, relevant_nodes: list[MCTS_Node]) -> MCTS_Node:
+    def _get_new_node(self, approach: str, relevant_nodes: list[MCTS_Node]) -> MCTS_Node:
         """
         Given a generation, approcach in {i1, e1, e2, m1, m2, s1}, get a mcts node.
         ## Note
@@ -186,6 +194,105 @@ class MCTS:
             return mcts_node
         return MCTS_Node(Solution("error"))
 
+
+    def _get_m1_nodes(self, for_node: MCTS_Node) -> list[MCTS_Node]:
+        """
+        Gathers relevant nodes for permforming M1 Mutation, which requires just the parent.
+        Adheres to returning [MCTS_Node] standard.
+
+        ## Args:
+            `for_node: MCTS_Node`: A node in the tree (below root's child), whose m1 relevant nodes need to be returned.\\
+
+        ## Raises:
+            `ValueError`: If the `for_node` is root or one of root's children.
+        """
+        if for_node.parent is None or (for_node.parent and for_node.parent.is_root):
+                raise ValueError("M1 cannot be implemented on depth 1 or below.")
+        return [for_node.parent]
+    
+    def _get_m2_nodes(self, for_node: MCTS_Node) -> list[MCTS_Node]:
+        """
+        Gathers relevant nodes for permforming M2 Mutation, which requires just the parent.
+        Adheres to returning [MCTS_Node] standard.
+
+        ## Args:
+            `for_node: MCTS_Node`: A node in the tree (below root's child), whose m2 relevant nodes need to be returned.\\
+
+        ## Raises:
+            `ValueError`: If the `for_node` is root or one of root's children.
+        """
+        try:
+            return self._get_m1_nodes(for_node)
+        except ValueError:
+            raise ValueError("M2 cannot be implemented on depth 1 or below.")
+
+    def _get_s1_nodes(self, for_node: MCTS_Node) -> list[MCTS_Node]:
+        """
+        Gathers relevant nodes for permforming S1 Mutation, which requires just the complete ancestory to the root.
+        Adheres to returning [MCTS_Node] standard.
+
+        ## Args:
+            `for_node: MCTS_Node`: A node in the tree (below root's child), whose s1 relevant nodes need to be returned.\\
+
+        ## Raises:
+            `ValueError`: If the `for_node` is root or one of root's children.
+        """
+        if for_node.parent is None or (for_node.parent and for_node.parent.is_root):
+                raise ValueError("S1 cannot be implemented on depth 1 or below.")
+
+        return_nodes = []
+        current = for_node
+        while not current.is_root:
+            return_nodes.append(current)
+            if current.parent:
+                current = current.parent
+            else:
+                break                   #Extra safety.
+        return return_nodes[::-1]       #Return trace from root to current node.
+
+    def _get_e1_nodes(self, for_node: MCTS_Node) -> list[MCTS_Node]:
+        """
+        Return relevant nodes for e1 mutation, adheres to returning list[MCTS_Node]. The `for_node` must be a child of root node. 
+        Returns the sibling of the `for_node`.
+
+        ## Args:
+            `for_node: MCTS_Node`: A child node of the root node.
+
+        ## Returns:
+            `list[MCTS_Node]`: siblings of the `for_node`.
+        ## Raises:
+            ValueError: If `for_node.parent != root`. 
+        """
+        if for_node.parent:
+            if not for_node.parent.is_root:
+                raise ValueError("E1 Mutation is only applicable on depth = 1.")
+            return list(filter(lambda node: node.id != for_node.id, for_node.parent.children))
+        return []
+
+    def _get_e2_nodes(self, for_node: MCTS_Node) -> list[MCTS_Node]:
+        """
+        Return relevant nodes for applying E2 mutation to `for_node`, where `for_node` is a MCTS_Node with min depth = 2.
+        If there is no best solution yet (due to evaluation errors), reverts back to M1.
+
+        ## Args:
+        `for_node: MCTS_Node`: MCTS_Node in the tree at a minimum depth of 2.
+
+        ## Returns:
+        `[MCTS_Node]`: Relevant nodes for e2 mutation if best_solution is prvided.
+
+        ## Raises:
+        `ValueError`: If `for_node` is below depth 2.
+        """
+        if for_node.parent and for_node.parent.is_root:
+            raise ValueError("E2 can not be applied on root and it's children.")
+        if for_node.parent:
+            if self.best_solution.is_root:
+                return [for_node.parent, for_node]          # If best_solution is a root_node, return the node and it's parent.
+            else:
+                return [for_node.parent, self.best_solution]
+        return []       # Never runs.
+
+
     def initialise(self, initial_node_count:int = 3):
         """
         Initialises the algorithm, by appending predefined number of nodes to the root node.
@@ -197,7 +304,7 @@ class MCTS:
             `None`: Inline algorithm, changes the data-structure, but returns nothing.
         """
         for _ in range(initial_node_count):
-            node = self._get_node("i1", [])
+            node = self._get_new_node("i1", [])
             self.simulate(node)
             self.root.add_child(node)
         
@@ -208,6 +315,7 @@ class MCTS:
         ## Args:
         `node: MCTS_Node`: A node that is being simulated; to evaluate the performance.    
         """
+        self.eval_remain -= 1
         self.problem.evaluate(node)
         if not self.maximisation:           # The paper only refers to maximisation problem.
             node.fitness *= -1
@@ -220,7 +328,7 @@ class MCTS:
         Iteratively pick fittest child from root node, to the leaf node, while adhering to progressive widening.
 
         ## Args:
-            `None`: The function is an inplace mutation, that updates the underlying data-structure, and does not need any arugements.
+            `None`: No arguements are required.
 
         ## Returns:
         The function returns a tuple of [NCTS_Node], and NCTS_Node, which is to be interpreted as:\\
@@ -230,28 +338,60 @@ class MCTS:
         current = self.root
         expanded_nodes = []
         while not current.is_leaf:
-            #Find best child.
-            best_child = current.children[0]
-            for child in current.children:
-                if best_child.Q < child.Q:
-                    best_child = child
-            
+            #Expand node.
             if not current.is_fully_expanded(self.max_children):
                 if current.is_root:
-                    node = self._get_node("e1", current.children)
+                    node = self._get_new_node("e1", current.children)
                 else:
                     relevant_nodes = [current]
                     if not self.best_solution.is_root:
                         relevant_nodes.append(self.best_solution)
-                    node = self._get_node("e2", relevant_nodes)
+                    node = self._get_new_node("e2", relevant_nodes)
                 current.add_child(node)
                 expanded_nodes.append(node)
+            
+            #Find best child.
+            best_child = current.children[0]
+            for child in current.children:
+                if self.uct(best_child) < self.uct(child):
+                    best_child = child
             
             current = best_child
         return expanded_nodes, current
 
+    def expansion(self, on_node: MCTS_Node):
+        """
+        Impelements the expansion phase of the MCTS_AHD. "Apply expansion e2, s1, m1 (k times), m2 (k times), a total of 2k+2 new nodes added.
+        Only implemented on leaf nodes, that is not root.
 
+        ## Args:
+        `on_node: MCTS_Node`: A MCTS_Node instance that is a leaf node, (non root) on which expansion is to be performed.
 
+        ## Returns:
+        `None`: Inline implementation that updates underlying Data Structure. Nothing to return.
+
+        ## Raises:
+        ValueError: if `on_node` is not leaf node or is a root node.
+        """
+        if not on_node.is_leaf or on_node.is_root:
+            raise ValueError("Expansion only works on non-root leaf node.")
+        
+        for _ in range(self.expansion_factor):
+            relevant_nodes = self._get_m1_nodes(on_node)
+            node = self._get_new_node('m1', relevant_nodes)
+            on_node.children.append(node)
+
+            relevant_nodes = self._get_m2_nodes(on_node)
+            node = self._get_new_node('m2', relevant_nodes)
+            on_node.children.append(node)
+
+        relevant_nodes = self._get_s1_nodes(on_node)
+        node = self._get_new_node('s1', relevant_nodes)
+        on_node.children.append(node)
+
+        relevant_nodes = self._get_e2_nodes(on_node)
+        node = self._get_new_node('e2', relevant_nodes)
+        on_node.children.append(node)
     
     def backpropogate(self, node: MCTS_Node):
         """
@@ -277,8 +417,7 @@ class MCTS:
             #     self.subtree_flatten.append(node)
             parent = parent.parent
 
-
-    def uct(self, node: MCTS_Node, eval_remain: int):
+    def uct(self, node: MCTS_Node):
         """
         Scores the provided node with a score, determining how likely it is to better optima on visiting current 
         node again.
@@ -290,10 +429,98 @@ class MCTS:
         ## Returns:
             `None`: Inplace mutation function, which retuns or throws nothing.
         """
-        exploration_constant = self.lambda_0 * eval_remain
+        exploration_constant = self.lambda_0 * self.eval_remain
         if node.parent:
             return (node.Q - self.q_min) / (self.q_max - self.q_min) + exploration_constant * (math.log(node.parent.visit + 1)) ** 0.5 / node.visit
         return 0
+    
+    def run(self):
+        print("Started MCTS-AHD solver.")
+        self.initialise()
+        print(f"Initialised with {len(self.root.children)} nodes.")
+        for child in self.root.children:
+            print(f"\tEvaluating {child.id} node.")
+            self.simulate(child)
+            print(f"\t\tFitness {child.fitness}")
+
+        iteration = 1
+        while self.eval_remain > 0:
+            print(f"Iteratrion # {iteration}.")
+            progressive_widening_nodes, selected_node = self.selection()
+            self.expansion(selected_node)
+            expanded_nodes = selected_node.children
+            print(f"Generating {len(progressive_widening_nodes)} progressive widening nodes, {len(expanded_nodes)} leaf nodes.")
+            for node in progressive_widening_nodes + expanded_nodes:
+                print(f"\tEvaluating {node.id} node.")
+                self.simulate(node)
+                print(f"\t\tFitness {node.fitness}.")
+            
+            for node in expanded_nodes + progressive_widening_nodes:    #Make sure progressive widening nodes are handeled after expanded nodes.
+                print(f"\tBackpropogating.")
+                self.backpropogate(node)
+            print(f"\tBudget remaining {self.eval_remain}.")
+        
+        return self.best_solution
+    
+class MCTS_Method(Method):
+    def __init__(self, 
+                 llm: LLM,
+                 budget: int,
+                 lambda_0: float = 0.1,
+                 alpha: float = 0.5,
+                 maximisation:bool = True,
+                 max_children:int = 5,
+                 expansion_factor:int = 2,):
+        """
+        MCTS method wrapper for adding it to iohblade/method.
+
+        ## Args:
+        `llm:iohblade.LLM` Any LLM model from `iohblade.llm.py`.\\
+        `buget: int`: Number of evaluations allowed for the method.\\
+        `lambda_0: float`: A constant λ_0 used in UCT calculation.\\
+        `alpha: float`: Expansion coefficient for progressive widening the tree.\\
+        `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).\\
+        `max_children: int`: A limit to maximum number of children any given node can have.\\
+        `expansion_factor: int` Number of m1 and m2 mutations allowed during the expansion phase.
+        """
+        super().__init__(llm, budget, name="MCTS_AHD")
+        self.lambda_0 = lambda_0
+        self.alpha = alpha
+        self.maximisation = maximisation
+        self.max_children = max_children
+        self.expansion_factor = expansion_factor
+
+    def __call__(self, problem: Problem):
+        """
+        Executes search using MCTS_AHD optimiser.
+
+        Returns:
+            Solution: The best solution found.
+        """
+        self.mcts_instance = MCTS(
+            self.llm,
+            problem,
+            self.budget,
+            self.lambda_0,
+            self.alpha,
+            self.maximisation,
+            self.max_children,
+            self.expansion_factor
+        )
+        return self.mcts_instance.run()
+
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the method including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the method.
+        """
+        return {
+            "method_name": self.name if self.name != None else "MCTS_AHD",
+            "budget": self.budget,
+            "mcts_instance": self.mcts_instance.__dict__,
+        }
 
 if __name__ == "__main__":
     a = MCTS_Node(Solution())
