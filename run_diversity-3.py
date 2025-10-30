@@ -59,9 +59,9 @@ def ast_distance(solution1, solution2):
 
 def fitness_behavioral_distance(solution1, solution2):
     # take the mean pairwise difference between auc scores as behavioral distance
-    aucs1 = solution1.get_metadata("aucs", [])
-    aucs2 = solution2.get_metadata("aucs", [])
-    if len(aucs1) == 0 or len(aucs2) == 0:
+    aucs1 = solution1.get_metadata("aucs")
+    aucs2 = solution2.get_metadata("aucs")
+    if not aucs1 or not aucs2:
         return 0.0  # minimum distance if no behavioral data is available (algorithm did not run)
     aucs1 = np.array(aucs1)
     aucs2 = np.array(aucs2)
@@ -103,6 +103,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     budget = 200 # test run
 
+    DEBUG = True
+    if DEBUG:
+        budget = 10
+
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
         "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
@@ -127,6 +131,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
 
+    if DEBUG:
+        methods = [LLaMEA_novelty_ast, LLaMEA_fitness_clearing_b,LLaMEA_MAP_elites_ast, LLaMEA_MAP_elites_b]
 
     # List containing function IDs we consider
     training_fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
@@ -135,33 +141,64 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     training_instances = [(f, i) for f in training_fids for i in range(1, 4)]
     test_instances = [(f, i) for f in testing_fids for i in range(1, 4)]
 
-    logger = ExperimentLogger("results/SBOX_diversity")
+    if DEBUG:
+        logger = ExperimentLogger("results/SBOX_diversity-test")
+    else:
+        logger = ExperimentLogger("results/SBOX_diversity")
 
     problems = []
-    problems.append(
-        BBOB_SBOX(
-            training_instances=training_instances,
-            test_instances=test_instances,
-            dims=[10],
-            budget_factor=2000,
-            eval_timeout=600,
-            name=f"SBOX",
-            problem_type=ioh.ProblemClass.SBOX,
-            full_ioh_log=False,
-            ioh_dir=f"{logger.dirname}/ioh",
+    if DEBUG:
+        problems.append(
+            BBOB_SBOX(
+                training_instances=[(f, i) for f in [1,2] for i in range(1, 2)],
+                test_instances=[(f, i) for f in [1,2] for i in range(3, 4)],
+                dims=[2],
+                budget_factor=200,
+                eval_timeout=100,
+                name=f"SBOX",
+                problem_type=ioh.ProblemClass.SBOX,
+                full_ioh_log=False,
+                ioh_dir=f"{logger.dirname}/ioh",
+            )
         )
-    )
+    else:
+        problems.append(
+            BBOB_SBOX(
+                training_instances=training_instances,
+                test_instances=test_instances,
+                dims=[10],
+                budget_factor=2000,
+                eval_timeout=600,
+                name=f"SBOX",
+                problem_type=ioh.ProblemClass.SBOX,
+                full_ioh_log=False,
+                ioh_dir=f"{logger.dirname}/ioh",
+            )
+        )
 
     experiment = Experiment(
         methods=methods,
         problems=problems,
         runs=5,
         seeds=[1,2,3,4,5],
-        show_stdout=True,
+        show_stdout=False,
+        log_stdout=True,
         exp_logger=logger,
         budget=budget,
         n_jobs=5
     )  # normal run
+
+    if DEBUG:
+        experiment = Experiment(
+            methods=methods,
+            problems=problems,
+            runs=1,
+            seeds=[1],
+            show_stdout=True,
+            exp_logger=logger,
+            budget=budget,
+            n_jobs=5
+        )  # test run
 
     #experiment = MA_BBOB_Experiment(methods=methods, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=2000, budget=budget, eval_timeout=270, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment
