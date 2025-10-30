@@ -77,7 +77,9 @@ class BBOB_SBOX(Problem):
                 "smac==2.3.1",
             ]
         if imports is None:
-            imports = "import numpy as np\nimport ioh\nimport pandas as pd\nimport math\n"
+            imports = (
+                "import numpy as np\nimport ioh\nimport pandas as pd\nimport math\n"
+            )
 
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
