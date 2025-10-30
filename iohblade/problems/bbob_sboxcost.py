@@ -268,9 +268,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 except OverBudgetException:
                     pass
                 
-                correct_aoc = correct_aoc(f_new, l2, budget)
-                performance_data.append({"fid": fid, "iid": iid, "dim": dim, "auc": correct_aoc})
-                aucs.append(correct_aoc)
+                corrected_aoc = correct_aoc(f_new, l2, budget)
+                performance_data.append({"fid": fid, "iid": iid, "dim": dim, "auc": corrected_aoc})
+                aucs.append(corrected_aoc)
                 l2.reset(f_new)
                 f_new.reset()
 
