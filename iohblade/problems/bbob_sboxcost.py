@@ -3,6 +3,7 @@ import traceback
 
 import ioh
 import numpy as np
+import math
 import pandas as pd
 from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
@@ -77,7 +78,7 @@ class BBOB_SBOX(Problem):
                 "smac==2.3.1",
             ]
         if imports is None:
-            imports = "import numpy as np\nimport ioh\nimport pandas as pd\n"
+            imports = "import numpy as np\nimport ioh\nimport pandas as pd\nimport math\n"
 
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
@@ -164,7 +165,7 @@ class BBOB_SBOX(Problem):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions."
 
         self.task_prompt = f"""
-You are a Python expert working on a new optimization algorithm.
+You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 {extra_prompt} Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
@@ -175,6 +176,7 @@ The func() can only be called as many times as the budget allows, not more.
 An example of such code (a simple random search), is as follows:
 ```python
 import numpy as np
+import math
 
 class RandomSearch:
     def __init__(self, budget=10000, dim=10):
@@ -219,7 +221,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
-        safe_globals = {"np": np}
+        safe_globals = {"np": np, "ioh": ioh, "math": math}
         local_env = {}
         exec(code, safe_globals, local_env)
 
