@@ -1,4 +1,4 @@
-from iohblade.methods.mcts_ahd.mcts import MCTS_Node
+from iohblade.methods.mcts_ahd.mcts_node import MCTS_Node
 
 class MCTS_Prompts:
     """

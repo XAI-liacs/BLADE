@@ -1,5 +1,3 @@
-from .mcts import MCTS, MCTS_Node
-from .prompts import MCTS_Prompts
+from .mcts import MCTS_Method, MCTS
 
-
-__all__ = ["MCTS", "MCTS_Node", "MCTS_Prompts"]
+__all__ = ["MCTS_Method", "MCTS", ]
