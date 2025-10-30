@@ -240,6 +240,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         # Final validation
         instances = self.test_instances if test else self.training_instances
         aucs = []
+        performance_data = []
         for dim in self.dims:
             for instance in instances:
                 fid, iid = instance  # we expact a tuple of (fid, iid)
@@ -266,14 +267,15 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     algorithm(f_new)
                 except OverBudgetException:
                     pass
-
-                aucs.append(correct_aoc(f_new, l2, budget))
+                
+                correct_aoc = correct_aoc(f_new, l2, budget)
+                performance_data.append({"fid": fid, "iid": iid, "dim": dim, "auc": correct_aoc})
+                aucs.append(correct_aoc)
                 l2.reset(f_new)
                 f_new.reset()
 
         auc_mean = np.mean(aucs)
-        auc_std = np.std(aucs)
-
+        solution.add_metadata("performance_data", performance_data)
         solution.add_metadata("aucs", aucs)
         solution.set_scores(
             auc_mean,
