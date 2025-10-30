@@ -101,7 +101,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
     #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
-    budget = 16 # test run
+    budget = 200 # test run
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
@@ -127,8 +127,6 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
 
-    methods = [LLaMEA_novelty_ast, LLaMEA_MAP_elites_ast, LLaMEA_novelty_b, LLaMEA_MAP_elites_b]
-
 
     # List containing function IDs we consider
     training_fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
@@ -137,7 +135,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     training_instances = [(f, i) for f in training_fids for i in range(1, 4)]
     test_instances = [(f, i) for f in testing_fids for i in range(1, 4)]
 
-    logger = ExperimentLogger("results/SBOX_diversity-test")
+    logger = ExperimentLogger("results/SBOX_diversity")
 
     problems = []
     problems.append(
@@ -145,8 +143,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
             training_instances=training_instances,
             test_instances=test_instances,
             dims=[10],
-            budget_factor=200,
-            eval_timeout=120,
+            budget_factor=2000,
+            eval_timeout=600,
             name=f"SBOX",
             problem_type=ioh.ProblemClass.SBOX,
             full_ioh_log=False,
@@ -157,8 +155,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     experiment = Experiment(
         methods=methods,
         problems=problems,
-        runs=1,
-        seeds=[1],#,2,3,4,5],
+        runs=5,
+        seeds=[1,2,3,4,5],
         show_stdout=True,
         exp_logger=logger,
         budget=budget,
