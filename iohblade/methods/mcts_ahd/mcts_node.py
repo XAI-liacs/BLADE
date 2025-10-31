@@ -8,7 +8,7 @@ class MCTS_Node(Solution):
                  approach: str,
                  depth: int = 0, 
                  parent: Optional[MCTS_Node]=None, 
-                 visit: int=1,
+                 visit: int = 1,
                  Q: float = 0):
         """
             MCTS Node is a derivative of `iohblade.Solution`, with extra paramters in `children`, establishing heirarchy in
@@ -34,7 +34,6 @@ class MCTS_Node(Solution):
         self.visit = visit
         self.Q = Q
         self.children : list[MCTS_Node] = []
-        # self.reward = -1 * obj
 
     def add_child(self, childNode: MCTS_Node):
         """

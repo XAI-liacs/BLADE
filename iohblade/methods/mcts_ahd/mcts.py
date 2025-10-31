@@ -46,8 +46,8 @@ class MCTS:
         self.max_depth = 10
         self.epsilon = 1e-10
         self.discount_factor = 1
-        self.q_min = 0 if maximisation else -1e4
-        self.q_max = -1e4 if maximisation else 0      #-10,000
+        self.q_min = 0 if maximisation else -1e12
+        self.q_max = -1e12 if maximisation else 0      #-10,000
         self.rank_list = []
         self.e1_candidates: list[MCTS_Node] = []
         self.max_children = max_children
@@ -58,7 +58,8 @@ class MCTS:
 
         self.best_solution: MCTS_Node = self.root          #Best solution node used as reference for e2 expansion.
 
-    
+    # region Node Generators.
+
     def _get_new_node(self, approach: str, relevant_nodes: list[MCTS_Node], depth: int) -> MCTS_Node:
         """
         Given a generation, approcach in {i1, e1, e2, m1, m2, s1}, get a mcts node.
@@ -221,7 +222,9 @@ class MCTS:
             relevant_nodes.append(self.best_solution)
         return []       # Never runs.
 
+    # endregion
 
+    # region MCTS Methods.
     def initialise(self, initial_node_count:int = 3):
         """
         Initialises the algorithm, by appending predefined number of nodes to the root node.
@@ -249,9 +252,11 @@ class MCTS:
         """
         self.eval_remain -= 1
         self.problem.evaluate(node)
-        if not self.maximisation:           # The paper only refers to maximisation problem.
+        if self.maximisation:
+            node.Q = node.fitness if node.fitness != -float('inf') else self.q_min
+        else:           # The paper only refers to maximisation problem.
             node.fitness *= -1
-            node.Q = node.fitness
+            node.Q = node.fitness if abs(node.fitness) != float('inf') else self.q_min
         if self.best_solution.fitness < node.fitness:
             self.best_solution = node
 
@@ -349,6 +354,9 @@ class MCTS:
                 self.e1_candidates.append(node)
             parent = parent.parent
 
+    #endregion
+    #region UCT
+
     def uct(self, node: MCTS_Node) -> float:
         """
         Scores the provided node with a score, determining how likely it is to better optima on visiting current 
@@ -365,54 +373,78 @@ class MCTS:
         if node.parent:
             return (node.Q - self.q_min) / (self.q_max - self.q_min) + exploration_constant * (math.log(node.parent.visit + 1)) ** 0.5 / node.visit
         return 0
+    
+    #endregion
 
-    def print_tree(self, root, get_label=lambda n: f"Node(id:{n.id}, pid={n.parent.id if n.parent else None}, Q={n.Q}, depth={n.depth})", prefix=""):
+    #region Tree Printer.
+    def print_tree(self, root, get_label=lambda n: f"Node(id:{n.id}, Q={n.Q}, N={n.visit}, depth={n.depth})", prefix=""):
         """
         Recursively print the MCTS tree to the console in a readable text format.
         """
-        print(prefix + "└── " + get_label(root))
+        print(prefix + "└── " + get_label(root), f"(uct{self.uct(root)})", f"{'*' if root.is_root else ''}")
         child_count = len(root.children)
         for i, child in enumerate(root.children):
             is_last = (i == child_count - 1)
             branch = "└── " if is_last else "├── "
             new_prefix = prefix + ("    " if is_last else "│   ")
-            # Only recurse, don't print twice
             self.print_tree(child, get_label, new_prefix)
+    #endregion
     
+    # region Runner.
     def run(self):
         print("Started MCTS-AHD solver.")
+        
         self.initialise()
+        
         print(f"Initialised with {len(self.root.children)} nodes.")
+        
         for child in self.root.children:
             print(f"\tEvaluating {child.id} node.")
+            
             self.simulate(child)
+            
             print(f"\t\tFitness {child.fitness}")
             print(f"\t\tFeedback {child.feedback}")
 
         iteration = 1
         while self.eval_remain > 0:
             self.print_tree(self.root)
+            
             print(f"Iteratrion # {iteration}.")
+            
             progressive_widening_nodes, selected_node = self.selection()
+            
             print(f"Selected Node: {selected_node}")
+            
             self.expansion(selected_node)
             expanded_nodes = selected_node.children
+            
             print(f"Generating {len(progressive_widening_nodes)} progressive widening nodes, {len(expanded_nodes)} leaf nodes.")
+            
             for node in progressive_widening_nodes + expanded_nodes:
                 print(f"\tEvaluating {node.id} node.")
+            
                 self.simulate(node)
+            
                 print(f"\t\tFitness {node.fitness}.")
                 print(f"\t\tFeedback {node.feedback}")
             
             for node in expanded_nodes + progressive_widening_nodes:    #Make sure progressive widening nodes are handeled after expanded nodes.
+            
                 print(f"\tBackpropogating from node #{node.id}.")
+            
                 self.backpropogate(node)
+            
             print(f"\tBudget remaining {self.eval_remain}.")
+            
             iteration += 1
-        print(f"Total iterations: {iteration}.")
         
+        print(f"Total iterations: {iteration}.")
+        print("--------------------------------------------------------------------------------------------------------------")
         return self.best_solution
-    
+    #endregion
+
+#region iohblade Wrapper.
 class MCTS_Method(Method):
     def __init__(self, 
                  llm: LLM,
@@ -460,7 +492,11 @@ class MCTS_Method(Method):
             self.max_children,
             self.expansion_factor
         )
-        return self.mcts_instance.run()
+        try:
+            return self.mcts_instance.run()
+        except:
+            print("Some error occured, best solution till now V")
+            return self.mcts_instance.best_solution
 
     def to_dict(self):
         """
@@ -474,3 +510,4 @@ class MCTS_Method(Method):
             "budget": self.budget,
             "kwargs": self.init_params,
         }
+#endregion
