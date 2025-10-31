@@ -1,4 +1,5 @@
 import math
+import random
 import inspect
 
 from .mcts_node import MCTS_Node
@@ -14,9 +15,9 @@ class MCTS:
                  budget: int,
                  lambda_0: float = 0.1,
                  alpha: float = 0.5,
-                 maximisation:bool = True,
-                 max_children:int = 5,
-                 expansion_factor:int = 2           #Referred to as k in (https://arxiv.org/pdf/2501.08603) algorithm 1.
+                 maximisation: bool = True,
+                 max_children: int = 5,
+                 expansion_factor: int = 2           #Referred to as k in (https://arxiv.org/pdf/2501.08603) algorithm 1.
     ):
         """
         MCTS method for solving a given `Problem` using LLMs.
@@ -45,19 +46,20 @@ class MCTS:
         self.max_depth = 10
         self.epsilon = 1e-10
         self.discount_factor = 1
-        self.q_min = 0
-        self.q_max = -1e4       #-10,000
+        self.q_min = 0 if maximisation else -1e4
+        self.q_max = -1e4 if maximisation else 0      #-10,000
         self.rank_list = []
+        self.e1_candidates: list[MCTS_Node] = []
         self.max_children = max_children
 
         #Instantiate the root node, with empty solution.
         solution = Solution()
-        self.root = MCTS_Node(solution)
+        self.root = MCTS_Node(solution, approach='root')
 
         self.best_solution: MCTS_Node = self.root          #Best solution node used as reference for e2 expansion.
 
     
-    def _get_new_node(self, approach: str, relevant_nodes: list[MCTS_Node]) -> MCTS_Node:
+    def _get_new_node(self, approach: str, relevant_nodes: list[MCTS_Node], depth: int) -> MCTS_Node:
         """
         Given a generation, approcach in {i1, e1, e2, m1, m2, s1}, get a mcts node.
         ## Note
@@ -71,7 +73,7 @@ class MCTS:
         ## Args:
             `approach: str`: Asserted to be one of the following {i1, e1, e2, m1, m2, s1}.
             `relevant_nodes: [MCTS_Node]`: A list of relevant `MCTS_Node`s, that can are in relationship with returning nodes as decribed in notes above.
-        
+            `depth: int`: Depth at which the current node is supposed to be added.
             
         ## Returns:
             `MCTS_Node`: Generate with LLM, a node with the code, and re-gererated description.
@@ -115,13 +117,13 @@ class MCTS:
                 if i == 4:
                     raise e     # Forward error.
         if solution:
-            mcts_node = MCTS_Node(solution)
+            mcts_node = MCTS_Node(solution, approach, depth=depth)
             refine_description_prompt = MCTS_Prompts.get_desctiption_prompt(task_prompt, mcts_node)
             message = [{"role": "client", "content": refine_description_prompt}]
             descrpition = self.llm.query(message)
             mcts_node.description = descrpition
             return mcts_node
-        return MCTS_Node(Solution("error"))
+        return MCTS_Node(Solution("error"), 'error')
 
 
     def _get_m1_nodes(self, as_child_of_node: MCTS_Node) -> list[MCTS_Node]:
@@ -214,7 +216,7 @@ class MCTS:
         """
         if as_child_of_node.is_root:
             raise ValueError("E2 cannot be used to generate child of root node.")
-        relevant_nodes = [as_child_of_node]
+        relevant_nodes = random.sample(self.e1_candidates, k=min(5, len(self.e1_candidates)))
         if not self.best_solution.is_root:
             relevant_nodes.append(self.best_solution)
         return []       # Never runs.
@@ -231,11 +233,11 @@ class MCTS:
         ## Returns:
             `None`: Inline algorithm, changes the data-structure, but returns nothing.
         """
-        initial_node = self._get_new_node("i1", [])
+        initial_node = self._get_new_node("i1", [], depth=1)
         self.root.add_child(initial_node)
 
         for _ in range(1, initial_node_count):
-            node = self._get_new_node("e1", [initial_node])
+            node = self._get_new_node("e1", [initial_node], depth=1)
             self.root.add_child(node)
         
     def simulate(self, node: MCTS_Node):
@@ -271,12 +273,11 @@ class MCTS:
             #Expand node.
             if not current.is_fully_expanded(self.max_children):
                 if current.is_root:
-                    node = self._get_new_node("e1", current.children)
+                    relevant_nodes = self._get_e1_nodes(current)
+                    node = self._get_new_node("e1", relevant_nodes, depth=1)
                 else:
-                    relevant_nodes = [current]
-                    if not self.best_solution.is_root:
-                        relevant_nodes.append(self.best_solution)
-                    node = self._get_new_node("e2", relevant_nodes)
+                    relevant_nodes = self._get_e2_nodes(current)
+                    node = self._get_new_node("e2", relevant_nodes, depth=current.depth + 1)
                 current.add_child(node)
                 expanded_nodes.append(node)
             
@@ -309,19 +310,19 @@ class MCTS:
         
         for _ in range(self.expansion_factor):
             relevant_nodes = self._get_m1_nodes(on_node)
-            node = self._get_new_node('m1', relevant_nodes)
+            node = self._get_new_node('m1', relevant_nodes, on_node.depth + 1)
             on_node.add_child(node)
 
             relevant_nodes = self._get_m2_nodes(on_node)
-            node = self._get_new_node('m2', relevant_nodes)
+            node = self._get_new_node('m2', relevant_nodes, on_node.depth + 1)
             on_node.add_child(node)
 
         relevant_nodes = self._get_s1_nodes(on_node)
-        node = self._get_new_node('s1', relevant_nodes)
+        node = self._get_new_node('s1', relevant_nodes, on_node.depth + 1)
         on_node.add_child(node)
 
         relevant_nodes = self._get_e2_nodes(on_node)
-        node = self._get_new_node('e2', relevant_nodes)
+        node = self._get_new_node('e2', relevant_nodes, on_node.depth + 1)
         on_node.add_child(node)
     
     def backpropogate(self, node: MCTS_Node):
@@ -344,11 +345,11 @@ class MCTS:
             best_child_Q = max(child.Q for child in parent.children)
             parent.Q = parent.Q * (1 - self.discount_factor) + best_child_Q * self.discount_factor
             parent.visit += 1
-            # if not parent.is_root and parent.parent.is_root:              #No Idea why this exist, commented till I figure out.
-            #     self.subtree_flatten.append(node)
+            if node.depth in [1, 2]:              #No Idea why this exist, commented till I figure out.
+                self.e1_candidates.append(node)
             parent = parent.parent
 
-    def uct(self, node: MCTS_Node):
+    def uct(self, node: MCTS_Node) -> float:
         """
         Scores the provided node with a score, determining how likely it is to better optima on visiting current 
         node again.
@@ -362,13 +363,10 @@ class MCTS:
         """
         exploration_constant = self.lambda_0 * self.eval_remain
         if node.parent:
-            try:
-                return (node.Q - self.q_min) / (self.q_max - self.q_min) + exploration_constant * (math.log(node.parent.visit + 1)) ** 0.5 / node.visit
-            except:
-                return float("inf")
+            return (node.Q - self.q_min) / (self.q_max - self.q_min) + exploration_constant * (math.log(node.parent.visit + 1)) ** 0.5 / node.visit
         return 0
-    
-    def print_tree(self, root, get_label=lambda n: f"Node(id:{n.id}, pid={n.parent.id if n.parent else None}, Q={n.Q})", prefix=""):
+
+    def print_tree(self, root, get_label=lambda n: f"Node(id:{n.id}, pid={n.parent.id if n.parent else None}, Q={n.Q}, depth={n.depth})", prefix=""):
         """
         Recursively print the MCTS tree to the console in a readable text format.
         """

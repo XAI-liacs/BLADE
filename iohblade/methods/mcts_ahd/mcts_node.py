@@ -3,10 +3,12 @@ from typing import Optional
 from iohblade.solution import Solution
 
 class MCTS_Node(Solution):
-    def __init__(self, solution: Solution, 
+    def __init__(self, 
+                 solution: Solution,
+                 approach: str,
                  depth: int = 0, 
                  parent: Optional[MCTS_Node]=None, 
-                 visit: int=0,
+                 visit: int=1,
                  Q: float = 0):
         """
             MCTS Node is a derivative of `iohblade.Solution`, with extra paramters in `children`, establishing heirarchy in
@@ -24,9 +26,10 @@ class MCTS_Node(Solution):
         # Copy Solution parameters to self.
         self.__dict__.update(solution.__dict__)
         self.parent_ids = solution.parent_ids[-1] if solution.parent_ids else None # Only one parent exist here.
-
+        
         # MCTS Specific Members:
-        self.depth = depth,
+        self.approach = approach
+        self.depth = depth
         self.parent = parent
         self.visit = visit
         self.Q = Q

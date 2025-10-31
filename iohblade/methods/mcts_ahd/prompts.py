@@ -128,7 +128,7 @@ def sum(a, b):
 """,
         name="sum",
         generation=1,
-    ))
+    ), 'test')
     sol2 = MCTS_Node(Solution(
         code="""
 def diff(a, b):
@@ -136,7 +136,7 @@ def diff(a, b):
 """,
         name="diff",
         generation=1,
-    ))
+    ), 'test')
     sol3 = MCTS_Node(Solution(
         code="""
 def prod(a, b):
@@ -144,7 +144,7 @@ def prod(a, b):
 """,
         name="prod",
         generation=1,
-    ))
+    ), 'test')
 
     sol1.fitness = 12
     sol2.fitness = -4

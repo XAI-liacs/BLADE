@@ -1,5 +1,6 @@
 from os import getenv
 
+from iohblade.llm import Ollama_LLM
 from iohblade.llm import Gemini_LLM
 from iohblade.experiment import Experiment
 from iohblade.loggers import ExperimentLogger
@@ -9,9 +10,10 @@ from iohblade.benchmarks.geometry import get_min_max_dist_ratio_problem
 def main():
     problem = get_min_max_dist_ratio_problem(use_best=False)[0]
 
-    key = getenv("GOOGLE_API_KEY")
-    print(key)
-    llm = Gemini_LLM(key, "gemini-2.0-flash")
+    # key = getenv("GOOGLE_API_KEY")
+    # llm = Gemini_LLM(key, "gemini-2.0-flash")
+
+    llm = Ollama_LLM()
     mcts_method = MCTS_Method(llm, 100, maximisation=not problem.minimisation)
     logger = ExperimentLogger(f"results/{problem.name}")
     Experiment(
