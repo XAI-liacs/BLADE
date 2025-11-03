@@ -13,7 +13,7 @@ class PackingBase:
     def __init__(self, name: str, best_solution):
         self.task_name = name
         self.best_solution = best_solution
-        
+
     ## Prompt helpers:
     def make_task_prompt(self, headline: str, contract: str, objective: str) -> str:
         return f"""
@@ -40,7 +40,6 @@ class PackingBase:
     - The tolerance for evaluation in given by {tolerance}.
 - Objective is to minimise s; the side of outer hexagon.
 """
-
 
     def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
         best_known_initialiser = f"""

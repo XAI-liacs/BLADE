@@ -5,6 +5,7 @@ from .problem import Problem
 from .solution import Solution
 from typing import Any
 
+
 class Method(ABC):
     def __init__(self, llm: LLM, budget, name="Method"):
         """

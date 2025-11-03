@@ -2,14 +2,17 @@ from __future__ import annotations
 from typing import Optional
 from iohblade.solution import Solution
 
+
 class MCTS_Node(Solution):
-    def __init__(self, 
-                 solution: Solution,
-                 approach: str,
-                 depth: int = 0, 
-                 parent: Optional[MCTS_Node]=None, 
-                 visit: int = 1,
-                 Q: float = 0):
+    def __init__(
+        self,
+        solution: Solution,
+        approach: str,
+        depth: int = 0,
+        parent: Optional[MCTS_Node] = None,
+        visit: int = 1,
+        Q: float | None = None,
+    ):
         """
             MCTS Node is a derivative of `iohblade.Solution`, with extra paramters in `children`, establishing heirarchy in
             the Tree, `rewards`, `depth` and `Q`, for calculating which subtree to explore.
@@ -25,41 +28,49 @@ class MCTS_Node(Solution):
 
         # Copy Solution parameters to self.
         self.__dict__.update(solution.__dict__)
-        self.parent_ids = solution.parent_ids[-1] if solution.parent_ids else None # Only one parent exist here.
-        
+        self.parent_ids = (
+            solution.parent_ids[-1] if solution.parent_ids else None
+        )  # Only one parent exist here.
+
         # MCTS Specific Members:
         self.approach = approach
         self.depth = depth
         self.parent = parent
         self.visit = visit
         self.Q = Q
-        self.children : list[MCTS_Node] = []
+        self.children: list[MCTS_Node] = []
 
     def add_child(self, childNode: MCTS_Node):
         """
-            Add a child node to the current instance of MCTS_Node.
+        Add a child node to the current instance of MCTS_Node.
 
-            ## Args:
-            `childNode: MCTS_Node`: MCTS_Node instance to be added as a child.
+        ## Args:
+        `childNode: MCTS_Node`: MCTS_Node instance to be added as a child.
         """
         childNode.parent = self
         childNode.parent_ids = self.id
         self.children.append(childNode)
 
     def __repr__(self):
-        return f"MCTS_Node(id=...{self.id[-4:]}, children={list(map(lambda x: '...' + x.id[-4:], self.children))} Q={self.Q:.2f}, visits={self.visit})"
+        q_str = f"Q = {self.Q:.2f}," if self.Q is not None else ""
+        return f"MCTS_Node(id=...{self.id[-4:]}, children={list(map(lambda x: '...' + x.id[-4:], self.children))}, {q_str} visits={self.visit}, ({self.approach}))"
 
     @property
     def is_root(self):
         """
-            EZ check for is current node a root.
+        EZ check for is current node a root.
         """
         return self.parent is None
 
     @property
     def is_leaf(self):
         return len(self.children) == 0
-    
+
+    def _better_than(self, a, b):
+        if a is None or b is None:
+            return False
+        return a > b
+
     def is_fully_expanded(self, max_children: int) -> bool:
         """
         Check for completion of progressive Widening (Page 3: https://arxiv.org/pdf/2501.08603).
@@ -70,6 +81,8 @@ class MCTS_Node(Solution):
         ## Returns:
         `bool`: Truth value of whether upper limit is reach or not.
         """
-        return len(self.children) >= max_children or any(
-            child.Q > self.Q for child in self.children
-        ) or self.is_root
+        return (
+            len(self.children) >= max_children
+            or any(self._better_than(child.Q, self.Q) for child in self.children)
+            or self.is_root
+        )
