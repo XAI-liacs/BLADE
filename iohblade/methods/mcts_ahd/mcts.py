@@ -431,9 +431,14 @@ class MCTS:
         exploration_constant = self.lambda_0 * self.eval_remain
         if node.Q and self.q_max and self.q_min:
             try:
-                uct += (node.Q - self.q_min) / (self.q_max - self.q_min)
+                uct = (node.Q - self.q_min) / (self.q_max - self.q_min)
             except:
                 pass
+        else:  # place the node.Q = None, nodes as least fit.
+            if self.maximisation:
+                return float("-inf")
+            else:
+                return float("inf")
         if node.parent:
             return uct + (
                 exploration_constant
@@ -456,7 +461,7 @@ class MCTS:
         """
         print(
             prefix + "└── " + get_label(root),
-            f"(uct{self.uct(root)})",
+            f"(uct:{self.uct(root)})",
             f"{'*' if root.is_root else ''}",
         )
         child_count = len(root.children)
