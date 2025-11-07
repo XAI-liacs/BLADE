@@ -73,7 +73,7 @@ class BBOB_SBOX(Problem):
         if dependencies is None:
             dependencies = [
                 "pandas==2.2.3",
-                "ioh==0.3.19",
+                "ioh==0.3.22",
                 "configspace==1.2.1",
                 "smac==2.3.1",
             ]

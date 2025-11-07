@@ -61,7 +61,7 @@ def fitness_behavioral_distance(solution1, solution2):
     # take the mean pairwise difference between auc scores as behavioral distance
     aucs1 = solution1.get_metadata("aucs")
     aucs2 = solution2.get_metadata("aucs")
-    if not aucs1 or not aucs2:
+    if aucs1 is None or aucs2 is None:
         return 0.0  # minimum distance if no behavioral data is available (algorithm did not run)
     aucs1 = np.array(aucs1)
     aucs2 = np.array(aucs2)
@@ -71,8 +71,8 @@ def fitness_behavioral_distance(solution1, solution2):
 
 def behavior_descriptor(solution):
     # group the auc scores per BBOB function group as descriptors.
-    aucs = solution.get_metadata("aucs", [])
-    if len(aucs) == 0:
+    aucs = solution.get_metadata("aucs")
+    if aucs is None:
         return np.zeros(5)
     group1 = aucs[:6] #2 functions, 3 instances each
     group2 = aucs[6:12] #2 functions, 3 instances each
@@ -101,9 +101,9 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
     #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
-    budget = 200 # test run
+    budget = 200 # test run (25 iterations of 8 algs)
 
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         budget = 10
 
@@ -115,6 +115,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     #for llm in [llm1]:#, llm2]:
     #RS = RandomSearch(llm, budget=budget) 
     LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
+    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-Adapt", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, adaptive_prompt=True)
     
     LLaMEA_novelty_ast = LLaMEA(llm, budget=budget, name="NS-code", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, niching="novelty", distance_metric=ast_distance, novelty_archive_size=100, novelty_k=5)
     
@@ -128,11 +129,11 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     LLaMEA_fitness_clearing_b = LLaMEA(llm, budget=budget, name="FC-b", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, niching="clearing", distance_metric=fitness_behavioral_distance, adaptive_niche_radius=True)
     LLaMEA_MAP_elites_b = LLaMEA(llm, budget=budget, name="MAP-b", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, niching="map_elites", behavior_descriptor=behavior_descriptor, map_elites_bins=5)
 
-
-    methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
+    #LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast, 
+    methods = [ LLaMEA_2, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
 
     if DEBUG:
-        methods = [LLaMEA_novelty_ast, LLaMEA_fitness_clearing_b,LLaMEA_MAP_elites_ast, LLaMEA_MAP_elites_b]
+        methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_clearing_b,LLaMEA_MAP_elites_ast, LLaMEA_MAP_elites_b]
 
     # List containing function IDs we consider
     training_fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
@@ -168,7 +169,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 test_instances=test_instances,
                 dims=[10],
                 budget_factor=2000,
-                eval_timeout=600,
+                eval_timeout=1200,
                 name=f"SBOX",
                 problem_type=ioh.ProblemClass.SBOX,
                 full_ioh_log=False,
