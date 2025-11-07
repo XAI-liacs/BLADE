@@ -39,7 +39,7 @@ Code:\\
     def get_prompt_taboo_search(self, individual: Solution, destroyed_code: str, taboo_element: TabooElement) -> str:
         b_features = "\n".join(taboo_element.code_feature)
         return f"""
-I have algorithm A with its destroyed code, algorithm B's features.\\
+I have algorithm A with its destroyed code, algorithm B's features, i.e. the lines that help improve it's performance in previous iterations.\\
 Algorithm A description: {individual.description}\\
 Code:\\
 {destroyed_code}\\

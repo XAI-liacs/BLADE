@@ -95,6 +95,12 @@ class TabooTable:
         ## Returns:
         `TabooElement?`: If a taboo element with distinct code entry compared to `for_individual` is present, return that TabooElement, or return None.
         """
+        print("---------Get distinct Entry-----------")
         filtered_list = [element for element in self.taboo_table if element.code != for_individual.code]
+        print("Filtered list:", [element.code[:5] for element in filtered_list])
+
         return random.choice(filtered_list) if filtered_list else None
-        
+    
+    def get_fitness_series(self):
+        return [node.fitness for node in self.taboo_table]
+    

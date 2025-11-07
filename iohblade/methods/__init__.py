@@ -1,6 +1,7 @@
 from .funsearch import funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch
+from .lhns import LHNS_Method
 
 try:
     from .eoh import EoH
@@ -15,4 +16,5 @@ __all__ = [
     "EoH",
     "funsearch",
     "ReEvo",
+    "LHNS_Method"
 ]

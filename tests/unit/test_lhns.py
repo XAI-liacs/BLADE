@@ -25,7 +25,7 @@ def test_simulated_annealing_rejects_unfit():
 
     dllm = Dummy_LLM()
     problem = BBOB_SBOX()
-    lhns = LHNS(problem, dllm, 0.2)
+    lhns = LHNS(problem, dllm, method='vns')
 
     for index, test in enumerate(test_cases):
         lhns.current_solution = test["old"]

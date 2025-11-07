@@ -1,7 +1,9 @@
+from typing import Any
 from abc import ABC, abstractmethod
 
 from .llm import LLM
 from .problem import Problem
+from .solution import Solution
 
 
 class Method(ABC):
@@ -19,7 +21,7 @@ class Method(ABC):
         self.name = name
 
     @abstractmethod
-    def __call__(self, problem: Problem):
+    def __call__(self, problem: Problem) -> Solution:
         """
         Executes the search algorithm and returns the best found solution.
 
@@ -29,7 +31,7 @@ class Method(ABC):
         pass
 
     @abstractmethod
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         """
         Returns a dictionary representation of the method including all parameters.
 
