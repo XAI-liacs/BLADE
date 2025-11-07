@@ -10,8 +10,18 @@ from iohblade.method import Method
 from .prompt import Prompt
 from .taboo_table import TabooTable
 
+
 class LHNS:
-    def __init__(self, problem: Problem, llm: LLM, method: str, cooling_rate: float=0.1, table_size:int=10, budget=100, minimisation=False):
+    def __init__(
+        self,
+        problem: Problem,
+        llm: LLM,
+        method: str,
+        cooling_rate: float = 0.1,
+        table_size: int = 10,
+        budget=100,
+        minimisation=False,
+    ):
         """
         LHNS is a single individual based optimisation method, that destroyes current iteration of code, by deleting number of certain lines of code
         and uses LLMs to repair them. More info on (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025)
@@ -27,16 +37,19 @@ class LHNS:
         self.problem: Problem = problem
         self.llm: LLM = llm
         self.table_size: int = table_size
-        try: 
-            assert method in ['vns', 'ils', 'ts']
+        try:
+            assert method in ["vns", "ils", "ts"]
         except:
-            raise ValueError(f"Expected method parameter to be one of 'vns', 'ils', 'ts', got {method}")
-        
+            raise ValueError(
+                f"Expected method parameter to be one of 'vns', 'ils', 'ts', got {method}"
+            )
+
         self.method = method
 
-
         self.prompt_generator = Prompt(problem)
-        self.taboo_table : TabooTable = TabooTable(size=table_size, minimisation=minimisation)
+        self.taboo_table: TabooTable = TabooTable(
+            size=table_size, minimisation=minimisation
+        )
 
         self.alpha = cooling_rate
         self.budget = budget
@@ -46,18 +59,18 @@ class LHNS:
         self.best_solution = Solution()
 
     def _log_best_solution(self, next: Solution):
-        if abs(self.best_solution.fitness) == float('inf'):
+        if abs(self.best_solution.fitness) == float("inf"):
             self.best_solution = next
             return
-        if abs(next.fitness) != float('inf'):
+        if abs(next.fitness) != float("inf"):
             if self.minimisation and self.best_solution.fitness > next.fitness:
                 self.best_solution = next
             elif not self.minimisation and self.best_solution.fitness < next.fitness:
                 self.best_solution = next
-    
+
     def simulated_annealing(self, next_solution: Solution, iteration_number: int):
         """
-        Selects the replacement of `self.current_solution` with next solution with probability $P(r) = e^{-|f_1-f_2|/T$, 
+        Selects the replacement of `self.current_solution` with next solution with probability $P(r) = e^{-|f_1-f_2|/T$,
         where $T = \alpha iteration_number/budget$.
 
         ## Args:
@@ -68,17 +81,19 @@ class LHNS:
         `None`: Will replace self.current_solution with aforementioned probability.
         """
         print("Simulated Annealing....")
-        if abs(self.current_solution.fitness) == float('inf'):
-            if abs(next_solution.fitness) == float('inf'):
-                self.current_solution = random.choice([self.current_solution, next_solution])
+        if abs(self.current_solution.fitness) == float("inf"):
+            if abs(next_solution.fitness) == float("inf"):
+                self.current_solution = random.choice(
+                    [self.current_solution, next_solution]
+                )
             else:
                 self.current_solution = next_solution
             return
-        if abs(next_solution.fitness) == float('inf'):
+        if abs(next_solution.fitness) == float("inf"):
             return
 
         temperature = self.alpha * iteration_number / self.budget
-        
+
         if self.minimisation:
             if next_solution.fitness < self.current_solution.fitness:
                 self.current_solution = next_solution
@@ -95,7 +110,6 @@ class LHNS:
                 p = math.e ** (-1 * delta / temperature)
                 if random.random <= p:
                     self.current_solution = next_solution
-            
 
     def initialise(self):
         """
@@ -112,17 +126,15 @@ class LHNS:
         solution = None
         for i in range(5):
             try:
-                solution = self.llm.sample_solution([{
-                    'role': 'client',
-                    'content': initialisation_prompt
-                }])
+                solution = self.llm.sample_solution(
+                    [{"role": "client", "content": initialisation_prompt}]
+                )
                 break
             except Exception as e:
                 if i == 4:
                     raise e
         if solution:
             self.current_solution = solution
-
 
     def evaluate(self, solution: Solution) -> Solution:
         """
@@ -141,8 +153,9 @@ class LHNS:
             return evaluated_solution
         return solution
 
-    
-    def _extract_executable_lines_with_indices(self, code: str) -> list[tuple[int, str]]:
+    def _extract_executable_lines_with_indices(
+        self, code: str
+    ) -> list[tuple[int, str]]:
         """
         Return list of (line_number, line_text) for lines that are executable,
         excluding class/def declarations, comments and blank lines.
@@ -157,14 +170,14 @@ class LHNS:
 
         def _preserve_lines(m):
             matched = m.group(0)
-            lines = matched.count('\n')
-            return '\n' * lines
+            lines = matched.count("\n")
+            return "\n" * lines
 
         code_preserve_lines = doc_pat.sub(_preserve_lines, code)
 
         lines = code_preserve_lines.splitlines()
 
-        pattern = re.compile(r'^(?!\s*(?:class\s+\w+|def\s+\w+|#))\s*\S.*$')
+        pattern = re.compile(r"^(?!\s*(?:class\s+\w+|def\s+\w+|#))\s*\S.*$")
 
         result = []
         for i, line in enumerate(lines):
@@ -191,13 +204,17 @@ class LHNS:
         for _ in range(int(r * len(destructable_code))):
             delete_line = random.choice(destructable_code)
             destructable_code.remove(delete_line)
-            code_lines = code_lines.pop(delete_line[0]) if isinstance(code_lines, list) else code_lines
-        
+            code_lines = (
+                code_lines.pop(delete_line[0])
+                if isinstance(code_lines, list)
+                else code_lines
+            )
+
         return "\n".join(code_lines)
 
     def mutate_lhns_vns(self, iteration_number: int) -> Solution:
         """
-        Apply LHNS VNS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the initial r value is not stated, 
+        Apply LHNS VNS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the initial r value is not stated,
         so it will be randomly generated.
 
         ## Args:
@@ -205,7 +222,7 @@ class LHNS:
 
         ## Returns
         `Solution`: An instance of solution generated from LHNS-VNS mapping onto the self.current_solution.
-        
+
         ## Raises:
         If the LLM is not following the contract, or if you run out of tokens, the Errors are reaised respectively.
         """
@@ -214,15 +231,18 @@ class LHNS:
         r = 0.1 * (1 + (iteration_number % 10))
 
         destroyed_code = self.get_destroyed_code(r, current)
-        destruction_count = len(current.code.split("\n")) - len(destroyed_code.split("\n"))
-        destruction_repair_prompt = self.prompt_generator.get_prompt_destroy_repair(current, destroyed_code, destruction_count)
+        destruction_count = len(current.code.split("\n")) - len(
+            destroyed_code.split("\n")
+        )
+        destruction_repair_prompt = self.prompt_generator.get_prompt_destroy_repair(
+            current, destroyed_code, destruction_count
+        )
 
         for i in range(5):
             try:
-                new = self.llm.sample_solution([{
-                    'role': 'client',
-                    'content': destruction_repair_prompt
-                }])
+                new = self.llm.sample_solution(
+                    [{"role": "client", "content": destruction_repair_prompt}]
+                )
                 return new
             except Exception as e:
                 if i == 4:
@@ -231,14 +251,14 @@ class LHNS:
 
     def mutate_lhns_ils(self, iteration_number: int) -> Solution:
         """
-        Apply LHNS INS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the value of r is set constant to 
+        Apply LHNS INS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the value of r is set constant to
         0.5, and this mutation eiter generarates a new code with 50% repaired code, or a complete new initialisation (rewrite of the code.)
 
         ## Args:
         `iteration_number: int`: Current iteration of the algorithm.
 
         ## Returns
-        `Solution`: An instance of solution generated from LHNS-ILS mapping onto the self.current_solution, provided LLM generated 
+        `Solution`: An instance of solution generated from LHNS-ILS mapping onto the self.current_solution, provided LLM generated
         a solution.
 
         ## Raises:
@@ -249,44 +269,50 @@ class LHNS:
             initialisation_prompt = self.prompt_generator.get_prompt_i1()
             for i in range(5):
                 try:
-                    new = self.llm.sample_solution([{
-                        'role': 'client',
-                        'content': initialisation_prompt
-                    }])
+                    new = self.llm.sample_solution(
+                        [{"role": "client", "content": initialisation_prompt}]
+                    )
                     return new
                 except Exception as e:
                     if i == 4:
                         raise e
                     else:
-                        print('mutate_lhns_ils: Failed to communicate with LLM, retrying...')
+                        print(
+                            "mutate_lhns_ils: Failed to communicate with LLM, retrying..."
+                        )
         else:
             current = self.current_solution
             destroyed_code = self.get_destroyed_code(0.5, current)
-            destruction_count = len(current.code.split("\n")) - len(destroyed_code.split("\n"))
-            ils_prompt = self.prompt_generator.get_prompt_destroy_repair(current, destroyed_code, destruction_count)
+            destruction_count = len(current.code.split("\n")) - len(
+                destroyed_code.split("\n")
+            )
+            ils_prompt = self.prompt_generator.get_prompt_destroy_repair(
+                current, destroyed_code, destruction_count
+            )
             for i in range(5):
                 try:
-                    new = self.llm.sample_solution([{
-                        'role': 'client',
-                        'content': ils_prompt
-                    }])
+                    new = self.llm.sample_solution(
+                        [{"role": "client", "content": ils_prompt}]
+                    )
                     return new
                 except Exception as e:
                     if i == 4:
                         raise e
                     else:
-                        print('mutate_lhns_ils: Failed to communicate with LLM, retrying...')
+                        print(
+                            "mutate_lhns_ils: Failed to communicate with LLM, retrying..."
+                        )
         return self.current_solution
 
     def mutate_lhns_ts(self, iteration_number: int) -> Solution:
         """
-        Apply LHNS TS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the value of r is set constant to 
+        Apply LHNS TS from work (https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=11043025), the value of r is set constant to
         0.5, if applying taboo search, (once every 10 iterations) else apply VNS mutation for rest of the cases.
         ## Args:
         `iteration_number: int`: Current iteration of the algorithm.
 
         ## Returns
-        `Optional[Solution]`: An instance of solution generated from LHNS-TS mapping onto the self.current_solution, provided LLM generated 
+        `Optional[Solution]`: An instance of solution generated from LHNS-TS mapping onto the self.current_solution, provided LLM generated
         a valid solution.
         """
         print("TS Mutation....")
@@ -296,13 +322,14 @@ class LHNS:
             taboo_element = self.taboo_table.get_distinct_entry(current)
 
             if taboo_element:
-                taboo_search_prompt = self.prompt_generator.get_prompt_taboo_search(current, destroyed_code, taboo_element)
+                taboo_search_prompt = self.prompt_generator.get_prompt_taboo_search(
+                    current, destroyed_code, taboo_element
+                )
                 for i in range(5):
                     try:
-                        new = self.llm.sample_solution([{
-                            'role': 'client',
-                            'content': taboo_search_prompt
-                        }])
+                        new = self.llm.sample_solution(
+                            [{"role": "client", "content": taboo_search_prompt}]
+                        )
                         return new
                     except Exception as e:
                         if i == 4:
@@ -310,21 +337,26 @@ class LHNS:
         else:
             current = self.current_solution
             destroyed_code = self.get_destroyed_code(0.5, current)
-            destruction_count = len(current.code.split("\n")) - len(destroyed_code.split("\n"))
-            ils_prompt = self.prompt_generator.get_prompt_destroy_repair(current, destroyed_code, destruction_count)
+            destruction_count = len(current.code.split("\n")) - len(
+                destroyed_code.split("\n")
+            )
+            ils_prompt = self.prompt_generator.get_prompt_destroy_repair(
+                current, destroyed_code, destruction_count
+            )
             for i in range(5):
                 try:
-                    new = self.llm.sample_solution([{
-                        'role': 'client',
-                        'content': ils_prompt
-                    }])
+                    new = self.llm.sample_solution(
+                        [{"role": "client", "content": ils_prompt}]
+                    )
                     return new
                 except Exception as e:
                     if i == 4:
                         raise e
                     else:
-                        print('mutate_lhns_ils: Failed to communicate with LLM, retrying...')
-
+                        print(
+                            "mutate_lhns_ils: Failed to communicate with LLM, retrying..."
+                        )
+        return current
 
     def run(self) -> Solution:
         """
@@ -334,23 +366,27 @@ class LHNS:
         current = self.evaluate(self.current_solution)
         self.current_solution = current
         for iteration_number in range(1, self.budget + 1):
-            print(f"Gen {iteration_number}: Current: ({current.id}, {current.fitness}, {current.feedback}); Best: ({self.best_solution.id}, {self.best_solution.fitness}, {self.best_solution.feedback})")
-            if self.method == 'ts':
+            print(
+                f"Gen {iteration_number}: Current: ({current.id}, {current.fitness}, {current.feedback}); Best: ({self.best_solution.id}, {self.best_solution.fitness}, {self.best_solution.feedback})"
+            )
+            if self.method == "ts":
                 print(f"\tTT: {self.taboo_table.get_fitness_series()}")
             match self.method:
-                case 'vns':
+                case "vns":
                     next = self.mutate_lhns_vns(iteration_number)
                     self.evaluate(next)
-                case 'ils':
+                case "ils":
                     next = self.mutate_lhns_ils(iteration_number)
                     self.evaluate(next)
-                case 'ts':
+                case "ts":
                     current = self.current_solution
                     next = self.mutate_lhns_ts(iteration_number)
                     self.evaluate(next)
                     self.taboo_table.update_taboo_search_table(current, next)
                 case _:
-                    raise ValueError(f"Expected method to be in ['vns', 'ils', 'ts'], got {self.method}")
+                    raise ValueError(
+                        f"Expected method to be in ['vns', 'ils', 'ts'], got {self.method}"
+                    )
             self.simulated_annealing(next, iteration_number)
         return self.best_solution
 
@@ -371,7 +407,7 @@ class LHNS_Method(Method):
         super().__init__(llm, budget, f"{name}:{method}")
         self.method = method
         self.minimisation = minimisation
-    
+
     def __call__(self, problem: Problem):
         """
         Executes the evolutionary search process via LLaMEA.
@@ -384,10 +420,10 @@ class LHNS_Method(Method):
             llm=self.llm,
             method=self.method,
             budget=self.budget,
-            minimisation=self.minimisation
+            minimisation=self.minimisation,
         )
         return self.lhns_instance.run()
-    
+
     def to_dict(self):
         """
         Returns a dictionary representation of the method including all parameters.
@@ -398,5 +434,5 @@ class LHNS_Method(Method):
         return {
             "method_name": self.name if self.name != None else "LHNS",
             "budget": self.budget,
-            "kwargs": {'method': self.method, 'minimisation': self.minimisation},
+            "kwargs": {"method": self.method, "minimisation": self.minimisation},
         }

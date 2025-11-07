@@ -3,17 +3,17 @@ from .taboo_table import TabooElement
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
+
 class Prompt:
     def __init__(self, for_problem: Problem):
         self.problem = for_problem
-    
 
     def get_prompt_i1(self) -> str:
         """
         Returns initialisation prompt.
         """
         return self.problem.get_prompt()
-    
+
     def get_prompt_o_index(self, individual: Solution) -> str:
         return f"""I have one algorithm with its code as follows.\\
 Algorithm description: " + {individual.description}\\
@@ -23,8 +23,10 @@ Modify the provided algorithm to improve its performance, where you can determin
 {self.problem.task_prompt}\\
 {self.problem.example_prompt}\\
 {self.problem.format_prompt}\\"""
-    
-    def get_prompt_destroy_repair(self, individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
+
+    def get_prompt_destroy_repair(
+        self, individual: Solution, destroyed_code: str, deleted_line_count: int
+    ) -> str:
         return f"""
 I have one algorithm with its partial code as follows.\\
 Algorithm description: {individual.description} \\
@@ -36,7 +38,9 @@ Code:\\
 {self.problem.example_prompt}\\
 """
 
-    def get_prompt_taboo_search(self, individual: Solution, destroyed_code: str, taboo_element: TabooElement) -> str:
+    def get_prompt_taboo_search(
+        self, individual: Solution, destroyed_code: str, taboo_element: TabooElement
+    ) -> str:
         b_features = "\n".join(taboo_element.code_feature)
         return f"""
 I have algorithm A with its destroyed code, algorithm B's features, i.e. the lines that help improve it's performance in previous iterations.\\
@@ -49,4 +53,3 @@ Please review the given code, integrating two algorithm descriptions provided to
 {self.problem.task_prompt}
 {self.problem.example_prompt}
 {self.problem.format_prompt}"""
-    
