@@ -199,17 +199,21 @@ class LHNS:
         code = solution.code
         code_lines = code.split("\n")
         destructable_code = self._extract_executable_lines_with_indices(code)
-
-        # delete r * len(destructable_code) lines.
+        delete_count = 0
+        # select deletable lines:
+        lines_to_delete = []
         for _ in range(int(r * len(destructable_code))):
             delete_line = random.choice(destructable_code)
+            lines_to_delete.append(delete_line)
             destructable_code.remove(delete_line)
-            code_lines = (
-                code_lines.pop(delete_line[0])
-                if isinstance(code_lines, list)
-                else code_lines
-            )
 
+        lines_to_delete.sort(key=lambda line_to_delete: line_to_delete[0], reverse=True)
+        # delete r * len(destructable_code) lines.
+        for lc, line_to_delete in lines_to_delete:
+            if code_lines[lc] == line_to_delete:
+                code_lines.pop(lc)
+                delete_count += 1
+        print(f"\t\tDeleted {delete_count} lines.")
         return "\n".join(code_lines)
 
     def mutate_lhns_vns(self, iteration_number: int) -> Solution:
