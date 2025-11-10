@@ -502,7 +502,141 @@ def test_initialise_stops_execution_on_5x_failure(monkeypatch):
 
     with pytest.raises(Exception):
         lhns.initialise()
-    
 
-# def test_initialise_returns_intial_operation():
-#     assert 
+def test_initialise_returns_intial_operation(monkeypatch):
+    code = """
+def HelloWorld():
+    print("Hello, there.")
+"""
+    def fake_sample_solution(self, messages):
+        return Solution(code, "HelloWorld", "Greets you.")
+    
+    monkeypatch.setattr(Dummy_LLM, 
+                        'sample_solution', 
+                        fake_sample_solution
+                        )
+
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+
+    lhns.initialise()
+
+    assert lhns.current_solution.code == code
+    assert lhns.current_solution.name == "HelloWorld"
+    assert lhns.current_solution.description == "Greets you."
+
+def test_evaluate_returns_on_success_and_logs_best_solution(monkeypatch):
+    def evaluate(solution: Solution):
+        solution.set_scores(10.6, 'The algorithm scored 10.6, best known score is 9.8')
+        return solution
+    
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+    monkeypatch.setattr(lhns.problem, 'evaluate', evaluate)
+
+    solution = Solution()
+    solution = lhns.evaluate(solution)
+
+    assert solution.fitness == 10.6
+    assert solution.feedback == 'The algorithm scored 10.6, best known score is 9.8'
+    
+    assert lhns.best_solution.fitness == 10.6
+    assert lhns.best_solution.feedback == 'The algorithm scored 10.6, best known score is 9.8'
+
+def test_evaluate_returns_unmutated_on_failure(monkeypatch):
+
+    def evaluate(solution: Solution):
+        return None
+    
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+    monkeypatch.setattr(lhns.problem, 'evaluate', evaluate)
+
+    solution = Solution()
+    new_solution = lhns.evaluate(solution)
+
+    assert solution == new_solution
+
+def test_extract_executable_lines():
+
+    code = '''
+def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list[float]:
+    """Given a, b, c for ax^2 + bx + c = 0, equation, returns the root of the solution:
+
+    ## Args:
+    `a: float`: Coefficient of x^2.
+    `b: float`: Coefficient of x.
+    `c: float`: Final Constant.
+
+    ## Returns:
+    `roots: [float]`: Returns a list of roots for the solution, may be of length 0, 1 or 2.
+    """
+
+    determinant = (b ** 2) - 4*a*c
+    if determinant < 0:
+        return []
+    elif determinant == 0:
+        return [-b/(2 * a)]
+    else:
+        return [(-b - (determinant) ** 0.5)/(2 * a), (-b + (determinant) ** 0.5)/(2 * a)]
+'''
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+
+    data = lhns._extract_executable_lines_with_indices(code)
+
+    expected_data = [(13, '    determinant = (b ** 2) - 4*a*c'),
+                     (14, '    if determinant < 0:'),
+                     (15, '        return []'),
+                     (16, '    elif determinant == 0:'),
+                     (17, '        return [-b/(2 * a)]'),
+                     (18, '    else:'),
+                     (19, '        return [(-b - (determinant) ** 0.5)/(2 * a), (-b + (determinant) ** 0.5)/(2 * a)]')]
+    
+    assert data == expected_data
+
+def test_get_destroyed_code_only_destroys_executable_non_defs():
+    code = '''
+def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list[float]:
+    """Given a, b, c for ax^2 + bx + c = 0, equation, returns the root of the solution:
+
+    ## Args:
+    `a: float`: Coefficient of x^2.
+    `b: float`: Coefficient of x.
+    `c: float`: Final Constant.
+
+    ## Returns:
+    `roots: [float]`: Returns a list of roots for the solution, may be of length 0, 1 or 2.
+    """
+
+    determinant = (b ** 2) - 4*a*c
+    if determinant < 0:
+        return []
+    elif determinant == 0:
+        return [-b/(2 * a)]
+    else:
+        return [(-b - (determinant) ** 0.5)/(2 * a), (-b + (determinant) ** 0.5)/(2 * a)]
+'''
+
+    expected_output = '''
+def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list[float]:
+    """Given a, b, c for ax^2 + bx + c = 0, equation, returns the root of the solution:
+
+    ## Args:
+    `a: float`: Coefficient of x^2.
+    `b: float`: Coefficient of x.
+    `c: float`: Final Constant.
+
+    ## Returns:
+    `roots: [float]`: Returns a list of roots for the solution, may be of length 0, 1 or 2.
+    """
+
+'''
+    
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+    soln = Solution(code=code)
+    output = lhns.get_destroyed_code(1.0, soln)
+    print("----------------------------Acutal Output----------------------------")
+    for index, line in enumerate(output.split("\n")):
+        print(index + 1, ":", line, "|")
+    print("----------------------------Expected Output----------------------------")
+    for index, line in enumerate(expected_output.split("\n")):
+        print(index + 1, ":", line, "|")
+    assert expected_output == output
+

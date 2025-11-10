@@ -130,16 +130,14 @@ class LHNS:
                 solution = self.llm.sample_solution(
                     [{"role": "client", "content": initialisation_prompt}]
                 )
-                break
+                self.current_solution = solution
             except Exception as e:
                 if i == 4:
                     raise e
-        if solution:
-            self.current_solution = solution
 
     def evaluate(self, solution: Solution) -> Solution:
         """
-        Evaluates the solution with `problem.evaluate` function.
+        Evaluates the solution with `problem.evaluate` function, and returns if it returns, else returns solution un-mutated.
 
         ## Args:
         `solution: Solution`: A solution object that needs to be evaluated.
@@ -148,7 +146,8 @@ class LHNS:
         `Solution`: An instance of `solution` input parameters, with updated `fitness`, `feedback`, and `error` members.
         """
         print("Evaluate....")
-        evaluated_solution = self.problem.evaluate(solution)
+        evaluated_solution = solution
+        evaluated_solution = self.problem.evaluate(evaluated_solution)
         if evaluated_solution:
             self._log_best_solution(evaluated_solution)
             return evaluated_solution
