@@ -59,13 +59,14 @@ class LHNS:
         self.best_solution = Solution()
 
     def _log_best_solution(self, next: Solution):
+        print(f"Self score: {self.best_solution.fitness}; new score: {next.fitness}")
         if abs(self.best_solution.fitness) == float("inf"):
             self.best_solution = next
             return
         if abs(next.fitness) != float("inf"):
             if self.minimisation and self.best_solution.fitness > next.fitness:
                 self.best_solution = next
-            elif not self.minimisation and self.best_solution.fitness < next.fitness:
+            elif (not self.minimisation) and self.best_solution.fitness < next.fitness:
                 self.best_solution = next
 
     def simulated_annealing(self, next_solution: Solution, iteration_number: int):

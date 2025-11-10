@@ -1,4 +1,7 @@
+import math
+import pytest
 import random
+from unittest.mock import patch
 
 from iohblade.problems.bbob_sboxcost import BBOB_SBOX
 from iohblade.solution import Solution
@@ -6,6 +9,11 @@ from iohblade.llm import Dummy_LLM
 
 from iohblade.methods.lhns.lhns import LHNS
 from iohblade.methods.lhns.taboo_table import TabooTable
+
+def test_lhns_init_refutes_bad_method_name():
+    with pytest.raises(ValueError):
+        LHNS(problem=BBOB_SBOX(), llm=Dummy_LLM(), method="Why")
+
 
 def test_simulated_annealing_rejects_unfit():
     test_cases = [
@@ -336,3 +344,153 @@ class FourierCandidate:
     tt.update_taboo_search_table(sol1, sol2)
     print(tt.taboo_table[0].code_feature)
     assert tt.taboo_table[0].code_feature != ''
+
+def test_log_best_solution():
+    # Maximisation
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+    a = Solution()
+    
+    old = lhns.best_solution
+    new = a
+
+    ## log_best_solutions blindly updates to latest solution when both new and old solutions have |fitness| = ∞
+    lhns._log_best_solution(a)
+    assert lhns.best_solution == new
+    assert lhns.best_solution.id != old
+
+    b = Solution()
+    b.set_scores(10, 'nada')
+
+    old = new
+    new = b
+
+    ## log_best_solutions selects solution with any score, over ∞ score.
+    lhns._log_best_solution(b)
+    assert lhns.best_solution == new
+    assert lhns.best_solution != old
+
+    ## log_best_solution selects better solution even when current solution has |fitness| < ∞.
+    c = Solution()
+    c.set_scores(15, 'nada')
+
+    old = b
+    new = c
+
+    lhns._log_best_solution(c)
+    assert lhns.best_solution == new
+    assert lhns.best_solution != old
+    
+    # Minimisation
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns', minimisation=True)
+    a = Solution()
+    
+    old = lhns.best_solution
+    new = a
+
+    ## log_best_solutions blindly updates to latest solution when both new and old solutions have |fitness| = ∞
+    lhns._log_best_solution(a)
+    assert lhns.best_solution == new
+    assert lhns.best_solution.id != old
+
+    b = Solution()
+    b.set_scores(10, 'nada')
+
+    old = new
+    new = b
+
+    ## log_best_solutions selects solution with any score, over ∞ score.
+    lhns._log_best_solution(b)
+    assert lhns.best_solution == new
+    assert lhns.best_solution != old
+
+    ## log_best_solution selects better solution even when current solution has |fitness| < ∞.
+    c = Solution()
+    c.set_scores(5, 'nada')
+
+    old = b
+    new = c
+
+    lhns._log_best_solution(c)
+    assert lhns.best_solution == new
+    assert lhns.best_solution != old
+    
+    # log_best_solution doesn't degenerate into wrong direction of optimality.
+    d = Solution()
+    d.set_scores(15, 'nada')
+
+    old = new
+    new = d
+
+    lhns._log_best_solution(c)
+    assert lhns.best_solution != new
+    assert lhns.best_solution == old
+
+
+def test_simulated_annealing_picks_optimal_solution():
+    # Maximisation
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
+
+    lhns.current_solution.set_scores(10)
+    next_solution = Solution()
+    next_solution.set_scores(15)
+
+    old_id = lhns.current_solution.id
+    new_id = next_solution.id
+
+    lhns.simulated_annealing(next_solution, 1)
+
+    assert new_id == lhns.current_solution.id
+    assert old_id != lhns.current_solution.id
+    
+    # Minimisation
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns', minimisation=True)
+
+    lhns.current_solution.set_scores(10)
+    next_solution = Solution()
+    next_solution.set_scores(5)
+
+    old_id = lhns.current_solution.id
+    new_id = next_solution.id
+
+    lhns.simulated_annealing(next_solution, 1)
+
+    assert new_id == lhns.current_solution.id
+    assert old_id != lhns.current_solution.id
+
+@patch("random.random", return_value=0.1)
+def test_simulated_annealing_accepts_with_probability(mock_rand):
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts')
+    lhns.current_solution.set_scores(10)
+
+    next_solution = Solution()
+    next_solution.set_scores(12)
+    current_solution = lhns.current_solution
+
+    iteration = 50
+    temperature = lhns.alpha * iteration / lhns.budget
+    delta = abs(next_solution.fitness - lhns.current_solution.fitness)
+    p = math.e ** (-1 * delta / temperature)
+
+    lhns.simulated_annealing(next_solution, iteration_number=iteration)
+    if 0.1 <= p:
+        assert lhns.current_solution == current_solution
+    else:
+        assert lhns.current_solution == next_solution
+    
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts', minimisation=True)
+    lhns.current_solution.set_scores(10)
+
+    next_solution = Solution()
+    next_solution.set_scores(6)
+    current_solution = lhns.current_solution
+
+    iteration = 50
+    temperature = lhns.alpha * iteration / lhns.budget
+    delta = abs(next_solution.fitness - lhns.current_solution.fitness)
+    p = math.e ** (-1 * delta / temperature)
+
+    lhns.simulated_annealing(next_solution, iteration_number=iteration)
+    if 0.1 <= p:
+        assert lhns.current_solution == current_solution
+    else:
+        assert lhns.current_solution == next_solution
