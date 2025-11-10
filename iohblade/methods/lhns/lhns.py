@@ -109,7 +109,7 @@ class LHNS:
             else:
                 delta = abs(next_solution.fitness - self.current_solution.fitness)
                 p = math.e ** (-1 * delta / temperature)
-                if random.random <= p:
+                if random.random() <= p:
                     self.current_solution = next_solution
 
     def initialise(self):

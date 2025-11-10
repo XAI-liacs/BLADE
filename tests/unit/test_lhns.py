@@ -1,19 +1,18 @@
 import math
 import pytest
 import random
-from unittest.mock import patch
 
 from iohblade.problems.bbob_sboxcost import BBOB_SBOX
 from iohblade.solution import Solution
-from iohblade.llm import Dummy_LLM
+from iohblade.llm import Dummy_LLM, NoCodeException
 
 from iohblade.methods.lhns.lhns import LHNS
+from iohblade.methods.lhns import lhns as lhns_module
 from iohblade.methods.lhns.taboo_table import TabooTable
 
 def test_lhns_init_refutes_bad_method_name():
     with pytest.raises(ValueError):
         LHNS(problem=BBOB_SBOX(), llm=Dummy_LLM(), method="Why")
-
 
 def test_simulated_annealing_rejects_unfit():
     test_cases = [
@@ -48,7 +47,6 @@ def test_simulated_annealing_rejects_unfit():
             case 2:
                 lhns.simulated_annealing(test["new"], 10)
                 assert lhns.current_solution.id == test["old"].id          #Always picks valid fitness over invalid fitness.
-
 
 def test_taboo_table_rejects_unfit_solutions():
     tt = TabooTable(size=10, minimisation=True)
@@ -109,7 +107,6 @@ def test_taboo_table_maintains_order():
         print(f"{tt.taboo_table[i].fitness:.2f}", end="\t")
         assert tt.taboo_table[i - 1].fitness > tt.taboo_table[i].fitness
         assert 10 < tt.taboo_table[i].fitness < 20
-
 
 def test_taboo_feature_works():
     sol1 = Solution(
@@ -425,7 +422,6 @@ def test_log_best_solution():
     assert lhns.best_solution != new
     assert lhns.best_solution == old
 
-
 def test_simulated_annealing_picks_optimal_solution():
     # Maximisation
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
@@ -457,13 +453,13 @@ def test_simulated_annealing_picks_optimal_solution():
     assert new_id == lhns.current_solution.id
     assert old_id != lhns.current_solution.id
 
-@patch("random.random", return_value=0.1)
-def test_simulated_annealing_accepts_with_probability(mock_rand):
-    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts')
-    lhns.current_solution.set_scores(10)
+def test_simulated_annealing_accepts_with_probability(monkeypatch):
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts', cooling_rate=2)
+    monkeypatch.setattr(lhns_module.random, "random", lambda: 0.1)
+    lhns.current_solution.set_scores(100)
 
     next_solution = Solution()
-    next_solution.set_scores(12)
+    next_solution.set_scores(98)
     current_solution = lhns.current_solution
 
     iteration = 50
@@ -473,16 +469,18 @@ def test_simulated_annealing_accepts_with_probability(mock_rand):
 
     lhns.simulated_annealing(next_solution, iteration_number=iteration)
     if 0.1 <= p:
-        assert lhns.current_solution == current_solution
+        assert lhns.current_solution != current_solution
     else:
         assert lhns.current_solution == next_solution
     
-    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts', minimisation=True)
-    lhns.current_solution.set_scores(10)
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts', minimisation=True, cooling_rate=2)
+    monkeypatch.setattr(lhns_module.random, "random", lambda: 0.1)
+    lhns.current_solution.set_scores(80)
 
     next_solution = Solution()
-    next_solution.set_scores(6)
+    next_solution.set_scores(82)
     current_solution = lhns.current_solution
+
 
     iteration = 50
     temperature = lhns.alpha * iteration / lhns.budget
@@ -491,6 +489,20 @@ def test_simulated_annealing_accepts_with_probability(mock_rand):
 
     lhns.simulated_annealing(next_solution, iteration_number=iteration)
     if 0.1 <= p:
-        assert lhns.current_solution == current_solution
+        assert lhns.current_solution != current_solution
     else:
         assert lhns.current_solution == next_solution
+
+def test_initialise_stops_execution_on_5x_failure(monkeypatch):
+    def failure_of_a_sample_solution():
+        raise TypeError
+
+    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts')
+    monkeypatch.setattr(Dummy_LLM, 'sample_solution', failure_of_a_sample_solution)
+
+    with pytest.raises(Exception):
+        lhns.initialise()
+    
+
+# def test_initialise_returns_intial_operation():
+#     assert 
