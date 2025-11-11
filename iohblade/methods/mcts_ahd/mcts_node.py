@@ -66,7 +66,7 @@ class MCTS_Node(Solution):
     def is_leaf(self):
         return len(self.children) == 0
 
-    def _better_than(self, a, b):
+    def _Q_compare(self, a, b):
         if a is None or b is None:
             return False
         return a > b
@@ -83,6 +83,6 @@ class MCTS_Node(Solution):
         """
         return (
             len(self.children) >= max_children
-            or any(self._better_than(child.Q, self.Q) for child in self.children)
+            or any(self._Q_compare(child.Q, self.Q) for child in self.children)
             or self.is_root
         )

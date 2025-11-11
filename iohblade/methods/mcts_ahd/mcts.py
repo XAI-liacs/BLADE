@@ -8,7 +8,8 @@ import traceback
 from .mcts_node import MCTS_Node
 from .prompts import MCTS_Prompts
 
-from iohblade import Solution, Problem, LLM
+from iohblade import Solution, Problem
+from iohblade.llm import LLM
 from iohblade.method import Method
 
 
@@ -37,7 +38,7 @@ class MCTS:
         lambda_0: float = 0.1,
         alpha: float = 0.5,
         maximisation: bool = True,
-        max_children: int = 5,
+        max_children: int = 10,
         expansion_factor: int = 2,  # Referred to as k in (https://arxiv.org/pdf/2501.08603) algorithm 1.
     ):
         """

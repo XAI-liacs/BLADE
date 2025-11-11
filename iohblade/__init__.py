@@ -6,7 +6,6 @@ import multiprocessing
 # that need them.
 from .problem import Problem, wrap_problem
 from .solution import Solution
-from .llm import LLM
 from .utils import (
     NoCodeException,
     OverBudgetException,
@@ -26,7 +25,6 @@ __all__ = [
     "OverBudgetException",
     "ThresholdReachedException",
     "TimeoutException",
-    "LLM",
     "aoc_logger",
     "budget_logger",
     "convert_to_serializable",

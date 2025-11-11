@@ -4,6 +4,7 @@ from iohblade.llm import LLM
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.methods.mcts_ahd import MCTS
+from iohblade.methods.mcts_ahd.mcts_node import MCTS_Node
 
 class DummyLLM(LLM):
     def __init__(self) -> None:
@@ -64,6 +65,78 @@ class DummyProblem(Problem):
     
     def to_dict(self):
         return super().to_dict()
+
+def test_mcts_node_computed_properties_are_correct():
+    r = MCTS_Node(Solution(), 'r')
+    
+    s1 = MCTS_Node(Solution(), 'i1')
+    s2 = MCTS_Node(Solution(), 'e1')
+    s3 = MCTS_Node(Solution(), 'e1')
+
+    t1 = MCTS_Node(Solution(), 'e2')
+    t2 = MCTS_Node(Solution(), 'm1')
+    t3 = MCTS_Node(Solution(), 'm2')
+    t4 = MCTS_Node(Solution(), 's1')
+
+    t5 = MCTS_Node(Solution(), 'e2')
+    t6 = MCTS_Node(Solution(), 'm1')
+    t7 = MCTS_Node(Solution(), 'm2')
+    t8 = MCTS_Node(Solution(), 's1')
+
+    t9 = MCTS_Node(Solution(), 'e2')
+    t10 = MCTS_Node(Solution(), 'm1')
+    t11 = MCTS_Node(Solution(), 'm2')
+    t12 = MCTS_Node(Solution(), 's1')
+
+    assert r.is_root == True
+    assert r.is_leaf == True
+
+    for next_layer in [s1, s2, s3]:
+        r.add_child(next_layer)
+    
+    assert s1.is_root == False
+    assert s2.is_root == False
+    assert s3.is_root == False
+    assert s1.is_leaf == True
+    assert s2.is_leaf == True
+    assert s3.is_leaf == True
+
+    for next_layer in [t1, t2, t3, t4]:
+        s1.add_child(next_layer)
+    
+    for next_layer in [t5, t6, t7, t8]:
+        s2.add_child(next_layer)
+    
+    for next_layer in [t9, t10, t11, t12]:
+        s3.add_child(next_layer)
+
+    assert r.is_root == True
+    assert r.is_leaf == False
+
+    for mid_node in [s1, s2, s3]:
+        assert mid_node.is_root == False
+        assert mid_node.is_leaf == False
+
+    for leaf_nodes in [t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12]:
+        assert leaf_nodes.is_root == False
+        assert leaf_nodes.is_leaf == True
+
+def test_mcts_node_adds_child_correctly():
+    a = MCTS_Node(Solution(), 'e1')
+    b = MCTS_Node(Solution(), 'e2')
+
+    a.add_child(b)
+    assert a.parent == None
+    assert b.parent == a
+    
+    assert a.parent_ids == None
+    assert b.parent_ids == a.id
+
+    assert a.children == [b]
+    assert b.children == []
+    
+
+
 
 def test_initialise_works_correctly():
     """
