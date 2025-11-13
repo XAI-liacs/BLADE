@@ -616,5 +616,57 @@ def test_selection_always_picks_better_child():
     _, selected = mcts_instance.selection()
     assert selected.Q == safe_min([node.Q for node in mcts_instance.root.children])
 
-def test():
-    pass
+def test_back_propagation_logs_rank_list_properly():
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    mcts_instance = MCTS(llm, problem, 100)
+    mcts_instance.initialise(10)
+    [mcts_instance.simulate(node) for node in mcts_instance.root.children]
+    [mcts_instance.backpropogate(node) for node in mcts_instance.root.children]
+    assert None not in mcts_instance.rank_list
+    assert len(mcts_instance.rank_list) == len(set(
+        [node.Q for node in mcts_instance.root.children if node.Q is not None]
+    ))
+
+def test_backpropagate_logs_e2_elements():
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    mcts_instance = MCTS(llm, problem, 100)
+    n1 = MCTS_Node(Solution(), 'i1', 1)
+    n2 = MCTS_Node(Solution(), 'e2', 2)
+    n3 = MCTS_Node(Solution(), 'm1', 3)
+    n4 = MCTS_Node(Solution(), 'm2', 4)
+
+    mcts_instance.root.add_child(n1)
+    n1.add_child(n2)
+    n2.add_child(n3)
+    n3.add_child(n4)
+
+    mcts_instance.simulate(n1)
+    mcts_instance.backpropogate(n1)
+    mcts_instance.simulate(n2)
+    mcts_instance.backpropogate(n2)
+    mcts_instance.simulate(n3)
+    mcts_instance.backpropogate(n3)
+    mcts_instance.simulate(n4)
+    mcts_instance.backpropogate(n4)
+
+    assert n1 in mcts_instance.e2_candidates
+    assert n2 in mcts_instance.e2_candidates
+    assert n3 not in mcts_instance.e2_candidates
+    assert n4 not in mcts_instance.e2_candidates
+    
+
+
+
+
+
+
+
+
+
+
+
+

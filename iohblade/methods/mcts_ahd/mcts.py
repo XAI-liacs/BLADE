@@ -488,6 +488,9 @@ class MCTS:
             print(f"\t\tFitness {child.fitness}")
             print(f"\t\tFeedback {child.feedback}")
 
+        for child in self.root.children:
+            self.backpropogate(child)
+
         iteration = 1
         while self.eval_remain > 0:
             print(f"Q_min = {self.q_min}, Q_max = {self.q_max}.")
