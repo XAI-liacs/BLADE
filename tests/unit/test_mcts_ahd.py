@@ -615,3 +615,6 @@ def test_selection_always_picks_better_child():
 
     _, selected = mcts_instance.selection()
     assert selected.Q == safe_min([node.Q for node in mcts_instance.root.children])
+
+def test():
+    pass
