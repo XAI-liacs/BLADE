@@ -78,7 +78,7 @@ class MCTS:
         solution = Solution()
         self.root = MCTS_Node(solution, approach="root")
         if not self.maximisation:
-            self.root.fitness = float('inf')
+            self.root.fitness = float("inf")
 
         self.best_solution: MCTS_Node = (
             self.root
