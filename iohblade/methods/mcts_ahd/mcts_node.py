@@ -66,10 +66,10 @@ class MCTS_Node(Solution):
     def is_leaf(self):
         return len(self.children) == 0
 
-    def _Q_compare(self, a, b):
-        if a is None or b is None:
+    def is_less_fit_than(self, other: MCTS_Node):
+        if self.Q is None or other.Q is None:
             return False
-        return a > b
+        return self.Q < other.Q
 
     def is_fully_expanded(self, max_children: int) -> bool:
         """
@@ -83,6 +83,6 @@ class MCTS_Node(Solution):
         """
         return (
             len(self.children) >= max_children
-            or any(self._Q_compare(child.Q, self.Q) for child in self.children)
+            or any(self.is_less_fit_than(child) for child in self.children)
             or self.is_root
         )

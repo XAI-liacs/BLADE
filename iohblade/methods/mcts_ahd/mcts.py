@@ -71,7 +71,7 @@ class MCTS:
         self.q_min = None
         self.q_max = None
         self.rank_list = []
-        self.e1_candidates: list[MCTS_Node] = []
+        self.e2_candidates: list[MCTS_Node] = []
         self.max_children = max_children
 
         # Instantiate the root node, with empty solution.
@@ -180,9 +180,7 @@ class MCTS:
             `ValueError`: If the `as_child_of_node` is root.
         """
         if as_child_of_node.is_root:
-            raise ValueError(
-                "M1 cannot be used to generate a node at depth 1 or below."
-            )
+            raise ValueError("M1 cannot be used to generate a node at depth [0, 1].")
         return [as_child_of_node]
 
     def _get_m2_nodes(self, as_child_of_node: MCTS_Node) -> list[MCTS_Node]:
@@ -199,9 +197,7 @@ class MCTS:
         try:
             return self._get_m1_nodes(as_child_of_node)
         except ValueError:
-            raise ValueError(
-                "M2 cannot be used to generate a node at depth 1 or below."
-            )
+            raise ValueError("M2 cannot be used to generate a node at depth [0, 1].")
 
     def _get_s1_nodes(self, as_child_of_node: MCTS_Node) -> list[MCTS_Node]:
         """
@@ -223,8 +219,6 @@ class MCTS:
             return_nodes.append(current)
             if current.parent:
                 current = current.parent
-            else:
-                break  # Extra safety.
         return return_nodes[::-1]  # Return trace from root to current node.
 
     def _get_e1_nodes(self, as_child_of_node: MCTS_Node) -> list[MCTS_Node]:
@@ -262,12 +256,14 @@ class MCTS:
         """
         if as_child_of_node.is_root:
             raise ValueError("E2 cannot be used to generate child of root node.")
-        relevant_nodes = random.sample(
-            self.e1_candidates, k=min(5, len(self.e1_candidates))
+        choice_pool = list(
+            set(
+                self.e2_candidates
+                + ([self.best_solution] if not self.best_solution.is_root else [])
+            )
         )
-        if not self.best_solution.is_root:
-            relevant_nodes.append(self.best_solution)
-        return []  # Never runs.
+        relevant_nodes = random.sample(choice_pool, k=min(5, len(choice_pool)))
+        return relevant_nodes
 
     # endregion
 
@@ -410,7 +406,7 @@ class MCTS:
                 )
             parent.visit += 1
             if node.depth in [1, 2]:
-                self.e1_candidates.append(node)
+                self.e2_candidates.append(node)
             parent = parent.parent
 
     # endregion

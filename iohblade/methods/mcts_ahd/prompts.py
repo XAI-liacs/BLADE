@@ -89,12 +89,6 @@ Has objective Value {item[1].fitness}.
                 )
             )
         )
-        # for i in range(len(indivs)):
-        #     # print(indivs[i]['algorithm'] + f"Objective value: {indivs[i]['objective']}")
-        #     prompt_indiv = prompt_indiv + "No." + str(
-        #         i + 1) + " algorithm's description, its corresponding code and its objective value are: \n" + \
-        #                    indivs[i]['algorithm'] + "\n" + indivs[i][
-        #                        'code'] + "\n" + f"Objective value: {indivs[i]['objective']}" + "\n\n"
 
         prompt_content = (
             "\n"
@@ -180,95 +174,3 @@ Please identify the main algorithm parameters and help me in creating a new algo
         )
         prompt_content += "\n".join([task_prompt, example_prompt, format_prompt])
         return prompt_content
-
-
-if __name__ == "__main__":
-    # Test functionality of the class functions.
-    from iohblade.benchmarks.geometry import HeilbronnConvexRegion
-    from iohblade import Solution
-
-    hb = HeilbronnConvexRegion(14, None)
-
-    sol1 = MCTS_Node(
-        Solution(
-            code="""
-def sum(a, b):
-    return a + b
-""",
-            name="sum",
-            generation=1,
-        ),
-        "test",
-    )
-    sol2 = MCTS_Node(
-        Solution(
-            code="""
-def diff(a, b):
-    return a - b
-""",
-            name="diff",
-            generation=1,
-        ),
-        "test",
-    )
-    sol3 = MCTS_Node(
-        Solution(
-            code="""
-def prod(a, b):
-    return a * b
-""",
-            name="prod",
-            generation=1,
-        ),
-        "test",
-    )
-
-    sol1.fitness = 12
-    sol2.fitness = -4
-    sol3.fitness = 32
-
-    print("=====================Prompt Post===========================")
-    print(MCTS_Prompts.get_desctiption_prompt(hb.task_prompt, sol1))
-
-    print("=====================Prompt Refine===========================")
-    print(MCTS_Prompts.get_prompt_refine(hb.task_prompt, sol1))
-
-    print("=====================Prompt I1===========================")
-    print(
-        MCTS_Prompts.get_prompt_i1(hb.task_prompt, hb.example_prompt, hb.format_prompt)
-    )
-
-    print("=====================Prompt E1===========================")
-    print(
-        MCTS_Prompts.get_prompt_e1(
-            hb.task_prompt, hb.example_prompt, hb.format_prompt, [sol1, sol2, sol3]
-        )
-    )
-
-    print("=====================Prompt E2===========================")
-    print(
-        MCTS_Prompts.get_prompt_e2(
-            hb.task_prompt, hb.example_prompt, hb.format_prompt, [sol1, sol2, sol3]
-        )
-    )
-
-    print("=====================Prompt M1===========================")
-    print(
-        MCTS_Prompts.get_prompt_m1(
-            hb.task_prompt, hb.example_prompt, hb.format_prompt, sol1
-        )
-    )
-
-    print("=====================Prompt M2===========================")
-    print(
-        MCTS_Prompts.get_prompt_m2(
-            hb.task_prompt, hb.example_prompt, hb.format_prompt, sol1
-        )
-    )
-
-    print("=====================Prompt S1===========================")
-    print(
-        MCTS_Prompts.get_prompt_s1(
-            hb.task_prompt, hb.example_prompt, hb.format_prompt, [sol1, sol2, sol3]
-        )
-    )

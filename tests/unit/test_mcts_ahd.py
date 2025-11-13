@@ -1,10 +1,29 @@
 import random
+import pytest
 
 from iohblade.llm import LLM
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.methods.mcts_ahd import MCTS
+from iohblade.methods.mcts_ahd.mcts import MCTS, safe_max, safe_min
 from iohblade.methods.mcts_ahd.mcts_node import MCTS_Node
+
+#region test helper functuins
+def test_safemax():
+    arr1 = [None, None, None, None]
+    assert safe_max(arr1) is None
+    arr1 += [10]
+    assert safe_max(arr1) == 10
+    arr1 += [15]
+    assert safe_max(arr1) == 15
+
+def test_safemin():
+    arr1 = [None, None, None, None]
+    assert safe_min(arr1) is None
+    arr1 += [10]
+    assert safe_min(arr1) == 10
+    arr1 += [8]
+    assert safe_min(arr1) == 8
+#endregion
 
 class DummyLLM(LLM):
     def __init__(self) -> None:
@@ -134,9 +153,49 @@ def test_mcts_node_adds_child_correctly():
 
     assert a.children == [b]
     assert b.children == []
-    
 
+def test_mcts_nodes_is_fully_expanded():
+    grandparent = MCTS_Node(Solution(), 'root')
+    parent = MCTS_Node(Solution(), 'i1')
 
+    child1 = MCTS_Node(Solution(), 'e2')
+    parent.Q = 10
+    child1.Q = 8
+    grandparent.add_child(parent)
+    parent.add_child(child1)
+    assert parent.is_fully_expanded(5) == False
+
+    child2 = MCTS_Node(Solution(), 's2')
+    child2.Q = 5
+    parent.add_child(child2)
+    assert parent.is_fully_expanded(5) == False
+
+    child3 = MCTS_Node(Solution(), 's2')
+    child3.Q = 4
+    parent.add_child(child3)
+    assert parent.is_fully_expanded(5) == False
+    assert parent.is_fully_expanded(3) == True
+    child3.Q = 12
+    assert parent.is_fully_expanded(5) == True
+    assert grandparent.is_fully_expanded(100) == True
+
+def test_Q_comparison():
+    a = MCTS_Node(Solution(), 'm1')
+    b = MCTS_Node(Solution(), 'm2')
+
+    # Node Q compare always return false, if either of the comaprison values evaluates to None.
+    assert a.is_less_fit_than(b) == False
+    assert b.is_less_fit_than(a) == False
+
+    a.Q = 10
+
+    assert a.is_less_fit_than(b) == False
+    assert b.is_less_fit_than(a) == False
+
+    b.Q = 15
+
+    assert a.is_less_fit_than(b) == True
+    assert b.is_less_fit_than(a) == False
 
 def test_initialise_works_correctly():
     """
@@ -161,7 +220,6 @@ def test_initialise_works_correctly():
             ValueError(f"Got approach {child.approach} which is not in ['i1', 'e1'], violates paper specification.")
     assert i1_count == 1
     assert e1_count == 4
-
 
 def test_expansion_generates_2kp2_nodes():
     """
@@ -213,3 +271,170 @@ def test_expansion_generates_2kp2_nodes():
         assert s1_nodes == 1
         assert e2_nodes == 1
 
+def test_get_node_raises_error_for_wrong_node_type():
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    mcts_instance = MCTS(llm, problem, 10)
+
+    with pytest.raises(ValueError):
+        mcts_instance._get_new_node('brew', [], 10)
+
+def test_method_crashes_when_llm_don_t_respond_5_times(monkeypatch):
+    counter = 0
+    def fake_sample_solution(message):
+        print(message)
+        nonlocal counter
+        counter += 1
+        print(counter)
+        raise Exception("Mock error.")
+    
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    monkeypatch.setattr(llm, 'sample_solution', fake_sample_solution)
+    mcts_instance = MCTS(llm, problem, 10)
+    with pytest.raises(Exception):
+        mcts_instance._get_new_node('i1', [], 1)
+
+    assert counter == 5
+
+def test_get_s1_nodes_returns_correct_trace():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    n1 = MCTS_Node(Solution(), 'i1', 1)
+    n2 = MCTS_Node(Solution(), 'e2', 2)
+    n3 = MCTS_Node(Solution(), 's1', 3)
+
+    nn1 = MCTS_Node(Solution(), 'e1', 1)
+    nn2 = MCTS_Node(Solution(), 'e2', 2)
+
+    mcts_instance.root.add_child(n1)
+    mcts_instance.root.add_child(nn1)
+    
+    n1.add_child(n2)
+    n1.add_child(nn2)
+
+    n2.add_child(n3)
+
+    trace = mcts_instance._get_s1_nodes(n3)
+
+    assert nn1 not in trace
+    assert nn2 not in trace
+
+    assert mcts_instance.root not in trace
+    assert trace == [n1, n2, n3]
+
+def test_get_e1_node_returns_siblings():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    i1 = MCTS_Node(Solution(), 'i1', 1)
+    e1 = MCTS_Node(Solution(), 'e1', 1)
+    e11 = MCTS_Node(Solution(), 'e1', 1)
+    e2 = MCTS_Node(Solution(), 'e2', 2)
+    mcts_instance.root.add_child(i1)
+    mcts_instance.root.add_child(e1)
+    mcts_instance.root.add_child(e11)
+    e1.add_child(e2)
+
+    relevant_nodes = mcts_instance._get_e1_nodes(mcts_instance.root)
+    assert i1 in relevant_nodes
+    assert e1 in relevant_nodes
+    assert e11 in relevant_nodes
+    assert e2 not in relevant_nodes
+
+import random
+
+def test_get_e2_nodes_returns_random_sample_from_best_solutions(monkeypatch):
+
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    n1 = MCTS_Node(Solution(), 'i1', 1)
+
+    mcts_instance.root.add_child(n1)
+    assert mcts_instance._get_e2_nodes(as_child_of_node=n1) == []
+
+    # Add candidates progressively
+    f1 = MCTS_Node(Solution(), 'e2', 2)
+    mcts_instance.e2_candidates.append(f1)
+    result = mcts_instance._get_e2_nodes(as_child_of_node=n1)
+    assert result == [f1]
+
+    f2 = MCTS_Node(Solution(), 's1', 2)
+    mcts_instance.e2_candidates.append(f2)
+    result = mcts_instance._get_e2_nodes(as_child_of_node=n1)
+    assert set(result) == {f1, f2}
+    assert len(result) == 2
+
+    f3 = MCTS_Node(Solution(), 'm1', 3)
+    mcts_instance.e2_candidates.append(f3)
+    result = mcts_instance._get_e2_nodes(as_child_of_node=n1)
+    assert set(result) <= {f1, f2, f3}
+    assert 1 <= len(result) <= 3
+
+    f4 = MCTS_Node(Solution(), 'm2', 4)
+    mcts_instance.e2_candidates.append(f4)
+    result = mcts_instance._get_e2_nodes(as_child_of_node=n1)
+    assert all(x in mcts_instance.e2_candidates for x in result)
+    assert len(result) <= 5  # sample up to 5
+
+    f5 = MCTS_Node(Solution(), 'm2', 2)
+    mcts_instance.e2_candidates.append(f5)
+
+    mcts_instance.best_solution = f5
+    result = mcts_instance._get_e2_nodes(as_child_of_node=n1)
+
+    # Verify all results are from the deduplicated candidate pool
+    expected_pool = list(dict.fromkeys(
+        mcts_instance.e2_candidates +
+        ([mcts_instance.best_solution] if not mcts_instance.best_solution.is_root else [])
+    ))
+
+    assert all(x in expected_pool for x in result)
+    assert len(result) <= min(5, len(expected_pool))
+    # Ensure no duplicate references
+    assert len(result) == len(set(map(id, result)))
+
+#region Test get node function raises appropriate errors:
+def test_m1_node_generator_raises_when_expected_parent_is_root():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    with pytest.raises(ValueError):
+        mcts_instance._get_m1_nodes(mcts_instance.root)
+
+def test_m2_node_generator_raises_when_expected_parent_is_root():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    with pytest.raises(ValueError):
+        mcts_instance._get_m2_nodes(mcts_instance.root)
+
+def test_s1_node_generator_raises_when_expected_parent_is_root():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    with pytest.raises(ValueError):
+        mcts_instance._get_s1_nodes(mcts_instance.root)
+
+def test_e1_node_generator_raises_when_not_used_to_generate_for_root():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    n1 = MCTS_Node(Solution(), 'e1', 1)
+    mcts_instance.root.add_child(n1)
+    with pytest.raises(ValueError):
+        mcts_instance._get_e1_nodes(n1)
+
+def test_e2_node_generator_raises_when_expected_parent_is_root():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    with pytest.raises(ValueError):
+        mcts_instance._get_e2_nodes(mcts_instance.root)
+
+
+#endregion
