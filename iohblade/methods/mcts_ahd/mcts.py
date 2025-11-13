@@ -77,6 +77,8 @@ class MCTS:
         # Instantiate the root node, with empty solution.
         solution = Solution()
         self.root = MCTS_Node(solution, approach="root")
+        if not self.maximisation:
+            self.root.fitness = float('inf')
 
         self.best_solution: MCTS_Node = (
             self.root
@@ -397,7 +399,7 @@ class MCTS:
             self.rank_list.sort()
 
         parent = node.parent
-        while parent:
+        while parent is not None:
             best_child_Q = safe_max(child.Q for child in parent.children)
             if parent.Q and best_child_Q:
                 parent.Q = (

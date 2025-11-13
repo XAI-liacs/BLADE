@@ -76,7 +76,16 @@ class RandomSearchMock:
         'doesn\'t use that info at all.'
 
 class DummyProblem(Problem):
+    def __init__(self, maximise: bool = True):
+        super().__init__()
+        self.count = 0
+        self.maximise = maximise
+
     def evaluate(self, solution):
+        self.count += 1
+        if self.count % 10 == 5:
+            solution.fitness = float('-inf') if self.maximise else float('inf')
+            return
         solution.fitness = random.random() * 100
     
     def test(self, solution):
@@ -178,6 +187,23 @@ def test_mcts_nodes_is_fully_expanded():
     child3.Q = 12
     assert parent.is_fully_expanded(5) == True
     assert grandparent.is_fully_expanded(100) == True
+
+def test_expansion_on_non_leaf_node_is_refuted():
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    mcts_instance = MCTS(llm, problem, 10)
+    # raise on root expansion. Only initialise is applicable on root.
+    with pytest.raises(ValueError):
+        mcts_instance.expansion(mcts_instance.root)
+    mcts_instance.initialise()
+    n1 = MCTS_Node(Solution(), 'e2', depth=2)
+    mcts_instance.root.children[0].add_child(n1)
+
+    #raises on non-leaf, non-root, only selection can expand on non leaf nodes.
+    with pytest.raises(ValueError):
+        child = mcts_instance.root.children[0]
+        mcts_instance.expansion(child)
 
 def test_Q_comparison():
     a = MCTS_Node(Solution(), 'm1')
@@ -345,8 +371,6 @@ def test_get_e1_node_returns_siblings():
     assert e11 in relevant_nodes
     assert e2 not in relevant_nodes
 
-import random
-
 def test_get_e2_nodes_returns_random_sample_from_best_solutions(monkeypatch):
 
     llm = DummyLLM()
@@ -436,5 +460,158 @@ def test_e2_node_generator_raises_when_expected_parent_is_root():
     with pytest.raises(ValueError):
         mcts_instance._get_e2_nodes(mcts_instance.root)
 
-
 #endregion
+
+def test_simulate_updates_eval_remaining():
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+
+    assert mcts_instance.eval_remain == 10
+
+    mcts_instance.initialise()
+    for (index, node) in enumerate(mcts_instance.root.children):
+        mcts_instance.simulate(node)
+        assert mcts_instance.eval_remain == 9 - index
+    
+def test_simulate_updates_Q_val_appropriately(monkeypatch):
+    llm = DummyLLM()
+    problem = DummyProblem()
+    mcts_instance = MCTS(llm, problem, 10)
+    mcts_instance.initialise()
+
+    def invalid_evaluator(node: MCTS_Node):
+        node.fitness = float('inf')
+
+    def invalid_evaluator_minus(node: MCTS_Node):
+        node.fitness = float('-inf')
+
+    monkeypatch.setattr(problem, 'evaluate', invalid_evaluator)
+    for node in mcts_instance.root.children:
+        mcts_instance.simulate(node)
+        assert node.fitness == float('inf')
+        assert node.Q is None
+    assert mcts_instance.q_max is None
+    assert mcts_instance.q_min is None
+    
+    mcts_instance = MCTS(llm, problem, 10)
+    monkeypatch.setattr(problem, 'evaluate', invalid_evaluator_minus)
+    mcts_instance.initialise()
+    for node in mcts_instance.root.children:
+        mcts_instance.simulate(node)
+        assert node.fitness == float('-inf')
+        assert node.Q is None
+    assert mcts_instance.q_max is None
+    assert mcts_instance.q_min is None
+
+def test_simulate_updates_best_fitness_values_correctly():
+    llm = DummyLLM()
+    problem = DummyProblem() # maximisation problem.
+
+    mcts_instance_maximisation = MCTS(llm, problem, 10)
+    mcts_instance_maximisation.initialise(10)
+    q_min = None
+    q_max = None
+    for node in mcts_instance_maximisation.root.children:
+        mcts_instance_maximisation.simulate(node)
+        q_min = safe_min([q_min, node.Q])
+        q_max = safe_max([q_max, node.Q])
+        assert q_min == mcts_instance_maximisation.q_min
+        assert q_max == mcts_instance_maximisation.q_max
+    assert mcts_instance_maximisation.best_solution.fitness == q_max
+    
+    llm = DummyLLM()
+    problem = DummyProblem(maximise=False) # Minimisation problem.
+
+    mcts_instance_minimisation  = MCTS(llm, problem, 10, maximisation=False)
+    mcts_instance_minimisation.initialise(10)
+    q_min = None
+    q_max = None
+    for node in mcts_instance_minimisation.root.children:
+        mcts_instance_minimisation.simulate(node)
+        q_min = safe_min([q_min, node.Q])
+        q_max = safe_max([q_max, node.Q])
+        print(f'\tNode(id:{node.id}, fitness:{node.fitness}, method:{node.approach})')
+        assert q_min == mcts_instance_minimisation.q_min
+        assert q_max == mcts_instance_minimisation.q_max
+    print(f"MCTS Best solution: Node(id:{mcts_instance_minimisation.best_solution.id}, fitness:{mcts_instance_minimisation.best_solution.fitness}, method:{mcts_instance_minimisation.best_solution.approach})")
+    assert mcts_instance_minimisation.best_solution.fitness == q_min
+
+def test_selection_exapnds_root_nodes(monkeypatch):
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    def is_never_fully_expanded(max_children: int):
+        return False
+    
+    mcts_instance = MCTS(llm, problem, 10)
+    mcts_instance.initialise()
+    for node in mcts_instance.root.children:
+        mcts_instance.simulate(node)
+    
+    monkeypatch.setattr(mcts_instance.root, 'is_fully_expanded', is_never_fully_expanded)
+
+    expanded_node, selected_node = mcts_instance.selection()
+    assert len(expanded_node) == 1
+    assert selected_node == mcts_instance.best_solution
+    assert expanded_node[0].parent == mcts_instance.root
+
+def test_selection_exapnds_non_root(monkeypatch):
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    def is_never_fully_expanded(max_children: int):
+        return False
+    
+    def is_always_fully_expanded(max_children: int):
+        return True
+    
+    mcts_instance = MCTS(llm, problem, 40)
+    n1 = MCTS_Node(Solution(), 'i1', 1)
+    mcts_instance.root.add_child(n1)
+
+    n2 = MCTS_Node(Solution(), 'm1', 2)
+    n1.add_child(n2)
+
+    n3 = MCTS_Node(Solution(), 'm2', 3)
+    n2.add_child(n3)
+
+    for node in [n1, n2, n3]:
+        mcts_instance.simulate(node)
+
+    mcts_instance.backpropogate(n3)
+
+    monkeypatch.setattr(mcts_instance.root, 'is_fully_expanded', is_always_fully_expanded)
+    monkeypatch.setattr(n1, 'is_fully_expanded', is_always_fully_expanded)
+    monkeypatch.setattr(n2, 'is_fully_expanded', is_never_fully_expanded)
+    monkeypatch.setattr(n3, 'is_fully_expanded', is_always_fully_expanded)
+
+    expanded, _ = mcts_instance.selection()
+
+    assert len(expanded) == 1
+    assert expanded[0].approach == 'e2'
+    assert expanded[0].parent == n2
+
+def test_selection_always_picks_better_child():
+    llm = DummyLLM()
+    problem = DummyProblem()
+
+    mcts_instance = MCTS(llm, problem, 10)
+    
+    mcts_instance.initialise(10)
+    
+    [mcts_instance.simulate(node) for node in mcts_instance.root.children]
+
+    _, selected = mcts_instance.selection()
+    assert selected.Q == safe_max([node.Q for node in mcts_instance.root.children])
+    
+    problem = DummyProblem(maximise=False)
+
+    mcts_instance = MCTS(llm, problem, 10, maximisation=False)
+    
+    mcts_instance.initialise(10)
+    
+    [mcts_instance.simulate(node) for node in mcts_instance.root.children]
+
+    _, selected = mcts_instance.selection()
+    assert selected.Q == safe_min([node.Q for node in mcts_instance.root.children])
