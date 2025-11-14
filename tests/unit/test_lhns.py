@@ -1,10 +1,12 @@
 import math
 import pytest
 import random
+from decimal import Decimal
 
 from iohblade.problems.bbob_sboxcost import BBOB_SBOX
 from iohblade.solution import Solution
 from iohblade.llm import Dummy_LLM, NoCodeException
+from iohblade.problem import Problem
 
 from iohblade.methods.lhns.lhns import LHNS
 from iohblade.methods.lhns import lhns as lhns_module
@@ -640,3 +642,116 @@ def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list
         print(index + 1, ":", line, "|")
     assert expected_output == output
 
+class DummyProblem(Problem):
+    def evaluate(self, solution: Solution):
+        fitness = random.random() * 80 + 9
+        solution.set_scores(fitness, f'Fitness {fitness}, best known 92.')
+        return solution
+    
+    def test(self, solution):
+        return self.evaluate(solution)
+    
+    def to_dict(self):
+        return super().to_dict()
+
+def test_mutate_lhns_vns_calls_methods_properly(monkeypatch):
+    
+    destruction_ratio = []
+    destroyed_code_arr = []
+    destruction_prompt = []
+    def fake_destroy_code(r, current):
+        destruction_ratio.append(r)
+        code = f'destroyed code r={r}'
+        destroyed_code_arr.append(code)
+        return code
+    
+    def fake_destruction_prompt(individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
+        proompt = f'destruction prompt with code {destroyed_code}.'
+        destruction_prompt.append(proompt)
+        return proompt
+
+
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'vns', budget=10)
+    monkeypatch.setattr(lhns_instance, 'get_destroyed_code', fake_destroy_code)
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_destroy_repair', fake_destruction_prompt)
+    _ = lhns_instance.run()
+    for index in range(lhns_instance.budget):
+        assert f'{destruction_ratio[index]:2}' == f'{0.1 * (1 + ((index + 1) % 10)):2}'
+        assert destroyed_code_arr[index] == f'destroyed code r={0.1 * (1 + ((index + 1) % 10))}'
+        assert destruction_prompt[index] == f'destruction prompt with code {destroyed_code_arr[index]}.'
+
+def test_lhns_vns_raises_after_5x_tries(monkeypatch):
+    counter = 0
+    def fake_sample_solution(message):
+        nonlocal counter
+        counter += 1
+        raise NoCodeException
+    
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'vns', budget=10)
+    monkeypatch.setattr(lhns_instance.llm, 'sample_solution', fake_sample_solution)
+
+    with pytest.raises(NoCodeException):
+        lhns_instance.mutate_lhns_vns(4)
+    assert counter == 5
+
+def test_mutate_lhns_ins_calls_methods_properly(monkeypatch):
+    
+    destruction_ratio = []
+    destroyed_code_arr = []
+    destruction_prompt = []
+    def fake_destroy_code(r, current):
+        destruction_ratio.append(r)
+        code = f'destroyed code r={r}'
+        destroyed_code_arr.append(code)
+        return code
+    
+    def fake_destruction_prompt(individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
+        proompt = f'destruction prompt with code {destroyed_code}.'
+        destruction_prompt.append(proompt)
+        return proompt
+    
+
+    def fake_initialisation_prompt():
+        destruction_ratio.append(None)
+        destroyed_code_arr.append(None)
+        destruction_prompt.append('hi')
+        return 'hi'
+
+
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'ils', budget=10)
+    monkeypatch.setattr(lhns_instance, 'get_destroyed_code', fake_destroy_code)
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_destroy_repair', fake_destruction_prompt)
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_i1', fake_initialisation_prompt)
+    _ = lhns_instance.run()
+
+    for index in range(lhns_instance.budget):
+        print(f"{index}| {destruction_ratio[index]} | {destruction_prompt[index]} | {destroyed_code_arr[index]} | {destruction_ratio[index]}")
+        if destruction_ratio[index] is not None:
+            assert destroyed_code_arr[index] == 'destroyed code r=0.5'
+            assert destruction_prompt[index] == 'destruction prompt with code destroyed code r=0.5.'
+        else:
+            assert destroyed_code_arr[index] is None
+            assert destruction_prompt[index] == 'hi'
+
+
+def test_lhns_ils_raises_after_5x_tries(monkeypatch):
+    counter = 0
+    def fake_sample_solution(message):
+        nonlocal counter
+        counter += 1
+        raise NoCodeException
+    
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'ils', budget=10)
+    monkeypatch.setattr(lhns_instance.llm, 'sample_solution', fake_sample_solution)
+
+    with pytest.raises(NoCodeException):
+        lhns_instance.mutate_lhns_vns(4)
+    assert counter == 5

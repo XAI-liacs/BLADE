@@ -356,10 +356,6 @@ class LHNS:
                 except Exception as e:
                     if i == 4:
                         raise e
-                    else:
-                        print(
-                            "mutate_lhns_ils: Failed to communicate with LLM, retrying..."
-                        )
         return current
 
     def run(self) -> Solution:
