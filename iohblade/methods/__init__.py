@@ -12,4 +12,12 @@ except Exception:  # pragma: no cover - optional dependency
     EoH = None
 
 
-__all__ = ["LLaMEA", "RandomSearch", "EoH", "funsearch", "ReEvo", "LHNS_Method", "MCTS_Method"]
+__all__ = [
+    "LLaMEA",
+    "RandomSearch",
+    "EoH",
+    "funsearch",
+    "ReEvo",
+    "LHNS_Method",
+    "MCTS_Method",
+]
