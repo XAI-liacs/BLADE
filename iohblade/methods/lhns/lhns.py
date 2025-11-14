@@ -324,15 +324,21 @@ class LHNS:
         if iteration_number % 10 == 9:
             destroyed_code = self.get_destroyed_code(0.5, current)
             taboo_element = self.taboo_table.get_distinct_entry(current)
-
+            destruction_count = len(current.code.split("\n")) - len(
+                destroyed_code.split("\n")
+            )
             if taboo_element:
-                taboo_search_prompt = self.prompt_generator.get_prompt_taboo_search(
+                prompt = self.prompt_generator.get_prompt_taboo_search(
                     current, destroyed_code, taboo_element
+                )
+            else:
+                prompt = self.prompt_generator.get_prompt_destroy_repair(
+                    current, destroyed_code, destruction_count
                 )
                 for i in range(5):
                     try:
                         new = self.llm.sample_solution(
-                            [{"role": "client", "content": taboo_search_prompt}]
+                            [{"role": "client", "content": prompt}]
                         )
                         return new
                     except Exception as e:

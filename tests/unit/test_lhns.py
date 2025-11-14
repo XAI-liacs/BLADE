@@ -10,7 +10,7 @@ from iohblade.problem import Problem
 
 from iohblade.methods.lhns.lhns import LHNS
 from iohblade.methods.lhns import lhns as lhns_module
-from iohblade.methods.lhns.taboo_table import TabooTable
+from iohblade.methods.lhns.taboo_table import TabooTable, TabooElement
 
 def test_lhns_init_refutes_bad_method_name():
     with pytest.raises(ValueError):
@@ -698,7 +698,7 @@ def test_lhns_vns_raises_after_5x_tries(monkeypatch):
         lhns_instance.mutate_lhns_vns(4)
     assert counter == 5
 
-def test_mutate_lhns_ins_calls_methods_properly(monkeypatch):
+def test_mutate_lhns_ils_calls_methods_properly(monkeypatch):
     
     destruction_ratio = []
     destroyed_code_arr = []
@@ -753,5 +753,87 @@ def test_lhns_ils_raises_after_5x_tries(monkeypatch):
     monkeypatch.setattr(lhns_instance.llm, 'sample_solution', fake_sample_solution)
 
     with pytest.raises(NoCodeException):
-        lhns_instance.mutate_lhns_vns(4)
+        lhns_instance.mutate_lhns_ils(4)
+    assert counter == 5
+
+def test_taboo_search_calls_functions_appripriately(monkeypatch):
+    destruction_ratio = []
+    destroyed_code_arr = []  # No padding.
+    taboo_elements = []      # padding.
+    prompt = []              # No padding.
+
+    def fake_destroy_code(r, current):
+        destruction_ratio.append(r)
+        code = f'destroyed code r={r}'
+        return code
+
+    def fake_destruction_prompt(individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
+        proompt = f'destruction prompt with code {destroyed_code}.'
+        destroyed_code_arr.append(proompt)
+        taboo_elements.append(None)
+        prompt.append(proompt)
+        return proompt
+
+    def fake_taboo_prompt(individual: Solution, destroyed_code: str, taboo_element) -> str:
+        proompt = f'taboo prompt with code {destroyed_code}. Taboo Element {taboo_element}'
+        destroyed_code_arr.append(destroyed_code)
+        taboo_elements.append(taboo_element)
+        prompt.append(proompt)
+        return proompt
+
+    def fake_get_distinct_entry(for_individual):
+        taboo_element = TabooElement('taboo desc', 'taboo_element', random.random(), ['feature.'])
+        return taboo_element
+
+    def fake_initialisation_prompt():
+        destruction_ratio.append(None)
+        destroyed_code_arr.append(None)
+        taboo_elements.append(None)
+        prompt.append('Init')
+        return 'Init'
+
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'ts', budget=10)
+
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_i1', fake_initialisation_prompt)
+    monkeypatch.setattr(lhns_instance, 'get_destroyed_code', fake_destroy_code)
+    monkeypatch.setattr(lhns_instance.taboo_table, 'get_distinct_entry', fake_get_distinct_entry)
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_taboo_search', fake_taboo_prompt)
+    monkeypatch.setattr(lhns_instance.prompt_generator, 'get_prompt_destroy_repair', fake_destruction_prompt)
+
+    _ = lhns_instance.run()
+
+    print(f"Length of destruction ratio={len(destruction_ratio)}, destroyed code={len(destroyed_code_arr)}, taboo elements={len(taboo_elements)}, prompt={len(prompt)}")
+    
+    for index in range(lhns_instance.budget):
+        print(f"{index}| {destruction_ratio[index]} | {prompt[index]} | {destroyed_code_arr[index]} | {taboo_elements[index]}")
+        if destruction_ratio[index] is not None:
+            assert destroyed_code_arr[index] == 'destruction prompt with code destroyed code r=0.5.' if index % 10 != 9 else 'taboo prompt with code destroyed code r=0.5.'
+        else:
+            # Initialisation step
+            assert destroyed_code_arr[index] is None
+            assert prompt[index] == 'Init'
+
+
+def test_lhns_ts_raises_after_5x_tries(monkeypatch):
+    counter = 0
+    def fake_sample_solution(message):
+        nonlocal counter
+        counter += 1
+        raise NoCodeException
+    
+    problem = DummyProblem()
+    llm = Dummy_LLM()
+    lhns_instance = LHNS(problem, llm, 'ts', budget=10)
+    monkeypatch.setattr(lhns_instance.llm, 'sample_solution', fake_sample_solution)
+
+    with pytest.raises(NoCodeException):
+        lhns_instance.mutate_lhns_ts(4)
+    
+    assert counter == 5
+    
+    counter = 0
+    with pytest.raises(NoCodeException):
+        lhns_instance.mutate_lhns_ts(9)
     assert counter == 5
