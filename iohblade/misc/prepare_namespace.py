@@ -48,7 +48,6 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
     allowed = allowed.copy()
     allowed = list(map(lambda x: x.split(">")[0], allowed))
     _add_builtins_into(allowed)
-    print(allowed)
     for imp in imports:
         if imp["type"] == "import":
             module = imp["module"]

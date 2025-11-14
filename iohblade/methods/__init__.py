@@ -2,6 +2,7 @@ from .funsearch import funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch
 from .lhns import LHNS_Method
+from .mcts_ahd import MCTS_Method
 
 try:
     from .eoh import EoH
@@ -10,4 +11,5 @@ except Exception:  # pragma: no cover - optional dependency
     ReEvo = None
     EoH = None
 
-__all__ = ["LLaMEA", "RandomSearch", "EoH", "funsearch", "ReEvo", "LHNS_Method"]
+
+__all__ = ["LLaMEA", "RandomSearch", "EoH", "funsearch", "ReEvo", "LHNS_Method", "MCTS_Method"]
