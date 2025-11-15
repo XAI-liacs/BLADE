@@ -9,10 +9,26 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-import anthropic
-import ollama
-import openai
-from google import genai
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -211,15 +227,18 @@ class LLM(ABC):
         Returns:
             ConfigSpace: Extracted configuration space object.
         """
-        if ConfigurationSpace == None:
-            raise Exception("Please install the ConfigSpace package first.")
+        try:
+            from ConfigSpace import ConfigurationSpace
+        except ImportError:
+            # ConfigSpace not installed, no HPO
+            return None
+
         pattern = r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         c = None
         for m in re.finditer(pattern, message, re.DOTALL | re.IGNORECASE):
             try:
-                from ConfigSpace import ConfigurationSpace
-
-                c = ConfigurationSpace(eval(m.group(1)))
+                cfg_dict = eval(m.group(1), {"__builtins__": {}})
+                c = ConfigurationSpace(cfg_dict)
             except Exception:
                 pass
         return c
