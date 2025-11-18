@@ -106,6 +106,12 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
    * - **ReEvo**
      - Large Language Models as Hyper-Heuristics with Reflective Evolution
      - `code <https://github.com/ai4co/LLM-as-HH>`_, `paper <https://arxiv.org/abs/2402.01145>`_
+   * - **LLM-Driven Heuristics Neighbourhood Search**
+     - LLM-Driven Neighborhood Search for Efficient Heuristic Design
+     - `code <https://github.com/Acquent0/LHNS>`_, `paper <https://ieeexplore.ieee.org/abstract/document/11043025>`_
+   * - **Monte Carlo Tree Search**
+     - Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design
+     - `code <https://github.com/zz1358m/MCTS-AHD-master/tree/main>`_, `paper <https://arxiv.org/abs/2501.08603>`_
 
 .. note::
    ``FunSearch`` is currently not yet integrated.
