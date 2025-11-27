@@ -129,8 +129,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     LLaMEA_fitness_clearing_b = LLaMEA(llm, budget=budget, name="FC-b", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, niching="clearing", distance_metric=fitness_behavioral_distance, adaptive_niche_radius=True)
     LLaMEA_MAP_elites_b = LLaMEA(llm, budget=budget, name="MAP-b", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, niching="map_elites", behavior_descriptor=behavior_descriptor, map_elites_bins=5)
 
-    #LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast, 
-    methods = [ LLaMEA_2, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
+    methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_sharing_ast, LLaMEA_fitness_clearing_ast, LLaMEA_MAP_elites_ast]
+    #methods = [ LLaMEA_2, LLaMEA_novelty_b, LLaMEA_fitness_sharing_b, LLaMEA_fitness_clearing_b, LLaMEA_MAP_elites_b]
 
     if DEBUG:
         methods = [LLaMEA_1, LLaMEA_novelty_ast, LLaMEA_fitness_clearing_b,LLaMEA_MAP_elites_ast, LLaMEA_MAP_elites_b]
@@ -145,7 +145,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     if DEBUG:
         logger = ExperimentLogger("results/SBOX_diversity-test")
     else:
-        logger = ExperimentLogger("results/SBOX_diversity")
+        logger = ExperimentLogger("results/SBOX_diversity_ast")
 
     problems = []
     if DEBUG:
