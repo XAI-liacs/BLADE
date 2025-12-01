@@ -25,6 +25,46 @@ import copy
 from .solution import Solution
 from .utils import TimeoutException
 
+import re
+
+
+def simplify_subprocess_error(stderr: str, solution=None):
+    """
+    Parse a Python traceback string and produce a concise error summary.
+    Optionally include the offending line of code from `solution.code`.
+    """
+    if not stderr:
+        return "Unknown error."
+
+    # Extract the last "File ..." block and the final exception line
+    # This regex catches the last occurrence of: File "...", line X, in Y
+    file_line_match = list(re.finditer(r'File ".*?", line (\d+), in (.+)', stderr))
+    exc_match = re.search(r"([A-Za-z_]+Error): (.*)", stderr.splitlines()[-1])
+
+    if not file_line_match or not exc_match:
+        # fallback: just return the final line
+        return stderr.strip()
+
+    last = file_line_match[-1]
+    line_no = int(last.group(1))
+    func = last.group(2).strip()
+    exc_type, exc_msg = exc_match.groups()
+
+    # Optional: fetch offending code line if available
+    code_line = ""
+    if solution and hasattr(solution, "code"):
+        code_lines = solution.code.splitlines()
+        if 1 <= line_no <= len(code_lines):
+            code_line = code_lines[line_no - 1].strip()
+
+    msg = f"In the code, line {line_no}, in {func}, the following error occurred:\n{exc_type}: {exc_msg}"
+    if code_line:
+        msg += f"\nOn line: {code_line}"
+    return msg
+
+
+"""Evaluate a solution in a dedicated virtual environment."""
+
 
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
@@ -33,14 +73,15 @@ def evaluate_in_subprocess(problem, conn, solution):
         python_bin = problem._python_bin
 
         problem_pickle = env_path / "problem.pkl"
-        solution_pickle = env_path / "solution.pkl"
+        solution_pickle = env_path / f"solution_{uuid.uuid4().hex}.pkl"
         result_pickle = (
             Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
         )
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
-        with open(problem_pickle, "wb") as f:
-            cloudpickle.dump(problem_copy, f)
+        if not os.path.exists(problem_pickle):
+            with open(problem_pickle, "wb") as f:
+                cloudpickle.dump(problem_copy, f)
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
@@ -76,13 +117,26 @@ def evaluate_in_subprocess(problem, conn, solution):
                 result = cloudpickle.load(f)
             conn.send({"result": result, "stdout": res.stdout, "stderr": res.stderr})
         except subprocess.CalledProcessError as e:
-            # Process returned non-zero exit code
-            conn.send({"error": e.stderr, "stdout": e.stdout, "stderr": e.stderr})
+            error_msg = simplify_subprocess_error(e.stderr, solution)
+            conn.send({"error": error_msg, "stdout": e.stdout, "stderr": e.stderr})
 
     except Exception as e:
+
+        tb = traceback.extract_tb(e.__traceback__)[-1]
+        line_no = tb.lineno
+        code_line = ""
+
+        code_lines = solution.code.split("\n")
+        if line_no and len(code_lines) >= line_no:
+            code_line = code_lines[line_no - 1]
+        error_type = type(e).__name__
+        error_msg = str(e)
+        error = f"{error_type}: {error_msg}.\n"
+        if code_lines:
+            error += f"On line {line_no}: {code_line}.\n"
         conn.send(
             {
-                "error": f"{e} stracktrace: {traceback.format_exc()}",
+                "error": error,
                 "stdout": "",
                 "stderr": "",
             }
@@ -205,7 +259,7 @@ class Problem(ABC):
                         err = result["error"]
                         solution.set_scores(
                             -np.inf,
-                            feedback=f"An error occurred: {err}.",
+                            feedback=err,
                             error=err,
                         )
                     else:
@@ -215,7 +269,7 @@ class Problem(ABC):
                         elif isinstance(data, str):
                             solution.set_scores(
                                 -np.inf,
-                                feedback=f"An error occurred: {data}.",
+                                feedback=data,
                                 error=data,
                             )
                         else:
@@ -227,7 +281,7 @@ class Problem(ABC):
                 elif isinstance(result, str):
                     solution.set_scores(
                         -np.inf,
-                        feedback=f"An error occurred: {result}.",
+                        feedback=result,
                         error=result,
                     )
                 else:
@@ -237,8 +291,8 @@ class Problem(ABC):
         except Exception as e:
             solution.set_scores(
                 -np.inf,
-                feedback=f"An exception occurred: {e}.",
-                error=f"An exception occurred: {e}.",
+                feedback=f"{e}",
+                error=f"{e}",
             )
         finally:
             try:
