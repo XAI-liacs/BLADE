@@ -40,7 +40,7 @@ iohblade-webapp = "iohblade.webapp:main"
 
 [dependency-groups]
 dev = [
-    "black>=23.11.0,<24",
+    "black>=25.11.0,<26",
     "isort>=5.12.0,<6",
     "pytest>=7.4.3,<8",
     "jupyter>=1.0.0,<2",
@@ -81,7 +81,6 @@ eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev 
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
-llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", branch = "feature/codex-add-novelty-search-mode-to-llamea"}
 
 [build-system]
 requires = ["hatchling"]
