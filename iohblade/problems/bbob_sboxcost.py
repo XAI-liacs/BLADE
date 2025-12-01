@@ -141,16 +141,16 @@ class BBOB_SBOX(Problem):
         ]
         self.problem_type = problem_type
         self.benchmark_name = (
-            "SBOX-COST test suite of noiseless box-constrained functions."
+            "test suite of noiseless box-constrained functions."
             if problem_type == ioh.ProblemClass.SBOX
-            else "BBOB test suite of noiseless functions."
+            else "test suite of noiseless functions."
         )
         box_constrained = (
             "box-constrained"
             if problem_type == ioh.ProblemClass.SBOX
             else "unconstrained"
         )
-        extra_prompt = f"The optimization algorithm should handle a wide range of tasks, which is evaluated on the {self.benchmark_name}"
+        extra_prompt = f"The optimization algorithm should handle a wide range of tasks, which is evaluated on a {self.benchmark_name}"
         if (
             self.specific_fid is not None
             and self.specific_fid < 25
