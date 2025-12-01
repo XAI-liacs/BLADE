@@ -18,6 +18,12 @@ BASE_DEPENDENCIES = [
     "numpy>=2",
     "cloudpickle>=3.1.0,<4",
     "joblib>=1.4.2,<2",
+    "pandas>=2",
+    "scipy>=1.10",
+    "scikit-learn>=1.4",
+    "openml>=0.14",
+    "ConfigSpace>=1.2",
+    "smac>=2.1",
 ]
 
 import copy
