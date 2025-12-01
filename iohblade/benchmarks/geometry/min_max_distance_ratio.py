@@ -50,7 +50,7 @@ Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best
 """
         )
         self.minimisation = True
-        self.dependencies += ["scipy"]
+        self.dependencies += ["scipy", "scikit-learn"]
 
         # Prompt declarations.....
 
