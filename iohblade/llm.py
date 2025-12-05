@@ -306,9 +306,7 @@ class Multi_LLM(LLM):
         for llm in self.llms:
             llm.set_logger(logger)
 
-    def _query(
-        self, session_messages, **kwargs
-    ):
+    def _query(self, session_messages, **kwargs):
         llm = self._pick_llm()
         return llm._query(session_messages, **kwargs)
 

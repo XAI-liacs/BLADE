@@ -27,6 +27,7 @@ from .utils import TimeoutException
 
 import re
 
+
 def simplify_subprocess_error(stderr: str, solution=None):
     """
     Parse a Python traceback string and produce a concise error summary.
@@ -120,7 +121,6 @@ def evaluate_in_subprocess(problem, conn, solution):
             conn.send({"error": error_msg, "stdout": e.stdout, "stderr": e.stderr})
 
     except Exception as e:
-
         tb = traceback.extract_tb(e.__traceback__)[-1]
         line_no = tb.lineno
         code_line = ""
