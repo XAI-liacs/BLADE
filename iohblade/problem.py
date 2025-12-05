@@ -38,7 +38,7 @@ def simplify_subprocess_error(stderr: str, solution=None):
     # Extract the last "File ..." block and the final exception line
     # This regex catches the last occurrence of: File "...", line X, in Y
     file_line_match = list(re.finditer(r'File ".*?", line (\d+), in (.+)', stderr))
-    exc_match = re.search(r'([A-Za-z_]+Error): (.*)', stderr.splitlines()[-1])
+    exc_match = re.search(r"([A-Za-z_]+Error): (.*)", stderr.splitlines()[-1])
 
     if not file_line_match or not exc_match:
         # fallback: just return the final line
@@ -61,7 +61,9 @@ def simplify_subprocess_error(stderr: str, solution=None):
         msg += f"\nOn line: {code_line}"
     return msg
 
+
 """Evaluate a solution in a dedicated virtual environment."""
+
 
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
