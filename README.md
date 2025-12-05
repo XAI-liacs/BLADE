@@ -71,6 +71,8 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **EoH** | Evolution of Heuristics         | [code](https://github.com/FeiLiu36/EoH) [paper](https://arxiv.org/abs/2401.02051) |
 | **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
+| **LLM-Driven Heuristics Neighbourhood Search** | LLM-Driven Neighborhood Search for Efficient Heuristic Design | [code](https://github.com/Acquent0/LHNS) [paper](https://ieeexplore.ieee.org/abstract/document/11043025) |
+| **Monte Carlo Tree Search** | Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design | [code](https://github.com/zz1358m/MCTS-AHD-master/) [paper](https://arxiv.org/abs/2501.08603) |
 
 > Note, FunSearch is currently not yet integrated.
 

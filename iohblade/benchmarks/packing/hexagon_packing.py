@@ -30,7 +30,6 @@ class HexagonPacking(PackingBase, Problem):
         PackingBase.__init__(self, name=task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name)
         self.n_hex = int(n_hex)
-
         print(
             f"""
 --------------------------------------------------------------------------------------------------------------------
