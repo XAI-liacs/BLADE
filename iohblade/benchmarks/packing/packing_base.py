@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 
 class PackingBase:
@@ -10,8 +10,9 @@ class PackingBase:
       - Radii must be positive.
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, best_solution: list[Any]|None):
         self.task_name = name
+        self.best_solution = best_solution
 
     ## Prompt helpers:
     def make_task_prompt(self, headline: str, contract: str, objective: str) -> str:
@@ -37,9 +38,9 @@ class PackingBase:
     - Hexagon must lie fully inside outer regular hexagon, with side s, and theta 0.
     - Each hexagons are assumed to be regular, with side 1.
 - Objective is to minimise s; the side of outer hexagon.
+    - The tolerance for evaluation in given by {tolerance}.
 """
 
-    # - The tolerance for evaluation in given by {tolerance}.
 
     def make_hexagon_example_prompt(self, class_name: str, n_hexagon: int) -> str:
         best_known_initialiser = f"""
@@ -103,6 +104,7 @@ return np.array(pts, dtype=float)
         # optimised for better results.
         self.n_circles = int(n_circles)
 """
+        hint_string = "\n\t".join(hint.split("\n"))
 
         return f"""
 
@@ -111,7 +113,7 @@ class {class_name}:
     {best_known_initialiser}
 
     def __call__(self):
-        {"\n\t".join(hint.split("\n"))}
+        {hint_string}
 ```
 """
 

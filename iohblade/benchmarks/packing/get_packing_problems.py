@@ -123,7 +123,8 @@ best_rectangle_packing_4 = [
 
 def get_hexagon_packing_problems(get_best: bool) -> list[HexagonPacking]:
     """
-    `get_x_problems` returns the whole set of said benchmark category. Here it returns Hexagon Packing benchmarks, as an array.
+    `get_x_problems` returns the whole set of said benchmark category. Here it returns Hexagon Packing benchmarks, as an array with array[0] = Hexagonal 
+    Packing 11 and array[1] as Hexagonal Packing 13.
 
     Args:
         get_best: Try and initialise search algorithm with best known results.

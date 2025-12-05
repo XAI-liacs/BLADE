@@ -53,7 +53,8 @@ Instantiated Heibronn Convex Region Problem with number of points: {self.n_point
         self.dependencies += ["scipy", "shapely"]
         allowed = self.dependencies.copy()
         _add_builtins_into(allowed)
-
+        allowed_list = "\n    - ".join(allowed)
+        
         self.task_prompt = f"""
 Write a python class with function `__call__`, that generate a solution for the Heilbronn on a unit-area convex region
 - The `__call__` method must return n points of type ndarray (n,2).
@@ -61,7 +62,7 @@ Write a python class with function `__call__`, that generate a solution for the 
 - The solution is scored on the area of smallest triangle formed by picking 3 of the n points, after rescaling.
 - The optimisation goal is to maximise the score.
 - The environment only provides access to the libraries:
-    - {"\n    - ".join(allowed)}
+    - {allowed_list}
 """
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
