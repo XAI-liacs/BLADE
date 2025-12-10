@@ -4,58 +4,74 @@ Run AutoML experiments on OpenML tasks using LLaMEA with an Ollama-backed LLM.
 - Loads an OpenML suite (classification by default) with optional filters.
 - Supports sharding across multiple packets of tasks via --num-shards/--shard.
 - Executes each task in its own process to isolate state and prevent nested parallelism.
-- Configurable LLM with --model/--temperature and OLLAMA_URL env var; results root via BLADE_RESULTS_DIR.
+- Ollama is assumed to run on localhost; you can override the port with OLLAMA_URL,
+  e.g. OLLAMA_URL=http://127.0.0.1:11435.
+- Results root via BLADE_RESULTS_DIR (default: ./results).
 - Caches OpenML data under <RESULTS_ROOT>/openml_cache and writes logs/results under
   <RESULTS_ROOT>/results/automl-openml/<stamp>/<problem>.
-- Caps math-library threads to 1 inside child processes to avoid thread storms.
-- Prints progress and continues on failures so long runs aren’t interrupted.
+
+- Example:
+    export BLADE_RESULTS_DIR=/path/to/results
+    export OLLAMA_URL=http://127.0.0.1:11434
+    python examples/run-automl.py --suite amlb-classification-all --limit 4 --budget 20 --model qwen2.5-coder:32b
 """
 
-import os, sys, warnings, argparse, datetime
+import os
+import sys
+import warnings
+import argparse
+import datetime
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import openml
 from pathlib import Path
+from urllib.parse import urlparse
+import openml
 
-warnings.filterwarnings("ignore")
+from iohblade.problems.automl import AutoML
+from iohblade.loggers import ExperimentLogger
+from iohblade.experiment import Experiment
+from iohblade.llm import Ollama_LLM
+from iohblade.methods import LLaMEA
 
-# keep import path
+# import path so we can run this from the repo root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-from iohblade.problems import AutoML
+warnings.filterwarnings("ignore")
 
 RESULTS_ROOT = os.getenv("BLADE_RESULTS_DIR", str((Path.cwd() / "results").resolve()))
 
 
-def run_one_task(tid, results_root, model, ollama_url, temperature, budget, stamp):
+def run_one_task(tid, results_root, model, ollama_url, budget, stamp):
     """
     Run a single OpenML task in its own process.
     """
 
-    import os, warnings, openml
-    from iohblade.experiment import Experiment
-    from iohblade.llm import Ollama_LLM
-    from iohblade.methods import LLaMEA
-    from iohblade.loggers import ExperimentLogger
+    import os
+    import warnings
+    import openml
 
     warnings.filterwarnings("ignore")
 
-    # Keep math libs single-threaded to avoid per process thread oversubscription.
+    # Keep math libs single-threaded in each worker to avoid thread storms.
     os.environ["OMP_NUM_THREADS"] = "1"
     os.environ["MKL_NUM_THREADS"] = "1"
     os.environ["OPENBLAS_NUM_THREADS"] = "1"
     os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
+    # OpenML cache lives under the shared results root
     openml.config.set_root_cache_directory(os.path.join(results_root, "openml_cache"))
 
+    # Problem / logging directory
     prob = AutoML(openml_task_id=tid, name=f"AutoML-OpenML-{tid}")
     prob_dir = os.path.join(results_root, "results", "automl-openml", stamp, prob.name)
     os.makedirs(prob_dir, exist_ok=True)
     logger = ExperimentLogger(prob_dir)
 
+    # Derive port from OLLAMA_URL (host is assumed local)
+    parsed = urlparse(ollama_url)
+    port = parsed.port or 11434
+
     llm = Ollama_LLM(
         model=model,
-        base_url=ollama_url,
-        temperature=temperature,
+        port=port,
     )
 
     mutation_prompts = [
@@ -67,16 +83,12 @@ def run_one_task(tid, results_root, model, ollama_url, temperature, budget, stam
     method = LLaMEA(
         llm,
         budget=budget,
-        experiment_name="LLaMEA",
+        name="LLaMEA",
         mutation_prompts=mutation_prompts,
         n_parents=4,
         n_offspring=4,
         elitism=True,
-        task_prompt=prob.task_prompt,
-        example_prompt=prob.example_prompt,
-        output_format_prompt=prob.format_prompt,
         HPO=True,
-        max_workers=1,
         parallel_backend="threading",
     )
 
@@ -129,11 +141,16 @@ if __name__ == "__main__":
         "--shard", type=int, default=0, help="Which shard to run (0-based)."
     )
     parser.add_argument(
-        "--model", default="qwen2.5-coder:32b", help="Ollama model name."
+        "--model",
+        default="qwen2.5-coder:32b",
+        help="Ollama model name (as seen in `ollama list`).",
     )
-    parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--budget", type=int, default=100)
-    parser.add_argument("--suite", default="amlb-classification-all")
+    parser.add_argument(
+        "--suite",
+        default="amlb-classification-all",
+        help="OpenML suite ID or alias, e.g. 'amlb-classification-all'.",
+    )
     parser.add_argument(
         "--skip",
         type=str,
@@ -158,17 +175,19 @@ if __name__ == "__main__":
     else:
         stamp = args.stamp
 
-    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11435")
+    OLLAMA_URL = os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
     os.makedirs(RESULTS_ROOT, exist_ok=True)
+
     # openml_cache includes info about the datasets and tasks
     openml.config.set_root_cache_directory(os.path.join(RESULTS_ROOT, "openml_cache"))
 
     base_dir = os.path.join(RESULTS_ROOT, "results", "automl-openml", stamp)
     os.makedirs(base_dir, exist_ok=True)
 
-    # Load tasks
+    # Load tasks from OpenML suite
     clf_suite = openml.study.get_suite(args.suite)
     all_task_ids = clf_suite.tasks
+
     if args.skip:
         skip_ids = {int(x) for x in args.skip.split(",") if x.strip()}
         all_task_ids = [t for t in all_task_ids if t not in skip_ids]
@@ -177,12 +196,17 @@ if __name__ == "__main__":
 
     # Shard the task list (for multi-tmux splits)
     task_ids = shard_list(all_task_ids, args.num_shards, args.shard)
+    if not task_ids:
+        print("No tasks to run for this shard (empty task list after filtering/sharding).")
+        raise SystemExit(0)
+    
     print(
         f"Total tasks in suite: {len(all_task_ids)} | "
         f"Running shard {args.shard}/{args.num_shards} -> {len(task_ids)} tasks",
         flush=True,
     )
     print("Task IDs in this shard:", ",".join(map(str, task_ids)), flush=True)
+
     if args.list_tasks:
         raise SystemExit(0)
 
@@ -199,7 +223,6 @@ if __name__ == "__main__":
                 RESULTS_ROOT,
                 args.model,
                 OLLAMA_URL,
-                args.temperature,
                 args.budget,
                 stamp,
             ): tid
@@ -210,17 +233,9 @@ if __name__ == "__main__":
             try:
                 fut.result()
                 completed += 1
-                print(f"[{completed}/{len(task_ids)}] Task {tid} finished.", flush=True)
+                print(
+                    f"[{completed}/{len(task_ids)}] Task {tid} finished.",
+                    flush=True,
+                )
             except Exception as e:
                 print(f"[ERROR] Task {tid} failed: {e}", flush=True)
-
-    # for llm in [llm1]:
-    #     LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=1, n_offspring=1, elitism=True)
-    #     #ReEvo_method = ReEvo(llm, budget=budget, name="ReEvo", output_path="results/automl-breast-cancer", pop_size=2, init_pop_size=4)
-    #     #EoH_method = EoH(llm, budget=budget, name="EoH", output_path="results/automl-breast-cancer")
-    #     methods = [LLaMEA_method] #EoH_method, ReEvo_method,
-    #     logger = ExperimentLogger("results/automl-breast-cancer-new")
-    #     problems = [AutoML()]
-    #     experiment = Experiment(methods=methods, problems=problems, runs=1, show_stdout=True, exp_logger=logger, budget=budget, n_jobs=3) #normal run
-
-    #     experiment() #run the experiment
