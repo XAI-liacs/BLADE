@@ -21,11 +21,10 @@ BASE_DEPENDENCIES = [
 ]
 
 import copy
+import re
 
 from .solution import Solution
 from .utils import TimeoutException
-
-import re
 
 
 def simplify_subprocess_error(stderr: str, solution=None):
@@ -68,6 +67,7 @@ def simplify_subprocess_error(stderr: str, solution=None):
 
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
+    proc = None
     try:
         env_path = problem._env_path
         python_bin = problem._python_bin
@@ -105,20 +105,35 @@ def evaluate_in_subprocess(problem, conn, solution):
         repo_root = Path(__file__).resolve().parents[1]
         env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
 
+        proc = subprocess.Popen(
+            [str(python_bin), str(script_path)],
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
         try:
-            res = subprocess.run(
-                [str(python_bin), str(script_path)],
-                check=True,
-                env=env,
-                capture_output=True,
-                text=True,
+            stdout, stderr = proc.communicate(timeout=problem.eval_timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            stdout, stderr = proc.communicate()
+            conn.send(
+                {
+                    "error": f"Evaluation timed out after {problem.eval_timeout} seconds.",
+                    "stdout": stdout,
+                    "stderr": stderr,
+                }
             )
-            with open(result_pickle, "rb") as f:
-                result = cloudpickle.load(f)
-            conn.send({"result": result, "stdout": res.stdout, "stderr": res.stderr})
-        except subprocess.CalledProcessError as e:
-            error_msg = simplify_subprocess_error(e.stderr, solution)
-            conn.send({"error": error_msg, "stdout": e.stdout, "stderr": e.stderr})
+            return
+
+        if proc.returncode != 0:
+            error_msg = simplify_subprocess_error(stderr, solution)
+            conn.send({"error": error_msg, "stdout": stdout, "stderr": stderr})
+            return
+
+        with open(result_pickle, "rb") as f:
+            result = cloudpickle.load(f)
+        conn.send({"result": result, "stdout": stdout, "stderr": stderr})
 
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)[-1]
@@ -141,6 +156,9 @@ def evaluate_in_subprocess(problem, conn, solution):
             }
         )
     finally:
+        if proc and proc.poll() is None:
+            proc.kill()
+            proc.communicate()
         conn.close()
 
 
@@ -233,6 +251,9 @@ class Problem(ABC):
         stderr = ""
         self._last_stdout = ""
         self._last_stderr = ""
+        process: multiprocessing.Process | None = None
+        parent_conn = None
+        child_conn = None
         try:
             self._ensure_env()
             (
@@ -243,7 +264,7 @@ class Problem(ABC):
                 target=evaluate_in_subprocess, args=(self, child_conn, solution)
             )
             process.start()
-            process.join(timeout=self.eval_timeout)
+            process.join(timeout=self.eval_timeout + 1)
 
             if process.is_alive():
                 raise TimeoutException(
@@ -294,11 +315,14 @@ class Problem(ABC):
                 error=f"{e}",
             )
         finally:
-            try:
-                process.terminate()
+            if process is not None:
+                if process.is_alive():
+                    process.kill()
                 process.join()
-            except Exception:
-                pass
+            if parent_conn is not None:
+                parent_conn.close()
+            if child_conn is not None:
+                child_conn.close()
 
         self._last_stdout = stdout
         self._last_stderr = stderr
