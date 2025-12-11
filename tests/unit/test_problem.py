@@ -1,3 +1,4 @@
+import platform
 import subprocess
 import time
 from unittest.mock import MagicMock
@@ -78,8 +79,15 @@ def test_problem_timeout():
 
 
 def _active_run_eval_processes():
-    ps_output = subprocess.check_output(["ps", "-eo", "pid,cmd"], text=True)
-    return [line for line in ps_output.splitlines() if "run_eval.py" in line]
+    try:
+        if platform.system() == "Windows":
+            output = subprocess.check_output(["tasklist"], text=True)
+        else:
+            output = subprocess.check_output(["ps", "-eo", "pid,cmd"], text=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return []
+
+    return [line for line in output.splitlines() if "run_eval.py" in line]
 
 
 def test_timeout_cleans_child_processes():
