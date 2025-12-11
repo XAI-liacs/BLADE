@@ -264,7 +264,9 @@ class Problem(ABC):
                 target=evaluate_in_subprocess, args=(self, child_conn, solution)
             )
             process.start()
-            process.join(timeout=self.eval_timeout + 60) # We allow 1 minute for setting up the environment.
+            process.join(
+                timeout=self.eval_timeout + 60
+            )  # We allow 1 minute for setting up the environment.
 
             if process.is_alive():
                 raise TimeoutException(
