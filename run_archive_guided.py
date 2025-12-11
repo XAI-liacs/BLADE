@@ -84,7 +84,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     #llm_llama = Ollama_LLM("llama3.2:3b")
 
     #ai_model = "gemini-2.0-flash"
-    #llm1 = Gemini_LLM(api_key_google, "gemini-2.5-flash")
+    #llm2 = Gemini_LLM(api_key_google, "gemini-2.5-flash")
     llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
     #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
@@ -92,7 +92,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     DEBUG = False
     if DEBUG:
-        budget = 10
+        budget = 24
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
@@ -104,7 +104,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
     LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
     
-    methods = [LLaMEA_1, LLaMEA_2]
+    methods = [LLaMEA_2] #LLaMEA_1, 
 
     # List containing function IDs we consider
     training_fids = [1,2,3,4,5]
@@ -116,7 +116,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     if DEBUG:
         logger = ExperimentLogger("results/BBOB_guided_debug")
     else:
-        logger = ExperimentLogger("results/BBOB_guided")
+        logger = ExperimentLogger("results/BBOB_guided2")
 
     problems = []
     if DEBUG:

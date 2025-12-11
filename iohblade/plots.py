@@ -165,7 +165,7 @@ def plot_experiment_CEG(
                 plot_code_evolution_graphs(
                     run_data,
                     logger.dirname,
-                    plot_features=["total_token_count"],
+                    plot_features=[metric],
                     save=False,
                     ax=ax,
                 )
@@ -187,6 +187,13 @@ def plot_experiment_CEG(
             plt.show()
         plt.close()
 
+
+# Helper function for key normalization to solve the mismatch issue
+def normalize_key(key):
+    """Converts any feature key to a standardized format (e.g., 'mean_complexity' -> 'mean complexity')."""
+    key = str(key).lower()
+    key = key.replace('_', ' ')
+    return ' '.join(key.split()).strip()
 
 def plot_code_evolution_graphs(
     run_data, expfolder=None, plot_features=None, save=True, ax=None
@@ -252,18 +259,20 @@ def plot_code_evolution_graphs(
     features_scaled = scaler.fit_transform(features)
 
     # Perform PCA and t-SNE for dimensionality reduction
-    pca = PCA(n_components=1)
-    pca_projection = pca.fit_transform(features_scaled)
-    data["pca"] = pca_projection[:, 0]
+    if "pca" in plot_features:
+        pca = PCA(n_components=1)
+        pca_projection = pca.fit_transform(features_scaled)
+        data["pca"] = pca_projection[:, 0]
 
-    try:
-        tsne = TSNE(n_components=1, random_state=42)
-        tsne_projection = tsne.fit_transform(features_scaled)
-    except Exception:
-        # TNSE did not work, probably too small data, just use pca
-        tsne_projection = pca_projection
+    if "tsne" in plot_features:
+        try:
+            tsne = TSNE(n_components=1, random_state=42)
+            tsne_projection = tsne.fit_transform(features_scaled)
+        except Exception:
+            # TNSE did not work, probably too small data, just use pca
+            tsne_projection = pca_projection
 
-    data["tsne"] = tsne_projection[:, 0]
+        data["tsne"] = tsne_projection[:, 0]
 
     # Convert parent IDs from string to list
     data["parent_ids"] = data["parent_ids"].apply(
@@ -280,20 +289,53 @@ def plot_code_evolution_graphs(
     no_axis = False
     if ax is None:
         no_axis = True
+
+    # Calculate max fitness for scaling the marker colors
+    max_fitness = data["fitness"].max()
+    if max_fitness == 0:
+        max_fitness = 1.0 # Avoid division by zero
+
     for x_data in plot_features:
         if no_axis:
             fig, ax = plt.subplots(figsize=(8, 5))
+
+        # 1. Determine the normalized feature name being plotted for comparison
+        normalized_x_data = normalize_key(x_data)
 
         for _, row in data.iterrows():
             for parent_id in row["parent_ids"]:
                 if parent_id in data["id"].values:
                     parent_row = data[data["id"] == parent_id].iloc[0]
+
+                    plot_marker = "-o"
+                    # 2. Determine edge color based on archive feature
+                    if "archive_feature" in row:
+                        normalized_archive_feature = normalize_key(row["archive_feature"])
+                        edge_color = "gray" # Default color
+                        if normalized_archive_feature == normalized_x_data:
+                            if row["archive_direction"] == "increase":
+                                edge_color = "green"
+                            elif row["archive_direction"] == "decrease":
+                                edge_color = "red"
+
+                        # Plot the line (edge)
+                        ax.plot(
+                            [parent_row["id"], row["id"]],
+                            [parent_row[x_data], row[x_data]],
+                            "-", # Line only
+                            color=edge_color,
+                            alpha=0.7,
+                            linewidth=1.5,
+                            zorder=1,
+                        )
+                        plot_marker = "o"  # Only plot points separately below
+
                     ax.plot(
                         [parent_row["id"], row["id"]],
                         [parent_row[x_data], row[x_data]],
-                        "-o",
+                        plot_marker,
                         markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
+                        color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
                 else:
                     ax.plot(
@@ -301,7 +343,7 @@ def plot_code_evolution_graphs(
                         row[x_data],
                         "o",
                         markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
+                        color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
 
         ax.set_xlabel("Evaluation")
