@@ -10,63 +10,6 @@ import os
 from iohblade.utils import code_compare
 import lizard
 
-def analyse_complexity(solution):
-    """
-    Analyzes the solution complexity of a Python code snippet using the lizard library.
-
-    Args:
-        code (str): The Python code to analyze.
-
-    Returns:
-        dict: A dictionary containing statistics such as mean and total cyclomatic complexity,
-        token counts, and parameter counts.
-    """
-    code = solution.code
-    i = lizard.analyze_file.analyze_source_code(f"algorithm.py", code)
-    complexities = []
-    token_counts = []
-    parameter_counts = []
-    nlocs = []
-    for f in i.function_list:
-        complexities.append(f.__dict__["cyclomatic_complexity"])
-        token_counts.append(f.__dict__["token_count"])
-        parameter_counts.append(len(f.__dict__["full_parameters"]))
-        nlocs.append(f.__dict__["nloc"])
-    return [
-        np.sum(complexities),
-        np.mean(token_counts),
-        np.sum(token_counts),
-        np.sum(parameter_counts),
-        np.sum(nlocs),
-    ]
-
-def ast_distance(solution1, solution2):
-    # AST distance calculation, returns a ratio between 0 and 1
-    return code_compare(solution1.code, solution2.code)
-
-def fitness_behavioral_distance(solution1, solution2):
-    # take the mean pairwise difference between auc scores as behavioral distance
-    aucs1 = solution1.get_metadata("aucs")
-    aucs2 = solution2.get_metadata("aucs")
-    if aucs1 is None or aucs2 is None:
-        return 0.0  # minimum distance if no behavioral data is available (algorithm did not run)
-    aucs1 = np.array(aucs1)
-    aucs2 = np.array(aucs2)
-    distance = np.mean(np.abs(aucs1 - aucs2))
-    return distance
-
-
-def behavior_descriptor(solution):
-    # group the auc scores per BBOB function group as descriptors.
-    aucs = solution.get_metadata("aucs")
-    if aucs is None:
-        return np.zeros(5)
-    group1 = aucs[:6] #2 functions, 3 instances each
-    group2 = aucs[6:12] #2 functions, 3 instances each
-    group3 = aucs[12:18] #2 functions, 3 instances each
-    group4 = aucs[18:24] #2 functions, 3 instances each
-    group5 = aucs[24:] #2 functions, 3 instances each
-    return [np.mean(group1), np.mean(group2), np.mean(group3), np.mean(group4), np.mean(group5)]
 
 if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_google = os.getenv("GEMINI_API_KEY")
@@ -102,7 +45,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     #for llm in [llm1]:#, llm2]:
     #RS = RandomSearch(llm, budget=budget) 
     LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
-    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
+    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided-new", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
     
     methods = [LLaMEA_2] #LLaMEA_1, 
 
@@ -116,7 +59,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     if DEBUG:
         logger = ExperimentLogger("results/BBOB_guided_debug")
     else:
-        logger = ExperimentLogger("results/BBOB_guided2")
+        logger = ExperimentLogger("results/BBOB_guided3")
 
     problems = []
     if DEBUG:
