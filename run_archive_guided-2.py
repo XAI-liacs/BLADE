@@ -45,11 +45,11 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     #for llm in [llm1]:#, llm2]:
     #RS = RandomSearch(llm, budget=budget) 
-    LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
-    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
-
-    LLaMEA_3 = LLaMEA(llm, budget=budget, name="ES (gemini)", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
-    LLaMEA_4 = LLaMEA(llm, budget=budget, name="ES-guided (gemini)", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
+    LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
+    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
+    
+    LLaMEA_3 = LLaMEA(llm2, budget=budget, name="ES (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
+    LLaMEA_4 = LLaMEA(llm2, budget=budget, name="ES-guided (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
     methods = [LLaMEA_1, LLaMEA_2,LLaMEA_3, LLaMEA_4]
 

@@ -99,6 +99,9 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
+        if self.logger.budget_exhausted():
+            return "Budget exhausted."
+        
         if self.log:
             input_msg = "\n".join([d["content"] for d in session])
             try:

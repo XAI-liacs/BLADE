@@ -63,6 +63,10 @@ methods = [
     "eoh",
     "reevo",
 ]
+extraproblems = [
+    "PyMoosh==4.0.1",
+    "pyGDM2==1.1.12",
+]
 kerneltuner = [
     "kernel-tuner",
     "autotuning_methodology",
@@ -81,7 +85,7 @@ eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev 
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
-llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "147f00239798942a313a859ac328936a7269ff82"}
+llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "7ead1c592d2fa7a79e5f18014a102d96d6d762ce"}
 
 [build-system]
 requires = ["hatchling"]

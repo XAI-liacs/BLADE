@@ -15,3 +15,6 @@ try:
     from .mabbob import MA_BBOB
 except Exception:
     MA_BBOB = None
+
+from .photonics import Photonics
+

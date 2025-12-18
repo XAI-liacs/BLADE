@@ -24,6 +24,30 @@ def extract_archive_instruction(text: str):
     feature = match.group(2).strip()
     return direction, feature
 
+def transform_log(log_path="log.jsonl", output_path="log.jsonl"):
+    log_path = Path(log_path)
+    output_path = Path(output_path)
+    with log_path.open("r", encoding="utf-8") as f_log:
+        log_lines = f_log.readlines()
+    
+    with output_path.open("w", encoding="utf-8") as f_out:
+        for log_line in log_lines:
+            log_obj = json.loads(log_line)
+            metadata = log_obj.get("metadata", {})
+            try:
+                #get ast features from metadata
+                ast_features = metadata.get("ast_features", {})
+                log_obj["ast_features"] = ast_features
+            except Exception as e:
+                print(f"Error extracting AST features: {e}")
+                log_obj["ast_features"] = {}
+
+            log_obj["archive_direction"] = metadata.get("feature_guidance_action", "")
+            log_obj["archive_feature"] = metadata.get("feature_guidance_feature_name", "")
+            
+            f_out.write(json.dumps(log_obj) + "\n")
+    
+
 def enrich_log(conversation_path="conversationlog.jsonl",
          log_path="log.jsonl",
          output_path="log_enriched.jsonl"):
@@ -92,15 +116,25 @@ def enrich_log(conversation_path="conversationlog.jsonl",
     # Usage: python enrich_logs.py conversationlog.jsonl log.jsonl log_enriched.jsonl
 
 if __name__ == "__main__":
-    logger = ExperimentLogger('/home/neocortex/repos/BLADE/results/BBOB_guided2', True)
+    log_folder = '/home/neocortex/repos/BLADE/results/BBOB_guided3/'
+    logger = ExperimentLogger('/home/neocortex/repos/BLADE/results/BBOB_guided3', True)
     log_data = logger.get_data()
-    log_folder = '/home/neocortex/repos/BLADE/results/BBOB_guided2/'
+    
     for index, entry in log_data.iterrows():
-        enrich_log(log_folder + entry['log_dir'] + '/conversationlog.jsonl',
-            log_folder + entry['log_dir'] + '/log.jsonl',
-            log_folder + entry['log_dir'] + '/log2.jsonl')
-        # now rename log2.jsonl to log.jsonl and log.jsonl to log_old.jsonl
-        Path(log_folder + entry['log_dir'] + '/log.jsonl').rename(log_folder + entry['log_dir'] + '/log_old.jsonl')
-        Path(log_folder + entry['log_dir'] + '/log2.jsonl').rename(log_folder + entry['log_dir'] + '/log.jsonl')
+        transform_log(log_folder + entry['log_dir'] + '/log.jsonl', log_folder + entry['log_dir'] + '/log.jsonl')
+    
+    if False:
+        log_folder = '/home/neocortex/repos/BLADE/results/BBOB_guided2/'
+
+        logger = ExperimentLogger('/home/neocortex/repos/BLADE/results/BBOB_guided2', True)
+        log_data = logger.get_data()
+        
+        for index, entry in log_data.iterrows():
+            enrich_log(log_folder + entry['log_dir'] + '/conversationlog.jsonl',
+                log_folder + entry['log_dir'] + '/log.jsonl',
+                log_folder + entry['log_dir'] + '/log2.jsonl')
+            # now rename log2.jsonl to log.jsonl and log.jsonl to log_old.jsonl
+            Path(log_folder + entry['log_dir'] + '/log.jsonl').rename(log_folder + entry['log_dir'] + '/log_old.jsonl')
+            Path(log_folder + entry['log_dir'] + '/log2.jsonl').rename(log_folder + entry['log_dir'] + '/log.jsonl')
 
     
