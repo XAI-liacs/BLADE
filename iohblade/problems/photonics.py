@@ -45,7 +45,12 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if dependencies is None:
-            dependencies = ["ioh==0.3.22", "pandas==2.2.3", "PyMoosh==4.0.1", "pyGDM2==1.1.12"]
+            dependencies = [
+                "ioh==0.3.22",
+                "pandas==2.2.3",
+                "pymoosh==3.2",
+                "pyGDM2==1.1.12",
+            ]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
 
@@ -237,9 +242,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         self._rebuild_problem()
         return
 
-
     def __deepcopy__(self, memo):
         import copy
+
         cls = self.__class__
         new = cls.__new__(cls)
         memo[id(self)] = new

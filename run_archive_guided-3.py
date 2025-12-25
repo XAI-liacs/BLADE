@@ -34,7 +34,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     budget = 200 # test run (25 iterations of 8 algs)
 
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         budget = 20
 
@@ -94,16 +94,16 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 budget_factor=2000,
                 seeds=5
             ))
-        problems.append(
-            Photonics(
-                logger,
-                problem_type="photovoltaic",
-                name="Photovoltaic",
-                eval_timeout=3600,
-                budget_factor=2000,
-                seeds=5
-            )
-        )
+        # problems.append(
+        #     Photonics(
+        #         logger,
+        #         problem_type="photovoltaic",
+        #         name="Photovoltaic",
+        #         eval_timeout=3600,
+        #         budget_factor=200,
+        #         seeds=5
+        #     )
+        #)
 
     experiment = Experiment(
         methods=methods,

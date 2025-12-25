@@ -16,5 +16,7 @@ try:
 except Exception:
     MA_BBOB = None
 
-from .photonics import Photonics
-
+try:
+    from .photonics import Photonics
+except Exception:
+    Photonics = None

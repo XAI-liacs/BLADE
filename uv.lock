@@ -2064,7 +2064,7 @@ docs = [
 ]
 extraproblems = [
     { name = "pygdm2", specifier = "==1.1.12" },
-    { name = "pymoosh", specifier = "==4.0.1" },
+    { name = "pymoosh", specifier = "==3.2" },
 ]
 kerneltuner = [
     { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" },
@@ -4252,17 +4252,16 @@ wheels = [
 
 [[package]]
 name = "pymoosh"
-version = "4.0.1"
+version = "3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "refractiveindex" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4b/23/61618b654a2a60430e11eb72c3b9798c012db2bc6dc802e061233093dda8/pymoosh-4.0.1.tar.gz", hash = "sha256:7f5e57187542990c90430e3c30ca742c7533f70407b916cdfc2d0723db8ca02d", size = 152382, upload-time = "2025-11-20T15:39:39.856Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cf/e1/d6cac831f1a0458f28a92d82191f3f8f26c4aedbd8113b67b695b9cd9fa9/PyMoosh-3.2.tar.gz", hash = "sha256:d431c371d4470700c1f295fa125b27b2a12878417d9290d8e4e19b6f5044ec53", size = 115974, upload-time = "2024-01-24T09:10:35.862Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/4c/59b79e82c7b94db6c307bcfa007e5fa314e092341612d3cb13f2fb7512fc/pymoosh-4.0.1-py3-none-any.whl", hash = "sha256:c1148f81f5e4ee7006cff5e2ea6ef697bfab260d2cca91221d650c29f9e84cf7", size = 146915, upload-time = "2025-11-20T15:39:38.105Z" },
+    { url = "https://files.pythonhosted.org/packages/a9/27/5d3b5fdb7f1a0f5986b1dc10a362c8a265c47739dd4feaf29cde5b76f471/PyMoosh-3.2-py3-none-any.whl", hash = "sha256:c1a587242b637b4b50b982cf05775485937125954566da1e2f108513a7a8159d", size = 115688, upload-time = "2024-01-24T09:10:34.238Z" },
 ]
 
 [[package]]
@@ -4577,19 +4576,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/2f/db/98b5c277be99dd18bfd91dd04e1b759cad18d1a338188c936e92f921c7e2/referencing-0.36.2.tar.gz", hash = "sha256:df2e89862cd09deabbdba16944cc3f10feb6b3e6f18e902f7cc25609a34775aa", size = 74744, upload-time = "2025-01-25T08:48:16.138Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c1/b1/3baf80dc6d2b7bc27a95a67752d0208e410351e3feb4eb78de5f77454d8d/referencing-0.36.2-py3-none-any.whl", hash = "sha256:e8699adbbf8b5c7de96d8ffa0eb5c158b3beafce084968e2ea8bb08c6794dcd0", size = 26775, upload-time = "2025-01-25T08:48:14.241Z" },
-]
-
-[[package]]
-name = "refractiveindex"
-version = "0.0.7"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyyaml" },
-    { name = "scipy" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/2f/f6/2e9035bde7785afd958f909de0c77582ff07eadd95f8c88d51f6fae0cbb5/refractiveindex-0.0.7.tar.gz", hash = "sha256:d383f86bf1549123447fafe34591d75a1aaf454af01f1b4746601dfe7b5ada2e", size = 6252, upload-time = "2025-05-29T04:53:40.987Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/95/ba6b04da731924da7e32637f9b73fe86e121a537f31a202814ba78ab27d2/refractiveindex-0.0.7-py3-none-any.whl", hash = "sha256:8f5d980bddf77f311b0ee4e5d6ef137d9bc9ca39fb4aa4bf47d80c4c35841985", size = 7155, upload-time = "2025-05-29T04:53:39.575Z" },
 ]
 
 [[package]]

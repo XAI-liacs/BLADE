@@ -56,7 +56,7 @@ class MA_BBOB(Problem):
                 "smac==2.3.1",
             ]
         if imports is None:
-            imports = "import numpy as np\nimport ioh\n"
+            imports = "import numpy as np\nimport ioh\n"  # import math\n
 
         if training_instances is None:
             training_instances = range(0, 20)

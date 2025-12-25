@@ -3,14 +3,15 @@ import random
 import inspect
 from typing import Iterable, Optional
 
+from iohblade.llm import LLM
+from iohblade.problem import Problem
+from iohblade.solution import Solution
+from iohblade.method import Method
+
 import traceback
 
-from .mcts_node import MCTS_Node
+from iohblade.mcts_node import MCTS_Node
 from .prompts import MCTS_Prompts
-
-from iohblade import Solution, Problem
-from iohblade.llm import LLM
-from iohblade.method import Method
 
 
 # region Helper Functions:
@@ -147,7 +148,7 @@ class MCTS:
             case _:
                 error_msg = f"Error enconutered {approach} method, which is not in expected list [i1, m1, m2, e1, e2, s1]."
                 raise ValueError(error_msg)
-        message = [{"role": "client", "content": prompt}]
+        message = [{"role": "user", "content": prompt}]
 
         solution = None
         for i in range(5):  # Try upto 5 times.
@@ -162,9 +163,9 @@ class MCTS:
             refine_description_prompt = MCTS_Prompts.get_desctiption_prompt(
                 task_prompt, mcts_node
             )
-            message = [{"role": "client", "content": refine_description_prompt}]
-            descrpition = self.llm.query(message)
-            mcts_node.description = descrpition
+            message = [{"role": "user", "content": refine_description_prompt}]
+            description = self.llm.query(message)
+            mcts_node.description = description
             return mcts_node
         return MCTS_Node(Solution("error"), "error")
 
@@ -300,7 +301,7 @@ class MCTS:
 
         """
         self.eval_remain -= 1
-        self.problem.evaluate(node)
+        node = self.problem(node)
         if abs(node.fitness) == float("inf"):
             node.Q = None
             return
@@ -571,7 +572,7 @@ class MCTS_Method(Method):
         self.init_params = {
             k: getattr(self, k)
             for k in sig.parameters
-            if k not in ("self", "name", "budget")
+            if k not in ("self", "name", "budget", "llm")
         }
 
     def __call__(self, problem: Problem):
@@ -605,10 +606,11 @@ class MCTS_Method(Method):
         Returns:
             dict: Dictionary representation of the method.
         """
+        kwargs = dict(self.init_params)
         return {
             "method_name": self.name if self.name != None else "MCTS_AHD",
             "budget": self.budget,
-            "kwargs": self.init_params,
+            "kwargs": kwargs,
         }
 
 

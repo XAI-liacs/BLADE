@@ -128,7 +128,7 @@ class LHNS:
         for i in range(5):
             try:
                 solution = self.llm.sample_solution(
-                    [{"role": "client", "content": initialisation_prompt}]
+                    [{"role": "user", "content": initialisation_prompt}]
                 )
                 self.current_solution = solution
             except Exception as e:
@@ -137,7 +137,7 @@ class LHNS:
 
     def evaluate(self, solution: Solution) -> Solution:
         """
-        Evaluates the solution with `problem.evaluate` function, and returns if it returns, else returns solution un-mutated.
+        Evaluates the solution with `problem()` function, and returns if it returns, else returns solution un-mutated.
 
         ## Args:
         `solution: Solution`: A solution object that needs to be evaluated.
@@ -147,7 +147,7 @@ class LHNS:
         """
         print("Evaluate....")
         evaluated_solution = solution
-        evaluated_solution = self.problem.evaluate(evaluated_solution)
+        evaluated_solution = self.problem(evaluated_solution)
         if evaluated_solution:
             self._log_best_solution(evaluated_solution)
             return evaluated_solution
@@ -245,7 +245,7 @@ class LHNS:
         for i in range(5):
             try:
                 new = self.llm.sample_solution(
-                    [{"role": "client", "content": destruction_repair_prompt}]
+                    [{"role": "user", "content": destruction_repair_prompt}]
                 )
                 return new
             except Exception as e:
@@ -296,7 +296,7 @@ class LHNS:
             for i in range(5):
                 try:
                     new = self.llm.sample_solution(
-                        [{"role": "client", "content": ils_prompt}]
+                        [{"role": "user", "content": ils_prompt}]
                     )
                     return new
                 except Exception as e:
@@ -338,7 +338,7 @@ class LHNS:
                 for i in range(5):
                     try:
                         new = self.llm.sample_solution(
-                            [{"role": "client", "content": prompt}]
+                            [{"role": "user", "content": prompt}]
                         )
                         return new
                     except Exception as e:
@@ -356,7 +356,7 @@ class LHNS:
             for i in range(5):
                 try:
                     new = self.llm.sample_solution(
-                        [{"role": "client", "content": ils_prompt}]
+                        [{"role": "user", "content": ils_prompt}]
                     )
                     return new
                 except Exception as e:

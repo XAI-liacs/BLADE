@@ -1,7 +1,7 @@
 from iohblade.experiment import MA_BBOB_Experiment, Experiment
 from iohblade.problems import BBOB_SBOX
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Claude_LLM, Multi_LLM
-from iohblade.methods import LLaMEA, RandomSearch
+from iohblade.methods import LLaMEA, RandomSearch, MCTS_Method, LHNS_Method, ReEvo
 from iohblade.loggers import ExperimentLogger
 import numpy as np
 import ioh
@@ -36,7 +36,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     DEBUG = False
     if DEBUG:
-        budget = 24
+        budget = 20
 
     mutation_prompts = [
         "Refine the strategy of the selected solution to improve it.",  # small mutation
@@ -45,20 +45,24 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     #for llm in [llm1]:#, llm2]:
     #RS = RandomSearch(llm, budget=budget) 
-    LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
-    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
+    #LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
+    #LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
-    LLaMEA_3 = LLaMEA(llm2, budget=budget, name="ES (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
-    LLaMEA_4 = LLaMEA(llm2, budget=budget, name="ES-guided (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
+    #LLaMEA_3 = LLaMEA(llm2, budget=budget, name="ES (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
+    #LLaMEA_4 = LLaMEA(llm2, budget=budget, name="ES-guided (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
-    methods = [LLaMEA_3, LLaMEA_4]
+    mcts_method = MCTS_Method(llm, maximisation=True, budget=budget)
+    lhns_method = LHNS_Method(llm, minimisation=False, method="vns", budget=budget)
+    reevo_method = ReEvo(llm, budget=budget, name="ReEvo")
+
+    methods = [mcts_method, lhns_method, reevo_method] #LLaMEA_2, LLaMEA_4] #RS, LLaMEA_1, LLaMEA_3,
 
     training_instances = range(0,10)
 
     if DEBUG:
-        logger = ExperimentLogger("results/MABBOB_guided_debug")
+        logger = ExperimentLogger("results/MABBOB_guided_baselines_debug")
     else:
-        logger = ExperimentLogger("results/MABBOB_guided_gemini")
+        logger = ExperimentLogger("results/MABBOB_guided_baselines")
 
     if DEBUG:
         experiment = MA_BBOB_Experiment(methods=methods, training_instances=[0,1], runs=1, seeds=[1], dims=[2], budget_factor=200, budget=budget, eval_timeout=60, show_stdout=True, log_stdout=False, exp_logger=logger, n_jobs=5) #normal run

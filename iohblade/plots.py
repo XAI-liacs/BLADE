@@ -192,8 +192,9 @@ def plot_experiment_CEG(
 def normalize_key(key):
     """Converts any feature key to a standardized format (e.g., 'mean_complexity' -> 'mean complexity')."""
     key = str(key).lower()
-    key = key.replace('_', ' ')
-    return ' '.join(key.split()).strip()
+    key = key.replace("_", " ")
+    return " ".join(key.split()).strip()
+
 
 def plot_code_evolution_graphs(
     run_data, expfolder=None, plot_features=None, save=True, ax=None
@@ -293,7 +294,7 @@ def plot_code_evolution_graphs(
     # Calculate max fitness for scaling the marker colors
     max_fitness = data["fitness"].max()
     if max_fitness == 0:
-        max_fitness = 1.0 # Avoid division by zero
+        max_fitness = 1.0  # Avoid division by zero
 
     for x_data in plot_features:
         if no_axis:
@@ -310,8 +311,10 @@ def plot_code_evolution_graphs(
                     plot_marker = "-o"
                     # 2. Determine edge color based on archive feature
                     if "archive_feature" in row:
-                        normalized_archive_feature = normalize_key(row["archive_feature"])
-                        edge_color = "gray" # Default color
+                        normalized_archive_feature = normalize_key(
+                            row["archive_feature"]
+                        )
+                        edge_color = "gray"  # Default color
                         if normalized_archive_feature == normalized_x_data:
                             if row["archive_direction"] == "increase":
                                 edge_color = "green"
@@ -322,7 +325,7 @@ def plot_code_evolution_graphs(
                         ax.plot(
                             [parent_row["id"], row["id"]],
                             [parent_row[x_data], row[x_data]],
-                            "-", # Line only
+                            "-",  # Line only
                             color=edge_color,
                             alpha=0.7,
                             linewidth=1.5,
