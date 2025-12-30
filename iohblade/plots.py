@@ -23,7 +23,7 @@ from .misc.ast import analyse_complexity, process_code
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
-    aggregation: str = "median",
+    aggregation: str = "mean",
     methods: list = None,
     budget: int = 100,
     save: bool = True,
@@ -93,8 +93,6 @@ def plot_convergence(
 
                 # Plot the mean fitness
                 method_label = method
-                if method == "ES":
-                    method_label = "LLaMEA"
                 ax.plot(summary["_id"], summary[aggregation], label=method_label)
 
                 # Plot the shaded error region
@@ -128,6 +126,8 @@ def plot_convergence(
 def plot_experiment_CEG(
     logger: ExperimentLogger,
     metric: str = "total_token_count",
+    methods = None,
+    markersize = None,
     budget: int = 100,
     save: bool = True,
     max_seeds=5,
@@ -138,9 +138,13 @@ def plot_experiment_CEG(
     Args:
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label (should be a statistic from AST / Complexity).
+        methods (list, optional): An optional list of method names to plot, if None, all methods are included.
+        markersize (int. optional): The size of the markers, if not set it will be dynamic based on the degree.
+        budget (int): The number of evaluations to plot.
         save (bool, optional): Whether to save or show the plot.
         max_seeds (int, optional): The maximum number of runs to plot.
     """
+    methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     problem_i = 0
@@ -155,6 +159,8 @@ def plot_experiment_CEG(
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
         methods = data["method_name"].unique()
+        if methods_to_use is not None:
+            methods = [m for m in methods if m in methods_to_use]
         fig, axes = plt.subplots(
             figsize=(5 * num_seeds, 5 * len(methods)),
             nrows=len(methods),
@@ -177,12 +183,13 @@ def plot_experiment_CEG(
                     run_data,
                     logger.dirname,
                     plot_features=[metric],
+                    markersize = markersize,
                     save=False,
                     ax=ax,
                 )
                 ax.set_xlim([0, budget])
-                ax.set_xticks(np.arange(0, budget + 1, 10))
-                ax.set_xticklabels(np.arange(0, budget + 1, 10))
+                ax.set_xticks(np.arange(0, budget + 1, 20))
+                ax.set_xticklabels(np.arange(0, budget + 1, 20))
                 ax.set_title(f"{method} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)
@@ -206,9 +213,31 @@ def normalize_key(key):
     key = key.replace("_", " ")
     return " ".join(key.split()).strip()
 
+# Parse parent ids
+def safe_parse_parent_ids(x):
+    if not isinstance(x, str):
+        return x
+
+    s = x.strip()
+
+    # Case 1: Proper Python literal
+    if s.startswith(("[", "(")) and s.endswith(("]", ")")):
+        try:
+            parsed = ast.literal_eval(s)
+            return list(parsed) if isinstance(parsed, (list, tuple)) else [parsed]
+        except (ValueError, SyntaxError):
+            # Case 2: Fallback for things like "[awdawd213r]"
+            inner = s[1:-1].strip()
+            if inner:
+                # split on commas, keep strings
+                return [part.strip() for part in inner.split(",")]
+            return []
+
+    # Case 3: Single ID string
+    return [s]
 
 def plot_code_evolution_graphs(
-    run_data, expfolder=None, plot_features=None, save=True, ax=None
+    run_data, expfolder=None, plot_features=None, markersize=None, save=True, ax=None
 ):
     """
     Plots optimization progress and relationships between successive solutions in an
@@ -218,6 +247,7 @@ def plot_code_evolution_graphs(
         run_data (pandas.DataFrame): DataFrame containing code and fitness values.
         expfolder (str, optional): Folder path where the plots are saved. If None, plots are shown.
         plot_features (list, optional): The features to plot. If None, plots multiple default features.
+        markersize (int. optional): The size of the markers, if not set it will be dynamic based on the degree.
         save (bool): If True, saves the plots otherwise shows them.
         ax (matplotlib.axes.Axes, optional): The axis to plot on. If None, creates new plots.
     """
@@ -246,7 +276,22 @@ def plot_code_evolution_graphs(
         analyse_complexity
         df_stats = data["code"].apply(analyse_complexity).apply(pd.Series)
     else:
-        df_stats = data["code"].apply(process_code).apply(pd.Series)
+        if "ast_features" in data.columns:
+            df_stats = data["ast_features"].apply(pd.Series)
+        elif "metadata" in data.columns:
+            ast_series = data["metadata"].apply(
+                lambda m: (m.get("ast_features") if isinstance(m, dict) else None)
+            )
+
+            # Only use metadata-derived features if at least one row has a non-empty dict
+            has_any = ast_series.apply(lambda d: isinstance(d, dict) and len(d) > 0).any()
+
+            if has_any:
+                df_stats = ast_series.apply(lambda d: d if isinstance(d, dict) else {}).apply(pd.Series)
+            else:
+                df_stats = data["code"].apply(process_code).apply(pd.Series)
+        else:
+            df_stats = data["code"].apply(process_code).apply(pd.Series)
     stat_features = df_stats.columns
 
     # Merge statistics into the dataframe
@@ -264,6 +309,17 @@ def plot_code_evolution_graphs(
         ]
     else:
         plot_features = plot_features
+
+    # check that plot_features are all included in stat_features
+    missing = [
+        f for f in plot_features
+        if f not in stat_features and f not in {"pca", "tsne"}
+    ]
+    if missing:
+        raise ValueError(
+            f"Requested plot_features not found in extracted statistics: {missing}. "
+            f"Available features: {sorted(stat_features.tolist())}"
+        )
 
     # Standardize features
     features = data[stat_features].copy()
@@ -287,9 +343,7 @@ def plot_code_evolution_graphs(
         data["tsne"] = tsne_projection[:, 0]
 
     # Convert parent IDs from string to list
-    data["parent_ids"] = data["parent_ids"].apply(
-        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
-    )
+    data["parent_ids"] = data["parent_ids"].apply(safe_parse_parent_ids)
 
     # Count occurrences of each parent ID
     parent_counts = Counter(
@@ -315,6 +369,14 @@ def plot_code_evolution_graphs(
         normalized_x_data = normalize_key(x_data)
 
         for _, row in data.iterrows():
+            if len(row["parent_ids"]) == 0:
+                ax.plot(
+                        row["id"],
+                        row[x_data],
+                        "o",
+                        markersize=row["parent_size"] if markersize is None else markersize,
+                        color=plt.cm.viridis(row["fitness"] / max_fitness),
+                    )
             for parent_id in row["parent_ids"]:
                 if parent_id in data["id"].values:
                     parent_row = data[data["id"] == parent_id].iloc[0]
@@ -348,7 +410,7 @@ def plot_code_evolution_graphs(
                         [parent_row["id"], row["id"]],
                         [parent_row[x_data], row[x_data]],
                         plot_marker,
-                        markersize=row["parent_size"],
+                        markersize=row["parent_size"] if markersize is None else markersize,
                         color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
                 else:
@@ -356,7 +418,7 @@ def plot_code_evolution_graphs(
                         row["id"],
                         row[x_data],
                         "o",
-                        markersize=row["parent_size"],
+                        markersize=row["parent_size"] if markersize is None else markersize,
                         color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
 
