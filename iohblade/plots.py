@@ -23,6 +23,8 @@ from .misc.ast import analyse_complexity, process_code
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
+    aggregation: str = "median",
+    methods: list = None,
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
@@ -34,10 +36,14 @@ def plot_convergence(
     Args:
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label.
+        aggregation (str, optional): The aggregation method to use ('mean', 'median', etc.).
+        methods (list, optional): List of method names to include. If None, includes all methods.
+        budget (int, optional): The maximum number of evaluations to display on the x-axis.
         save (bool, optional): Whether to save or show the plot.
         return_fig (bool, optional): Whether to return the figure object.
         separate_lines (bool, optional): If True, plots each run using separate line.
     """
+    methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     fig, axes = plt.subplots(
@@ -54,6 +60,8 @@ def plot_convergence(
 
         # Get unique method names
         methods = data["method_name"].unique()
+        if methods_to_use is not None:
+            methods = [m for m in methods if m in methods_to_use]
         ax = axes[problem_i] if len(problems) > 1 else axes
         for method in methods:
             method_data = data[data["method_name"] == method].copy()
@@ -77,20 +85,23 @@ def plot_convergence(
             else:
                 summary = (
                     method_data.groupby("_id")["cummax_fitness"]
-                    .agg(["mean", "std"])
+                    .agg([aggregation, "std"])
                     .reset_index()
                 )
                 # Shift X-axis so that _id starts at 1
                 summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
 
                 # Plot the mean fitness
-                ax.plot(summary["_id"], summary["mean"], label=method)
+                method_label = method
+                if method == "ES":
+                    method_label = "LLaMEA"
+                ax.plot(summary["_id"], summary[aggregation], label=method_label)
 
                 # Plot the shaded error region
                 ax.fill_between(
                     summary["_id"],
-                    summary["mean"] - summary["std"],
-                    summary["mean"] + summary["std"],
+                    summary[aggregation] - summary["std"],
+                    summary[aggregation] + summary["std"],
                     alpha=0.2,
                 )
 
@@ -98,7 +109,7 @@ def plot_convergence(
         ax.set_xlabel("Number of Evaluations")
         if budget is not None:
             ax.set_xlim(1, budget)
-        ax.set_ylabel(f"Mean Best {metric}")
+        ax.set_ylabel(f"{aggregation} best {metric}")
         ax.legend(title="Algorithm")
         ax.grid(True)
         ax.set_title(problem)

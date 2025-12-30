@@ -301,17 +301,20 @@ class MCTS:
 
         """
         self.eval_remain -= 1
-        node = self.problem(node)
-        if abs(node.fitness) == float("inf"):
-            node.Q = None
-            return
-        node.Q = node.fitness
-        self.q_min = safe_min([self.q_min, node.Q])
-        self.q_max = safe_max([self.q_max, node.Q])
-        if self.best_solution.fitness < node.fitness and self.maximisation:
-            self.best_solution = node
-        elif self.best_solution.fitness > node.fitness and not self.maximisation:
-            self.best_solution = node
+        new_node = self.problem(node)
+        new_node.copy_attributes(node)
+
+        if abs(new_node.fitness) == float("inf"):
+            new_node.Q = None
+            return new_node
+        new_node.Q = new_node.fitness
+        self.q_min = safe_min([self.q_min, new_node.Q])
+        self.q_max = safe_max([self.q_max, new_node.Q])
+        if self.best_solution.fitness < new_node.fitness and self.maximisation:
+            self.best_solution = new_node
+        elif self.best_solution.fitness > new_node.fitness and not self.maximisation:
+            self.best_solution = new_node
+        return new_node
 
     def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
         """
@@ -481,10 +484,13 @@ class MCTS:
 
         print(f"Initialised with {len(self.root.children)} nodes.")
 
-        for child in self.root.children:
+        for i, child in enumerate(self.root.children):
             print(f"\tEvaluating {child.id} node.")
 
-            self.simulate(child)
+            child = self.simulate(child)
+            child.parent = self.root
+            self.root.children[i] = child
+            
 
             print(f"\t\tFitness {child.fitness}")
             print(f"\t\tFeedback {child.feedback}")
@@ -513,7 +519,14 @@ class MCTS:
             for node in progressive_widening_nodes + expanded_nodes:
                 print(f"\tEvaluating {node.id} node.")
 
-                self.simulate(node)
+                new_node = self.simulate(node)
+                if new_node is not node and node.parent is not None:
+                    # replace in parent's children
+                    p = node.parent
+                    idx = p.children.index(node)
+                    p.children[idx] = new_node
+                    new_node.parent = p
+
 
                 print(f"\t\tFitness {node.fitness}.")
                 print(f"\t\tFeedback {node.feedback}")

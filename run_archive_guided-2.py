@@ -28,7 +28,6 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     #llm_llama = Ollama_LLM("llama3.2:3b")
 
     #ai_model = "gemini-2.0-flash"
-    llm2 = Gemini_LLM(api_key_google, "gemini-2.5-flash")
     llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
     #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
@@ -48,17 +47,15 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
     LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
-    LLaMEA_3 = LLaMEA(llm2, budget=budget, name="ES (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
-    LLaMEA_4 = LLaMEA(llm2, budget=budget, name="ES-guided (gemini)", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
-    methods = [LLaMEA_3, LLaMEA_4]
+    methods = [LLaMEA_1, LLaMEA_2]
 
     training_instances = range(0,10)
 
     if DEBUG:
         logger = ExperimentLogger("results/MABBOB_guided_debug")
     else:
-        logger = ExperimentLogger("results/MABBOB_guided_gemini")
+        logger = ExperimentLogger("results/MABBOB_guided")
 
     if DEBUG:
         experiment = MA_BBOB_Experiment(methods=methods, training_instances=[0,1], runs=1, seeds=[1], dims=[2], budget_factor=200, budget=budget, eval_timeout=60, show_stdout=True, log_stdout=False, exp_logger=logger, n_jobs=5) #normal run

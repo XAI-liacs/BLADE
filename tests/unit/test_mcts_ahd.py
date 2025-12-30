@@ -5,7 +5,7 @@ from iohblade.llm import LLM
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.methods.mcts_ahd.mcts import MCTS, safe_max, safe_min
-from iohblade.methods.mcts_ahd.mcts_node import MCTS_Node
+from iohblade.mcts_node import MCTS_Node
 
 #region test helper functuins
 def test_safemax():

@@ -116,8 +116,8 @@ def enrich_log(conversation_path="conversationlog.jsonl",
     # Usage: python enrich_logs.py conversationlog.jsonl log.jsonl log_enriched.jsonl
 
 if __name__ == "__main__":
-    log_folder = '/home/neocortex/repos/BLADE/results/BBOB_guided3/'
-    logger = ExperimentLogger('/home/neocortex/repos/BLADE/results/BBOB_guided3', True)
+    log_folder = '/home/neocortex/repos/BLADE/results/MABBOB_guided/'
+    logger = ExperimentLogger('/home/neocortex/repos/BLADE/results/MABBOB_guided', True)
     log_data = logger.get_data()
     
     for index, entry in log_data.iterrows():
