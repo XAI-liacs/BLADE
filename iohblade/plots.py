@@ -391,8 +391,19 @@ def plot_code_evolution_graphs(
                         if normalized_archive_feature == normalized_x_data:
                             if row["archive_direction"] == "increase":
                                 edge_color = "green"
+                                if row["operator"] == "random":
+                                    edge_color = "darkgreen"
                             elif row["archive_direction"] == "decrease":
                                 edge_color = "red"
+                                if row["operator"] == "random":
+                                    edge_color = "darkred"
+                        else:
+                            if row["operator"] == "random":
+                                edge_color = "lightblue"
+                            elif row["operator"] == "refine":
+                                edge_color = "yellow"
+                            elif row["operator"] == "crossover":
+                                edge_color = "cyan"
 
                         # Plot the line (edge)
                         ax.plot(
