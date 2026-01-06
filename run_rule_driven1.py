@@ -1,5 +1,5 @@
 from iohblade.experiment import MA_BBOB_Experiment, Experiment
-from iohblade.problems import BBOB_SBOX
+from iohblade.problems import HLP
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Claude_LLM, Multi_LLM
 from iohblade.methods import LLaMEA, RandomSearch, EoH, ReEvo
 from iohblade.loggers import ExperimentLogger
@@ -35,44 +35,48 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     methods = [LLaMEA_1] 
 
-    # List containing function IDs we consider
-    training_fids = [1,2,3,4,5]
-    testing_fids = [1,2,3,4,5]
-
-    training_instances = [(f, i) for f in training_fids for i in range(1, 4)]
-    test_instances = [(f, i) for f in testing_fids for i in range(5, 10)]
+    training_instances = None
+    test_instances = None
 
     if DEBUG:
-        logger = ExperimentLogger("results/BBOB_guided_debug")
+        logger = ExperimentLogger("results/rule-driven-DEBUG")
     else:
-        logger = ExperimentLogger("results/BBOB_guided")
+        logger = ExperimentLogger("results/rule-driven1")
 
     problems = []
     if DEBUG:
         problems.append(
-            BBOB_SBOX(
-                training_instances=[(f, i) for f in [1,2] for i in range(1, 2)],
-                test_instances=[(f, i) for f in [1,2] for i in range(3, 4)],
+            HLP(
                 dims=[2],
                 budget_factor=200,
                 eval_timeout=100,
-                name=f"SBOX",
-                problem_type=ioh.ProblemClass.SBOX,
-                full_ioh_log=False,
+                name=f"HLP-DEBUG",
+                add_info_to_prompt=True,
+                full_ioh_log=True,
+                specific_high_level_features=["Separable", "Multimodality"],
                 ioh_dir=f"{logger.dirname}/ioh",
             )
         )
     else:
         problems.append(
-            BBOB_SBOX(
-                training_instances=training_instances,
-                test_instances=test_instances,
-                dims=[10],
-                budget_factor=2000,
-                eval_timeout=1800,
-                name=f"BBOB",
-                problem_type=ioh.ProblemClass.BBOB,
+            HLP(
+                dims=[2],
+                budget_factor=200,
+                eval_timeout=100,
+                name=f"HLP-DEBUG",
+                add_info_to_prompt=False,
                 full_ioh_log=False,
+                specific_high_level_features=["Separable", "Multimodality"],
+                ioh_dir=f"{logger.dirname}/ioh",
+            ),
+            HLP(
+                dims=[2],
+                budget_factor=200,
+                eval_timeout=100,
+                name=f"HLP-DEBUG",
+                add_info_to_prompt=True,
+                full_ioh_log=False,
+                specific_high_level_features=["Separable", "Multimodality"],
                 ioh_dir=f"{logger.dirname}/ioh",
             )
         )
@@ -98,7 +102,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
             show_stdout=True,
             exp_logger=logger,
             budget=budget,
-            n_jobs=5
+            n_jobs=1
         )  # test run
 
     #experiment = MA_BBOB_Experiment(methods=methods, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=2000, budget=budget, eval_timeout=270, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
