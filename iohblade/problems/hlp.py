@@ -16,6 +16,143 @@ from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
 
 
+# Rulebook-derived summaries for high-level property combinations.
+# Priority is descending: earlier (higher-priority) rules override later ones when multiple match.
+
+RULES_BY_HIGHLEVEL_PROPERTIES = {
+    "Separable_GlobalLocal": (
+        "Known: Separable + GlobalLocal contrast.\n"
+        "- If also Many Basins (med/high) AND GlobalLocal is high: disable elitist; use BIPOP restart; PSR step-size.\n"
+        "- If additionally Highly Multimodal: treat as 'Separable & Highly Multimodal': disable elitist; use PSR or CSA; "
+        "standard mirroring; IPOP or BIPOP; default or half-lambda weights.\n"
+        "- If instead Separable & Unimodal: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "avoid equal weights and mirrored pairwise sampling.\n"
+        "Notes: if multiple apply, prefer the 'many basins + high global-local' recommendation first."
+    ),
+
+    "Separable_Multimodality": (
+        "Known: Separable + Multimodality (assume high).\n"
+        "- Use the general 'Separable & Highly Multimodal' rule: elitist disabled; PSR or CSA step-size; "
+        "standard mirroring; IPOP or BIPOP restart; default or half-lambda weights.\n"
+        "- Avoid: elitist (enabled).\n"
+        "- If global structure is known to be Strong + separable + highly multimodal: prefer BIPOP + PSR + "
+        "standard mirroring + default/half-lambda with elitist disabled.\n"
+        "- If global structure is Weak/None and highly multimodal: elitist disabled; BIPOP or IPOP; CSA or PSR; "
+        "standard mirroring; default/half-lambda; avoid no-restart."
+    ),
+
+    "Separable_Basins": (
+        "Known: Separable + Basins (assume med/high basin-related difficulty signal).\n"
+        "- If also GlobalLocal contrast is high: disable elitist; use BIPOP restart; PSR step-size.\n"
+        "- If additionally Highly Multimodal: disable elitist; PSR or CSA; standard mirroring; IPOP or BIPOP; "
+        "default/half-lambda.\n"
+        "- If instead Unimodal separable: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "avoid equal weights and mirrored pairwise sampling."
+    ),
+
+    "Separable_Homogeneous": (
+        "Known: Separable + Homogeneous.\n"
+        "- If Funnel-like AND Homogeneous: enable elitist; default or half-lambda weights; avoid equal weights.\n"
+        "- If also Unimodal separable: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "avoid equal weights and mirrored pairwise sampling.\n"
+        "- If instead Highly Multimodal (despite homogeneity): prefer the 'Separable & Highly Multimodal' package "
+        "(elitist disabled; restarts; standard mirroring; PSR/CSA; default/half-lambda)."
+    ),
+
+    "Separable": (
+        "Known: Separable (other properties unknown).\n"
+        "- If Unimodal: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "avoid equal weights and mirrored pairwise sampling.\n"
+        "- If Highly Multimodal: disable elitist; PSR or CSA; standard mirroring; IPOP or BIPOP restart; "
+        "default/half-lambda.\n"
+        "- If Ill-conditioned / high scaling is also present: prefer CSA; default/half-lambda; elitist on; "
+        "avoid equal weights.\n"
+        "Interpretation: pick the unimodal vs multimodal branch based on what you know; otherwise start with the "
+        "safer defaults (default/half-lambda; CSA/PSR; avoid equal weights)."
+    ),
+
+    "GlobalLocal_Multimodality": (
+        "Known: GlobalLocal contrast + Multimodality (assume high).\n"
+        "- If Many Basins (med/high) AND GlobalLocal is high: disable elitist; BIPOP restart; PSR step-size.\n"
+        "- If global structure is Weak/None (highly multimodal): disable elitist; BIPOP or IPOP; CSA or PSR; "
+        "standard mirroring; default/half-lambda; avoid no-restart.\n"
+        "- If global structure is Strong AND separability is high: disable elitist; BIPOP; PSR; standard mirroring; "
+        "default/half-lambda."
+    ),
+
+    "GlobalLocal_Basins": (
+        "Known: GlobalLocal contrast + Basins (assume basins med/high).\n"
+        "- Direct hit: (Basins med/high AND GlobalLocal high) => disable elitist; use BIPOP restart; PSR step-size.\n"
+        "- If additionally Highly Multimodal with weak/irregular structure: also enforce restarts (BIPOP/IPOP), "
+        "standard mirroring, default/half-lambda, and keep elitist disabled."
+    ),
+
+    "GlobalLocal_Homogeneous": (
+        "Known: GlobalLocal contrast + Homogeneous.\n"
+        "- If Funnel-like & Homogeneous: enable elitist; default/half-lambda; avoid equal weights.\n"
+        "- If also Many Basins and GlobalLocal is high: disable elitist; BIPOP restart; PSR step-size "
+        "(this can override the funnel-like preference when both match).\n"
+        "- If Highly Multimodal and structure weak/none: disable elitist; BIPOP/IPOP; CSA/PSR; standard mirroring; "
+        "default/half-lambda."
+    ),
+
+    "GlobalLocal": (
+        "Known: GlobalLocal contrast.\n"
+        "- If Many Basins (med/high) and GlobalLocal is high: disable elitist; use BIPOP restart; PSR step-size.\n"
+        "- If structure is Deceptive: *opposite direction* => enable elitist; CSA; IPOP or BIPOP; avoid elitist-disabled.\n"
+        "Rule of thumb: GlobalLocal-high tends to push toward (elitist off + PSR + restarts), unless structure is "
+        "explicitly deceptive."
+    ),
+
+    "Multimodality_Basins": (
+        "Known: Multimodality (assume high) + Basins (assume med/high).\n"
+        "- If also GlobalLocal high: disable elitist; BIPOP restart; PSR step-size (highest priority among these).\n"
+        "- Otherwise treat as highly multimodal with potentially irregular structure: disable elitist; "
+        "BIPOP or IPOP; CSA or PSR; standard mirroring; default/half-lambda; avoid no-restart."
+    ),
+
+    "Multimodality_Homogeneous": (
+        "Known: Multimodality (assume high) + Homogeneous.\n"
+        "- If Funnel-like: enable elitist; default/half-lambda; avoid equal weights.\n"
+        "- If structure is Weak/None (highly multimodal): disable elitist; BIPOP or IPOP; CSA or PSR; "
+        "standard mirroring; default/half-lambda; avoid no-restart.\n"
+        "Practical: if you don’t know funnel-ness/structure, start with the multimodal package (restarts + "
+        "standard mirroring + default/half-lambda + PSR/CSA, elitist off)."
+    ),
+
+    "Multimodality": (
+        "Known: Multimodality (assume high).\n"
+        "- If global structure is Weak/None OR irregular: disable elitist; BIPOP or IPOP restart; CSA or PSR; "
+        "standard mirroring; default/half-lambda; avoid no-restart.\n"
+        "- If global structure is Strong and separable: disable elitist; BIPOP; PSR; standard mirroring; "
+        "default/half-lambda.\n"
+        "- If separable but structure unknown: apply 'Separable & Highly Multimodal' package (elitist off; restarts; "
+        "standard mirroring; PSR/CSA; default/half-lambda)."
+    ),
+
+    "Basins_Homogeneous": (
+        "Known: Basins (assume med/high) + Homogeneous.\n"
+        "- If Funnel-like & Homogeneous: enable elitist; default/half-lambda; avoid equal weights.\n"
+        "- If also GlobalLocal high: disable elitist; BIPOP restart; PSR step-size (overrides funnel-like if both match).\n"
+        "If you only know basins+homogeneity, the only explicit homogeneity rule is the funnel-like one; otherwise fall back "
+        "to conservative defaults (default/half-lambda; avoid equal weights)."
+    ),
+
+    "Basins": (
+        "Known: Basins (assume med/high).\n"
+        "- If also GlobalLocal high: disable elitist; use BIPOP restart; PSR step-size.\n"
+        "- If structure is Deceptive: enable elitist; CSA; IPOP or BIPOP.\n"
+        "If you only know 'basins' without GlobalLocal/structure, the rulebook doesn’t specify more; start with "
+        "default/half-lambda weights and prefer PSR/CSA depending on conditioning."
+    ),
+
+    "Homogeneous": (
+        "Known: Homogeneous.\n"
+        "- If Funnel-like & Homogeneous: enable elitist; default or half-lambda weights; avoid equal weights.\n"
+        "Otherwise, the rulebook has no additional homogeneous-only prescriptions; keep weights non-equal "
+        "(default/half-lambda) as a safe choice."
+    ),
+}
 
 
 
@@ -35,6 +172,7 @@ class HLP(Problem):
         budget_factor=2000,
         specific_high_level_features=[],
         add_info_to_prompt=False,
+        add_rules_to_prompt=False,
         full_ioh_log=False,
         ioh_dir="",
         dependencies=None,
@@ -52,6 +190,7 @@ class HLP(Problem):
             budget_factor (int): The factor to multiply the dimensionality with to get the budget.
             specific_high_level_features (list): The specific high level features ("basins","seperable" etc) to use.
             add_info_to_prompt (bool): If set to True, additional information about the high-level features will be added to the prompt.
+            add_rules_to_prompt (bool): If set to True, additional rules for writing the optimization algorithm will be added to the prompt.
             full_ioh_log (bool): If set to True, additional IOH logs are being kept for each run and each algorithm.
             dependencies (list, optional): a list of pypi packages to install before evaluation.
             imports (string, optional): the python string to manage imports in the evaluation file.
@@ -104,6 +243,7 @@ class HLP(Problem):
         }
 
         self.add_info_to_prompt = add_info_to_prompt
+        self.add_rules_to_prompt = add_rules_to_prompt
 
         if training_instances is None:
             training_instances = np.arange(10) # 10 training instances
@@ -141,6 +281,13 @@ class HLP(Problem):
                 description = self.feature_descriptions.get(feature, "No description available.")
                 extra_prompt += f"\n- {feature}: {description}"
         extra_prompt += "."
+
+        if self.add_rules_to_prompt:
+            extra_prompt += "\n\nWhen writing the optimization algorithm, please consider the following rules derived from known relationships between high-level problem properties and a modular CMA-ES optimization strategy:\n"
+            key = "_".join(specific_high_level_features)
+            rules = RULES_BY_HIGHLEVEL_PROPERTIES.get(key, "No specific rules available for this combination of high-level features.")
+            extra_prompt += rules
+
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
@@ -185,7 +332,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
     def get_generated_problem(self, instance, dim):
         # --- LOAD JSON LINES ---
-        with open(self.function_file, "r") as f:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        with open(current_dir + "/generated_problems/" + self.function_file, "r") as f:
             data = [json.loads(line) for line in f if line.strip()]
 
         n = len(data)
@@ -199,10 +347,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         cls = globals()[entry["name"]]
         objective_f = cls(dim=dim).f
 
-
-        def calculate_objective(instance, dim):
-            return entry[f"global_optimum_{dim}"]
-
         # --- WRAP PROBLEM ---
         wrap_problem(
             objective_f,
@@ -210,7 +354,10 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             ioh.ProblemClass.REAL,
             dimension=dim,
             instance=instance,
-            calculate_objective=calculate_objective,
+            calculate_objective=lambda _, dim: (
+                entry[f"x_opt_dim_{dim}"],
+                entry[f"f_opt_dim_{dim}"]
+            ),
             lb=-5,
             ub=5,
         )
@@ -228,7 +375,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         Evaluates a solution on the randomly generated benchmark function using AOCC.
         """
         auc_mean = 0
-        auc_std = 0
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
