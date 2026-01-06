@@ -20,7 +20,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     budget = 200 # test run (25 iterations of 8 algs)
 
-    DEBUG = False
+    DEBUG = True
     if DEBUG:
         budget = 24
 
@@ -44,18 +44,12 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         logger = ExperimentLogger("results/rule-driven1")
 
     all_features = ["Separable", "GlobalLocal", "Multimodality", "Basins", "Homogeneous"] 
-    feature_combinations = []
-    for i in range(len(all_features)):
-        for j in range(i+1, len(all_features)):
-            feature_combinations.append([all_features[i], all_features[j]])
-        feature_combinations.append([all_features[i]])
+    feature_combinations = [["GlobalLocal", "Multimodality"], ["Separable", "GlobalLocal"], ["Separable", "Multimodality"]]
+    # for i in range(len(all_features)):
+    #     for j in range(i+1, len(all_features)):
+    #         feature_combinations.append([all_features[i], all_features[j]])
+    #     feature_combinations.append([all_features[i]])
 
-    feature_combinations_txt = []
-    for i in range(len(all_features)):
-        for j in range(i+1, len(all_features)):
-            feature_combinations_txt.append(all_features[i] + "_" + all_features[j])
-        feature_combinations_txt.append(all_features[i])
-    
     # not_features = ["NOT Basins", "NOT Homogeneous"] 
     # rest_features = ["Separable", "GlobalLocal", "Multimodality"] 
     # for i in range(len(not_features)):
@@ -68,36 +62,80 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     if DEBUG:
         problems.append(
             HLP(
-                dims=[2],
+                dim=2,
                 budget_factor=200,
                 eval_timeout=100,
                 name=f"HLP-DEBUG",
+                add_info_to_prompt=False,
+                add_rules_to_prompt=False,
+                full_ioh_log=False,
+                specific_high_level_features=["Basins", "Homogeneous"],
+                ioh_dir=f"{logger.dirname}/ioh",
+            )
+        )
+        problems.append(
+            HLP(
+                dim=2,
+                budget_factor=200,
+                eval_timeout=100,
+                name=f"HLP-DEBUG-info",
                 add_info_to_prompt=True,
-                full_ioh_log=True,
+                add_rules_to_prompt=False,
+                full_ioh_log=False,
+                specific_high_level_features=["Basins", "Homogeneous"],
+                ioh_dir=f"{logger.dirname}/ioh",
+            )
+        )
+        problems.append(
+            HLP(
+                dim=2,
+                budget_factor=200,
+                eval_timeout=100,
+                name=f"HLP-DEBUG-rules",
+                add_info_to_prompt=True,
+                add_rules_to_prompt=True,
+                full_ioh_log=False,
                 specific_high_level_features=["Basins", "Homogeneous"],
                 ioh_dir=f"{logger.dirname}/ioh",
             )
         )
     else:
-        for dim in [2]: #, 5, 10]:
+        for dim in [5]: #, 30]:
             for feature_set in feature_combinations:
                 problems.append(
                     HLP(
-                        dims=[dim],
+                        dim=dim,
                         budget_factor=2000,
                         eval_timeout=360,
                         name=f"HLP",
                         add_info_to_prompt=False,
+                        add_rules_to_prompt=False,
                         full_ioh_log=False,
                         specific_high_level_features=feature_set,
                         ioh_dir=f"{logger.dirname}/ioh",
-                    ),
+                    )
+                )
+                problems.append(
                     HLP(
-                        dims=[dim],
+                        dim=dim,
                         budget_factor=2000,
                         eval_timeout=360,
-                        name=f"HLP",
+                        name=f"HLP-info",
                         add_info_to_prompt=True,
+                        add_rules_to_prompt=False,
+                        full_ioh_log=False,
+                        specific_high_level_features=feature_set,
+                        ioh_dir=f"{logger.dirname}/ioh"
+                    )
+                )
+                problems.append(
+                    HLP(
+                        dim=dim,
+                        budget_factor=2000,
+                        eval_timeout=360,
+                        name=f"HLP-rules",
+                        add_info_to_prompt=True,
+                        add_rules_to_prompt=True,
                         full_ioh_log=False,
                         specific_high_level_features=feature_set,
                         ioh_dir=f"{logger.dirname}/ioh",
