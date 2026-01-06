@@ -43,6 +43,27 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     else:
         logger = ExperimentLogger("results/rule-driven1")
 
+    all_features = ["Separable", "GlobalLocal", "Multimodality", "Basins", "Homogeneous"] 
+    feature_combinations = []
+    for i in range(len(all_features)):
+        for j in range(i+1, len(all_features)):
+            feature_combinations.append([all_features[i], all_features[j]])
+        feature_combinations.append([all_features[i]])
+
+    feature_combinations_txt = []
+    for i in range(len(all_features)):
+        for j in range(i+1, len(all_features)):
+            feature_combinations_txt.append(all_features[i] + "_" + all_features[j])
+        feature_combinations_txt.append(all_features[i])
+    
+    # not_features = ["NOT Basins", "NOT Homogeneous"] 
+    # rest_features = ["Separable", "GlobalLocal", "Multimodality"] 
+    # for i in range(len(not_features)):
+    #     for j in range(len(rest_features)):
+    #         feature_combinations.append([not_features[i], rest_features[j]])
+    #     feature_combinations.append([not_features[i]])
+
+
     problems = []
     if DEBUG:
         problems.append(
@@ -53,33 +74,35 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 name=f"HLP-DEBUG",
                 add_info_to_prompt=True,
                 full_ioh_log=True,
-                specific_high_level_features=["Separable", "Multimodality"],
+                specific_high_level_features=["Basins", "Homogeneous"],
                 ioh_dir=f"{logger.dirname}/ioh",
             )
         )
     else:
-        problems.append(
-            HLP(
-                dims=[2],
-                budget_factor=200,
-                eval_timeout=100,
-                name=f"HLP-DEBUG",
-                add_info_to_prompt=False,
-                full_ioh_log=False,
-                specific_high_level_features=["Separable", "Multimodality"],
-                ioh_dir=f"{logger.dirname}/ioh",
-            ),
-            HLP(
-                dims=[2],
-                budget_factor=200,
-                eval_timeout=100,
-                name=f"HLP-DEBUG",
-                add_info_to_prompt=True,
-                full_ioh_log=False,
-                specific_high_level_features=["Separable", "Multimodality"],
-                ioh_dir=f"{logger.dirname}/ioh",
-            )
-        )
+        for dim in [2]: #, 5, 10]:
+            for feature_set in feature_combinations:
+                problems.append(
+                    HLP(
+                        dims=[dim],
+                        budget_factor=2000,
+                        eval_timeout=360,
+                        name=f"HLP",
+                        add_info_to_prompt=False,
+                        full_ioh_log=False,
+                        specific_high_level_features=feature_set,
+                        ioh_dir=f"{logger.dirname}/ioh",
+                    ),
+                    HLP(
+                        dims=[dim],
+                        budget_factor=2000,
+                        eval_timeout=360,
+                        name=f"HLP",
+                        add_info_to_prompt=True,
+                        full_ioh_log=False,
+                        specific_high_level_features=feature_set,
+                        ioh_dir=f"{logger.dirname}/ioh",
+                    )
+                )
 
     experiment = Experiment(
         methods=methods,
