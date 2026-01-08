@@ -24,11 +24,13 @@ def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
     aggregation: str = "mean",
+    variance_aggregation: str = "std",
     methods: list = None,
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
     separate_lines: bool = False,
+    show_std: bool = True,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
@@ -37,17 +39,19 @@ def plot_convergence(
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label.
         aggregation (str, optional): The aggregation method to use ('mean', 'median', etc.).
+        variance_aggregation (str, optional): The method to aggregate variance ('std', 'sem', etc.).
         methods (list, optional): List of method names to include. If None, includes all methods.
         budget (int, optional): The maximum number of evaluations to display on the x-axis.
         save (bool, optional): Whether to save or show the plot.
         return_fig (bool, optional): Whether to return the figure object.
         separate_lines (bool, optional): If True, plots each run using separate line.
+        show_std (bool, optional): If True, shows standard deviation as shaded area.
     """
     methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     fig, axes = plt.subplots(
-        figsize=(10, 6 * len(problems)), nrows=len(problems), ncols=1
+        figsize=(8, 6 * len(problems)), nrows=len(problems), ncols=1
     )
     problem_i = 0
     for problem in problems:
@@ -85,7 +89,7 @@ def plot_convergence(
             else:
                 summary = (
                     method_data.groupby("_id")["cummax_fitness"]
-                    .agg([aggregation, "std"])
+                    .agg([aggregation, variance_aggregation])
                     .reset_index()
                 )
                 # Shift X-axis so that _id starts at 1
@@ -96,12 +100,13 @@ def plot_convergence(
                 ax.plot(summary["_id"], summary[aggregation], label=method_label)
 
                 # Plot the shaded error region
-                ax.fill_between(
-                    summary["_id"],
-                    summary[aggregation] - summary["std"],
-                    summary[aggregation] + summary["std"],
-                    alpha=0.2,
-                )
+                if show_std:
+                    ax.fill_between(
+                        summary["_id"],
+                        summary[aggregation] - summary[variance_aggregation],
+                        summary[aggregation] + summary[variance_aggregation],
+                        alpha=0.2,
+                    )
 
         # Add labels and legend
         ax.set_xlabel("Number of Evaluations")
@@ -156,6 +161,8 @@ def plot_experiment_CEG(
 
         # Get unique runs (seeds)
         seeds = data["seed"].unique()
+        #sort the seeds
+        seeds = sorted(seeds)
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
         methods = data["method_name"].unique()
@@ -190,7 +197,14 @@ def plot_experiment_CEG(
                 ax.set_xlim([0, budget])
                 ax.set_xticks(np.arange(0, budget + 1, 20))
                 ax.set_xticklabels(np.arange(0, budget + 1, 20))
-                ax.set_title(f"{method} run:{seed}")
+                method_title = method
+                if method == "ES":
+                    method_title = "LLaMEA"
+                elif method == "ES-guided":
+                    method_title = "LLaMEA-SAGE"
+                elif method == "ES-guided-new":
+                    method_title = "LLaMEA-SAGE"
+                ax.set_title(f"{method_title} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)
                 if method_i < len(methods) - 1:
@@ -392,7 +406,7 @@ def plot_code_evolution_graphs(
                             if row["archive_direction"] == "increase":
                                 edge_color = "green"
                                 if row["operator"] == "random":
-                                    edge_color = "darkgreen"
+                                    edge_color = "darkblue"
                             elif row["archive_direction"] == "decrease":
                                 edge_color = "red"
                                 if row["operator"] == "random":

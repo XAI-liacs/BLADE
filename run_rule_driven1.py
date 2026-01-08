@@ -7,6 +7,7 @@ import numpy as np
 import ioh
 import os
 
+from iohblade.solution import Solution
 from iohblade.utils import code_compare
 import lizard
 
@@ -20,7 +21,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
 
     budget = 200 # test run (25 iterations of 8 algs)
 
-    DEBUG = True
+    DEBUG = False
     if DEBUG:
         budget = 24
 
@@ -44,7 +45,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         logger = ExperimentLogger("results/rule-driven1")
 
     all_features = ["Separable", "GlobalLocal", "Multimodality", "Basins", "Homogeneous"] 
-    feature_combinations = [["GlobalLocal", "Multimodality"], ["Separable", "GlobalLocal"], ["Separable", "Multimodality"]]
+    feature_combinations = [["Separable", "Multimodality"]] #["GlobalLocal", "Multimodality"], ["Separable", "GlobalLocal"], 
     # for i in range(len(all_features)):
     #     for j in range(i+1, len(all_features)):
     #         feature_combinations.append([all_features[i], all_features[j]])
@@ -163,8 +164,50 @@ if __name__ == "__main__": # prevents weird restarting behaviour
             show_stdout=True,
             exp_logger=logger,
             budget=budget,
-            n_jobs=1
+            n_jobs=2
         )  # test run
+
+    if DEBUG:
+        #do some first test
+        test_problem = HLP(
+                        dim=2,
+                        budget_factor=200,
+                        eval_timeout=360,
+                        name=f"HLP-rules",
+                        add_info_to_prompt=True,
+                        add_rules_to_prompt=True,
+                        full_ioh_log=True,
+                        specific_high_level_features=["Basins", "Homogeneous"],
+                        ioh_dir=f"{logger.dirname}/ioh",
+                    )
+        code = """
+import numpy as np
+import math
+
+class RandomSearch:
+    def __init__(self, budget=10000, dim=10):
+        self.budget = budget
+        self.dim = dim
+
+    def __call__(self, func):
+        self.f_opt = np.inf
+        self.x_opt = None
+        for i in range(self.budget):
+            x = np.random.uniform(func.bounds.lb, func.bounds.ub)
+            
+            f = func(x)
+            if f < self.f_opt:
+                self.f_opt = f
+                self.x_opt = x
+            
+        return self.f_opt, self.x_opt"""
+        name = "RandomSearch"
+        test_solution = Solution(
+            name=name,
+            code=code
+        )
+        result = test_problem.evaluate(test_solution)
+        print(test_solution.feedback)
 
     #experiment = MA_BBOB_Experiment(methods=methods, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=2000, budget=budget, eval_timeout=270, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment

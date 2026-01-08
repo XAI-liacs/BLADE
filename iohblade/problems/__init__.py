@@ -8,6 +8,10 @@ try:
 except Exception:
     BBOB_SBOX = None
 try:
+    from .hlp import HLP
+except Exception:
+    HLP = None
+try:
     from .kerneltuner import Kerneltuner
 except Exception:
     Kerneltuner = None

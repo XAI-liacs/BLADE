@@ -5,6 +5,8 @@ import ioh
 import numpy as np
 import math
 import pandas as pd
+import itertools
+import random
 import json
 from ioh import get_problem, wrap_problem
 from ioh import logger as ioh_logger
@@ -489,12 +491,14 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         entry = data[instance]
         code = entry["code"]
 
-        exec(code, globals())
-        cls = globals()[entry["name"]]
+        safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
+        local_env = {}
+        exec(code, safe_globals, local_env)
+        cls = local_env[entry["name"]]
         objective_f = cls(dim=dim).f
 
         # --- WRAP PROBLEM ---
-        wrap_problem(
+        p = wrap_problem(
             objective_f,
             self.function_file.replace(".jsonl", ""),
             ioh.ProblemClass.REAL,
@@ -507,7 +511,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             lb=-5,
             ub=5,
         )
-        return get_problem(self.function_file.replace(".jsonl", ""), instance=instance, dimension=dim)
+        return p
 
 
     def get_prompt(self):
@@ -524,7 +528,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
-        safe_globals = {"np": np, "ioh": ioh, "math": math}
+        safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
         local_env = {}
         exec(code, safe_globals, local_env)
 
@@ -548,7 +552,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         performance_data = []
         for dim in [self.dim]:
             for instance in instances:
-                
                 budget = self.budget_factor * dim
                 f_new = self.get_generated_problem(
                     instance=instance, dim=dim
@@ -572,7 +575,6 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     algorithm(f_new)
                 except OverBudgetException:
                     pass
-
                 corrected_aoc = correct_aoc(f_new, l2, budget)
                 performance_data.append(
                     {"fid": self.function_file.replace(".jsonl", ""), "iid": instance, "dim": dim, "auc": corrected_aoc}
