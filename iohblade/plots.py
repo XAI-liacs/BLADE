@@ -19,6 +19,19 @@ from sklearn.preprocessing import StandardScaler, minmax_scale
 from .loggers import ExperimentLogger
 from .misc.ast import analyse_complexity, process_code
 
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
+
 
 def plot_convergence(
     logger: ExperimentLogger,
@@ -797,7 +810,7 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
 
 
 def plot_token_usage(
-    logger: ExperimentLogger, save: bool = True, return_fig: bool = False
+    logger: ExperimentLogger, save: bool = True, return_fig: bool = False, return_df: bool = False
 ):
     """Plot total tokens used per method/problem from an experiment logger."""
 
@@ -812,7 +825,13 @@ def plot_token_usage(
             if os.path.isfile(convo_path):
                 with jsonlines.open(convo_path) as f:
                     for line in f:
-                        tokens += line.get("tokens", 0)
+                        newtokens = line.get("tokens", 0)
+                        if newtokens > 0:
+                            tokens += line.get("tokens", 0)
+                        elif count_string_tokens is not None:
+                            # Fallback: count tokens from 'content' text
+                            response_text = line.get("content", "")
+                            tokens += count_string_tokens(response_text, model="gpt-4")
         token_records.append(
             {
                 "method_name": row["method_name"],
@@ -821,6 +840,8 @@ def plot_token_usage(
             }
         )
     token_df = pd.DataFrame(token_records)
+    if return_df:
+        return token_df
     summary = (
         token_df.groupby(["problem_name", "method_name"])["tokens"].sum().reset_index()
     )
