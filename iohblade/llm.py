@@ -12,6 +12,7 @@ from typing import Any
 import anthropic
 import ollama
 import openai
+import lmstudio as lms
 from google import genai
 from tokencost import (
     calculate_completion_cost,
@@ -641,6 +642,66 @@ class Claude_LLM(LLM):
         new.client = anthropic.Anthropic(**new._client_kwargs)
         return new
 
+class LMStudio_LLM(LLM):
+    """A manager for running MLX-Optimised LLM locally."""
+
+    def __init__(self, model, config=None, **kwargs):
+        """
+        Initialises the LMStudio LLM inteface.
+        
+        :param model: Name of the model, to be initialised for interaction.
+        :param config: Configuration to be set for LLM chat.
+        :param kwargs: Keyed arguements for setting up the LLM chat.
+        """
+        super().__init__(api_key="", model=model, **kwargs)
+        self.llm = lms.llm(model)
+        self.config = config
+    
+    def _query(self, session: list[dict[str, str]], max_retries: int=5) -> str:
+        """
+        Query stub for LMStudio class. 
+
+        ## Parameters
+        `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
+        `max_tries: int`: A max count for the number of tries, to get a response.
+        """
+        request = session[-1]["content"] 
+        for _ in range(max_retries):
+            try:
+                if self.config is not None:
+                    response = self.llm.respond(request, config=self.config)
+                else:
+                    response = self.llm.respond(request)
+                response = re.sub(             # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>",
+                    "",
+                    str(response),
+                    flags=re.DOTALL
+                )
+                return response
+            except:
+                pass
+        return ""
+    
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop('llm', None)
+    
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.llm = lms.llm(self.model)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "llm":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.llm = lms.llm(new.model)
+        return new
+        
 
 class Dummy_LLM(LLM):
     def __init__(self, model="DUMMY", **kwargs):
