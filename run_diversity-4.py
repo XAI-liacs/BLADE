@@ -97,7 +97,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     #llm_llama = Ollama_LLM("llama3.2:3b")
 
     #ai_model = "gemini-2.0-flash"
-    llm = Gemini_LLM(api_key_google, "gemini-3-pro-preview")
+    llm = Gemini_LLM(api_key_google, "gemini-2.5-flash")
     #llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
     #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
