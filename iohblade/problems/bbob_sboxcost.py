@@ -3,6 +3,7 @@ import traceback
 
 import ioh
 import numpy as np
+import math
 import pandas as pd
 from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
@@ -140,16 +141,16 @@ class BBOB_SBOX(Problem):
         ]
         self.problem_type = problem_type
         self.benchmark_name = (
-            "SBOX-COST test suite of noiseless box-constrained functions."
+            "test suite of noiseless box-constrained functions."
             if problem_type == ioh.ProblemClass.SBOX
-            else "BBOB test suite of noiseless functions."
+            else "test suite of noiseless functions."
         )
         box_constrained = (
             "box-constrained"
             if problem_type == ioh.ProblemClass.SBOX
             else "unconstrained"
         )
-        extra_prompt = f"The optimization algorithm should handle a wide range of tasks, which is evaluated on the {self.benchmark_name}"
+        extra_prompt = f"The optimization algorithm should handle a wide range of tasks, which is evaluated on a {self.benchmark_name}"
         if (
             self.specific_fid is not None
             and self.specific_fid < 25
@@ -166,7 +167,7 @@ class BBOB_SBOX(Problem):
             extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions."
 
         self.task_prompt = f"""
-You are a Python expert working on a new optimization algorithm.
+You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 {extra_prompt} Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
@@ -222,7 +223,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
-        safe_globals = {"np": np}
+        safe_globals = {"np": np, "ioh": ioh, "math": math}
         local_env = {}
         exec(code, safe_globals, local_env)
 
@@ -243,6 +244,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         # Final validation
         instances = self.test_instances if test else self.training_instances
         aucs = []
+        performance_data = []
         for dim in self.dims:
             for instance in instances:
                 fid, iid = instance  # we expact a tuple of (fid, iid)
@@ -270,13 +272,16 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 except OverBudgetException:
                     pass
 
-                aucs.append(correct_aoc(f_new, l2, budget))
+                corrected_aoc = correct_aoc(f_new, l2, budget)
+                performance_data.append(
+                    {"fid": fid, "iid": iid, "dim": dim, "auc": corrected_aoc}
+                )
+                aucs.append(corrected_aoc)
                 l2.reset(f_new)
                 f_new.reset()
 
         auc_mean = np.mean(aucs)
-        auc_std = np.std(aucs)
-
+        solution.add_metadata("performance_data", performance_data)
         solution.add_metadata("aucs", aucs)
         solution.set_scores(
             auc_mean,

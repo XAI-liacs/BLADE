@@ -6,6 +6,7 @@ import copy
 import logging
 import re
 import time
+import random
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -100,17 +101,18 @@ class LLM(ABC):
             str: The text content of the LLM's response.
         """
         if self.log:
+            input_msg = "\n".join([d["content"] for d in session])
             try:
-                cost = calculate_prompt_cost(session, self.model)
+                cost = calculate_prompt_cost(input_msg, self.model)
             except Exception:
                 cost = 0
             try:
-                tokens = count_message_tokens(session, model=self.model)
+                tokens = count_message_tokens(input_msg, model=self.model)
             except Exception:
                 tokens = 0
             self.logger.log_conversation(
                 "client",
-                "\n".join([d["content"] for d in session]),
+                input_msg,
                 cost,
                 tokens,
             )
@@ -276,6 +278,38 @@ class LLM(ABC):
             "desc_pattern": self.desc_pattern,
             "cs_pattern": self.cs_pattern,
         }
+
+
+class Multi_LLM(LLM):
+    def __init__(self, llms: list[LLM]):
+        """
+        Combine multiple LLM instances and randomly choose one per call.
+
+        Args:
+            llms (list[LLM]): A list of LLM instances to combine.
+        """
+        if not llms:
+            raise ValueError("llms must contain at least one LLM instance")
+        model = "multi-llm"
+        super().__init__("", model)
+        self.llms = llms
+
+    def _pick_llm(self) -> LLM:
+        """
+        Randomly selects one of the LLMs from the list.
+        This method is used to alternate between LLMs during evolution.
+        """
+        return random.choice(self.llms)
+
+    def set_logger(self, logger):
+        self.logger = logger
+        self.log = True
+        for llm in self.llms:
+            llm.set_logger(logger)
+
+    def _query(self, session_messages, **kwargs):
+        llm = self._pick_llm()
+        return llm._query(session_messages, **kwargs)
 
 
 class OpenAI_LLM(LLM):
@@ -565,16 +599,16 @@ class Claude_LLM(LLM):
         api_key,
         model="claude-3-haiku-20240307",
         base_url=None,
+        max_tokens=12000,
         temperature=0.8,
-        max_tokens=4096,
         **kwargs,
     ):
         """Initializes the LLM manager with an API key and model name."""
 
         super().__init__(api_key, model, base_url, **kwargs)
         self.temperature = temperature
-        self.max_tokens = max_tokens
         self._client_kwargs = {"api_key": api_key}
+        self.max_tokens = max_tokens
         if base_url:
             self._client_kwargs["base_url"] = base_url
         self.client = anthropic.Anthropic(**self._client_kwargs)
@@ -587,19 +621,24 @@ class Claude_LLM(LLM):
         while True:
             try:
                 response = self.client.messages.create(
+                    max_tokens=self.max_tokens,
                     model=self.model,
                     messages=session_messages,
                     temperature=self.temperature,
-                    max_tokens=self.max_tokens,
                 )
 
                 content = response.content
                 if isinstance(content, list):
                     parts = []
                     for block in content:
-                        parts.append(getattr(block, "text", block.get("text", "")))
-                    return "".join(parts)
-                return content
+                        if hasattr(block, "text"):
+                            parts.append(block.text)
+                        elif isinstance(block, dict) and "text" in block:
+                            parts.append(block["text"])
+                    text_output = "".join(parts)
+                else:
+                    text_output = str(content)
+                return text_output
 
             except anthropic.RateLimitError as err:
                 attempt += 1
