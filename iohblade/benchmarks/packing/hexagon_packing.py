@@ -3,7 +3,7 @@ import math
 import numpy as np
 from typing import Tuple
 
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from .packing_base import PackingBase
@@ -23,6 +23,7 @@ class HexagonPacking(PackingBase, Problem):
         best_known: float,
         tolerance: float = 1e-12,
         best_solution: list[Any] | None = None,
+        logger=None
     ):
         task_name = f"hexagon_packing-n{n_hex}"
         self.best_known = best_known
@@ -114,15 +115,14 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
 
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
+            cls = local_ns[solution.name]
             try:
                 arr = cls(self.n_hex, best_known_configuration=self.best_known)()
             except:
                 arr = cls(self.n_hex)()
         except Exception as e:
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("inf"), f"exec-error {e.__repr__()}", "exec-failed")
             return solution
 
         try:
