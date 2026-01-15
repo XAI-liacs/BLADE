@@ -56,8 +56,7 @@ Write a python class with function `__call__`, that generate a solution for Heil
   - (None, points) where points is ndarray (n,2) interpreted inside a default unit-area triangle, or
   - (triangle, points): with triangle shape (3,2), both of which we rescale similarly as to have area of triangle = 1.
     - Upon scaling points must lie inside the tringle, within the given tolerance.
-- The solution is scored as minimum triangle area formed by picking 3 of the n points.
-- The optimisation goal is to maximise the score.
+- The optimisation goal is to maximise the area of the smallest triangle, formed by picking 3 of the n points.
 """
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
@@ -119,12 +118,11 @@ one-line description, describing the main idea. Give the response in the format:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            cls = local_ns[solution.name]
+            if self.best_solution is None:
                 triangle, points = cls(self.n_points)()
-            except:
-                triangle, points = cls(self.n_points)()
+            else:
+                triangle, points = cls(self.n_points, best_known_configuration=self.best_solution, in_triangle=self.triangle_best_solution)()
         except Exception as e:
             # tb = e.__traceback__
             solution.set_scores(
@@ -154,7 +152,7 @@ one-line description, describing the main idea. Give the response in the format:
                 f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
             )
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}.", f"Values Returned: Triangle {triangle}, points: {points}")
         return solution
 
     def test(self, solution):

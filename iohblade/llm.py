@@ -14,6 +14,8 @@ import anthropic
 import ollama
 import openai
 import lmstudio as lms
+from mlx_lm import load, generate
+
 from google import genai
 from tokencost import (
     calculate_completion_cost,
@@ -696,7 +698,7 @@ class LMStudio_LLM(LLM):
         self.llm = lms.llm(model)
         self.config = config
     
-    def _query(self, session: list[dict[str, str]], max_retries: int=5) -> str:
+    def _query(self, session: list[dict[str, str]], max_tries: int=5) -> str:
         """
         Query stub for LMStudio class. 
 
@@ -705,7 +707,7 @@ class LMStudio_LLM(LLM):
         `max_tries: int`: A max count for the number of tries, to get a response.
         """
         request = session[-1]["content"] 
-        for _ in range(max_retries):
+        for _ in range(max_tries):
             try:
                 if self.config is not None:
                     response = self.llm.respond(request, config=self.config)
@@ -725,6 +727,7 @@ class LMStudio_LLM(LLM):
     def __getstate__(self):
         state = self.__dict__.copy()
         state.pop('llm', None)
+        return state
     
     def __setstate__(self, state):
         self.__dict__.update(state)
@@ -738,9 +741,89 @@ class LMStudio_LLM(LLM):
             if k == "llm":
                 continue
             setattr(new, k, copy.deepcopy(v, memo))
-        new.llm = lms.llm(new.model)
+        new.llm = self.llm
         return new
+
+class MLX_LM_LLM(LLM):
+    """An mlx_lm implementation for running large LLMs locally."""
+
+    def __init__(self, model, config=None, max_tokens: int = 12000, **kwargs):
+        """
+        Initialises the LMStudio LLM inteface.
         
+        :param model: Name of the model, to be initialised for interaction.
+        :param config: Configuration to be set for LLM chat.
+        :param max_tokens: Maximun number of tokens to be generated for a request.
+        :param kwargs: Keyed arguements for setting up the LLM chat.
+        """
+        super().__init__(api_key="", model=model, **kwargs)
+        if config is not None:
+            llm, tokenizer = load(model, model_config=config)
+        else:
+            llm, tokenizer = load(model)
+        self.llm = llm
+        self.tokenizer = tokenizer
+        
+        self.config = config
+        self.max_tokens = max_tokens
+    
+    def __getstate__(self) -> object:
+        state = self.__dict__
+        state.pop('tokenizer', None)
+        state.pop('llm', None)
+        return state
+    
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.config is None:
+            llm, tokenizer = load(self.model)
+        else:
+            llm, tokenizer = load(self.model, model_config=self.config)
+        self.llm = llm
+        self.tokenizer = tokenizer
+    
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k in ["llm", "tokenizer"]:
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.llm = self.llm                          # <- reference symantics copy for massive object `llm`.
+        new.tokenizer = self.tokenizer
+        return new
+    
+    def _query(self, session: list, max_tries: int = 5, add_generation_prompt:bool= False):
+        """
+        Query stub for LMStudio class. 
+
+        ## Parameters
+        `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
+        `max_tries: int`: A max count for the number of tries, to get a response.
+        `add_generation_prompt: bool`: MLX_LM come with an option to add_generation_prompt to optimise prompts.
+        """
+        prompt = self.tokenizer.apply_chat_template(
+            session, add_generation_prompt=add_generation_prompt
+        )
+        for _ in range(max_tries):
+            try:
+                response = generate(
+                    self.llm,
+                    self.tokenizer,
+                    prompt,
+                    max_tokens = self.max_tokens         # Disable limit on token count.
+                )
+                response = re.sub(             # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>",
+                    "",
+                    str(response),
+                    flags=re.DOTALL
+                )
+                return response
+            except:
+                pass
+        return ""
 
 class Dummy_LLM(LLM):
     def __init__(self, model="DUMMY", **kwargs):
