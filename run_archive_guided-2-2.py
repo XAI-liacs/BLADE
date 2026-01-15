@@ -14,13 +14,8 @@ import lizard
 
 if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_google = os.getenv("GEMINI_API_KEY")
-    api_key_openai = os.getenv("OPENAI_API_KEY")
-    api_key_claude = os.getenv("CLAUDE_API_KEY")
-
-
 
     llm = Gemini_LLM(api_key_google, "gemini-2.0-flash-lite")
-    #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
 
     budget = 100 # test run (25 iterations of 8 algs)
 
@@ -56,11 +51,5 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         experiment = MA_BBOB_Experiment(methods=methods, training_instances=training_instances, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=5000, budget=budget, eval_timeout=600, show_stdout=False, log_stdout=True, exp_logger=logger, n_jobs=10) #normal run
 
 
-    #experiment = MA_BBOB_Experiment(methods=methods, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=2000, budget=budget, eval_timeout=270, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment
-
-
-
-    #MA_BBOB_Experiment(methods=methods, llm=llm2, runs=5, dims=[2], budget_factor=1000) #quick run
-
 

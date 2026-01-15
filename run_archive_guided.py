@@ -12,25 +12,9 @@ import lizard
 
 
 if __name__ == "__main__": # prevents weird restarting behaviour
-    api_key_google = os.getenv("GEMINI_API_KEY")
     api_key_openai = os.getenv("OPENAI_API_KEY")
-    api_key_claude = os.getenv("CLAUDE_API_KEY")
 
-
-    #. lets first experiment with local models.
-    # qwen3-coder:30b, gemma3:27b, llama3.2:3b
-
-    # first experiments with 3x 1 llm, 2x2 llms, 3 llms
-
-    #llm_qwen = Ollama_LLM("qwen3-coder:30b")
-    #llm_gemma3 = Ollama_LLM("gemma3:27b")
-    #llm_llama = Ollama_LLM("llama3.2:3b")
-
-    #ai_model = "gemini-2.0-flash"
-    #llm2 = Gemini_LLM(api_key_google, "gemini-2.5-flash")
     llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
-    #llm3 = Claude_LLM(api_key_claude, "claude-sonnet-4-5-20250929", temperature=1.0)
-
     budget = 200 # test run (25 iterations of 8 algs)
 
     DEBUG = False
@@ -42,10 +26,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
     ]
 
-    #for llm in [llm1]:#, llm2]:
-    #RS = RandomSearch(llm, budget=budget) 
-    LLaMEA_1 = LLaMEA(llm, budget=budget, name="ES", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
-    LLaMEA_2 = LLaMEA(llm, budget=budget, name="ES-guided-new", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
+    LLaMEA_1 = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True)
+    LLaMEA_2 = LLaMEA(llm, budget=budget, name="LLaMEA-SAGE", mutation_prompts=mutation_prompts, n_parents=8, n_offspring=8, elitism=True, feature_guided_mutation=True)
 
     methods = [LLaMEA_1, LLaMEA_2] 
 
@@ -115,11 +97,4 @@ if __name__ == "__main__": # prevents weird restarting behaviour
             n_jobs=5
         )  # test run
 
-    #experiment = MA_BBOB_Experiment(methods=methods, runs=5, seeds=[1,2,3,4,5], dims=[10], budget_factor=2000, budget=budget, eval_timeout=270, show_stdout=True, exp_logger=logger, n_jobs=5) #normal run
     experiment() #run the experiment
-
-
-
-    #MA_BBOB_Experiment(methods=methods, llm=llm2, runs=5, dims=[2], budget_factor=1000) #quick run
-
-
