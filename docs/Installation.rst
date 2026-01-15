@@ -36,4 +36,4 @@ You can also install the package from source using **uv** (0.7.9).
 
    .. code-block:: bash
 
-      uv sync --prerelease allow --group apple_silicon
+      uv sync --group dev --group docs --group --extra apple_silicon --prerelease=allow

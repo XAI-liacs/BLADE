@@ -49,10 +49,6 @@ dev = [
     "pytest-mock>=3.14.0,<4",
     "ipykernel>=6.29.5,<7",
 ]
-apple_silicon = [
-    "lmstudio>=1.5.0,<2",
-    "mlx_lm>=0.30.2,<1"
-]
 docs = [
     "sphinx==7.4.7",
     "sphinx-rtd-theme>=3.0.2,<4",
@@ -73,6 +69,12 @@ kerneltuner = [
 ]
 trackio = [
     "trackio>=0.3.2,<1",
+]
+
+[project.optional-dependencies]
+apple-silicon = [
+    "lmstudio>=1.5.0,<2",
+    "mlx_lm>=0.30.2,<1"
 ]
 
 [tool.uv]

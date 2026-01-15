@@ -131,10 +131,10 @@ make sure you have `uv` installed.
    The (experimental) auto-kernel application is also under a separate group for now. 
 4. *(Optional)* Intall Support for MLX optimised LLMs:
     ```bash
-    uv sync --prerelease allow --group dev --group docs --group apple_silicon 
+    uv sync --group group_name .... --extra apple-silicon --prerelease=allow
     ```
-    This will allow BLADE to ineract with LMStudio, and mlx_lm libraries, for running 
-    MLX optimised LLMs, locally, on Apple Silicon.
+    Select all the groups required, and append it with `--extra apple-silicon --prerelease=allow`, to install
+    libraries that enable MLX Optimised LLMs to be used in iohblade.
 
 ## 💻 Quick Start
 

@@ -1957,11 +1957,13 @@ dependencies = [
     { name = "xmltodict" },
 ]
 
-[package.dev-dependencies]
+[package.optional-dependencies]
 apple-silicon = [
     { name = "lmstudio" },
     { name = "mlx-lm" },
 ]
+
+[package.dev-dependencies]
 dev = [
     { name = "black" },
     { name = "codecov" },
@@ -2004,7 +2006,9 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
     { name = "llamea", specifier = ">=1.1.10,<2" },
+    { name = "lmstudio", marker = "extra == 'apple-silicon'", specifier = ">=1.5.0,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
+    { name = "mlx-lm", marker = "extra == 'apple-silicon'", specifier = ">=0.30.2,<1" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
     { name = "ollama", specifier = ">=0.5.3,<1" },
@@ -2019,12 +2023,9 @@ requires-dist = [
     { name = "virtualenv", specifier = ">=20.34.0" },
     { name = "xmltodict", specifier = ">=0.14.2,<0.15" },
 ]
+provides-extras = ["apple-silicon"]
 
 [package.metadata.requires-dev]
-apple-silicon = [
-    { name = "lmstudio", specifier = ">=1.5.0,<2" },
-    { name = "mlx-lm", specifier = ">=0.30.2,<1" },
-]
 dev = [
     { name = "black", specifier = ">=25.11.0,<26" },
     { name = "codecov", specifier = ">=2.1.13,<3" },
