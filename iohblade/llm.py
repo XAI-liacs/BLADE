@@ -683,13 +683,14 @@ class Claude_LLM(LLM):
         new.client = anthropic.Anthropic(**new._client_kwargs)
         return new
 
+
 class LMStudio_LLM(LLM):
     """A manager for running MLX-Optimised LLM locally."""
 
     def __init__(self, model, config=None, **kwargs):
         """
         Initialises the LMStudio LLM inteface.
-        
+
         :param model: Name of the model, to be initialised for interaction.
         :param config: Configuration to be set for LLM chat.
         :param kwargs: Keyed arguements for setting up the LLM chat.
@@ -697,38 +698,35 @@ class LMStudio_LLM(LLM):
         super().__init__(api_key="", model=model, **kwargs)
         self.llm = lms.llm(model)
         self.config = config
-    
-    def _query(self, session: list[dict[str, str]], max_tries: int=5) -> str:
+
+    def _query(self, session: list[dict[str, str]], max_tries: int = 5) -> str:
         """
-        Query stub for LMStudio class. 
+        Query stub for LMStudio class.
 
         ## Parameters
         `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
         `max_tries: int`: A max count for the number of tries, to get a response.
         """
-        request = session[-1]["content"] 
+        request = session[-1]["content"]
         for _ in range(max_tries):
             try:
                 if self.config is not None:
                     response = self.llm.respond(request, config=self.config)
                 else:
                     response = self.llm.respond(request)
-                response = re.sub(             # Remove thinking section, if avaiable.
-                    r"<think>.*?</think>",
-                    "",
-                    str(response),
-                    flags=re.DOTALL
+                response = re.sub(  # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>", "", str(response), flags=re.DOTALL
                 )
                 return response
             except:
                 pass
         return ""
-    
+
     def __getstate__(self):
         state = self.__dict__.copy()
-        state.pop('llm', None)
+        state.pop("llm", None)
         return state
-    
+
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.llm = lms.llm(self.model)
@@ -744,13 +742,14 @@ class LMStudio_LLM(LLM):
         new.llm = self.llm
         return new
 
+
 class MLX_LM_LLM(LLM):
     """An mlx_lm implementation for running large LLMs locally."""
 
     def __init__(self, model, config=None, max_tokens: int = 12000, **kwargs):
         """
         Initialises the LMStudio LLM inteface.
-        
+
         :param model: Name of the model, to be initialised for interaction.
         :param config: Configuration to be set for LLM chat.
         :param max_tokens: Maximun number of tokens to be generated for a request.
@@ -763,16 +762,16 @@ class MLX_LM_LLM(LLM):
             llm, tokenizer = load(model)
         self.llm = llm
         self.tokenizer = tokenizer
-        
+
         self.config = config
         self.max_tokens = max_tokens
-    
+
     def __getstate__(self) -> object:
         state = self.__dict__
-        state.pop('tokenizer', None)
-        state.pop('llm', None)
+        state.pop("tokenizer", None)
+        state.pop("llm", None)
         return state
-    
+
     def __setstate__(self, state):
         self.__dict__.update(state)
         if self.config is None:
@@ -781,7 +780,7 @@ class MLX_LM_LLM(LLM):
             llm, tokenizer = load(self.model, model_config=self.config)
         self.llm = llm
         self.tokenizer = tokenizer
-    
+
     def __deepcopy__(self, memo):
         cls = self.__class__
         new = cls.__new__(cls)
@@ -790,13 +789,15 @@ class MLX_LM_LLM(LLM):
             if k in ["llm", "tokenizer"]:
                 continue
             setattr(new, k, copy.deepcopy(v, memo))
-        new.llm = self.llm                          # <- reference symantics copy for massive object `llm`.
+        new.llm = self.llm  # <- reference symantics copy for massive object `llm`.
         new.tokenizer = self.tokenizer
         return new
-    
-    def _query(self, session: list, max_tries: int = 5, add_generation_prompt:bool= False):
+
+    def _query(
+        self, session: list, max_tries: int = 5, add_generation_prompt: bool = False
+    ):
         """
-        Query stub for LMStudio class. 
+        Query stub for LMStudio class.
 
         ## Parameters
         `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
@@ -812,18 +813,16 @@ class MLX_LM_LLM(LLM):
                     self.llm,
                     self.tokenizer,
                     prompt,
-                    max_tokens = self.max_tokens         # Disable limit on token count.
+                    max_tokens=self.max_tokens,  # Disable limit on token count.
                 )
-                response = re.sub(             # Remove thinking section, if avaiable.
-                    r"<think>.*?</think>",
-                    "",
-                    str(response),
-                    flags=re.DOTALL
+                response = re.sub(  # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>", "", str(response), flags=re.DOTALL
                 )
                 return response
             except:
                 pass
         return ""
+
 
 class Dummy_LLM(LLM):
     def __init__(self, model="DUMMY", **kwargs):

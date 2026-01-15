@@ -122,7 +122,11 @@ one-line description, describing the main idea. Give the response in the format:
             if self.best_solution is None:
                 triangle, points = cls(self.n_points)()
             else:
-                triangle, points = cls(self.n_points, best_known_configuration=self.best_solution, in_triangle=self.triangle_best_solution)()
+                triangle, points = cls(
+                    self.n_points,
+                    best_known_configuration=self.best_solution,
+                    in_triangle=self.triangle_best_solution,
+                )()
         except Exception as e:
             # tb = e.__traceback__
             solution.set_scores(
@@ -152,7 +156,11 @@ one-line description, describing the main idea. Give the response in the format:
                 f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
             )
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}.", f"Values Returned: Triangle {triangle}, points: {points}")
+            solution.set_scores(
+                float("-inf"),
+                f"calc-error {e}.",
+                f"Values Returned: Triangle {triangle}, points: {points}",
+            )
         return solution
 
     def test(self, solution):
