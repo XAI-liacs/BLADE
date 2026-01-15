@@ -30,4 +30,10 @@ You can also install the package from source using **uv** (0.7.9).
 
    .. code-block:: bash
 
-      uv install --group dev --group docs
+      uv sync --group dev --group docs
+
+4. (Optional) Install support for running MLX optimised LLMs locally on apple silicon machine:
+
+   .. code-block:: bash
+
+      uv sync --prerelease allow --group apple_silicon

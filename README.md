@@ -129,6 +129,12 @@ make sure you have `uv` installed.
    ```
    This will install additional dependencies for development and building documentation.
    The (experimental) auto-kernel application is also under a separate group for now. 
+4. *(Optional)* Intall Support for MLX optimised LLMs:
+    ```bash
+    uv sync --prerelease allow --group dev --group docs --group apple_silicon 
+    ```
+    This will allow BLADE to ineract with LMStudio, and mlx_lm libraries, for running 
+    MLX optimised LLMs, locally, on Apple Silicon.
 
 ## 💻 Quick Start
 
