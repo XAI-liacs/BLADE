@@ -63,18 +63,16 @@ methods = [
     "eoh",
     "reevo",
 ]
+apple-silicon = [
+    "lmstudio>=1.5.0,<2; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "mlx_lm>=0.30.2,<1; platform_system == 'Darwin' and platform_machine == 'arm64'",
+]
 kerneltuner = [
     "kernel-tuner",
     "autotuning_methodology",
 ]
 trackio = [
     "trackio>=0.3.2,<1",
-]
-
-[project.optional-dependencies]
-apple-silicon = [
-    "lmstudio>=1.5.0,<2",
-    "mlx_lm>=0.30.2,<1"
 ]
 
 [tool.uv]

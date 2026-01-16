@@ -13,8 +13,15 @@ from typing import Any
 import anthropic
 import ollama
 import openai
-import lmstudio as lms
-from mlx_lm import load, generate
+try:
+    import lmstudio as lms                      # Platform dependent dependency.
+except:
+    lms = None
+try:
+    from mlx_lm import load, generate           # Platform dependent dependency.
+except:
+    load = None
+    generate = None
 
 from google import genai
 from tokencost import (
