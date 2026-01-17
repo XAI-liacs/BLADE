@@ -9,7 +9,6 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import numpy as np
 import pandas as pd
-import polars as pl
 import sklearn
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
@@ -68,6 +67,14 @@ class AutoML(Problem):
         If openml_task_id is provided, this problem loads the OpenML task
         and uses the official train/test split.
         """
+
+        super().__init__(
+            logger=logger,
+            training_instances=[],
+            test_instances=[],
+            name=name,
+            eval_timeout=eval_timeout,
+        )
         self.openml_task_id = openml_task_id
         self.eval_name = None
         self.split_info = {}
@@ -163,13 +170,6 @@ class AutoML(Problem):
         ```
         """
 
-        super().__init__(
-            logger,
-            [],
-            [],
-            name,
-            eval_timeout,
-        )
         self.func_name = "__call__"
         self.init_inputs = ["X", "y"]
         self.func_inputs = ["X"]
