@@ -121,7 +121,11 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
-        if self.logger != None and hasattr(self.logger, 'budget_exhausted') and self.logger.budget_exhausted():
+        if (
+            self.logger != None
+            and hasattr(self.logger, "budget_exhausted")
+            and self.logger.budget_exhausted()
+        ):
             return "Budget exhausted."
 
         if self.log:
