@@ -313,14 +313,7 @@ def plot_experiment_CEG(
                 ax.set_xlim([0, budget])
                 ax.set_xticks(np.arange(0, budget + 1, 20))
                 ax.set_xticklabels(np.arange(0, budget + 1, 20))
-                method_title = method
-                if method == "ES":
-                    method_title = "LLaMEA"
-                elif method == "ES-guided":
-                    method_title = "LLaMEA-SAGE"
-                elif method == "ES-guided-new":
-                    method_title = "LLaMEA-SAGE"
-                ax.set_title(f"{method_title} run:{seed}")
+                ax.set_title(f"{method} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)
                 if method_i < len(methods) - 1:
@@ -495,9 +488,6 @@ def plot_code_evolution_graphs(
         if no_axis:
             fig, ax = plt.subplots(figsize=(8, 5))
 
-        # 1. Determine the normalized feature name being plotted for comparison
-        normalized_x_data = normalize_key(x_data)
-
         for _, row in data.iterrows():
             if len(row["parent_ids"]) == 0:
                 ax.plot(
@@ -510,43 +500,7 @@ def plot_code_evolution_graphs(
             for parent_id in row["parent_ids"]:
                 if parent_id in data["id"].values:
                     parent_row = data[data["id"] == parent_id].iloc[0]
-
                     plot_marker = "-o"
-                    # 2. Determine edge color based on archive feature
-                    if "archive_feature" in row:
-                        normalized_archive_feature = normalize_key(
-                            row["archive_feature"]
-                        )
-                        edge_color = "gray"  # Default color
-                        if normalized_archive_feature == normalized_x_data:
-                            if row["archive_direction"] == "increase":
-                                edge_color = "green"
-                                if row["operator"] == "random":
-                                    edge_color = "darkblue"
-                            elif row["archive_direction"] == "decrease":
-                                edge_color = "red"
-                                if row["operator"] == "random":
-                                    edge_color = "darkred"
-                        else:
-                            if row["operator"] == "random":
-                                edge_color = "lightblue"
-                            elif row["operator"] == "refine":
-                                edge_color = "yellow"
-                            elif row["operator"] == "crossover":
-                                edge_color = "cyan"
-
-                        # Plot the line (edge)
-                        ax.plot(
-                            [parent_row["id"], row["id"]],
-                            [parent_row[x_data], row[x_data]],
-                            "-",  # Line only
-                            color=edge_color,
-                            alpha=0.7,
-                            linewidth=1.5,
-                            zorder=1,
-                        )
-                        plot_marker = "o"  # Only plot points separately below
-
                     ax.plot(
                         [parent_row["id"], row["id"]],
                         [parent_row[x_data], row[x_data]],
