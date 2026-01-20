@@ -515,19 +515,36 @@ class MCTS:
                 f"Generating {len(progressive_widening_nodes)} progressive widening nodes, {len(expanded_nodes)} leaf nodes."
             )
 
-            for node in progressive_widening_nodes + expanded_nodes:
-                print(f"\tEvaluating {node.id} node.")
+            node_lists = [progressive_widening_nodes, expanded_nodes]
+            for nodes in node_lists:
+                for i, node in enumerate(nodes):
+                    print(f"\tEvaluating {node.id} node.")
 
-                new_node = self.simulate(node)
-                if new_node is not node and node.parent is not None:
-                    # replace in parent's children
-                    p = node.parent
-                    idx = p.children.index(node)
-                    p.children[idx] = new_node
-                    new_node.parent = p
+                    new_node = self.simulate(node)
 
-                print(f"\t\tFitness {node.fitness}.")
-                print(f"\t\tFeedback {node.feedback}")
+                    # update the list we're iterating
+                    if new_node is not node:
+                        nodes[i] = new_node
+
+                        # keep parent pointers consistent too
+                        if node.parent is not None:
+                            p = node.parent
+                            try:
+                                idx = p.children.index(node)
+                            except ValueError:
+                                # in case it was already replaced earlier
+                                idx = (
+                                    p.children.index(nodes[i])
+                                    if nodes[i] in p.children
+                                    else None
+                                )
+
+                            if idx is not None:
+                                p.children[idx] = new_node
+                            new_node.parent = p
+
+                    print(f"\t\tFitness {nodes[i].fitness}.")
+                    print(f"\t\tFeedback {nodes[i].feedback}")
 
             for node in (
                 expanded_nodes + progressive_widening_nodes
