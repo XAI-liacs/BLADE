@@ -33,6 +33,109 @@ except ImportError:
     count_string_tokens = None
 
 
+
+def plot_speedup(
+    logger: ExperimentLogger,
+    method_fast: str,
+    method_slow: str,
+    aggregation: str = "mean",
+    variance_aggregation: str = "std",
+    budget: int = 100,
+    save: bool = True,
+    return_fig: bool = False,
+):
+    """
+    Plots speed-up of method_fast over method_slow.
+
+    Speed-up definition:
+    If method_fast reaches fitness x at n evaluations
+    and method_slow reaches fitness x at m evaluations,
+    speed-up = m / n.
+
+    Args:
+        logger (ExperimentLogger)
+        method_fast (str): numerator algorithm
+        method_slow (str): denominator algorithm
+        aggregation (str): mean / median
+        variance_aggregation (str): std / sem
+        budget (int): max evaluations
+        save (bool)
+        return_fig (bool)
+    """
+
+    methods, problems = logger.get_methods_problems()
+    if method_fast not in methods or method_slow not in methods:
+        raise ValueError("Both methods must exist in the logger.")
+
+    fig, axes = plt.subplots(
+        figsize=(8, 4 * len(problems)), nrows=len(problems), ncols=1
+    )
+
+    if len(problems) == 1:
+        axes = [axes]
+
+    for ax, problem in zip(axes, problems):
+        data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
+        data.replace([-np.inf, np.inf], 0, inplace=True)
+        data.fillna(0, inplace=True)
+
+        def compute_summary(method):
+            df = data[data["method_name"] == method].copy()
+            df = df.sort_values(by=["seed", "_id"])
+            df["cummax_fitness"] = df.groupby("seed")["fitness"].cummax()
+
+            summary = (
+                df.groupby("_id")["cummax_fitness"]
+                .agg([aggregation, variance_aggregation])
+                .reset_index()
+            )
+            summary["_id"] += 1
+            return summary
+
+        fast = compute_summary(method_fast)
+        slow = compute_summary(method_slow)
+
+        # Restrict to budget
+        fast = fast[fast["_id"] <= budget]
+        slow = slow[slow["_id"] <= budget]
+
+        speedups = []
+
+        slow_ids = slow["_id"].values
+        slow_fit = slow[aggregation].values
+
+        for n, f in zip(fast["_id"], fast[aggregation]):
+            # Find earliest m where slow reaches >= f
+            idx = np.where(slow_fit >= f)[0]
+            if len(idx) == 0:
+                speedups.append(np.nan)
+            else:
+                m = slow_ids[idx[0]]
+                speedups.append(m / n)
+
+        ax.plot(fast["_id"], speedups, label=f"{method_fast} vs {method_slow}")
+        ax.axhline(1.0, linestyle="--", color="gray", alpha=0.6)
+
+        ax.set_xlabel("Number of Evaluations")
+        ax.set_ylabel("Speed-up")
+        ax.set_xlim(1, budget)
+        ax.set_title(problem)
+        ax.grid(True)
+        ax.legend()
+
+    plt.tight_layout()
+
+    if save:
+        fig.savefig(f"{logger.dirname}/speedup_{method_fast}_vs_{method_slow}.png")
+    elif not return_fig:
+        plt.show()
+
+    if return_fig:
+        return fig
+
+    plt.close()
+
+
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",

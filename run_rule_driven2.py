@@ -17,9 +17,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_openai = os.getenv("OPENAI_API_KEY")
     api_key_claude = os.getenv("CLAUDE_API_KEY")
 
-    llm = OpenAI_LLM(api_key_openai, "gpt-5-mini-2025-08-07", temperature=1.0)
+    #llm = Ollama_LLM("qwen3-coder:30b")
+    llm = OpenAI_LLM(api_key_openai, "gpt-5-nano-2025-08-07", temperature=1.0)
 
-    budget = 200 # test run (25 iterations of 8 algs)
+    budget = 100 # test run (25 iterations of 8 algs)
 
     DEBUG = False
     if DEBUG:
@@ -40,12 +41,12 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     test_instances = None
 
     if DEBUG:
-        logger = ExperimentLogger("results/rule-driven-DEBUG")
+        logger = ExperimentLogger("results/rule-driven2-DEBUG")
     else:
-        logger = ExperimentLogger("results/rule-driven-1")
+        logger = ExperimentLogger("results/rule-driven-2")
 
     all_features = ["Separable", "GlobalLocal", "Multimodality", "Basins", "Homogeneous"] 
-    feature_combinations = [["Separable", "Multimodality"]] #["GlobalLocal", "Multimodality"], ["Separable", "GlobalLocal"], 
+    feature_combinations = [["Separable", "Multimodality"],["GlobalLocal", "Multimodality"], ["Separable", "GlobalLocal"]] 
     # for i in range(len(all_features)):
     #     for j in range(i+1, len(all_features)):
     #         feature_combinations.append([all_features[i], all_features[j]])
@@ -152,7 +153,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         log_stdout=True,
         exp_logger=logger,
         budget=budget,
-        n_jobs=5
+        n_jobs=4
     )  # normal run
 
     if DEBUG:

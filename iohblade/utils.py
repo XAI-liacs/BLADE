@@ -6,7 +6,9 @@ import textwrap
 from typing import Optional, Tuple
 import types
 import math
-
+from .loggers import ExperimentLogger
+from scipy.stats import wilcoxon, ttest_rel
+import pandas as pd
 import numpy as np
 
 try:
@@ -134,6 +136,129 @@ class OverBudgetException(Exception):
     """The algorithm tried to do more evaluations than allowed."""
 
     pass
+
+"""Utility functions for Area-Under-Curve (AOC) calculation and statistical testing"""
+
+def cliffs_delta(a, b):
+    a = np.asarray(a)
+    b = np.asarray(b)
+    n = len(a) * len(b)
+    gt = sum(x > y for x in a for y in b)
+    lt = sum(x < y for x in a for y in b)
+    return (gt - lt) / n
+
+
+def paired_cohens_d(a, b):
+    diff = np.asarray(a) - np.asarray(b)
+    return diff.mean() / diff.std(ddof=1)
+
+
+def bootstrap_ci(diff, n_boot=10000, alpha=0.05, rng=None):
+    rng = np.random.default_rng(rng)
+    boot = rng.choice(diff, (n_boot, len(diff)), replace=True).mean(axis=1)
+    lo = np.percentile(boot, 100 * alpha / 2)
+    hi = np.percentile(boot, 100 * (1 - alpha / 2))
+    return lo, hi
+
+
+def compare_auc(
+    logger: ExperimentLogger,
+    method_a: str,
+    method_b: str,
+    budget: int = 100,
+    metric: str = "fitness",
+    test: str = "wilcoxon",  # or "ttest"
+    n_boot: int = 10000,
+    alpha: float = 0.05,
+    rng: int = 0,
+):
+    """
+    Compares convergence AUCs of two methods using paired statistics,
+    effect sizes, and bootstrap confidence intervals.
+
+    Returns:
+        pd.DataFrame with per-problem results
+    """
+
+    methods, problems = logger.get_methods_problems()
+    if method_a not in methods or method_b not in methods:
+        raise ValueError("Both methods must exist in the logger.")
+
+    results = []
+
+    for problem in problems:
+        data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
+        data.replace([-np.inf, np.inf], 0, inplace=True)
+        data.fillna(0, inplace=True)
+
+        aucs = {}
+
+        for method in [method_a, method_b]:
+            df = data[data["method_name"] == method].copy()
+            df = df.sort_values(by=["seed", "_id"])
+            df["cummax_fitness"] = df.groupby("seed")[metric].cummax()
+            df["_id"] += 1
+            df = df[df["_id"] <= budget]
+
+            per_seed_auc = []
+            for seed in df["seed"].unique():
+                seed_df = df[df["seed"] == seed]
+                auc = np.trapz(
+                    seed_df["cummax_fitness"].values,
+                    seed_df["_id"].values,
+                )
+                per_seed_auc.append(auc)
+
+            aucs[method] = np.asarray(per_seed_auc)
+
+        # Paired samples
+        min_len = min(len(aucs[method_a]), len(aucs[method_b]))
+        a = aucs[method_a][:min_len]
+        b = aucs[method_b][:min_len]
+
+        diff = a - b
+
+        # Statistical test
+        if test == "wilcoxon":
+            stat, p = wilcoxon(a, b)
+            test_name = "Wilcoxon signed-rank"
+        elif test == "ttest":
+            stat, p = ttest_rel(a, b)
+            test_name = "Paired t-test"
+        else:
+            raise ValueError("test must be 'wilcoxon' or 'ttest'")
+
+        # Effect sizes
+        delta = cliffs_delta(a, b)
+        cohens_d = paired_cohens_d(a, b)
+
+        # Bootstrap CI for mean difference
+        ci_low, ci_high = bootstrap_ci(
+            diff, n_boot=n_boot, alpha=alpha, rng=rng
+        )
+
+        results.append(
+            {
+                "problem": problem,
+                "method_a": method_a,
+                "method_b": method_b,
+                "n_seeds": min_len,
+                "mean_auc_a": a.mean(),
+                "mean_auc_b": b.mean(),
+                "median_auc_a": np.median(a),
+                "median_auc_b": np.median(b),
+                "mean_auc_diff": diff.mean(),
+                "ci_low": ci_low,
+                "ci_high": ci_high,
+                "cliffs_delta": delta,
+                "cohens_d": cohens_d,
+                "test": test_name,
+                "statistic": stat,
+                "p_value": p,
+            }
+        )
+
+    return pd.DataFrame(results)
 
 
 def correct_aoc(ioh_function, logger, budget):
