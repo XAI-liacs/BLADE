@@ -28,6 +28,7 @@
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Webapp](#-webapp)
+- [AlphaEvolve Benchmarks](#alphaevolve-benchmarks)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
@@ -61,6 +62,16 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 | **HLP** (High-Level Properties)   | Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality). | Generator-Based     | Yes                |
 
 In addition, several real-world applications are included such as several photonics problems.
+
+### AlphaEvolve Benchmarks
+
+BLADE bundles benchmark instances inspired by the Google DeepMind
+AlphaEvolve paper. The ready-to-run reference scripts live in
+[`run_benchmarks/`](./run_benchmarks), while the reusable benchmark
+definitions are organized under [`iohblade/benchmarks`](./iohblade/benchmarks)
+by domain (analysis, combinatorics, geometry, matrix multiplication, number
+theory, packing, and Fourier). Each domain folder includes a short README that
+summarizes the task and instances.
 
 ### Included Search Methods
 
