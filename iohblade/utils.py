@@ -1,15 +1,16 @@
 import ast
 import difflib
 import json
+import math
 import re
 import textwrap
 from typing import Optional, Tuple
-import types
-import math
-from .loggers import ExperimentLogger
-from scipy.stats import wilcoxon, ttest_rel
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+from scipy.stats import ttest_rel, wilcoxon
+
+from .loggers import ExperimentLogger
 
 try:
     from ioh import LogInfo, logger
@@ -137,9 +138,17 @@ class OverBudgetException(Exception):
 
     pass
 
-"""Utility functions for Area-Under-Curve (AOC) calculation and statistical testing"""
 
 def cliffs_delta(a, b):
+    """Compute Cliff's delta effect size for two samples.
+
+    Args:
+        a: Sample A values.
+        b: Sample B values.
+
+    Returns:
+        float: Cliff's delta in [-1, 1].
+    """
     a = np.asarray(a)
     b = np.asarray(b)
     n = len(a) * len(b)
@@ -149,11 +158,31 @@ def cliffs_delta(a, b):
 
 
 def paired_cohens_d(a, b):
+    """Compute Cohen's d for paired samples.
+
+    Args:
+        a: Sample A values.
+        b: Sample B values.
+
+    Returns:
+        float: Paired-sample Cohen's d.
+    """
     diff = np.asarray(a) - np.asarray(b)
     return diff.mean() / diff.std(ddof=1)
 
 
 def bootstrap_ci(diff, n_boot=10000, alpha=0.05, rng=None):
+    """Compute a bootstrap confidence interval for a mean difference.
+
+    Args:
+        diff: Array of paired differences.
+        n_boot: Number of bootstrap samples.
+        alpha: Significance level (two-sided).
+        rng: Random seed or numpy Generator.
+
+    Returns:
+        tuple[float, float]: Lower and upper confidence bounds.
+    """
     rng = np.random.default_rng(rng)
     boot = rng.choice(diff, (n_boot, len(diff)), replace=True).mean(axis=1)
     lo = np.percentile(boot, 100 * alpha / 2)
@@ -172,12 +201,21 @@ def compare_auc(
     alpha: float = 0.05,
     rng: int = 0,
 ):
-    """
-    Compares convergence AUCs of two methods using paired statistics,
-    effect sizes, and bootstrap confidence intervals.
+    """Compare convergence AUCs between two methods.
+
+    Args:
+        logger: Experiment logger containing evaluation data.
+        method_a: Name of the first method.
+        method_b: Name of the second method.
+        budget: Maximum evaluation budget for AUC integration.
+        metric: Column name for the fitness metric to integrate.
+        test: Statistical test to use ("wilcoxon" or "ttest").
+        n_boot: Number of bootstrap samples for confidence intervals.
+        alpha: Significance level (two-sided).
+        rng: Random seed for bootstrapping.
 
     Returns:
-        pd.DataFrame with per-problem results
+        pd.DataFrame: Per-problem summary of AUC comparisons.
     """
 
     methods, problems = logger.get_methods_problems()
@@ -233,9 +271,7 @@ def compare_auc(
         cohens_d = paired_cohens_d(a, b)
 
         # Bootstrap CI for mean difference
-        ci_low, ci_high = bootstrap_ci(
-            diff, n_boot=n_boot, alpha=alpha, rng=rng
-        )
+        ci_low, ci_high = bootstrap_ci(diff, n_boot=n_boot, alpha=alpha, rng=rng)
 
         results.append(
             {

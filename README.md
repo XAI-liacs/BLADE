@@ -58,6 +58,7 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 | **SBOX-COST**                      | A set of 24 boundary-constrained functions focusing on strict box-constraint optimization scenarios. [Reference](https://inria.hal.science/hal-04403658/file/sboxcost-cmacomparison-authorversion.pdf) | 24                  | Yes                |
 | **MA-BBOB** (Many-Affine BBOB)     | An extension of the BBOB suite, generating functions through affine combinations and shifts. [Reference](https://dl.acm.org/doi/10.1145/3673908) | Generator-Based     | Yes                |
 | **GECCO MA-BBOB Competition Instances** | A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. [Reference](https://iohprofiler.github.io/competitions) | 1,000               | Yes                |
+| **HLP** (High-Level Properties)   | Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality). | Generator-Based     | Yes                |
 
 In addition, several real-world applications are included such as several photonics problems.
 
