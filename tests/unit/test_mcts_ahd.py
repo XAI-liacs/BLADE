@@ -85,8 +85,12 @@ class DummyProblem(Problem):
         self.count += 1
         if self.count % 10 == 5:
             solution.fitness = float('-inf') if self.maximise else float('inf')
-            return
+            return solution
         solution.fitness = random.random() * 100
+        return solution
+
+    def __call__(self, solution):
+        return self.evaluate(solution)
     
     def test(self, solution):
         return self.evaluate(solution)
@@ -482,9 +486,11 @@ def test_simulate_updates_Q_val_appropriately(monkeypatch):
 
     def invalid_evaluator(node: MCTS_Node):
         node.fitness = float('inf')
+        return node
 
     def invalid_evaluator_minus(node: MCTS_Node):
         node.fitness = float('-inf')
+        return node
 
     monkeypatch.setattr(problem, 'evaluate', invalid_evaluator)
     for node in mcts_instance.root.children:

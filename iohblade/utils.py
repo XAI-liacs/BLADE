@@ -7,8 +7,6 @@ import textwrap
 from typing import Optional, Tuple
 
 import numpy as np
-import pandas as pd
-from scipy.stats import ttest_rel, wilcoxon
 
 
 try:
@@ -27,6 +25,14 @@ except ModuleNotFoundError:  # pragma: no cover - optional dependency
             return _noop
 
     logger = _DummyLogger()
+
+try:
+    import pandas as pd
+    from scipy.stats import ttest_rel, wilcoxon
+except ModuleNotFoundError:  # pragma: no cover - optional dependency
+    pd = None
+    ttest_rel = None
+    wilcoxon = None
 
 
 class TimeoutException(Exception):
