@@ -17,7 +17,6 @@ from ..solution import Solution
 from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
 
-
 # Rulebook-derived summaries for high-level property combinations.
 # Priority is descending: earlier (higher-priority) rules override later ones when multiple match.
 
@@ -31,7 +30,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "avoid equal weights and mirrored pairwise sampling.\n"
         "Notes: if multiple apply, prefer the 'many basins + high global-local' recommendation first."
     ),
-
     "Separable_Multimodality": (
         "Known: Separable + Multimodality (assume high).\n"
         "- Use the general 'Separable & Highly Multimodal' rule: elitist disabled; PSR or CSA step-size; "
@@ -42,7 +40,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If global structure is Weak/None and highly multimodal: elitist disabled; BIPOP or IPOP; CSA or PSR; "
         "standard mirroring; default/half-lambda; avoid no-restart."
     ),
-
     "Separable_Basins": (
         "Known: Separable + Basins (assume med/high basin-related difficulty signal).\n"
         "- If also GlobalLocal contrast is high: disable elitist; use BIPOP restart; PSR step-size.\n"
@@ -51,7 +48,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If instead Unimodal separable: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
         "avoid equal weights and mirrored pairwise sampling."
     ),
-
     "Separable_Homogeneous": (
         "Known: Separable + Homogeneous.\n"
         "- If Funnel-like AND Homogeneous: enable elitist; default or half-lambda weights; avoid equal weights.\n"
@@ -60,7 +56,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If instead Highly Multimodal (despite homogeneity): prefer the 'Separable & Highly Multimodal' package "
         "(elitist disabled; restarts; standard mirroring; PSR/CSA; default/half-lambda)."
     ),
-
     "Separable": (
         "Known: Separable (other properties unknown).\n"
         "- If Unimodal: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
@@ -72,7 +67,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Interpretation: pick the unimodal vs multimodal branch based on what you know; otherwise start with the "
         "safer defaults (default/half-lambda; CSA/PSR; avoid equal weights)."
     ),
-
     "GlobalLocal_Multimodality": (
         "Known: GlobalLocal contrast + Multimodality (assume high).\n"
         "- If Many Basins (med/high) AND GlobalLocal is high: disable elitist; BIPOP restart; PSR step-size.\n"
@@ -81,14 +75,12 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If global structure is Strong AND separability is high: disable elitist; BIPOP; PSR; standard mirroring; "
         "default/half-lambda."
     ),
-
     "GlobalLocal_Basins": (
         "Known: GlobalLocal contrast + Basins (assume basins med/high).\n"
         "- Direct hit: (Basins med/high AND GlobalLocal high) => disable elitist; use BIPOP restart; PSR step-size.\n"
         "- If additionally Highly Multimodal with weak/irregular structure: also enforce restarts (BIPOP/IPOP), "
         "standard mirroring, default/half-lambda, and keep elitist disabled."
     ),
-
     "GlobalLocal_Homogeneous": (
         "Known: GlobalLocal contrast + Homogeneous.\n"
         "- If Funnel-like & Homogeneous: enable elitist; default/half-lambda; avoid equal weights.\n"
@@ -97,7 +89,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If Highly Multimodal and structure weak/none: disable elitist; BIPOP/IPOP; CSA/PSR; standard mirroring; "
         "default/half-lambda."
     ),
-
     "GlobalLocal": (
         "Known: GlobalLocal contrast.\n"
         "- If Many Basins (med/high) and GlobalLocal is high: disable elitist; use BIPOP restart; PSR step-size.\n"
@@ -105,14 +96,12 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Rule of thumb: GlobalLocal-high tends to push toward (elitist off + PSR + restarts), unless structure is "
         "explicitly deceptive."
     ),
-
     "Multimodality_Basins": (
         "Known: Multimodality (assume high) + Basins (assume med/high).\n"
         "- If also GlobalLocal high: disable elitist; BIPOP restart; PSR step-size (highest priority among these).\n"
         "- Otherwise treat as highly multimodal with potentially irregular structure: disable elitist; "
         "BIPOP or IPOP; CSA or PSR; standard mirroring; default/half-lambda; avoid no-restart."
     ),
-
     "Multimodality_Homogeneous": (
         "Known: Multimodality (assume high) + Homogeneous.\n"
         "- If Funnel-like: enable elitist; default/half-lambda; avoid equal weights.\n"
@@ -121,7 +110,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Practical: if you don’t know funnel-ness/structure, start with the multimodal package (restarts + "
         "standard mirroring + default/half-lambda + PSR/CSA, elitist off)."
     ),
-
     "Multimodality": (
         "Known: Multimodality (assume high).\n"
         "- If global structure is Weak/None OR irregular: disable elitist; BIPOP or IPOP restart; CSA or PSR; "
@@ -131,7 +119,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If separable but structure unknown: apply 'Separable & Highly Multimodal' package (elitist off; restarts; "
         "standard mirroring; PSR/CSA; default/half-lambda)."
     ),
-
     "Basins_Homogeneous": (
         "Known: Basins (assume med/high) + Homogeneous.\n"
         "- If Funnel-like & Homogeneous: enable elitist; default/half-lambda; avoid equal weights.\n"
@@ -139,7 +126,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "If you only know basins+homogeneity, the only explicit homogeneity rule is the funnel-like one; otherwise fall back "
         "to conservative defaults (default/half-lambda; avoid equal weights)."
     ),
-
     "Basins": (
         "Known: Basins (assume med/high).\n"
         "- If also GlobalLocal high: disable elitist; use BIPOP restart; PSR step-size.\n"
@@ -147,7 +133,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "If you only know 'basins' without GlobalLocal/structure, the rulebook doesn't specify more; start with "
         "default/half-lambda weights and prefer PSR/CSA depending on conditioning."
     ),
-
     "Homogeneous": (
         "Known: Homogeneous.\n"
         "- If Funnel-like & Homogeneous: enable elitist; default or half-lambda weights; avoid equal weights.\n"
@@ -167,7 +152,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use Gaussian or Sobol sampling.\n"
         "- Avoid equal weights, no mirroring, Halton sampling, and disabling elitism."
     ),
-
     "Separable_Multimodality": (
         "Known: Separable + Multimodal.\n"
         "- If the global structure is strong: enable elitism and consider equal weights.\n"
@@ -178,7 +162,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Prefer Gaussian or Sobol sampling.\n"
         "- Avoid no-restart strategies and no mirroring."
     ),
-
     "Separable_Basins": (
         "Known: Separable + Basins.\n"
         "- Basins are not decisive at 30D; follow separable defaults.\n"
@@ -188,7 +171,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Prefer default or half-lambda weights.\n"
         "- Use Gaussian or Sobol sampling."
     ),
-
     "Separable_Homogeneous": (
         "Known: Separable + Homogeneous.\n"
         "- Enable elitist selection.\n"
@@ -198,7 +180,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Prefer default or half-lambda weights.\n"
         "- Homogeneity mainly supports keeping elitism enabled."
     ),
-
     "Separable": (
         "Known: Separable.\n"
         "- Default to elitist selection enabled.\n"
@@ -209,7 +190,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Switch to CSA only if scaling is high.\n"
         "- If strong multimodality is later detected, consider disabling elitism."
     ),
-
     "GlobalLocal_Multimodality": (
         "Known: GlobalLocal contrast + Multimodal.\n"
         "- Treat primarily as a multimodal problem.\n"
@@ -219,7 +199,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use standard mirroring.\n"
         "- Prefer Gaussian or Sobol sampling."
     ),
-
     "GlobalLocal_Basins": (
         "Known: GlobalLocal contrast + Basins.\n"
         "- Basins are not decisive at 30D; focus on global-local contrast only if it is low.\n"
@@ -227,7 +206,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Otherwise use default settings: PSR, standard mirroring, Gaussian sampling.\n"
         "- Use restarts if stagnation is observed."
     ),
-
     "GlobalLocal_Homogeneous": (
         "Known: GlobalLocal contrast + Homogeneous.\n"
         "- Homogeneity supports elitism as a safe default.\n"
@@ -236,7 +214,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Prefer Gaussian or Sobol sampling.\n"
         "- Only change strategy if strong multimodality or scaling issues are observed."
     ),
-
     "GlobalLocal": (
         "Known: GlobalLocal contrast.\n"
         "- If global-local contrast is low and multimodality is low: enable elitism and use PSR.\n"
@@ -244,7 +221,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use standard mirroring and Gaussian sampling.\n"
         "- Introduce restarts if convergence stalls."
     ),
-
     "Multimodality_Basins": (
         "Known: Multimodal + Basins.\n"
         "- Treat as a multimodal problem; basins do not add decisive guidance at 30D.\n"
@@ -254,7 +230,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use standard mirroring.\n"
         "- Prefer Gaussian or Sobol sampling."
     ),
-
     "Multimodality_Homogeneous": (
         "Known: Multimodal + Homogeneous.\n"
         "- Disable elitism by default.\n"
@@ -263,7 +238,6 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use PSR step-size adaptation; CSA only if scaling is high.\n"
         "- Use standard mirroring."
     ),
-
     "Multimodality": (
         "Known: Multimodal.\n"
         "- Disable elitist selection by default.\n"
@@ -273,21 +247,18 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Switch to CSA only if scaling is high.\n"
         "- Enable elitism only if strong funnel-like structure is observed."
     ),
-
     "Basins_Homogeneous": (
         "Known: Basins + Homogeneous.\n"
         "- These features are weakly informative at 30D.\n"
         "- Use default CMA-ES configuration: PSR, standard mirroring, Gaussian sampling.\n"
         "- Enable elitism cautiously if convergence appears stable."
     ),
-
     "Basins": (
         "Known: Basins.\n"
         "- Basins alone do not drive decisions at 30D.\n"
         "- Use default settings: PSR, standard mirroring, Gaussian sampling.\n"
         "- Introduce restarts if stagnation occurs."
     ),
-
     "Homogeneous": (
         "Known: Homogeneous.\n"
         "- Homogeneity mainly acts as a stabilizing signal.\n"
@@ -301,7 +272,7 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
 
 class HLP(Problem):
     """
-    Problem class for evaluating optimization algorithms on the High Level Property - HLP benchmark. 
+    Problem class for evaluating optimization algorithms on the High Level Property - HLP benchmark.
     """
 
     def __init__(
@@ -344,9 +315,7 @@ class HLP(Problem):
                 "ioh==0.3.22",
             ]
         if imports is None:
-            imports = (
-                "import numpy as np\nimport ioh\nimport pandas as pd\nimport math\nimport random\n"
-            )
+            imports = "import numpy as np\nimport ioh\nimport pandas as pd\nimport math\nimport random\n"
 
         self.function_files = [
             "gpt-5-nano-ELA-Basins_Homogeneous.jsonl",
@@ -371,7 +340,7 @@ class HLP(Problem):
             "gpt-5-nano-ELA-Separable_Homogeneous.jsonl",
             "gpt-5-nano-ELA-Separable_Multimodality.jsonl",
             "gpt-5-nano-ELA-Separable.jsonl",
-            "gpt-5-nano-ELA-Multimodality_Homogeneous.jsonl"
+            "gpt-5-nano-ELA-Multimodality_Homogeneous.jsonl",
         ]
 
         self.feature_descriptions = {
@@ -389,25 +358,33 @@ class HLP(Problem):
         self.add_rules_to_prompt = add_rules_to_prompt
 
         if training_instances is None:
-            training_instances = list(range(10)) # 10 training instances
+            training_instances = list(range(10))  # 10 training instances
         if test_instances is None:
-            test_instances = list(range(10,20))  # 10 test instances
+            test_instances = list(range(10, 20))  # 10 test instances
         super().__init__(
             logger, training_instances, test_instances, name, eval_timeout, dependencies
         )
         self.dim = dim  # The dimensionality of the problem instance to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
-        allowed_features = "Basins,Separable,Multimodality,Homogeneous,GlobalLocal,NOT Homogeneous,NOT Basins".split(",")
+        allowed_features = "Basins,Separable,Multimodality,Homogeneous,GlobalLocal,NOT Homogeneous,NOT Basins".split(
+            ","
+        )
         for specific_high_level_feature in specific_high_level_features:
             if specific_high_level_feature not in allowed_features:
-                raise ValueError(f"specific_high_level_features includes a feature ({specific_high_level_feature}) that is not from the allowed list: {allowed_features}.")
+                raise ValueError(
+                    f"specific_high_level_features includes a feature ({specific_high_level_feature}) that is not from the allowed list: {allowed_features}."
+                )
         if len(specific_high_level_features) == 1:
-            self.function_file = f"gpt-5-nano-ELA-{specific_high_level_features[0]}.jsonl"
+            self.function_file = (
+                f"gpt-5-nano-ELA-{specific_high_level_features[0]}.jsonl"
+            )
         elif len(specific_high_level_features) > 1:
             features_str = "_".join(specific_high_level_features)
             self.function_file = f"gpt-5-nano-ELA-{features_str}.jsonl"
         if self.function_file not in self.function_files:
-            raise ValueError(f"The combination of specific_high_level_features {specific_high_level_features} {self.function_file} does not correspond to a valid function file.")
+            raise ValueError(
+                f"The combination of specific_high_level_features {specific_high_level_features} {self.function_file} does not correspond to a valid function file."
+            )
         self.specific_high_level_features = specific_high_level_features
         self.full_ioh_log = full_ioh_log
         self.ioh_dir = ioh_dir
@@ -421,7 +398,9 @@ class HLP(Problem):
         if self.add_info_to_prompt:
             extra_prompt += ", characterized by the following high-level features: "
             for feature in specific_high_level_features:
-                description = self.feature_descriptions.get(feature, "No description available.")
+                description = self.feature_descriptions.get(
+                    feature, "No description available."
+                )
                 extra_prompt += f"\n- {feature}: {description}"
         extra_prompt += "."
 
@@ -430,9 +409,15 @@ class HLP(Problem):
             extra_prompt_rules += "\n\nWhen writing the optimization algorithm, please consider the following rules derived from known relationships between high-level problem properties and a modular CMA-ES optimization strategy:\n"
             key = "_".join(specific_high_level_features)
             if dim < 10:
-                rules = RULES_BY_HIGHLEVEL_PROPERTIES_5D.get(key, "No specific rules available for this combination of high-level features.")
+                rules = RULES_BY_HIGHLEVEL_PROPERTIES_5D.get(
+                    key,
+                    "No specific rules available for this combination of high-level features.",
+                )
             else:
-                rules = RULES_BY_HIGHLEVEL_PROPERTIES_30D.get(key, "No specific rules available for this combination of high-level features.")
+                rules = RULES_BY_HIGHLEVEL_PROPERTIES_30D.get(
+                    key,
+                    "No specific rules available for this combination of high-level features.",
+                )
             extra_prompt_rules += rules
 
         self.task_prompt = f"""
@@ -486,12 +471,20 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         n = len(data)
         if instance >= n:
-            raise ValueError(f"Instance index {instance} is out of range for available functions ({n} functions).")
-        
+            raise ValueError(
+                f"Instance index {instance} is out of range for available functions ({n} functions)."
+            )
+
         entry = data[instance]
         code = entry["code"]
 
-        safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
+        safe_globals = {
+            "np": np,
+            "ioh": ioh,
+            "math": math,
+            "itertools": itertools,
+            "random": random,
+        }
         local_env = {}
         exec(code, safe_globals, local_env)
         cls = local_env[entry["name"]]
@@ -506,13 +499,12 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             instance=instance,
             calculate_objective=lambda _, dim: (
                 entry[f"x_opt_dim_{dim}"],
-                entry[f"f_opt_dim_{dim}"]
+                entry[f"f_opt_dim_{dim}"],
             ),
             lb=-5,
             ub=5,
         )
         return p
-
 
     def get_prompt(self):
         """
@@ -528,7 +520,13 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
-        safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
+        safe_globals = {
+            "np": np,
+            "ioh": ioh,
+            "math": math,
+            "itertools": itertools,
+            "random": random,
+        }
         local_env = {}
         exec(code, safe_globals, local_env)
 
@@ -553,9 +551,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         for dim in [self.dim]:
             for instance in instances:
                 budget = self.budget_factor * dim
-                f_new = self.get_generated_problem(
-                    instance=instance, dim=dim
-                )
+                f_new = self.get_generated_problem(instance=instance, dim=dim)
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
                 if test or self.full_ioh_log:
                     l1 = ioh.logger.Analyzer(
@@ -577,7 +573,12 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     pass
                 corrected_aoc = correct_aoc(f_new, l2, budget)
                 performance_data.append(
-                    {"fid": self.function_file.replace(".jsonl", ""), "iid": instance, "dim": dim, "auc": corrected_aoc}
+                    {
+                        "fid": self.function_file.replace(".jsonl", ""),
+                        "iid": instance,
+                        "dim": dim,
+                        "auc": corrected_aoc,
+                    }
                 )
                 aucs.append(corrected_aoc)
                 l2.reset(f_new)

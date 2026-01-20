@@ -490,7 +490,6 @@ class MCTS:
             child = self.simulate(child)
             child.parent = self.root
             self.root.children[i] = child
-            
 
             print(f"\t\tFitness {child.fitness}")
             print(f"\t\tFeedback {child.feedback}")
@@ -526,7 +525,6 @@ class MCTS:
                     idx = p.children.index(node)
                     p.children[idx] = new_node
                     new_node.parent = p
-
 
                 print(f"\t\tFitness {node.fitness}.")
                 print(f"\t\tFeedback {node.feedback}")

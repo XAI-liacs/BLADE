@@ -33,7 +33,6 @@ except ImportError:
     count_string_tokens = None
 
 
-
 def plot_speedup(
     logger: ExperimentLogger,
     method_fast: str,
@@ -247,8 +246,8 @@ def plot_convergence(
 def plot_experiment_CEG(
     logger: ExperimentLogger,
     metric: str = "total_token_count",
-    methods = None,
-    markersize = None,
+    methods=None,
+    markersize=None,
     budget: int = 100,
     save: bool = True,
     max_seeds=5,
@@ -277,7 +276,7 @@ def plot_experiment_CEG(
 
         # Get unique runs (seeds)
         seeds = data["seed"].unique()
-        #sort the seeds
+        # sort the seeds
         seeds = sorted(seeds)
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
@@ -306,7 +305,7 @@ def plot_experiment_CEG(
                     run_data,
                     logger.dirname,
                     plot_features=[metric],
-                    markersize = markersize,
+                    markersize=markersize,
                     save=False,
                     ax=ax,
                 )
@@ -336,6 +335,7 @@ def normalize_key(key):
     key = key.replace("_", " ")
     return " ".join(key.split()).strip()
 
+
 # Parse parent ids
 def safe_parse_parent_ids(x):
     if not isinstance(x, str):
@@ -358,6 +358,7 @@ def safe_parse_parent_ids(x):
 
     # Case 3: Single ID string
     return [s]
+
 
 def plot_code_evolution_graphs(
     run_data, expfolder=None, plot_features=None, markersize=None, save=True, ax=None
@@ -407,10 +408,14 @@ def plot_code_evolution_graphs(
             )
 
             # Only use metadata-derived features if at least one row has a non-empty dict
-            has_any = ast_series.apply(lambda d: isinstance(d, dict) and len(d) > 0).any()
+            has_any = ast_series.apply(
+                lambda d: isinstance(d, dict) and len(d) > 0
+            ).any()
 
             if has_any:
-                df_stats = ast_series.apply(lambda d: d if isinstance(d, dict) else {}).apply(pd.Series)
+                df_stats = ast_series.apply(
+                    lambda d: d if isinstance(d, dict) else {}
+                ).apply(pd.Series)
             else:
                 df_stats = data["code"].apply(process_code).apply(pd.Series)
         else:
@@ -435,8 +440,7 @@ def plot_code_evolution_graphs(
 
     # check that plot_features are all included in stat_features
     missing = [
-        f for f in plot_features
-        if f not in stat_features and f not in {"pca", "tsne"}
+        f for f in plot_features if f not in stat_features and f not in {"pca", "tsne"}
     ]
     if missing:
         raise ValueError(
@@ -491,12 +495,12 @@ def plot_code_evolution_graphs(
         for _, row in data.iterrows():
             if len(row["parent_ids"]) == 0:
                 ax.plot(
-                        row["id"],
-                        row[x_data],
-                        "o",
-                        markersize=row["parent_size"] if markersize is None else markersize,
-                        color=plt.cm.viridis(row["fitness"] / max_fitness),
-                    )
+                    row["id"],
+                    row[x_data],
+                    "o",
+                    markersize=row["parent_size"] if markersize is None else markersize,
+                    color=plt.cm.viridis(row["fitness"] / max_fitness),
+                )
             for parent_id in row["parent_ids"]:
                 if parent_id in data["id"].values:
                     parent_row = data[data["id"] == parent_id].iloc[0]
@@ -505,7 +509,9 @@ def plot_code_evolution_graphs(
                         [parent_row["id"], row["id"]],
                         [parent_row[x_data], row[x_data]],
                         plot_marker,
-                        markersize=row["parent_size"] if markersize is None else markersize,
+                        markersize=(
+                            row["parent_size"] if markersize is None else markersize
+                        ),
                         color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
                 else:
@@ -513,7 +519,9 @@ def plot_code_evolution_graphs(
                         row["id"],
                         row[x_data],
                         "o",
-                        markersize=row["parent_size"] if markersize is None else markersize,
+                        markersize=(
+                            row["parent_size"] if markersize is None else markersize
+                        ),
                         color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
 
@@ -867,7 +875,10 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
 
 
 def plot_token_usage(
-    logger: ExperimentLogger, save: bool = True, return_fig: bool = False, return_df: bool = False
+    logger: ExperimentLogger,
+    save: bool = True,
+    return_fig: bool = False,
+    return_df: bool = False,
 ):
     """Plot total tokens used per method/problem from an experiment logger."""
 
