@@ -10,7 +10,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ttest_rel, wilcoxon
 
-from .loggers import ExperimentLogger
 
 try:
     from ioh import LogInfo, logger
@@ -191,7 +190,7 @@ def bootstrap_ci(diff, n_boot=10000, alpha=0.05, rng=None):
 
 
 def compare_auc(
-    logger: ExperimentLogger,
+    logger: any,
     method_a: str,
     method_b: str,
     budget: int = 100,
