@@ -40,6 +40,20 @@ class MCTS_Node(Solution):
         self.Q = Q
         self.children: list[MCTS_Node] = []
 
+    def copy_attributes(self, other: MCTS_Node):
+        """
+        Copy attributes from another MCTS_Node instance to the current instance.
+
+        ## Args:
+        `other: MCTS_Node`: The MCTS_Node instance from which attributes are to be copied.
+        """
+        self.approach = other.approach
+        self.depth = other.depth
+        self.parent = other.parent
+        self.visit = other.visit
+        self.Q = other.Q
+        self.children = other.children.copy()
+
     def add_child(self, childNode: MCTS_Node):
         """
         Add a child node to the current instance of MCTS_Node.
