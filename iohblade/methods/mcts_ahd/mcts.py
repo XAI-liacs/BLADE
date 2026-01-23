@@ -77,8 +77,10 @@ class MCTS:
         # Instantiate the root node, with empty solution.
         solution = Solution()
         self.root = MCTS_Node(solution, approach="root")
-        if not self.maximisation:
-            self.root.fitness = float("inf")
+        if maximisation:
+            self.root.fitness = float("-inf")
+        else:
+            self.root.fitness = float('inf')
 
         self.best_solution: MCTS_Node = (
             self.root
@@ -301,7 +303,7 @@ class MCTS:
         """
         self.eval_remain -= 1
         self.problem.evaluate(node)
-        if abs(node.fitness) == float("inf"):
+        if math.isnan(node.fitness) or math.isinf(node.fitness):
             node.Q = None
             return
         node.Q = node.fitness
