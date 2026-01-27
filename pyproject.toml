@@ -63,6 +63,10 @@ methods = [
     "eoh",
     "reevo",
 ]
+extraproblems = [
+    "pymoosh==3.2",
+    "pyGDM2==1.1.12",
+]
 kerneltuner = [
     "kernel-tuner",
     "autotuning_methodology",

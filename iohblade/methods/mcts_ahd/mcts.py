@@ -3,14 +3,15 @@ import random
 import inspect
 from typing import Iterable, Optional
 
+from iohblade.llm import LLM
+from iohblade.problem import Problem
+from iohblade.solution import Solution
+from iohblade.method import Method
+
 import traceback
 
-from .mcts_node import MCTS_Node
+from iohblade.mcts_node import MCTS_Node
 from .prompts import MCTS_Prompts
-
-from iohblade import Solution, Problem
-from iohblade.llm import LLM
-from iohblade.method import Method
 
 
 # region Helper Functions:
@@ -149,7 +150,7 @@ class MCTS:
             case _:
                 error_msg = f"Error enconutered {approach} method, which is not in expected list [i1, m1, m2, e1, e2, s1]."
                 raise ValueError(error_msg)
-        message = [{"role": "client", "content": prompt}]
+        message = [{"role": "user", "content": prompt}]
 
         solution = None
         for i in range(5):  # Try upto 5 times.
@@ -164,9 +165,9 @@ class MCTS:
             refine_description_prompt = MCTS_Prompts.get_desctiption_prompt(
                 task_prompt, mcts_node
             )
-            message = [{"role": "client", "content": refine_description_prompt}]
-            descrpition = self.llm.query(message)
-            mcts_node.description = descrpition
+            message = [{"role": "user", "content": refine_description_prompt}]
+            description = self.llm.query(message)
+            mcts_node.description = description
             return mcts_node
         return MCTS_Node(Solution("error"), "error")
 
@@ -302,17 +303,20 @@ class MCTS:
 
         """
         self.eval_remain -= 1
-        self.problem.evaluate(node)
+        new_node = self.problem(node)
+        new_node.copy_attributes(node)
+
         if math.isnan(node.fitness) or math.isinf(node.fitness):
-            node.Q = None
-            return
-        node.Q = node.fitness
-        self.q_min = safe_min([self.q_min, node.Q])
-        self.q_max = safe_max([self.q_max, node.Q])
-        if self.best_solution.fitness < node.fitness and self.maximisation:
-            self.best_solution = node
-        elif self.best_solution.fitness > node.fitness and not self.maximisation:
-            self.best_solution = node
+            new_node.Q = None
+            return new_node
+        new_node.Q = new_node.fitness
+        self.q_min = safe_min([self.q_min, new_node.Q])
+        self.q_max = safe_max([self.q_max, new_node.Q])
+        if self.best_solution.fitness < new_node.fitness and self.maximisation:
+            self.best_solution = new_node
+        elif self.best_solution.fitness > new_node.fitness and not self.maximisation:
+            self.best_solution = new_node
+        return new_node
 
     def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
         """
@@ -482,10 +486,12 @@ class MCTS:
 
         print(f"Initialised with {len(self.root.children)} nodes.")
 
-        for child in self.root.children:
+        for i, child in enumerate(self.root.children):
             print(f"\tEvaluating {child.id} node.")
 
-            self.simulate(child)
+            child = self.simulate(child)
+            child.parent = self.root
+            self.root.children[i] = child
 
             print(f"\t\tFitness {child.fitness}")
             print(f"\t\tFeedback {child.feedback}")
@@ -511,13 +517,36 @@ class MCTS:
                 f"Generating {len(progressive_widening_nodes)} progressive widening nodes, {len(expanded_nodes)} leaf nodes."
             )
 
-            for node in progressive_widening_nodes + expanded_nodes:
-                print(f"\tEvaluating {node.id} node.")
+            node_lists = [progressive_widening_nodes, expanded_nodes]
+            for nodes in node_lists:
+                for i, node in enumerate(nodes):
+                    print(f"\tEvaluating {node.id} node.")
 
-                self.simulate(node)
+                    new_node = self.simulate(node)
 
-                print(f"\t\tFitness {node.fitness}.")
-                print(f"\t\tFeedback {node.feedback}")
+                    # update the list we're iterating
+                    if new_node is not node:
+                        nodes[i] = new_node
+
+                        # keep parent pointers consistent too
+                        if node.parent is not None:
+                            p = node.parent
+                            try:
+                                idx = p.children.index(node)
+                            except ValueError:
+                                # in case it was already replaced earlier
+                                idx = (
+                                    p.children.index(nodes[i])
+                                    if nodes[i] in p.children
+                                    else None
+                                )
+
+                            if idx is not None:
+                                p.children[idx] = new_node
+                            new_node.parent = p
+
+                    print(f"\t\tFitness {nodes[i].fitness}.")
+                    print(f"\t\tFeedback {nodes[i].feedback}")
 
             for node in (
                 expanded_nodes + progressive_widening_nodes
@@ -573,7 +602,7 @@ class MCTS_Method(Method):
         self.init_params = {
             k: getattr(self, k)
             for k in sig.parameters
-            if k not in ("self", "name", "budget")
+            if k not in ("self", "name", "budget", "llm")
         }
 
     def __call__(self, problem: Problem):
@@ -607,10 +636,11 @@ class MCTS_Method(Method):
         Returns:
             dict: Dictionary representation of the method.
         """
+        kwargs = dict(self.init_params)
         return {
             "method_name": self.name if self.name != None else "MCTS_AHD",
             "budget": self.budget,
-            "kwargs": self.init_params,
+            "kwargs": kwargs,
         }
 
 
