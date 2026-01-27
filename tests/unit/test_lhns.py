@@ -344,6 +344,21 @@ class FourierCandidate:
     print(tt.taboo_table[0].code_feature)
     assert tt.taboo_table[0].code_feature != ''
 
+class DummyProblem(Problem):
+    def evaluate(self, solution: Solution):
+        fitness = random.random() * 80 + 9
+        solution.set_scores(fitness, f'Fitness {fitness}, best known 92.')
+        return solution
+
+    def __call__(self, solution: Solution):
+        return self.evaluate(solution)
+    
+    def test(self, solution):
+        return self.evaluate(solution)
+    
+    def to_dict(self):
+        return super().to_dict()
+
 def test_log_best_solution():
     # Maximisation
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
@@ -527,12 +542,13 @@ def HelloWorld():
     assert lhns.current_solution.description == "Greets you."
 
 def test_evaluate_returns_on_success_and_logs_best_solution(monkeypatch):
+
     def evaluate(solution: Solution):
         solution.set_scores(10.6, 'The algorithm scored 10.6, best known score is 9.8')
         return solution
     
-    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
-    monkeypatch.setattr(lhns.problem, 'evaluate', evaluate)
+    lhns = LHNS(DummyProblem(), Dummy_LLM(), 'vns')
+    monkeypatch.setattr(lhns.problem, "evaluate", evaluate)
 
     solution = Solution()
     solution = lhns.evaluate(solution)
@@ -548,8 +564,8 @@ def test_evaluate_returns_unmutated_on_failure(monkeypatch):
     def evaluate(solution: Solution):
         return None
     
-    lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
-    monkeypatch.setattr(lhns.problem, 'evaluate', evaluate)
+    lhns = LHNS(DummyProblem(), Dummy_LLM(), 'vns')
+    monkeypatch.setattr(lhns.problem, "evaluate", evaluate)
 
     solution = Solution()
     new_solution = lhns.evaluate(solution)
@@ -642,17 +658,7 @@ def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list
         print(index + 1, ":", line, "|")
     assert expected_output == output
 
-class DummyProblem(Problem):
-    def evaluate(self, solution: Solution):
-        fitness = random.random() * 80 + 9
-        solution.set_scores(fitness, f'Fitness {fitness}, best known 92.')
-        return solution
-    
-    def test(self, solution):
-        return self.evaluate(solution)
-    
-    def to_dict(self):
-        return super().to_dict()
+
 
 def test_mutate_lhns_vns_calls_methods_properly(monkeypatch):
     
