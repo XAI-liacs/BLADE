@@ -185,6 +185,7 @@ If you use BLADE in your research, please consider citing the associated paper:
 
    Introduction
    Installation
+   benchmarks
    webapp
    modules
    notebooks/simple_experiment

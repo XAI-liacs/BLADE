@@ -15,7 +15,7 @@ import ollama
 import openai
 
 try:
-    import lmstudios as lms  # Platform dependent dependency.
+    import lmstudio as lms  # Platform dependent dependency.
 except:
     lms = object
 try:
@@ -31,6 +31,38 @@ from tokencost import (
     count_message_tokens,
     count_string_tokens,
 )
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
 
 from .solution import Solution
 from .utils import NoCodeException
@@ -110,6 +142,13 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
+        if (
+            self.logger != None
+            and hasattr(self.logger, "budget_exhausted")
+            and self.logger.budget_exhausted()
+        ):
+            return "Budget exhausted."
+
         if self.log:
             input_msg = "\n".join([d["content"] for d in session])
             try:
