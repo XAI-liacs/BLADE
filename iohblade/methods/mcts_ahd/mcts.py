@@ -299,7 +299,7 @@ class MCTS:
         `node: MCTS_Node`: A node that is being simulated; to evaluate the performance.
 
         ## Returns:
-            `None`: Inline algorithm, changes the data-structure, but returns nothing.
+            `MCTS_Node`: Inline algorithm, changes the data-structure, but returns nothing.
 
         """
         self.eval_remain -= 1
@@ -307,9 +307,9 @@ class MCTS:
         new_node = self.problem(node)
         new_node.copy_attributes(node)
 
-        if math.isnan(node.fitness) or math.isinf(node.fitness):
+        if math.isnan(new_node.fitness) or math.isinf(new_node.fitness):
             node.Q = None
-            return
+            return new_node
         node.Q = node.fitness
         self.q_min = safe_min([self.q_min, node.Q])
         self.q_max = safe_max([self.q_max, node.Q])
@@ -317,6 +317,7 @@ class MCTS:
             self.best_solution = node
         elif self.best_solution.fitness > node.fitness and not self.maximisation:
             self.best_solution = node
+        return new_node
 
     def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
         """
