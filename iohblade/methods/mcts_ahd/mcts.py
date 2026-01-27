@@ -303,20 +303,19 @@ class MCTS:
 
         """
         self.eval_remain -= 1
-
         new_node = self.problem(node)
         new_node.copy_attributes(node)
 
         if math.isnan(new_node.fitness) or math.isinf(new_node.fitness):
-            node.Q = None
+            new_node.Q = None
             return new_node
-        node.Q = node.fitness
-        self.q_min = safe_min([self.q_min, node.Q])
-        self.q_max = safe_max([self.q_max, node.Q])
-        if self.best_solution.fitness < node.fitness and self.maximisation:
-            self.best_solution = node
-        elif self.best_solution.fitness > node.fitness and not self.maximisation:
-            self.best_solution = node
+        new_node.Q = new_node.fitness
+        self.q_min = safe_min([self.q_min, new_node.Q])
+        self.q_max = safe_max([self.q_max, new_node.Q])
+        if self.best_solution.fitness < new_node.fitness and self.maximisation:
+            self.best_solution = new_node
+        elif self.best_solution.fitness > new_node.fitness and not self.maximisation:
+            self.best_solution = new_node
         return new_node
 
     def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
