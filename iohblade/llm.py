@@ -10,21 +10,51 @@ import random
 from abc import ABC, abstractmethod
 from typing import Any
 
-import anthropic
-import ollama
-import openai
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
 
 try:
-    import lmstudios as lms  # Platform dependent dependency.
+    import ollama
+except ImportError:
+    ollama = None
+
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
+try:
+    import lmstudio as lms  # Platform dependent dependency.
 except:
     lms = object
+
 try:
     from mlx_lm import load, generate  # Platform dependent dependency.
 except:
     load = None
     generate = None
 
-from google import genai
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
+
+
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -110,6 +140,13 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
+        if (
+            self.logger != None
+            and hasattr(self.logger, "budget_exhausted")
+            and self.logger.budget_exhausted()
+        ):
+            return "Budget exhausted."
+
         if self.log:
             input_msg = "\n".join([d["content"] for d in session])
             try:
