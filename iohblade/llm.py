@@ -13,12 +13,13 @@ from typing import Any
 import anthropic
 import ollama
 import openai
+
 try:
-    import lmstudio as lms                      # Platform dependent dependency.
+    import lmstudios as lms  # Platform dependent dependency.
 except:
-    lms = None
+    lms = object
 try:
-    from mlx_lm import load, generate           # Platform dependent dependency.
+    from mlx_lm import load, generate  # Platform dependent dependency.
 except:
     load = None
     generate = None

@@ -1,4 +1,6 @@
+import sys
 import copy
+import types
 import datetime as _dt
 import pickle
 from unittest.mock import MagicMock, patch
@@ -644,19 +646,21 @@ class AlwaysSucceedLMStudio:
 def fake_lms_llm(monkeypatch):
     calls = []
 
+    lms = types.ModuleType("llamea.llm.lms")
+
     def factory(model):
         client = AlwaysFailLMStudio()
         calls.append((model, client))
         return client
 
-    monkeypatch.setattr(
-        "iohblade.llm.lms.llm",
-        factory,
-    )
+    lms.llm = factory
 
-    return {
-        "calls": calls,
-    }
+    monkeypatch.setitem(sys.modules, "llamea.llm.lms", lms)
+
+    import iohblade.llm
+    monkeypatch.setattr(iohblade.llm, "lms", lms, raising=False)
+
+    return {"calls": calls}
 
 def test_lms_query_fails_only_after_max_tries(fake_lms_llm):
     llm = LMStudio_LLM(
