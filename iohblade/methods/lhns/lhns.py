@@ -82,7 +82,9 @@ class LHNS:
         `None`: Will replace self.current_solution with aforementioned probability.
         """
         print("Simulated Annealing....")
-        if math.isnan(self.current_solution.fitness) or math.isinf(self.current_solution.fitness):
+        if math.isnan(self.current_solution.fitness) or math.isinf(
+            self.current_solution.fitness
+        ):
             if math.isnan(next_solution.fitness) or math.isinf(next_solution.fitness):
                 self.current_solution = random.choice(
                     [self.current_solution, next_solution]

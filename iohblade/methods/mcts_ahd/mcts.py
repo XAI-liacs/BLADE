@@ -81,7 +81,7 @@ class MCTS:
         if maximisation:
             self.root.fitness = float("-inf")
         else:
-            self.root.fitness = float('inf')
+            self.root.fitness = float("inf")
 
         self.best_solution: MCTS_Node = (
             self.root
