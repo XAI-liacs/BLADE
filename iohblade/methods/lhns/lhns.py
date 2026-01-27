@@ -60,10 +60,10 @@ class LHNS:
 
     def _log_best_solution(self, next: Solution):
         print(f"Self score: {self.best_solution.fitness}; new score: {next.fitness}")
-        if abs(self.best_solution.fitness) == float("inf"):
+        if math.isnan(self.best_solution.fitness):
             self.best_solution = next
             return
-        if abs(next.fitness) != float("inf"):
+        else:
             if self.minimisation and self.best_solution.fitness > next.fitness:
                 self.best_solution = next
             elif (not self.minimisation) and self.best_solution.fitness < next.fitness:
@@ -82,15 +82,17 @@ class LHNS:
         `None`: Will replace self.current_solution with aforementioned probability.
         """
         print("Simulated Annealing....")
-        if abs(self.current_solution.fitness) == float("inf"):
-            if abs(next_solution.fitness) == float("inf"):
+        if math.isnan(self.current_solution.fitness) or math.isinf(
+            self.current_solution.fitness
+        ):
+            if math.isnan(next_solution.fitness) or math.isinf(next_solution.fitness):
                 self.current_solution = random.choice(
                     [self.current_solution, next_solution]
                 )
             else:
                 self.current_solution = next_solution
             return
-        if abs(next_solution.fitness) == float("inf"):
+        if math.isnan(next_solution.fitness) or math.isinf(next_solution.fitness):
             return
 
         temperature = self.alpha * iteration_number / self.budget

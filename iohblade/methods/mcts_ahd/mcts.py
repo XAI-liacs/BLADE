@@ -78,7 +78,9 @@ class MCTS:
         # Instantiate the root node, with empty solution.
         solution = Solution()
         self.root = MCTS_Node(solution, approach="root")
-        if not self.maximisation:
+        if maximisation:
+            self.root.fitness = float("-inf")
+        else:
             self.root.fitness = float("inf")
 
         self.best_solution: MCTS_Node = (
@@ -297,14 +299,14 @@ class MCTS:
         `node: MCTS_Node`: A node that is being simulated; to evaluate the performance.
 
         ## Returns:
-            `None`: Inline algorithm, changes the data-structure, but returns nothing.
+            `MCTS_Node`: Inline algorithm, changes the data-structure, but returns nothing.
 
         """
         self.eval_remain -= 1
         new_node = self.problem(node)
         new_node.copy_attributes(node)
 
-        if abs(new_node.fitness) == float("inf"):
+        if math.isnan(new_node.fitness) or math.isinf(new_node.fitness):
             new_node.Q = None
             return new_node
         new_node.Q = new_node.fitness
