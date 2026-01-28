@@ -1,7 +1,7 @@
 from os import environ
 
 from iohblade.experiment import Experiment
-from iohblade.llm import Gemini_LLM, Ollama_LLM
+from iohblade.llm import Gemini_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 
@@ -13,11 +13,10 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
     gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Helibronn n11 benchmark.
-    heilbronn_triangle = get_heilbronn_triangle_problems(True)[0]
+    heilbronn_triangle = get_heilbronn_triangle_problems(False)[0]
 
     methods = []
     for llm in [gemini_llm]:

@@ -141,6 +141,12 @@ make sure you have `uv` installed.
    ```
    This will install additional dependencies for development and building documentation.
    The (experimental) auto-kernel application is also under a separate group for now. 
+4. *(Optional)* Intall Support for MLX optimised LLMs:
+    ```bash
+    uv sync --group dev --group apple-silicon --prerelease=allow
+    ```
+    Select all the groups required, and append it with `--group apple-silicon --prerelease=allow`, to install
+    libraries that enable MLX Optimised LLMs support through `mlx-lm` and `LMStudio`.
 
 ## 💻 Quick Start
 

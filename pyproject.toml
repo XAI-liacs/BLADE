@@ -67,6 +67,10 @@ extraproblems = [
     "pymoosh==3.2",
     "pyGDM2==1.1.12",
 ]
+apple-silicon = [
+    "lmstudio>=1.5.0,<2; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "mlx_lm>=0.30.2,<1; platform_system == 'Darwin' and platform_machine == 'arm64'",
+]
 kerneltuner = [
     "kernel-tuner",
     "autotuning_methodology",
