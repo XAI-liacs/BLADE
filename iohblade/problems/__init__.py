@@ -19,6 +19,10 @@ try:
     from .mabbob import MA_BBOB
 except Exception:
     MA_BBOB = None
+try:
+    from .ng_friedman_suite import NG_FriedmanSuite
+except Exception:
+    NG_FriedmanSuite = None
 
 try:
     from .photonics import Photonics
