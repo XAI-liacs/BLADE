@@ -1,5 +1,5 @@
 from iohblade.experiment import Experiment
-from iohblade.llm import Gemini_LLM, Ollama_LLM
+from iohblade.llm import Ollama_LLM
 from iohblade.methods import LLaMEA
 from iohblade.loggers import ExperimentLogger
 from os import environ
@@ -15,26 +15,26 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM("gemma3:12b")
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Select the instances of Auto-Correlation 1-3.
     # ===============================================
-    autocorrineq = get_analysis_problems(use_best=True)[2]
+    autocorrineq = get_analysis_problems(use_best=False)[2]
     # ================================================
 
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=autocorrineq.minimisation,         
+            minimization=autocorrineq.minimisation,  
         )
         methods.append(method)
-    logger = ExperimentLogger(f"results/{autocorrineq.task_name}")
+    logger = ExperimentLogger(f"results/Autocorrelation_Inequality")
     experiment = Experiment(
         methods,
         [autocorrineq],

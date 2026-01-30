@@ -1068,9 +1068,9 @@ def get_analysis_problems(use_best: bool) -> list[AutoCorrBaseSpec]:
 
     Returns:
         An array of benchmark objects as follows:
-            array[0] = Auto Correlation Inrquality 1
-            array[1] = Auto Correlation Inrquality 2
-            array[2] = Auto Correlation Inrquality 3
+            array[0] = Auto Correlation Inequality 1
+            array[1] = Auto Correlation Inequality 2
+            array[2] = Auto Correlation Inequality 3
 
     """
     if use_best:

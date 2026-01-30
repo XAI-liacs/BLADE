@@ -1,7 +1,8 @@
 import json
 import uuid
-
+import traceback
 import numpy as np
+from typing import Optional
 
 
 class Solution:
@@ -88,6 +89,33 @@ class Solution:
         self.fitness = fitness
         self.feedback = feedback
         self.error = error
+        return self
+    
+    def set_scores(
+        self, fitness: float, feedback="", error: Optional[Exception] = None
+    ):
+        """
+            Set the score of current instance of individual.
+        Args:
+            `fitness: float | Fitness`: Fitness/Score of the individual. It is of type `float` when single objective, or `Fitness` when multi-objective.
+            `Feedback: str` feedback for the LLM, suggest improvements or target score.
+            `error: Exception`: Exception object encountered during `exec` of the code block.
+        """
+        self.fitness = fitness
+        self.feedback = feedback
+
+        if error:
+            tb = traceback.extract_tb(error.__traceback__)[-1]
+            line_no = tb.lineno
+            code_line = ""
+            code_lines = self.code.split("\n")
+            if line_no and len(code_lines) >= line_no:
+                code_line = code_lines[line_no - 1]
+            error_type = type(error).__name__
+            error_msg = str(error)
+            self.error = f"{error_type}: {error_msg}.\n"
+            if tb.filename != "<string>" or tb.filename != self.name:
+                self.error += f"On line {line_no}: {code_line}.\n"
         return self
 
     def get_summary(self):
