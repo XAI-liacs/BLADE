@@ -181,3 +181,5 @@ _site/
 
 # Apple File System
 .DS_Store
+
+test_benchdesign/

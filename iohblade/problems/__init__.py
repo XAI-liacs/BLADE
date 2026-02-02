@@ -20,9 +20,9 @@ try:
 except Exception:
     MA_BBOB = None
 try:
-    from .ng_friedman_suite import NG_FriedmanSuite
+    from .benchdesign import BenchDesign
 except Exception:
-    NG_FriedmanSuite = None
+    BenchDesign = None
 
 try:
     from .photonics import Photonics
