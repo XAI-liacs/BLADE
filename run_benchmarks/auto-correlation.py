@@ -31,7 +31,7 @@ if __name__ == "__main__":
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=autocorrineq.minimisation,  
+            minimization=autocorrineq.minimisation
         )
         methods.append(method)
     logger = ExperimentLogger(f"results/Autocorrelation_Inequality")

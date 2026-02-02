@@ -13,13 +13,13 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     erdos_min_overlap = get_combinatorics_problems(True)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,
@@ -28,7 +28,7 @@ if __name__ == "__main__":
             minimization=erdos_min_overlap.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger(f"results/{erdos_min_overlap.name}")
+    logger = ExperimentLogger(f"results/Erdös_Min_Overlap")
     experiment = Experiment(
         methods,
         [erdos_min_overlap],
