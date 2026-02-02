@@ -112,7 +112,7 @@ one-line description, describing the main idea. Give the response in the format:
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            
+
             compiled_code = compile(code, solution.name, "exec")
             exec(compiled_code, safe, local_ns)
             cls = local_ns[solution.name]

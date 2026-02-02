@@ -90,7 +90,7 @@ class Solution:
         self.feedback = feedback
         self.error = error
         return self
-    
+
     def set_scores(
         self, fitness: float, feedback="", error: Optional[Exception] = None
     ):

@@ -126,7 +126,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             safe_globals = prepare_namespace(code, self.dependencies)
             compiled = compile(code, filename=name, mode="exec")
             exec(compiled, safe_globals, local_ns)
-            
+
             cls = local_ns[name]
 
             if self.best_solution is not None:

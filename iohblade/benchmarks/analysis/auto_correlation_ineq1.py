@@ -70,7 +70,8 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
 
             score = float(np.max(g) / (I * I))  # minimize
             solution = solution.set_scores(
-                score, f"C1 ratio = {score:.6g}, best known = {self.best_known:.6g}; soln={f}"
+                score,
+                f"C1 ratio = {score:.6g}, best known = {self.best_known:.6g}; soln={f}",
             )
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"calc-error {e}", e)

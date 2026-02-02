@@ -32,7 +32,7 @@ class RectanglePacking(PackingBase, Problem):
         self.best_solution = best_solution
 
         task_name = f"rectangle_packing_n{self.n_circles}_perim{self.perimeter:g}"
-        PackingBase.__init__(self, task_name)
+        PackingBase.__init__(self, task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name)
 
         print(
@@ -76,16 +76,17 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
 
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
+        name = solution.name if solution.name else "RectanglePackingSolver"
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
+            compiled_code = compile(code, name, "exec")
+            exec(compiled_code, safe, local_ns)
 
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            cls = local_ns[name]
+            if self.best_solution is not None:
                 result = cls(self.n_circles, self.best_solution)()
-            except:
+            else:
                 result = cls(self.n_circles)()
 
             if isinstance(result, tuple) and len(result) == 3:
@@ -96,44 +97,29 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
                 U = result
                 width = height = self.perimeter / 4.0
         except Exception as e:
-            solution.set_scores(float("-inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("-inf"), f"exec-error {e}", e)
             return solution
 
         try:
             # perimeter equality
             if width <= 0 or height <= 0:
-                solution.set_scores(
-                    float("-inf"),
-                    f"non-positive rectangle dimensions {width}×{height}",
-                    "invalid-dimensions",
+                raise ValueError(
+                    f"non-positive rectangle dimensions {width} x {height}"
                 )
-                return solution
             if abs(2 * (width + height) - self.perimeter) > self.tolerance:
-                solution.set_scores(
-                    float("-inf"),
-                    f"perimeter mismatch: 2*(w+h)={2*(width+height):.12f}",
-                    "perimeter-mismatch",
+                raise ValueError(
+                    f"perimeter mismatch {2*(width+height):.12f}, expected {self.perimeter:.12f}"
                 )
-                return solution
 
             U = np.asarray(U, dtype=float)
             if U.shape != (self.n_circles, 3):
-                solution.set_scores(
-                    float("-inf"),
-                    f"expected ({self.n_circles},3), got {U.shape}",
-                    "format-error",
-                )
-                return solution
+                raise ValueError(f"expected ({self.n_circles},3), got {U.shape}")
 
             if np.any(U[:, 2] <= 0):
                 idx = int(np.where(U[:, 2] <= 0)[0][0])
-                solution.set_scores(
-                    float("-inf"),
-                    f"non-positive radius at index {idx}",
-                    "invalid-radius",
+                raise ValueError(
+                    f"non-positive radius for circle {idx}: r = {U[idx, 2]}"
                 )
-                return solution
-
             # containment
             x, y, r = U[:, 0], U[:, 1], U[:, 2]
             if (
@@ -142,10 +128,7 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
                 or np.any(y - r < -self.tolerance)
                 or np.any(y + r > height + self.tolerance)
             ):
-                solution.set_scores(
-                    float("-inf"), "circle outside rectangle", "out-of-bounds"
-                )
-                return solution
+                raise ValueError("circle(s) exceed rectangle boundary.")
 
             # disjointness
             for i in range(self.n_circles):
@@ -153,10 +136,7 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
                     dx = U[i, 0] - U[j, 0]
                     dy = U[i, 1] - U[j, 1]
                     if dx * dx + dy * dy < (U[i, 2] + U[j, 2] - self.tolerance) ** 2:
-                        solution.set_scores(
-                            float("-inf"), f"overlap between {i} and {j}", "overlap"
-                        )
-                        return solution
+                        raise ValueError(f"circles {i} and {j} overlap.")
 
             score = float(np.sum(U[:, 2]))
             solution.set_scores(
@@ -165,7 +145,7 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
             )
             return solution
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}", e)
             return solution
 
     def test(self, solution: Solution):

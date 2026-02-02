@@ -138,14 +138,16 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
 """
 
-    def _get_time_series(self, code, name) -> tuple[NDArray[np.float64], Optional[Exception]]:
+    def _get_time_series(
+        self, code, name
+    ) -> tuple[NDArray[np.float64], Optional[Exception]]:
         local_parameters = {}
 
         allowed = ["numpy", "scipy"]
 
         try:
             global_parameters = prepare_namespace(code, allowed)
-            compiled_code = compile(code, name, 'exec')
+            compiled_code = compile(code, name, "exec")
             exec(compiled_code, global_parameters, local_parameters)
             cls = local_parameters[name]
             if self.best_solution:

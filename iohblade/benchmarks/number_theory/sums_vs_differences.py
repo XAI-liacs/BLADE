@@ -56,23 +56,26 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         """
 
         code = solution.code
+        name = solution.name if solution.name else "SumDiffCandidate"
 
         try:
             safe_globals = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe_globals, local_ns)
+
+            compiled_code = compile(code, name, "exec")
+            exec(compiled_code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
 
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
+            cls = local_ns[name]
             U = []
-            try:
+            if self.best_solution is not None:
                 U = cls(
                     self.max_set_size, best_known_configuration=self.best_solution
                 )()
-            except:
+            else:
                 U = cls(self.max_set_size)()
         except Exception as e:
-            solution.set_scores(-float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(-float("inf"), f"exec-error {e}", e)
             return solution
 
         try:
@@ -80,13 +83,13 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             U = sorted({int(x) for x in U})
             ok, msg = self._validate_U(U)
             if not ok:
-                solution.set_scores(-float("inf"), msg, "invalid-U")
+                solution.set_scores(-float("inf"), f"invalid-U: {msg}", e)
                 return solution
 
             M = U[-1]
             if M > 1_000_000:
                 solution.set_scores(
-                    -float("inf"), f"max(U) too large: {M}", "range-exceeded"
+                    -float("inf"), f"Range exceeded: max(U) too large: {M}", e
                 )
                 return solution
 
@@ -112,12 +115,20 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             diff_sz = int((np.round(conv_diff) > 0).sum())
 
             if sum_sz <= 0 or diff_sz <= 0:
-                solution.set_scores(-float("inf"), "degenerate U", "degenerate")
+                solution.set_scores(
+                    -float("inf"),
+                    "degenerate U",
+                    ValueError(f"U degenerated: {sum_sz}, {diff_sz}"),
+                )
                 return solution
 
             denom = math.log(2 * M + 1)
             if denom <= 0:
-                solution.set_scores(-float("inf"), "log(2*max(U)+1) <= 0", "degenerate")
+                solution.set_scores(
+                    -float("inf"),
+                    "log(2*max(U)+1) <= 0",
+                    ValueError(f"Got log(2*max(U) + 1)={denom}"),
+                )
                 return solution
 
             c = 1.0 + math.log(diff_sz / sum_sz) / denom
@@ -127,7 +138,7 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             )
 
         except Exception as e:
-            solution.set_scores(-float("inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(-float("inf"), f"calc-error {e}", e)
         return solution
 
     # --- helpers aligned to single-set U ---

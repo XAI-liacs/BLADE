@@ -109,20 +109,21 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
     # ---------- evaluation ----------
     def evaluate(self, solution, explogger=None):
         code = solution.code
+        name = solution.name if solution.name else "HexagonPackingSolver"
 
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
+            compiled_code = compile(code, name, "exec")
+            exec(compiled_code, safe, local_ns)
 
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
-                arr = cls(self.n_hex, best_known_configuration=self.best_known)()
-            except:
+            cls = local_ns[name]
+            if self.best_solution is not None:
+                arr = cls(self.n_hex, best_known_configuration=self.best_solution)()
+            else:
                 arr = cls(self.n_hex)()
         except Exception as e:
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
         try:
@@ -141,7 +142,9 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
             for i in range(self.n_hex):
                 for j in range(i + 1, self.n_hex):
                     if self._overlap_strict(polys[i], polys[j], self.tolerance):
-                        raise ValueError(f"hexagons {i} and {j} overlap")
+                        raise ValueError(
+                            f"hexagons {i} @ {polys[i]} and {j} @ {polys[j]} overlap"
+                        )
 
             V = np.vstack(polys)
             side = self._outer_side_from_vertices(V)
@@ -151,7 +154,7 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
                 f"outer_side_length={side:.6g}, best known side length={self.best_known}",
             )
         except Exception as e:
-            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution: Solution):

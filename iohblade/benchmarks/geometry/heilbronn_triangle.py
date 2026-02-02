@@ -119,7 +119,7 @@ one-line description, describing the main idea. Give the response in the format:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
             compiled_code = compile(code, filename=name, mode="exec")
-            
+
             exec(compiled_code, safe, local_ns)
             cls = local_ns[solution.name]
             if self.best_solution is None:
@@ -176,4 +176,6 @@ one-line description, describing the main idea. Give the response in the format:
 if __name__ == "__main__":
     hbt = HeilbronnTriangle(n_points=10, best_known=1.11)
     print(hbt.get_prompt())
-    print('------------------------------------------------------------------------------------------------')
+    print(
+        "------------------------------------------------------------------------------------------------"
+    )
