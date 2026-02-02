@@ -54,18 +54,23 @@ class FourierBase:
 - Objective (minimize):
     - """
             + formula
-            + """
+            + f"""
 - Tip: enforce structure (e.g., small |c|, P(0)≈0) to aid root placement.
 K = {self.n_terms}."
 """
         )
 
     def make_example_prompt(self, class_name: str) -> str:
-        accept_best_configuration = ""
+        accept_best_configuration = """
+        def __init__(self, n_terms: int):
+            # Accepts number of terms K for the problem.
+
+
+        """
         if self.best_known_configuration is not None:
             accept_best_configuration = """
-    def __init__(self, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+    def __init__(self, n_terms: int, best_known_configuration: list[float] | None):
+        # Accepts a mumber of terms K and best known configuration (if available) for the problem, as a initial configuration, which is then 
         optimised for better results.
 """
         return f"""
@@ -75,7 +80,7 @@ class {class_name}:
     {accept_best_configuration}
     def __call__(self):
         # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...
-        return [0.33, -0.01, -9e-05][: {self.n_terms}]
+        return [...., 0.33, -0.01, -9e-05][: {self.n_terms}]
 ```
 """
 

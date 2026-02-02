@@ -13,14 +13,14 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Kissing 11d
-    kissing_11d = get_kissing_number_11D_problems(True)[0]
+    kissing_11d = get_kissing_number_11D_problems(False)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,

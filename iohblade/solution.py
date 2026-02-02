@@ -104,18 +104,28 @@ class Solution:
         self.fitness = fitness
         self.feedback = feedback
 
-        if error:
-            tb = traceback.extract_tb(error.__traceback__)[-1]
-            line_no = tb.lineno
-            code_line = ""
-            code_lines = self.code.split("\n")
-            if line_no and len(code_lines) >= line_no:
-                code_line = code_lines[line_no - 1]
+        if error is not None:
+            if not isinstance(error, Exception):
+                self.error = str(error)
+                return self
+
             error_type = type(error).__name__
             error_msg = str(error)
-            self.error = f"{error_type}: {error_msg}.\n"
-            if tb.filename != "<string>" or tb.filename != self.name:
-                self.error += f"On line {line_no}: {code_line}.\n"
+            self.error = repr(error)
+
+            tb = traceback.extract_tb(error.__traceback__)[-1]
+
+            if tb.filename in ("<string>", self.name):
+                code_lines = self.code.splitlines()
+                line_no = tb.lineno
+
+                if 1 <= line_no <= len(code_lines):
+                    code_line = code_lines[line_no - 1]
+                    self.error = (
+                        f"{error_type}: {error_msg}.\n"
+                        f"On line {line_no}: {code_line}.\n"
+                    )
+
         return self
 
     def get_summary(self):

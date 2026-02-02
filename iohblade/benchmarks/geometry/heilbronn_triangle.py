@@ -114,10 +114,13 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
+        name = solution.name
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe, local_ns)
+            compiled_code = compile(code, filename=name, mode="exec")
+            
+            exec(compiled_code, safe, local_ns)
             cls = local_ns[solution.name]
             if self.best_solution is None:
                 triangle, points = cls(self.n_points)()
@@ -132,12 +135,12 @@ one-line description, describing the main idea. Give the response in the format:
             solution.set_scores(
                 float("-inf"),
                 f"exec-error {e}",
-                "exec-failed",
+                e,
             )
             return solution
 
         try:
-            if triangle:
+            if triangle is not None:
                 T, P = self._parse_candidate((triangle, points))
             else:
                 T, P = self._parse_candidate(points)
@@ -158,8 +161,8 @@ one-line description, describing the main idea. Give the response in the format:
         except Exception as e:
             solution.set_scores(
                 float("-inf"),
-                f"calc-error {e}.",
-                f"Values Returned: Triangle {triangle}, points: {points}",
+                f"calc-error, for values returned by candidate: Triangle {triangle}, points: {points}",
+                e,
             )
         return solution
 
@@ -173,3 +176,4 @@ one-line description, describing the main idea. Give the response in the format:
 if __name__ == "__main__":
     hbt = HeilbronnTriangle(n_points=10, best_known=1.11)
     print(hbt.get_prompt())
+    print('------------------------------------------------------------------------------------------------')

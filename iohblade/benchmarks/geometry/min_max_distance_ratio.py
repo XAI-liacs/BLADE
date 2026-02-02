@@ -109,18 +109,20 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
+        name = solution.name if solution.name else "MinMaxDistanceSolver"
         try:
             local_ns = {}
             safe = prepare_namespace(code, self.dependencies)
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            compiled_code = compile(code, name, "exec")
+            exec(compiled_code, safe, local_ns)
+
+            cls = local_ns[name]
+            if self.best_solution is not None:
                 P = cls(self.n_points, self.dim, self.best_solution)()
-            except:
+            else:
                 P = cls(self.n_points, self.dim)()
         except Exception as e:
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
         try:
@@ -142,7 +144,7 @@ one-line description, describing the main idea. Give the response in the format:
                 msg += f" Best known score is {self.best_known}."
             solution.set_scores(score, msg)
         except Exception as e:
-            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution):
