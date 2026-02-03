@@ -177,6 +177,7 @@ BBOB*.zip
 /run/
 /setup/
 .vscode/
+.python-version
 _site/
 
 # Apple File System

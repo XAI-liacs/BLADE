@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+
 import iohblade
 
 # Adjust imports to match your actual package structure
@@ -228,6 +229,29 @@ def test_plotly_code_evolution_xaxis_order():
     fig = iohblade.plots.plotly_code_evolution(df, feature="total_token_count")
     marker_trace = fig.data[-1]
     assert list(marker_trace.x) == [1, 2, 3]
+
+
+def test_code_diff_chain_produces_diffs():
+    df = pd.DataFrame(
+        {
+            "id": ["0", "1", "2"],
+            "parent_ids": ["[]", '["0"]', '["1"]'],
+            "fitness": [0.0, 0.1, 0.2],
+            "generation": [0, 1, 2],
+            "name": ["zero", "one", "two"],
+            "code": [
+                "print('zero')",
+                "print('one')",
+                "print('two')",
+            ],
+        }
+    )
+    chain = iohblade.plots.code_diff_chain(df, "2")
+    assert len(chain) == 2
+    first = chain[0]
+    assert first["parent"]["id"] == "0" and first["child"]["id"] == "1"
+    assert first["child"]["generation"] == 1
+    assert "-print('zero')" in first["diff"]
 
 
 def test_plot_boxplot_fitness(mock_logger):

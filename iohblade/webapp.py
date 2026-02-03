@@ -1,24 +1,41 @@
+import difflib
 import json
 import os
+import re
 import subprocess
 import time
+import urllib
 from pathlib import Path
 
+import jsonlines
 import matplotlib
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-import jsonlines
+import plotly.graph_objects as go
 import streamlit as st
-import urllib
+from st_diff_viewer import diff_viewer
 
-from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+from iohblade.plots import (
+    CEG_FEATURE_LABELS,
+    CEG_FEATURES,
+    code_diff_chain,
+    plotly_code_evolution,
+    get_code_lineage,
+)
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"
+
+if "index" not in st.session_state:
+    st.session_state.index = 0
+if "max_index" not in st.session_state:
+    st.session_state.max_index = 0
 
 
 def convergence_dataframe(logger: ExperimentLogger) -> pd.DataFrame:
@@ -53,6 +70,35 @@ def _rgba(color: str, alpha: float) -> str:
         return f"rgba({nums},{alpha})"
     # fallback: let Plotly parse; many qualitative colors are hex so this usually won’t hit
     return color
+
+
+def _highlight_code(code: str, *, wrap: bool = False) -> str:
+    formatter = HtmlFormatter(nowrap=True, noclasses=True)
+    html = highlight(code, PythonLexer(), formatter)
+    # html = re.sub(r'<span style="', '<span style="white-space:pre; ', html)
+    if wrap:
+        return (
+            "<pre style='font-size:0.75rem; background:#f6f8fa; "
+            "padding:0.5rem; overflow:auto;'>" + html + "</pre>"
+        )
+    return html
+
+
+def _diff_to_html(old: str, new: str) -> str:
+    diff = difflib.ndiff(old.splitlines(), new.splitlines())
+    lines = []
+    for line in diff:
+        tag, text = line[:2], line[2:]
+        if tag == "+ ":
+            cls = "background-color:MediumSeaGreen;"
+        elif tag == "- ":
+            cls = "background-color:Tomato;"
+        elif tag == "? ":
+            continue
+        else:
+            cls = "context"
+        lines.append(f'<span style="{cls}">{_highlight_code(text)}</span>')
+    return "<br>".join(lines)
 
 
 def plotly_convergence(df: pd.DataFrame, aggregate: bool = False) -> go.Figure:
@@ -150,6 +196,16 @@ def read_progress(exp_dir):
         with open(path) as f:
             return json.load(f)
     return None
+
+
+def up_index():
+    if st.session_state.index < st.session_state.max_index - 1:
+        st.session_state.index += 1
+
+
+def down_index():
+    if st.session_state.index > 0:
+        st.session_state.index -= 1
 
 
 def run() -> None:
@@ -293,6 +349,49 @@ def run() -> None:
                 else:
                     st.write("No data for selected run.")
 
+            if not run_df.empty:
+                st.markdown("#### Code Diff Chain")
+                solutions = run_df.to_dict("records")
+                best_idx = max(
+                    range(len(solutions)),
+                    key=lambda i: solutions[i].get("fitness", float("-inf")),
+                )
+                solution_choice = st.selectbox(
+                    "Solution",
+                    solutions,
+                    index=best_idx,
+                    key="diff_chain_solution",
+                    format_func=lambda x: (
+                        f"{x.get('name', x['id'])} (gen {x.get('generation', '?')})"
+                        f" | fit {x.get('fitness', 'n/a')}"
+                    ),
+                )
+                selected_sol = solution_choice["id"]
+                global index, max_index
+                index = 0
+
+                if st.button("Show Diff Chain"):
+                    lineage = get_code_lineage(run_df, selected_sol)
+                    if len(lineage) >= 2:
+                        tabs = st.tabs(
+                            list(
+                                map(
+                                    lambda x: f"{x['name']}-{x['generation']}",
+                                    lineage[1:],
+                                )
+                            )
+                        )
+                        for index, tab_data in enumerate(tabs):
+                            with tab_data:
+                                diff_viewer(
+                                    lineage[index]["code"],
+                                    lineage[index + 1]["code"],
+                                    left_title=f"{lineage[index]['name']}, gen: {lineage[index]['generation']}, Fitness: {lineage[index]['fitness'] : 0.3f}",
+                                    right_title=f"{lineage[index + 1]['name']}, gen: {lineage[index + 1]['generation']}, Fitness: {lineage[index + 1]['fitness']: 0.3f}",
+                                )
+                    else:
+                        st.write("No parent chain found.")
+
             st.markdown("#### Top Solutions")
             runs = logger.get_data()
             for m in method_sel:
@@ -345,7 +444,10 @@ def run() -> None:
 
 
 def main() -> None:
-    subprocess.run(["streamlit", "run", str(Path(__file__))], check=True)
+    subprocess.run(
+        ["streamlit", "run", str(Path(__file__)), "--server.fileWatcherType", "none"],
+        check=True,
+    )
 
 
 if __name__ == "__main__":
