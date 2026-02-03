@@ -132,6 +132,7 @@ class EoH(Method):
             exp_output_path=self.kwargs.get("output_path", "./"),
             exp_n_proc=1,
             exp_debug_mode=False,
+            eva_timeout=self.kwargs.get("timeout", 600),
         )
 
         evol = eoh_main.EVOL(paras, prob=paras.problem)

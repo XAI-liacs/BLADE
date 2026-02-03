@@ -18,14 +18,133 @@ from sklearn.preprocessing import StandardScaler, minmax_scale
 from .loggers import ExperimentLogger
 from .misc.ast import analyse_complexity, process_code
 
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
+
+
+def plot_speedup(
+    logger: ExperimentLogger,
+    method_fast: str,
+    method_slow: str,
+    aggregation: str = "mean",
+    variance_aggregation: str = "std",
+    budget: int = 100,
+    save: bool = True,
+    return_fig: bool = False,
+):
+    """
+    Plots speed-up of method_fast over method_slow.
+
+    Speed-up definition:
+    If method_fast reaches fitness x at n evaluations
+    and method_slow reaches fitness x at m evaluations,
+    speed-up = m / n.
+
+    Args:
+        logger (ExperimentLogger)
+        method_fast (str): numerator algorithm
+        method_slow (str): denominator algorithm
+        aggregation (str): mean / median
+        variance_aggregation (str): std / sem
+        budget (int): max evaluations
+        save (bool)
+        return_fig (bool)
+    """
+
+    methods, problems = logger.get_methods_problems()
+    if method_fast not in methods or method_slow not in methods:
+        raise ValueError("Both methods must exist in the logger.")
+
+    fig, axes = plt.subplots(
+        figsize=(8, 4 * len(problems)), nrows=len(problems), ncols=1
+    )
+
+    if len(problems) == 1:
+        axes = [axes]
+
+    for ax, problem in zip(axes, problems):
+        data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
+        data.replace([-np.inf, np.inf], 0, inplace=True)
+        data.fillna(0, inplace=True)
+
+        def compute_summary(method):
+            df = data[data["method_name"] == method].copy()
+            df = df.sort_values(by=["seed", "_id"])
+            df["cummax_fitness"] = df.groupby("seed")["fitness"].cummax()
+
+            summary = (
+                df.groupby("_id")["cummax_fitness"]
+                .agg([aggregation, variance_aggregation])
+                .reset_index()
+            )
+            summary["_id"] += 1
+            return summary
+
+        fast = compute_summary(method_fast)
+        slow = compute_summary(method_slow)
+
+        # Restrict to budget
+        fast = fast[fast["_id"] <= budget]
+        slow = slow[slow["_id"] <= budget]
+
+        speedups = []
+
+        slow_ids = slow["_id"].values
+        slow_fit = slow[aggregation].values
+
+        for n, f in zip(fast["_id"], fast[aggregation]):
+            # Find earliest m where slow reaches >= f
+            idx = np.where(slow_fit >= f)[0]
+            if len(idx) == 0:
+                speedups.append(np.nan)
+            else:
+                m = slow_ids[idx[0]]
+                speedups.append(m / n)
+
+        ax.plot(fast["_id"], speedups, label=f"{method_fast} vs {method_slow}")
+        ax.axhline(1.0, linestyle="--", color="gray", alpha=0.6)
+
+        ax.set_xlabel("Number of Evaluations")
+        ax.set_ylabel("Speed-up")
+        ax.set_xlim(1, budget)
+        ax.set_title(problem)
+        ax.grid(True)
+        ax.legend()
+
+    plt.tight_layout()
+
+    if save:
+        fig.savefig(f"{logger.dirname}/speedup_{method_fast}_vs_{method_slow}.png")
+    elif not return_fig:
+        plt.show()
+
+    if return_fig:
+        return fig
+
+    plt.close()
+
 
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
+    aggregation: str = "mean",
+    variance_aggregation: str = "std",
+    methods: list = None,
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
     separate_lines: bool = False,
+    show_std: bool = True,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
@@ -33,14 +152,20 @@ def plot_convergence(
     Args:
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label.
+        aggregation (str, optional): The aggregation method to use ('mean', 'median', etc.).
+        variance_aggregation (str, optional): The method to aggregate variance ('std', 'sem', etc.).
+        methods (list, optional): List of method names to include. If None, includes all methods.
+        budget (int, optional): The maximum number of evaluations to display on the x-axis.
         save (bool, optional): Whether to save or show the plot.
         return_fig (bool, optional): Whether to return the figure object.
         separate_lines (bool, optional): If True, plots each run using separate line.
+        show_std (bool, optional): If True, shows standard deviation as shaded area.
     """
+    methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     fig, axes = plt.subplots(
-        figsize=(10, 6 * len(problems)), nrows=len(problems), ncols=1
+        figsize=(8, 6 * len(problems)), nrows=len(problems), ncols=1
     )
     problem_i = 0
     for problem in problems:
@@ -48,11 +173,13 @@ def plot_convergence(
         data = logger.get_problem_data(problem_name=problem).drop(
             columns=["code"]
         )  # for efficiency we drop code for now
-        data.replace([-np.Inf, np.Inf], 0, inplace=True)
+        data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
 
         # Get unique method names
         methods = data["method_name"].unique()
+        if methods_to_use is not None:
+            methods = [m for m in methods if m in methods_to_use]
         ax = axes[problem_i] if len(problems) > 1 else axes
         for method in methods:
             method_data = data[data["method_name"] == method].copy()
@@ -76,28 +203,30 @@ def plot_convergence(
             else:
                 summary = (
                     method_data.groupby("_id")["cummax_fitness"]
-                    .agg(["mean", "std"])
+                    .agg([aggregation, variance_aggregation])
                     .reset_index()
                 )
                 # Shift X-axis so that _id starts at 1
                 summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
 
                 # Plot the mean fitness
-                ax.plot(summary["_id"], summary["mean"], label=method)
+                method_label = method
+                ax.plot(summary["_id"], summary[aggregation], label=method_label)
 
                 # Plot the shaded error region
-                ax.fill_between(
-                    summary["_id"],
-                    summary["mean"] - summary["std"],
-                    summary["mean"] + summary["std"],
-                    alpha=0.2,
-                )
+                if show_std:
+                    ax.fill_between(
+                        summary["_id"],
+                        summary[aggregation] - summary[variance_aggregation],
+                        summary[aggregation] + summary[variance_aggregation],
+                        alpha=0.2,
+                    )
 
         # Add labels and legend
         ax.set_xlabel("Number of Evaluations")
         if budget is not None:
             ax.set_xlim(1, budget)
-        ax.set_ylabel(f"Mean Best {metric}")
+        ax.set_ylabel(f"{aggregation} best {metric}")
         ax.legend(title="Algorithm")
         ax.grid(True)
         ax.set_title(problem)
@@ -116,6 +245,8 @@ def plot_convergence(
 def plot_experiment_CEG(
     logger: ExperimentLogger,
     metric: str = "total_token_count",
+    methods=None,
+    markersize=None,
     budget: int = 100,
     save: bool = True,
     max_seeds=5,
@@ -126,23 +257,31 @@ def plot_experiment_CEG(
     Args:
         logger (ExperimentLogger): The experiment logger object.
         metric (str, optional): The metric to show as y-axis label (should be a statistic from AST / Complexity).
+        methods (list, optional): An optional list of method names to plot, if None, all methods are included.
+        markersize (int. optional): The size of the markers, if not set it will be dynamic based on the degree.
+        budget (int): The number of evaluations to plot.
         save (bool, optional): Whether to save or show the plot.
         max_seeds (int, optional): The maximum number of runs to plot.
     """
+    methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     problem_i = 0
     for problem in problems:
         # Ensure the data is sorted by 'id' and 'fitness'
         data = logger.get_problem_data(problem_name=problem)
-        data.replace([-np.Inf], 0, inplace=True)
+        data.replace([-np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
 
         # Get unique runs (seeds)
         seeds = data["seed"].unique()
+        # sort the seeds
+        seeds = sorted(seeds)
         num_seeds = min(len(seeds), max_seeds)
         # Get unique method names
         methods = data["method_name"].unique()
+        if methods_to_use is not None:
+            methods = [m for m in methods if m in methods_to_use]
         fig, axes = plt.subplots(
             figsize=(5 * num_seeds, 5 * len(methods)),
             nrows=len(methods),
@@ -164,13 +303,14 @@ def plot_experiment_CEG(
                 plot_code_evolution_graphs(
                     run_data,
                     logger.dirname,
-                    plot_features=["total_token_count"],
+                    plot_features=[metric],
+                    markersize=markersize,
                     save=False,
                     ax=ax,
                 )
                 ax.set_xlim([0, budget])
-                ax.set_xticks(np.arange(0, budget + 1, 10))
-                ax.set_xticklabels(np.arange(0, budget + 1, 10))
+                ax.set_xticks(np.arange(0, budget + 1, 20))
+                ax.set_xticklabels(np.arange(0, budget + 1, 20))
                 ax.set_title(f"{method} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)
@@ -187,8 +327,40 @@ def plot_experiment_CEG(
         plt.close()
 
 
+# Helper function for key normalization to solve the mismatch issue
+def normalize_key(key):
+    """Converts any feature key to a standardized format (e.g., 'mean_complexity' -> 'mean complexity')."""
+    key = str(key).lower()
+    key = key.replace("_", " ")
+    return " ".join(key.split()).strip()
+
+
+# Parse parent ids
+def safe_parse_parent_ids(x):
+    if not isinstance(x, str):
+        return x
+
+    s = x.strip()
+
+    # Case 1: Proper Python literal
+    if s.startswith(("[", "(")) and s.endswith(("]", ")")):
+        try:
+            parsed = ast.literal_eval(s)
+            return list(parsed) if isinstance(parsed, (list, tuple)) else [parsed]
+        except (ValueError, SyntaxError):
+            # Case 2: Fallback for things like "[awdawd213r]"
+            inner = s[1:-1].strip()
+            if inner:
+                # split on commas, keep strings
+                return [part.strip() for part in inner.split(",")]
+            return []
+
+    # Case 3: Single ID string
+    return [s]
+
+
 def plot_code_evolution_graphs(
-    run_data, expfolder=None, plot_features=None, save=True, ax=None
+    run_data, expfolder=None, plot_features=None, markersize=None, save=True, ax=None
 ):
     """
     Plots optimization progress and relationships between successive solutions in an
@@ -198,6 +370,7 @@ def plot_code_evolution_graphs(
         run_data (pandas.DataFrame): DataFrame containing code and fitness values.
         expfolder (str, optional): Folder path where the plots are saved. If None, plots are shown.
         plot_features (list, optional): The features to plot. If None, plots multiple default features.
+        markersize (int. optional): The size of the markers, if not set it will be dynamic based on the degree.
         save (bool): If True, saves the plots otherwise shows them.
         ax (matplotlib.axes.Axes, optional): The axis to plot on. If None, creates new plots.
     """
@@ -226,7 +399,26 @@ def plot_code_evolution_graphs(
         analyse_complexity
         df_stats = data["code"].apply(analyse_complexity).apply(pd.Series)
     else:
-        df_stats = data["code"].apply(process_code).apply(pd.Series)
+        if "ast_features" in data.columns:
+            df_stats = data["ast_features"].apply(pd.Series)
+        elif "metadata" in data.columns:
+            ast_series = data["metadata"].apply(
+                lambda m: (m.get("ast_features") if isinstance(m, dict) else None)
+            )
+
+            # Only use metadata-derived features if at least one row has a non-empty dict
+            has_any = ast_series.apply(
+                lambda d: isinstance(d, dict) and len(d) > 0
+            ).any()
+
+            if has_any:
+                df_stats = ast_series.apply(
+                    lambda d: d if isinstance(d, dict) else {}
+                ).apply(pd.Series)
+            else:
+                df_stats = data["code"].apply(process_code).apply(pd.Series)
+        else:
+            df_stats = data["code"].apply(process_code).apply(pd.Series)
     stat_features = df_stats.columns
 
     # Merge statistics into the dataframe
@@ -245,29 +437,39 @@ def plot_code_evolution_graphs(
     else:
         plot_features = plot_features
 
+    # check that plot_features are all included in stat_features
+    missing = [
+        f for f in plot_features if f not in stat_features and f not in {"pca", "tsne"}
+    ]
+    if missing:
+        raise ValueError(
+            f"Requested plot_features not found in extracted statistics: {missing}. "
+            f"Available features: {sorted(stat_features.tolist())}"
+        )
+
     # Standardize features
     features = data[stat_features].copy()
     scaler = StandardScaler()
     features_scaled = scaler.fit_transform(features)
 
     # Perform PCA and t-SNE for dimensionality reduction
-    pca = PCA(n_components=1)
-    pca_projection = pca.fit_transform(features_scaled)
-    data["pca"] = pca_projection[:, 0]
+    if "pca" in plot_features:
+        pca = PCA(n_components=1)
+        pca_projection = pca.fit_transform(features_scaled)
+        data["pca"] = pca_projection[:, 0]
 
-    try:
-        tsne = TSNE(n_components=1, random_state=42)
-        tsne_projection = tsne.fit_transform(features_scaled)
-    except Exception:
-        # TNSE did not work, probably too small data, just use pca
-        tsne_projection = pca_projection
+    if "tsne" in plot_features:
+        try:
+            tsne = TSNE(n_components=1, random_state=42)
+            tsne_projection = tsne.fit_transform(features_scaled)
+        except Exception:
+            # TNSE did not work, probably too small data, just use pca
+            tsne_projection = pca_projection
 
-    data["tsne"] = tsne_projection[:, 0]
+        data["tsne"] = tsne_projection[:, 0]
 
     # Convert parent IDs from string to list
-    data["parent_ids"] = data["parent_ids"].apply(
-        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
-    )
+    data["parent_ids"] = data["parent_ids"].apply(safe_parse_parent_ids)
 
     # Count occurrences of each parent ID
     parent_counts = Counter(
@@ -279,28 +481,47 @@ def plot_code_evolution_graphs(
     no_axis = False
     if ax is None:
         no_axis = True
+
+    # Calculate max fitness for scaling the marker colors
+    max_fitness = data["fitness"].max()
+    if max_fitness == 0:
+        max_fitness = 1.0  # Avoid division by zero
+
     for x_data in plot_features:
         if no_axis:
             fig, ax = plt.subplots(figsize=(8, 5))
 
         for _, row in data.iterrows():
+            if len(row["parent_ids"]) == 0:
+                ax.plot(
+                    row["id"],
+                    row[x_data],
+                    "o",
+                    markersize=row["parent_size"] if markersize is None else markersize,
+                    color=plt.cm.viridis(row["fitness"] / max_fitness),
+                )
             for parent_id in row["parent_ids"]:
                 if parent_id in data["id"].values:
                     parent_row = data[data["id"] == parent_id].iloc[0]
+                    plot_marker = "-o"
                     ax.plot(
                         [parent_row["id"], row["id"]],
                         [parent_row[x_data], row[x_data]],
-                        "-o",
-                        markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
+                        plot_marker,
+                        markersize=(
+                            row["parent_size"] if markersize is None else markersize
+                        ),
+                        color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
                 else:
                     ax.plot(
                         row["id"],
                         row[x_data],
                         "o",
-                        markersize=row["parent_size"],
-                        color=plt.cm.viridis(row["fitness"] / max(data["fitness"])),
+                        markersize=(
+                            row["parent_size"] if markersize is None else markersize
+                        ),
+                        color=plt.cm.viridis(row["fitness"] / max_fitness),
                     )
 
         ax.set_xlabel("Evaluation")
@@ -787,7 +1008,10 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
 
 
 def plot_token_usage(
-    logger: ExperimentLogger, save: bool = True, return_fig: bool = False
+    logger: ExperimentLogger,
+    save: bool = True,
+    return_fig: bool = False,
+    return_df: bool = False,
 ):
     """Plot total tokens used per method/problem from an experiment logger."""
 
@@ -802,7 +1026,13 @@ def plot_token_usage(
             if os.path.isfile(convo_path):
                 with jsonlines.open(convo_path) as f:
                     for line in f:
-                        tokens += line.get("tokens", 0)
+                        newtokens = line.get("tokens", 0)
+                        if newtokens > 0:
+                            tokens += line.get("tokens", 0)
+                        elif count_string_tokens is not None:
+                            # Fallback: count tokens from 'content' text
+                            response_text = line.get("content", "")
+                            tokens += count_string_tokens(response_text, model="gpt-4")
         token_records.append(
             {
                 "method_name": row["method_name"],
@@ -811,6 +1041,8 @@ def plot_token_usage(
             }
         )
     token_df = pd.DataFrame(token_records)
+    if return_df:
+        return token_df
     summary = (
         token_df.groupby(["problem_name", "method_name"])["tokens"].sum().reset_index()
     )

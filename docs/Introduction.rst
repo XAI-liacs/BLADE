@@ -11,3 +11,5 @@ Evolution of algorithms.
 - **Flexible**: BLADE is designed to be flexible and can be easily extended.
 - **Scalable**: BLADE is designed to be scalable and can be run on a single machine or a cluster.
 - **Open Source**: BLADE is open source and free to use.
+- **HLP benchmarks**: Includes high-level property (HLP) benchmark
+  generation for structured black-box optimization tasks.

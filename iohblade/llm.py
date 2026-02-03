@@ -6,13 +6,55 @@ import copy
 import logging
 import re
 import time
+import random
 from abc import ABC, abstractmethod
 from typing import Any
 
-import anthropic
-import ollama
-import openai
-from google import genai
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
+
+try:
+    import ollama
+except ImportError:
+    ollama = None
+
+try:
+    import openai
+except ImportError:
+    openai = None
+
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
+try:
+    import lmstudio as lms  # Platform dependent dependency.
+except:
+    lms = object
+
+try:
+    from mlx_lm import load, generate  # Platform dependent dependency.
+except:
+    load = None
+    generate = None
+
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
+
+
 from tokencost import (
     calculate_completion_cost,
     calculate_prompt_cost,
@@ -98,18 +140,26 @@ class LLM(ABC):
         Returns:
             str: The text content of the LLM's response.
         """
+        if (
+            self.logger != None
+            and hasattr(self.logger, "budget_exhausted")
+            and self.logger.budget_exhausted()
+        ):
+            return "Budget exhausted."
+
         if self.log:
+            input_msg = "\n".join([d["content"] for d in session])
             try:
-                cost = calculate_prompt_cost(session, self.model)
+                cost = calculate_prompt_cost(input_msg, self.model)
             except Exception:
                 cost = 0
             try:
-                tokens = count_message_tokens(session, model=self.model)
+                tokens = count_message_tokens(input_msg, model=self.model)
             except Exception:
                 tokens = 0
             self.logger.log_conversation(
                 "client",
-                "\n".join([d["content"] for d in session]),
+                input_msg,
                 cost,
                 tokens,
             )
@@ -140,7 +190,13 @@ class LLM(ABC):
         self.log = True
 
     def sample_solution(
-        self, session_messages: list, parent_ids=[], HPO=False, **kwargs
+        self,
+        session_messages: list,
+        parent_ids=[],
+        HPO=False,
+        base_code: str | None = None,
+        diff_mode: bool = False,
+        **kwargs,
     ):
         """
         Interacts with a language model to generate or mutate solutions based on the provided session messages.
@@ -149,6 +205,7 @@ class LLM(ABC):
             session_messages (list): A list of dictionaries with keys 'role' and 'content' to simulate a conversation with the language model.
             parent_ids (list, optional): The id of the parent the next sample will be generated from (if any).
             HPO (boolean, optional): If HPO is enabled, a configuration space will also be extracted (if possible).
+            base_code and diff_mode are for now only there to support latest LLaMEA, they are not implemented yet.
 
         Returns:
             tuple: A tuple containing the new algorithm code, its class name, its full descriptive name and an optional configuration space object.
@@ -268,6 +325,38 @@ class LLM(ABC):
             "desc_pattern": self.desc_pattern,
             "cs_pattern": self.cs_pattern,
         }
+
+
+class Multi_LLM(LLM):
+    def __init__(self, llms: list[LLM]):
+        """
+        Combine multiple LLM instances and randomly choose one per call.
+
+        Args:
+            llms (list[LLM]): A list of LLM instances to combine.
+        """
+        if not llms:
+            raise ValueError("llms must contain at least one LLM instance")
+        model = "multi-llm"
+        super().__init__("", model)
+        self.llms = llms
+
+    def _pick_llm(self) -> LLM:
+        """
+        Randomly selects one of the LLMs from the list.
+        This method is used to alternate between LLMs during evolution.
+        """
+        return random.choice(self.llms)
+
+    def set_logger(self, logger):
+        self.logger = logger
+        self.log = True
+        for llm in self.llms:
+            llm.set_logger(logger)
+
+    def _query(self, session_messages, **kwargs):
+        llm = self._pick_llm()
+        return llm._query(session_messages, **kwargs)
 
 
 class OpenAI_LLM(LLM):
@@ -413,6 +502,7 @@ class Gemini_LLM(LLM):
             }
 
         self.client = genai.Client(api_key=api_key)
+        self.api_key = api_key
         self.generation_config = generation_config
 
     def _query(
@@ -463,17 +553,51 @@ class Gemini_LLM(LLM):
 
                 time.sleep(wait)
 
+    # ---------- pickling / deepcopy helpers ----------
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = genai.Client(api_key=self.api_key)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "client":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.client = genai.Client(api_key=new.api_key)
+        return new
+
 
 class Ollama_LLM(LLM):
-    def __init__(self, model="llama3.2", **kwargs):
+    def __init__(self, model="llama3.2", port=11434, **kwargs):
         """
         Initializes the Ollama LLM manager with a model name. See https://ollama.com/search for models.
 
         Args:
             model (str, optional): model abbreviation. Defaults to "llama3.2".
                 See for options: https://ollama.com/search.
+            port: TCP/UDP port on which localhost for ollama is available. Defaults to 11434.
         """
+        self.port = port
+        self.client = ollama.Client(host=f"http://localhost:{port}")
+
         super().__init__("", model, None, **kwargs)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("client", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.client = ollama.Client(host=f"http://localhost:{self.port}")
 
     def _query(
         self, session_messages, max_retries: int = 5, default_delay: int = 10, **kwargs
@@ -500,7 +624,7 @@ class Ollama_LLM(LLM):
         attempt = 0
         while True:
             try:
-                response = ollama.chat(
+                response = self.client.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
                     options=kwargs,
@@ -522,16 +646,16 @@ class Claude_LLM(LLM):
         api_key,
         model="claude-3-haiku-20240307",
         base_url=None,
+        max_tokens=12000,
         temperature=0.8,
-        max_tokens=4096,
         **kwargs,
     ):
         """Initializes the LLM manager with an API key and model name."""
 
         super().__init__(api_key, model, base_url, **kwargs)
         self.temperature = temperature
-        self.max_tokens = max_tokens
         self._client_kwargs = {"api_key": api_key}
+        self.max_tokens = max_tokens
         if base_url:
             self._client_kwargs["base_url"] = base_url
         self.client = anthropic.Anthropic(**self._client_kwargs)
@@ -544,19 +668,24 @@ class Claude_LLM(LLM):
         while True:
             try:
                 response = self.client.messages.create(
+                    max_tokens=self.max_tokens,
                     model=self.model,
                     messages=session_messages,
                     temperature=self.temperature,
-                    max_tokens=self.max_tokens,
                 )
 
                 content = response.content
                 if isinstance(content, list):
                     parts = []
                     for block in content:
-                        parts.append(getattr(block, "text", block.get("text", "")))
-                    return "".join(parts)
-                return content
+                        if hasattr(block, "text"):
+                            parts.append(block.text)
+                        elif isinstance(block, dict) and "text" in block:
+                            parts.append(block["text"])
+                    text_output = "".join(parts)
+                else:
+                    text_output = str(content)
+                return text_output
 
             except anthropic.RateLimitError as err:
                 attempt += 1
@@ -600,6 +729,146 @@ class Claude_LLM(LLM):
         return new
 
 
+class LMStudio_LLM(LLM):
+    """A manager for running MLX-Optimised LLM locally."""
+
+    def __init__(self, model, config=None, **kwargs):
+        """
+        Initialises the LMStudio LLM inteface.
+
+        :param model: Name of the model, to be initialised for interaction.
+        :param config: Configuration to be set for LLM chat.
+        :param kwargs: Keyed arguements for setting up the LLM chat.
+        """
+        super().__init__(api_key="", model=model, **kwargs)
+        self.llm = lms.llm(model)
+        self.config = config
+
+    def _query(self, session: list[dict[str, str]], max_tries: int = 5) -> str:
+        """
+        Query stub for LMStudio class.
+
+        ## Parameters
+        `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
+        `max_tries: int`: A max count for the number of tries, to get a response.
+        """
+        request = session[-1]["content"]
+        for _ in range(max_tries):
+            try:
+                if self.config is not None:
+                    response = self.llm.respond(request, config=self.config)
+                else:
+                    response = self.llm.respond(request)
+                response = re.sub(  # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>", "", str(response), flags=re.DOTALL
+                )
+                return response
+            except:
+                pass
+        return ""
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state.pop("llm", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.llm = lms.llm(self.model)
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k == "llm":
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.llm = self.llm
+        return new
+
+
+class MLX_LM_LLM(LLM):
+    """An mlx_lm implementation for running large LLMs locally."""
+
+    def __init__(self, model, config=None, max_tokens: int = 12000, **kwargs):
+        """
+        Initialises the LMStudio LLM inteface.
+
+        :param model: Name of the model, to be initialised for interaction.
+        :param config: Configuration to be set for LLM chat.
+        :param max_tokens: Maximun number of tokens to be generated for a request.
+        :param kwargs: Keyed arguements for setting up the LLM chat.
+        """
+        super().__init__(api_key="", model=model, **kwargs)
+        if config is not None:
+            llm, tokenizer = load(model, model_config=config)
+        else:
+            llm, tokenizer = load(model)
+        self.llm = llm
+        self.tokenizer = tokenizer
+
+        self.config = config
+        self.max_tokens = max_tokens
+
+    def __getstate__(self) -> object:
+        state = self.__dict__
+        state.pop("tokenizer", None)
+        state.pop("llm", None)
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if self.config is None:
+            llm, tokenizer = load(self.model)
+        else:
+            llm, tokenizer = load(self.model, model_config=self.config)
+        self.llm = llm
+        self.tokenizer = tokenizer
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k in ["llm", "tokenizer"]:
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        new.llm = self.llm  # <- reference symantics copy for massive object `llm`.
+        new.tokenizer = self.tokenizer
+        return new
+
+    def _query(
+        self, session: list, max_tries: int = 5, add_generation_prompt: bool = False
+    ):
+        """
+        Query stub for LMStudio class.
+
+        ## Parameters
+        `session: list[dict[str, str]]`: A session message is a list of {'role' : 'user'|'system', 'content': 'content'} data, use to make LLM request.
+        `max_tries: int`: A max count for the number of tries, to get a response.
+        `add_generation_prompt: bool`: MLX_LM come with an option to add_generation_prompt to optimise prompts.
+        """
+        prompt = self.tokenizer.apply_chat_template(
+            session, add_generation_prompt=add_generation_prompt
+        )
+        for _ in range(max_tries):
+            try:
+                response = generate(
+                    self.llm,
+                    self.tokenizer,
+                    prompt,
+                    max_tokens=self.max_tokens,  # Disable limit on token count.
+                )
+                response = re.sub(  # Remove thinking section, if avaiable.
+                    r"<think>.*?</think>", "", str(response), flags=re.DOTALL
+                )
+                return response
+            except:
+                pass
+        return ""
+
+
 class Dummy_LLM(LLM):
     def __init__(self, model="DUMMY", **kwargs):
         """
@@ -638,7 +907,7 @@ class RandomSearch:
     def __init__(self, budget=10000, dim=10):
         self.budget = budget
         self.dim = dim
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
 
     def __call__(self, func):

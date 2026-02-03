@@ -292,7 +292,7 @@ def compute_behavior_metrics(
     bounds: Optional[Sequence[Tuple[float, float]]] = None,
     radius: Optional[float] = None,
     disp_samples: int = 10_000,
-) -> Dict[str, float]:
+):
     """Compute all scalar behavior metrics and return them in a dictionary."""
 
     # default bounds and radius

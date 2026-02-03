@@ -50,13 +50,13 @@ class MA_BBOB(Problem):
         """
         if dependencies is None:
             dependencies = [
-                "pandas==2.0.3",
-                "ioh==0.3.18",
+                "pandas==2.2.3",
+                "ioh==0.3.22",
                 "configspace==1.2.1",
                 "smac==2.3.1",
             ]
         if imports is None:
-            imports = "import numpy as np\nimport ioh\n"
+            imports = "import numpy as np\nimport ioh\nimport math\n"
 
         if training_instances is None:
             training_instances = range(0, 20)
@@ -90,7 +90,7 @@ class RandomSearch:
         self.dim = dim
 
     def __call__(self, func):
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)

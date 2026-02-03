@@ -28,6 +28,7 @@
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Webapp](#-webapp)
+- [AlphaEvolve Benchmarks](#alphaevolve-benchmarks)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
@@ -58,8 +59,19 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 | **SBOX-COST**                      | A set of 24 boundary-constrained functions focusing on strict box-constraint optimization scenarios. [Reference](https://inria.hal.science/hal-04403658/file/sboxcost-cmacomparison-authorversion.pdf) | 24                  | Yes                |
 | **MA-BBOB** (Many-Affine BBOB)     | An extension of the BBOB suite, generating functions through affine combinations and shifts. [Reference](https://dl.acm.org/doi/10.1145/3673908) | Generator-Based     | Yes                |
 | **GECCO MA-BBOB Competition Instances** | A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. [Reference](https://iohprofiler.github.io/competitions) | 1,000               | Yes                |
+| **HLP** (High-Level Properties)   | Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality). | Generator-Based     | Yes                |
 
 In addition, several real-world applications are included such as several photonics problems.
+
+### AlphaEvolve Benchmarks
+
+BLADE bundles benchmark instances inspired by the Google DeepMind
+AlphaEvolve paper. The ready-to-run reference scripts live in
+[`run_benchmarks/`](./run_benchmarks), while the reusable benchmark
+definitions are organized under [`iohblade/benchmarks`](./iohblade/benchmarks)
+by domain (analysis, combinatorics, geometry, matrix multiplication, number
+theory, packing, and Fourier). Each domain folder includes a short README that
+summarizes the task and instances.
 
 ### Included Search Methods
 
@@ -71,6 +83,8 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **EoH** | Evolution of Heuristics         | [code](https://github.com/FeiLiu36/EoH) [paper](https://arxiv.org/abs/2401.02051) |
 | **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
+| **LLM-Driven Heuristics Neighbourhood Search** | LLM-Driven Neighborhood Search for Efficient Heuristic Design | [code](https://github.com/Acquent0/LHNS) [paper](https://ieeexplore.ieee.org/abstract/document/11043025) |
+| **Monte Carlo Tree Search** | Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design | [code](https://github.com/zz1358m/MCTS-AHD-master/) [paper](https://arxiv.org/abs/2501.08603) |
 
 > Note, FunSearch is currently not yet integrated.
 
@@ -127,6 +141,12 @@ make sure you have `uv` installed.
    ```
    This will install additional dependencies for development and building documentation.
    The (experimental) auto-kernel application is also under a separate group for now. 
+4. *(Optional)* Intall Support for MLX optimised LLMs:
+    ```bash
+    uv sync --group dev --group apple-silicon --prerelease=allow
+    ```
+    Select all the groups required, and append it with `--group apple-silicon --prerelease=allow`, to install
+    libraries that enable MLX Optimised LLMs support through `mlx-lm` and `LMStudio`.
 
 ## 💻 Quick Start
 
@@ -167,6 +187,22 @@ make sure you have `uv` installed.
     experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
+
+### Trackio logging
+
+To mirror results to a [Trackio](https://github.com/gradio-app/trackio) dashboard,
+install the optional dependency and use ``TrackioExperimentLogger``:
+
+```bash
+uv sync --group trackio
+```
+
+```python
+from iohblade.loggers import TrackioExperimentLogger
+
+logger = TrackioExperimentLogger("my-project")
+experiment = Experiment(methods=methods, problems=problems, runs=5, exp_logger=logger)
+```
 
 ## 🌐 Webapp
 

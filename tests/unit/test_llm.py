@@ -1,4 +1,6 @@
+import sys
 import copy
+import types
 import datetime as _dt
 import pickle
 from unittest.mock import MagicMock, patch
@@ -16,6 +18,8 @@ from iohblade.llm import (
     OpenAI_LLM,
     DeepSeek_LLM,
     Dummy_LLM,
+    LMStudio_LLM,
+    MLX_LM_LLM,
 )
 
 
@@ -337,7 +341,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(
             side_effect=[_ollama_response_error(429), {"message": {"content": "OK"}}]
@@ -346,7 +350,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
 
     reply = llm._query([{"role": "u", "content": "hi"}], max_retries=2)
     assert reply == "OK"
-    llm_mod.ollama.chat.assert_called_with(
+    llm_mod.ollama.Client.chat.assert_called_with(
         model=llm.model,
         messages=[{"role": "user", "content": "hi\n"}],
         options = {}    # Options feature added.
@@ -359,7 +363,7 @@ def test_ollama_llm_gives_up(monkeypatch):
     slept = MagicMock()
     monkeypatch.setattr(llm_mod.time, "sleep", slept)
     monkeypatch.setattr(
-        llm_mod.ollama,
+        llm_mod.ollama.Client,
         "chat",
         MagicMock(side_effect=[_ollama_response_error(), _ollama_response_error()]),
     )
@@ -381,12 +385,11 @@ def test_dummy_llm():
 
 
 def test_ollama_llm_query_forwards_kwargs(monkeypatch):
-    # Create your LLM instance
     llm = Ollama_LLM(model="llama-test")
 
     # Mock the underlying chat function
     mocked_chat = MagicMock(return_value={"message": {"content": "OK"}})
-    monkeypatch.setattr(llm_mod.ollama, "chat", mocked_chat)
+    monkeypatch.setattr(llm_mod.ollama.Client, "chat", mocked_chat)
 
     session = [{"role": "user", "content": "Hello"}]
     session_out = copy.deepcopy(session)    # Factoring long message combiner.
@@ -483,3 +486,245 @@ def sample_solution_passes_kwargs(monkeypatch):
     obj.sample_solution(session_messages, **kwargs)
 
     obj.query.assert_called_once_with(session_messages, **kwargs)
+
+def test_ollama_deep_copies(monkeypatch):
+    llm1 = Ollama_LLM(model="llama-test")
+    llm2 = copy.deepcopy(llm1)
+
+    assert llm1.__getstate__() == llm2.__getstate__()
+
+    mocked_chat1 = MagicMock(return_value={"message": {"content": "OK"}})
+    monkeypatch.setattr(llm1.client, "chat", mocked_chat1)
+
+    mocked_chat2 = MagicMock(return_value={"message": {"content": "OK"}})
+    monkeypatch.setattr(llm2.client, "chat", mocked_chat2)
+
+    session = [{"role": "user", "content": "Hello"}]
+    session_out = copy.deepcopy(session)    # Factoring long message combiner.
+    session_out[0]["content"] += "\n"
+
+    extra_kwargs = {
+        "temperature": 0.7,
+        "top_p": 0.9,
+        "num_ctx": 512
+    }
+
+    # Call _query with session and kwargs
+    result = llm1._query(session, **extra_kwargs)
+
+    # Assert the return value is as expected
+    assert result == "OK"
+
+    # Assert the underlying chat function was called with correct arguments
+    mocked_chat1.assert_called_once_with(
+        model=llm1.model,
+        messages=session_out,
+        options=extra_kwargs
+    )
+
+    mocked_chat2.assert_not_called()
+
+@pytest.fixture
+def fake_mlx_load(monkeypatch):
+    llm = object()
+    tokenizer = object()
+    calls = []
+
+    def fake_load(model, model_config=None):
+        calls.append((model, model_config))
+        print(calls)
+        return llm, tokenizer
+
+    monkeypatch.setattr(
+        "iohblade.llm.load",
+        fake_load
+    )
+
+    return {
+        "llm": llm,
+        "tokenizer": tokenizer,
+        "calls": calls,
+    }
+
+class AlwaysFailLLM:
+    def __init__(self):
+        self.calls = 0
+
+    def generate(self, *args, **kwargs):
+        self.calls += 1
+        raise RuntimeError("LLM failure")
+
+class FakeTokenier:
+    def apply_chat_template(self, session, add_generation_prompt:bool):
+        return session
+
+
+def test_query_fails_only_after_max_tries(fake_mlx_load, monkeypatch):
+
+    mock_tokenizer = FakeTokenier()
+    failing_llm = AlwaysFailLLM()
+    # Replace the llm returned by load()
+    fake_mlx_load["llm"] = failing_llm
+
+    llm = MLX_LM_LLM(
+        model="dummy-model",
+        max_tokens=10,
+    )
+
+    # monkeypatch the internal llm and dependencies
+    monkeypatch.setattr('iohblade.llm.generate', failing_llm.generate)
+    llm.tokenizer = mock_tokenizer
+
+    result = llm._query([{"client": "hello"}], max_tries=3, add_generation_prompt=True)
+
+    assert result == ""
+    assert failing_llm.calls == 3
+
+def test_deepcopy_shares_llm_and_tokenizer(fake_mlx_load):
+    llm = MLX_LM_LLM(
+        model="dummy-model",
+        config={"foo": "bar"},
+        max_tokens=123,
+    )
+
+    llm_copy = copy.deepcopy(llm)
+
+    # Shared heavy objects
+    assert llm.llm is llm_copy.llm
+    assert llm.tokenizer is llm_copy.tokenizer
+
+    # But normal attributes are copied
+    assert llm is not llm_copy
+    assert llm.config == llm_copy.config
+    assert llm.max_tokens == llm_copy.max_tokens
+
+def test_getstate_setstate_restores_llm_and_tokenizer(fake_mlx_load):
+    llm = MLX_LM_LLM(
+        model="dummy-model",
+        config={"alpha": 0.5},
+        max_tokens=42,
+    )
+
+    # Serialize + deserialize
+    blob = pickle.dumps(llm)
+    restored = pickle.loads(blob)
+
+    # load() must be called again
+    assert len(fake_mlx_load["calls"]) == 2
+
+    # Config and parameters restored
+    assert restored.model == llm.model
+    assert restored.config == llm.config
+    assert restored.max_tokens == llm.max_tokens
+
+    # Heavy objects exist
+    assert hasattr(restored, "llm")
+    assert hasattr(restored, "tokenizer")
+
+    assert restored.llm is fake_mlx_load["llm"]
+    assert restored.tokenizer is fake_mlx_load["tokenizer"]
+
+class AlwaysFailLMStudio:
+    def __init__(self):
+        self.calls = 0
+
+    def respond(self, *args, **kwargs):
+        self.calls += 1
+        raise RuntimeError("LMStudio failure")
+
+
+class AlwaysSucceedLMStudio:
+    def __init__(self, response="OK"):
+        self.calls = 0
+        self.response = response
+
+    def respond(self, *args, **kwargs):
+        self.calls += 1
+        return self.response
+
+@pytest.fixture
+def fake_lms_llm(monkeypatch):
+    calls = []
+
+    lms = types.ModuleType("llamea.llm.lms")
+
+    def factory(model):
+        client = AlwaysFailLMStudio()
+        calls.append((model, client))
+        return client
+
+    lms.llm = factory
+
+    monkeypatch.setitem(sys.modules, "llamea.llm.lms", lms)
+
+    import iohblade.llm
+    monkeypatch.setattr(iohblade.llm, "lms", lms, raising=False)
+
+    return {"calls": calls}
+
+def test_lms_query_fails_only_after_max_tries(fake_lms_llm):
+    llm = LMStudio_LLM(
+        model="dummy-model",
+        config=None,
+    )
+
+    # Replace llm with failing instance explicitly
+    failing = AlwaysFailLMStudio()
+    llm.llm = failing
+
+    result = llm._query(
+        [{"role": "user", "content": "hello"}],
+        max_tries=3,
+    )
+
+    assert result == ""
+    assert failing.calls == 3
+
+def test_lms_query_success_and_think_stripped(fake_lms_llm):
+    llm = LMStudio_LLM(model="dummy", config=None)
+
+    llm.llm = AlwaysSucceedLMStudio(
+        response="<think>This client dare only greet me??? Fine, I'll be kind for now, *hmph*.</think>Hello!"
+    )
+
+    result = llm._query(
+        [{"role": "user", "content": "hi"}],
+        max_tries=2,
+    )
+
+    assert result == "Hello!"
+
+def test_lms_deepcopy_shares_llm_instance(fake_lms_llm):
+    llm = LMStudio_LLM(
+        model="dummy-model",
+        config={"temperature": 0.2},
+    )
+
+    llm_copy = copy.deepcopy(llm)
+
+    # Shared heavy object
+    assert llm.llm is llm_copy.llm
+
+    # Independent wrapper
+    assert llm is not llm_copy
+    assert llm.model == llm_copy.model
+    assert llm.config == llm_copy.config
+
+def test_lms_getstate_setstate_reloads_llm(fake_lms_llm):
+    llm = LMStudio_LLM(
+        model="dummy-model",
+        config={"top_p": 0.9},
+    )
+
+    # One load from __init__
+    assert len(fake_lms_llm["calls"]) == 1
+
+    blob = pickle.dumps(llm)
+    restored = pickle.loads(blob)
+
+    # Second load from __setstate__
+    assert len(fake_lms_llm["calls"]) == 2
+
+    assert restored.model == llm.model
+    assert restored.config == llm.config
+    assert hasattr(restored, "llm")

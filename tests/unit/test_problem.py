@@ -1,3 +1,5 @@
+import platform
+import subprocess
 import time
 from unittest.mock import MagicMock
 
@@ -43,6 +45,21 @@ class DummyProblem(Problem):
         return {}
 
 
+class HangingProblem(Problem):
+    def get_prompt(self):
+        return "Problem prompt"
+
+    def evaluate(self, s):
+        time.sleep(5)
+        return s
+
+    def test(self, s):
+        return s
+
+    def to_dict(self):
+        return {}
+
+
 def test_problem_abstract_methods():
     dp = DummyProblem(name="dummy")
     assert dp.name == "dummy"
@@ -59,3 +76,30 @@ def test_problem_timeout():
     sol = sp(sol)
     # We expect a TimeoutException or similar
     assert "timed out" in str(sol.feedback)
+
+
+def _active_run_eval_processes():
+    try:
+        if platform.system() == "Windows":
+            output = subprocess.check_output(["tasklist"], text=True)
+        else:
+            output = subprocess.check_output(["ps", "-eo", "pid,cmd"], text=True)
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return []
+
+    return [line for line in output.splitlines() if "run_eval.py" in line]
+
+
+def test_timeout_cleans_child_processes():
+    before = _active_run_eval_processes()
+
+    problem = HangingProblem(eval_timeout=1)
+    sol = Solution()
+    sol = problem(sol)
+
+    assert "timed out" in str(sol.feedback)
+
+    time.sleep(0.5)
+    after = _active_run_eval_processes()
+
+    assert not after or after == before

@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -60,11 +61,11 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
     # Check the log file
     log_file = os.path.join(exp_logger.dirname, "experimentlog.jsonl")
     with open(log_file, "r") as f:
-        contents = f.read()
-    assert "dummy_method" in contents
+        entry = json.loads(f.readline())
+    assert entry["method_name"] == "dummy_method"
     expected_rel = os.path.relpath("dummy_dir", exp_logger.dirname)
-    assert expected_rel in contents
-    assert '"seed": 42' in contents
+    assert entry["log_dir"] == expected_rel
+    assert entry["seed"] == 42
 
 
 def test_run_logger_log_individual(cleanup_tmp_dir):
@@ -84,6 +85,15 @@ def test_run_logger_budget_exhausted(cleanup_tmp_dir):
     sol = Solution(name="test_solution")
     run_logger.log_individual(sol)
     assert run_logger.budget_exhausted() is True
+
+
+def test_run_logger_log_output(cleanup_tmp_dir):
+    run_logger = RunLogger(name="test_run", root_dir=cleanup_tmp_dir)
+    run_logger.log_output("stdout text", "stderr text")
+    with open(os.path.join(run_logger.dirname, "stdout.log")) as f:
+        assert "stdout text" in f.read()
+    with open(os.path.join(run_logger.dirname, "stderr.log")) as f:
+        assert "stderr text" in f.read()
 
 
 def test_experiment_logger_get_data(cleanup_tmp_dir):

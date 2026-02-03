@@ -10,7 +10,7 @@ from ioh import logger as ioh_logger
 from ..problem import BASE_DEPENDENCIES, Problem
 from ..solution import Solution
 from ..utils import OverBudgetException, aoc_logger, correct_aoc
-from .photonic_instances import (
+from .photonics_instances import (
     algorithmic_insights,
     get_photonic_instance,
     problem_descriptions,
@@ -45,7 +45,12 @@ class Photonics(Problem):
             seeds (int): Number of random runs.
         """
         if dependencies is None:
-            dependencies = ["ioh==0.3.18", "pandas==2.0.3"]
+            dependencies = [
+                "ioh==0.3.22",
+                "pandas==2.2.3",
+                "pymoosh==3.2",
+                "pyGDM2==1.1.12",
+            ]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
 
@@ -67,7 +72,7 @@ class Photonics(Problem):
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.description_prompt = problem_descriptions[self.problem_type]
         self.extra_prompt = algorithmic_insights[self.problem_type]
-        self.seeds = seeds
+        self.seeds = list(range(seeds))
         self.task_prompt = """
 You are a Python developer and AI and physics researcher.
 Your task is to develop a novel heuristic optimization algorithm for photonic optimization problems.
@@ -85,7 +90,7 @@ class RandomSearch:
         self.dim = dim
 
     def __call__(self, func):
-        self.f_opt = np.Inf
+        self.f_opt = np.inf
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
@@ -136,6 +141,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         auc_std = 0
 
         dim = self.problem.meta_data.n_variables
+        self.dims = [dim]
+
+        budget = dim * self.budget_factor
 
         code = solution.code
         algorithm_name = solution.name
@@ -208,7 +216,43 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         return {
             "name": self.name,
-            "dims": self.dims,
             "problem_type": self.problem_type,
             "budget_factor": self.budget_factor,
         }
+
+    def _rebuild_problem(self):
+        """(Re)create the IOH/photonic instance after unpickling/copying."""
+        self.problem = get_photonic_instance(self.problem_type)
+        self.training_instances = [self.problem]
+        self.test_instances = [self.problem]
+
+    def __getstate__(self):
+        """Return the picklable part of the instance."""
+        state = self.__dict__.copy()
+        state.pop("problem", None)  # the client itself is NOT picklable
+        state.pop("training_instances", None)
+        state.pop("test_instances", None)
+        return state  # everything else is fine
+
+    def __setstate__(self, state):
+        """
+        Restore and rebuild the IOH/photonic instance.
+        """
+        self.__dict__.update(state)
+        self._rebuild_problem()
+        return
+
+    def __deepcopy__(self, memo):
+        import copy
+
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        self.problem = None
+        self.training_instances = None
+        self.test_instances = None
+        # deepcopy everything except the C++ problem
+        for k, v in self.__dict__.items():
+            setattr(new, k, copy.deepcopy(v, memo))
+        new._rebuild_problem()
+        return new
