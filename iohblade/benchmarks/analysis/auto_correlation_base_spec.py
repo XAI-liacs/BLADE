@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
 
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 """
     Autocorrelation measures how similar a signal is to a shifted version of itself.
@@ -138,30 +138,28 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
 """
 
-    def _get_time_series(self, code) -> tuple[NDArray[np.float64], Optional[Exception]]:
+    def _get_time_series(
+        self, code, name
+    ) -> tuple[NDArray[np.float64], Optional[Exception]]:
         local_parameters = {}
 
         allowed = ["numpy", "scipy"]
 
         try:
             global_parameters = prepare_namespace(code, allowed)
-            exec(code, global_parameters, local_parameters)
-            local_parameters = clean_local_namespace(
-                local_parameters, global_parameters
-            )
-            cls = next(v for v in local_parameters.values() if isinstance(v, type))
-            try:
+            compiled_code = compile(code, name, "exec")
+            exec(compiled_code, global_parameters, local_parameters)
+            cls = local_parameters[name]
+            if self.best_solution:
                 f = np.asarray(
                     cls(best_known_configuration=self.best_known)(), dtype=np.float64
                 )  # Runs if class has __init__(self, best_known_solution)
-            except:
+            else:
                 f = np.asarray(
                     cls()(), dtype=np.float64
                 )  # Rollback to empty initantiation.
-
             return f, None
         except Exception as e:
-            print("\t Exception in `auto_correlation_ineq1.py`, " + e.__repr__())
             return (
                 np.ndarray(
                     [
