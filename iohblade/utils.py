@@ -6,7 +6,6 @@ import textwrap
 from typing import Optional, Tuple
 import types
 import math
-from .loggers import ExperimentLogger
 from scipy.stats import wilcoxon, ttest_rel
 import pandas as pd
 import numpy as np
@@ -162,7 +161,7 @@ def bootstrap_ci(diff, n_boot=10000, alpha=0.05, rng=None):
 
 
 def compare_auc(
-    logger: ExperimentLogger,
+    logger,
     method_a: str,
     method_b: str,
     budget: int = 100,
