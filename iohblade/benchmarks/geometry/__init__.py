@@ -2,6 +2,7 @@ from .min_max_distance_ratio import MinMaxMinDistanceRatio
 from .heilbronn_triangle import HeilbronnTriangle
 from .heilbronn_convex_region import HeilbronnConvexRegion
 from .kissing_number_11d import KissingNumber11D
+from .spherical_code import SphericalCode
 from .get_geometry_problems import (
     get_heilbronn_convex_region_problems,
     get_kissing_number_11D_problems,
@@ -18,4 +19,5 @@ __all__ = [
     "get_heilbronn_triangle_problems",
     "get_heilbronn_convex_region_problems",
     "get_kissing_number_11D_problems",
+    "SphericalCode"
 ]
