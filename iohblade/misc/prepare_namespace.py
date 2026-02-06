@@ -28,7 +28,23 @@ def _collect_imports(code: str):
 
 
 def _add_builtins_into(allowed_list):
-    allowed_list += ["math", "random", "statistics", "itertools", "operator", "heapq"]
+    allowed_list += [
+    "copy",
+    "math",
+    "heapq",
+    "cmath",
+    "random",
+    "bisect",
+    "typing",
+    "pprint",
+    "decimal",
+    "operator",
+    "functools",
+    "fractions",
+    "itertools",
+    "statistics",
+    "collections",
+    "dataclasses"]
 
 
 def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:

@@ -1,7 +1,6 @@
 import json
 from dataclasses import dataclass
 
-
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
@@ -122,7 +121,7 @@ one-line description, describing the main idea. Give the response in the format:
             self.vehicle_capacity = vehicle_capacity
             self.best_known = best_known
             self.fleet_size = fleet_size
-            self.lookup_table = dict([(location.x, location) for location in self.customers + [self.depot]])
+            self.lookup_table = dict([(location.id, location) for location in (self.customers + [self.depot])])
             self.benchmark = data['benchmark']
 
     def _check_accuracy(self, paths: list[list[int]]):
@@ -171,7 +170,7 @@ one-line description, describing the main idea. Give the response in the format:
             exec(compiled_code, global_ns, local_ns)
 
             cls = local_ns[name]
-            paths = cls(self.depot, self.customers, self.fleet_size, self.vehicle_capacity)()
+            paths = cls(self.depot.vectorise(), [customer.vectorise() for customer in self.customers], self.fleet_size, self.vehicle_capacity)()
             length = self._calculate_length(paths)
             solution = solution.set_scores(length, f'Got distance {length}, best known distance is {self.best_known}.')
         except Exception as e:
@@ -185,8 +184,7 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
 
-
-
 if __name__ == '__main__':
-    VehicleRoutingProblem()
+    vrp = VehicleRoutingProblem()
+    print(vrp.get_prompt())
 
