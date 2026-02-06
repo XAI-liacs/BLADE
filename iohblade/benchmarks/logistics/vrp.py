@@ -47,7 +47,7 @@ Write a python class with function `__call__`, that generate a solution for Capa
         - Each customer must only be served once.
         - No customer must be left un-served.
         - Depot must not exist in the `paths`.
-- The optimisation goal is to maximize the minimum total distance travelled by the fleet of vehicles."""
+- The optimisation goal is to minimise total distance travelled by the fleet of vehicles."""
     
         self.example_prompt = f"""
 An example response can be
