@@ -7,6 +7,7 @@ from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
 
+
 @dataclass
 class Location:
     id: int
@@ -17,10 +18,11 @@ class Location:
         return [self.x, self.y]
 
     def __repr__(self) -> str:
-        return f'Point(id: {self.id}, x: {self.x}, y: {self.y})'
+        return f"Point(id: {self.id}, x: {self.x}, y: {self.y})"
 
-    def distance_to(self, other: 'Location'):
+    def distance_to(self, other: "Location"):
         return math.hypot(self.x - other.x, self.y - other.y)
+
 
 class EuclidianSteinerTree(Problem):
 
@@ -32,15 +34,19 @@ class EuclidianSteinerTree(Problem):
             runs mst on it and on points + steiner_points, and return their ratio. Optimisation goal: min mst(steiner_points + points)/mst(points).
 
         ## Args:
-        `benchmark_id: int` A benchmark id, selects a benchmark from the available instances in [20, 30, 40, 50, 60, 70, 80, 90, 250, 500, 1000]
+        `benchmark_id: int` A benchmark id, selects a benchmark from the available instances in [1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 250, 500, 1000, 10000]
         `tolerance: float (10^-6)`: A tolerance to limit how close two points can be, stops algorithms from generating optimisers that may generate float-overflow.
         """
-        self.benchmark = Path(__file__).resolve().parent.joinpath(f'estein{benchmark_id}.txt')
+        self.benchmark = (
+            Path(__file__)
+            .resolve()
+            .parent.joinpath(f"Euclidian_Steiner_Benchmarks/estein{benchmark_id}.txt")
+        )
         self.points = {}
         self.tolerance = tolerance
         self._read_file()
-        Problem.__init__(self, name=f'EucildianSteinerTree-n{20}')
-        self.best_so_far = [float('nan')] * len(self.points)
+        Problem.__init__(self, name=f"EucildianSteinerTree-n{20}")
+        self.best_so_far = [float("nan")] * len(self.points)
         self.minimisation = True
 
         self.task_prompt = f"""
@@ -105,12 +111,12 @@ one-line description, describing the main idea. Give the response in the format:
         if n == 0:
             return 0.0
         in_mst = [False] * n
-        min_dist = [float('inf')] * n
+        min_dist = [float("inf")] * n
         min_dist[0] = 0.0
         total = 0.0
         for _ in range(n):
             u = -1
-            best = float('inf')
+            best = float("inf")
             for i in range(n):
                 if not in_mst[i] and min_dist[i] < best:
                     best = min_dist[i]
@@ -126,38 +132,43 @@ one-line description, describing the main idea. Give the response in the format:
                         min_dist[v] = d
         return total
 
-    def evaluate(self, solution: Solution, logger = None):
+    def evaluate(self, solution: Solution, logger=None):
         code = solution.code
-        name = solution.name if solution.name else 'EuclidianSteinerSolver'
+        name = solution.name if solution.name else "EuclidianSteinerSolver"
         try:
             ns = prepare_namespace(code, self.dependencies)
-            compiled_code = compile(code, name, 'exec')
+            compiled_code = compile(code, name, "exec")
             exec(compiled_code, ns, ns)
             cls = ns[name]
             fitness = {}
             for bench_id, points in self.points.items():
-                steiner_pts = cls([point.vectorise() for point in points], self.tolerance)()
+                steiner_pts = cls(
+                    [point.vectorise() for point in points], self.tolerance
+                )()
                 steiner_points = []
                 for index, steiner_point in enumerate(steiner_pts):
-                    steiner_points.append(Location(len(self.points) + index + 1, steiner_point[0], steiner_point[1]))
+                    steiner_points.append(
+                        Location(
+                            len(self.points) + index + 1,
+                            steiner_point[0],
+                            steiner_point[1],
+                        )
+                    )
                 normal_mst = self.compute_mst_length(points)
                 steiner_mst = self.compute_mst_length(points + steiner_points)
 
-                assert steiner_mst + self.tolerance >= normal_mst, f"Steiner's MST ({steiner_mst}) was close to or geater thn normal MST ({normal_mst})"
+                assert (
+                    steiner_mst + self.tolerance >= normal_mst
+                ), f"Steiner's MST ({steiner_mst}) was close to or geater thn normal MST ({normal_mst})"
                 fitness[bench_id] = normal_mst / steiner_mst
 
             solution = solution.set_scores(
                 mean(fitness.values()),
-                f'Got fitness {fitness} across {len(self.points)} benchmarks.'
+                f"Got fitness {fitness} across {len(self.points)} benchmarks.",
             )
         except Exception as e:
-            solution = solution.set_scores(
-                float('inf'),
-                f'Got error {e}',
-                e
-            )
+            solution = solution.set_scores(float("inf"), f"Got error {e}", e)
         return solution
-
 
     def test(self, solution: Solution):
         return self.evaluate(solution)
@@ -165,6 +176,7 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     est = EuclidianSteinerTree(20)
     print(est.get_prompt())

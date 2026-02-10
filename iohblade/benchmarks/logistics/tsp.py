@@ -16,19 +16,20 @@ class Location:
 
     def vectorise(self):
         return [self.id, self.x, self.y]
-    
-    def distance_to(self, other: 'Location'):
+
+    def distance_to(self, other: "Location"):
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+
 
 class TravelingSalesmanProblem(Problem):
     def __init__(self, benchmark):
-        self.customers : list[Location] = []
-        self.best_known = float('inf')
-        self.benchmark = ''
+        self.customers: list[Location] = []
+        self.best_known = float("inf")
+        self.benchmark = ""
         self.minimisation = True
         self._readfile(benchmark)
 
-        Problem.__init__(self, name=f'TSP-{self.benchmark}')
+        Problem.__init__(self, name=f"TSP-{self.benchmark}")
 
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for Traveling Salesman Problem.
@@ -40,7 +41,7 @@ Write a python class with function `__call__`, that generate a solution for Trav
         - Each customer must only be served once.
         - No customer must be left un-served.
 - The optimisation goal is to minimise total distance travelled by the salesman."""
-    
+
         self.example_prompt = f"""
 An example response can be
 ---
@@ -71,25 +72,27 @@ one-line description, describing the main idea. Give the response in the format:
 """
 
     def _readfile(self, benchmark: str):
-        path = Path(__file__).resolve().parent.joinpath(f'{benchmark}.json')
-        with open(path, 'r') as f:
-            data = '\n'.join(f.readlines())
+        path = Path(__file__).resolve().parent.joinpath(f"{benchmark}.json")
+        with open(path, "r") as f:
+            data = "\n".join(f.readlines())
             data = json.loads(data)
-            customers = data['customers']
+            customers = data["customers"]
 
             for customer in customers:
-                if customer['demand'] == 0:
+                if customer["demand"] == 0:
                     pass
                 else:
                     self.customers.append(
                         Location(
-                            customer['id'], 
-                            customer['x'], 
-                            customer['y'],
+                            customer["id"],
+                            customer["x"],
+                            customer["y"],
                         )
                     )
-            self.lookup_table = dict([(location.id, location) for location in self.customers])
-            self.benchmark = data['benchmark']
+            self.lookup_table = dict(
+                [(location.id, location) for location in self.customers]
+            )
+            self.benchmark = data["benchmark"]
 
     def _check_accuracy(self, path: list[int]):
         unknown = [item for item in path if item not in self.lookup_table]
@@ -99,8 +102,8 @@ one-line description, describing the main idea. Give the response in the format:
         if missing:
             raise ValueError(f'Unserved customers {", ".join(map(str, missing))}.')
         if len(path) != len(set(path)):
-            raise ValueError(f'Some customers were revisited.')
-    
+            raise ValueError(f"Some customers were revisited.")
+
     def _transform_to_location_list(self, paths: list[int]) -> list[Location]:
         return list(map(lambda customer: self.lookup_table[customer], paths))
 
@@ -115,31 +118,36 @@ one-line description, describing the main idea. Give the response in the format:
         return distance
 
     def evaluate(self, solution: Solution, logger=None):
-        name = solution.name if solution.name else 'TSPSolver'
+        name = solution.name if solution.name else "TSPSolver"
         code = solution.code
         try:
             local_ns = {}
             global_ns = prepare_namespace(code, self.dependencies)
-            compiled_code = compile(code, name, 'exec')
+            compiled_code = compile(code, name, "exec")
             exec(compiled_code, global_ns, local_ns)
 
             cls = local_ns[name]
             paths = cls([customer.vectorise() for customer in self.customers])()
             length = self._calculate_length(paths)
-            self.best_known = min(self.best_known, length if not math.isfinite(length) else self.best_known)
-            solution = solution.set_scores(length, f'Got distance {length}, best known distance is {self.best_known}.')
+            self.best_known = min(
+                self.best_known,
+                length if not math.isfinite(length) else self.best_known,
+            )
+            solution = solution.set_scores(
+                length,
+                f"Got distance {length}, best known distance is {self.best_known}.",
+            )
         except Exception as e:
-            solution = solution.set_scores(float('inf'), f"Got error {e}", e)
+            solution = solution.set_scores(float("inf"), f"Got error {e}", e)
         return solution
 
     def test(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         return self.__dict__
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     tsp = TravelingSalesmanProblem()
     print(tsp.get_prompt())
-

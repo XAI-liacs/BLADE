@@ -14,14 +14,14 @@ if __name__ == "__main__":
     # api_key = environ.get("GOOGLE_API_KEY")
 
 
-    # ollama_llm = Ollama_LLM('qwen2.5-coder:14b')
+    ollama_llm = Ollama_LLM('gpt-oss:20b')
     # gemini_llm = Gemini_LLM(api_key=api_key)
-    mlx_llm = LMStudio_LLM('google/gemma-3-12b')
+    # mlx_llm = LMStudio_LLM('google/gemma-3-12b')
 
-    tsp = TravelingSalesmanProblem()
+    tsp = TravelingSalesmanProblem('A-n53-k7')
 
     methods = []
-    for llm in [mlx_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,
@@ -30,7 +30,7 @@ if __name__ == "__main__":
             minimization=tsp.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger(f"results/TravelingSalesmanProblemn")
+    logger = ExperimentLogger(f"results/TravelingSalesmanProblem")
     experiment = Experiment(
         methods,
         [tsp],

@@ -19,5 +19,5 @@ __all__ = [
     "get_heilbronn_triangle_problems",
     "get_heilbronn_convex_region_problems",
     "get_kissing_number_11D_problems",
-    "SphericalCode"
+    "SphericalCode",
 ]

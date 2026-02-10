@@ -3,13 +3,14 @@ from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
 from pathlib import Path
 
+
 class GraphColoring(Problem):
     def __init__(self, benchmark_id: str, logger=None):
-        self.nodes : list[int] = []
-        self.edges : list[tuple[int, int]] = []
+        self.nodes: list[int] = []
+        self.edges: list[tuple[int, int]] = []
         self.benchmark = ""
         self._load_data(benchmark_id)
-        Problem(self, name=self.benchmark, logger=logger)
+        Problem.__init__(self, name=self.benchmark, logger=logger)
         self.minimisation = True
 
         self.task_prompt = f"""
@@ -56,8 +57,12 @@ one-line description, describing the main idea. Give the response in the format:
 """
 
     def _load_data(self, benchmark_id: str):
-        path = Path(__file__).resolve().parent.joinpath(f'Graph_Coloring_Benchmarks/gcol{benchmark_id}.txt')
-        self.benchmark = f'Graph-Coloring-{benchmark_id}'
+        path = (
+            Path(__file__)
+            .resolve()
+            .parent.joinpath(f"Graph_Coloring_Benchmarks/gcol{benchmark_id}.txt")
+        )
+        self.benchmark = f"Graph-Coloring-{benchmark_id}"
         data = []
         with open(path) as f:
             data = f.readlines()
@@ -66,16 +71,16 @@ one-line description, describing the main idea. Give the response in the format:
             if len(datum) == 4:
                 self.nodes = list(range(1, int(datum[2]) + 1))
             if len(datum) == 3:
-                assert datum[0] == 'e'
+                assert datum[0] == "e"
                 u = int(datum[1])
                 v = int(datum[2])
                 self.edges.append((u, v))
 
-    def evaluate(self, solution: Solution, explogger = None):
+    def evaluate(self, solution: Solution, logger=None):
         code = solution.code
         name = solution.name if solution.name else "GraphColoring"
         try:
-            compiled_code = compile(code, name, 'exec')
+            compiled_code = compile(code, name, "exec")
             ns = prepare_namespace(code, self.dependencies)
             exec(compiled_code, ns, ns)
             cls = ns[name]
@@ -84,16 +89,24 @@ one-line description, describing the main idea. Give the response in the format:
             for u, v in self.edges:
                 colorU = coloring[u]
                 colorV = coloring[v]
-                assert colorU != colorV, f'Colours on nodes {u}, and {v} are same, while edge ({u}, {v}) exists.'
+                assert (
+                    colorU != colorV
+                ), f"Colours on nodes {u}, and {v} are same, while edge ({u}, {v}) exists."
 
             score = float(len(set(coloring.values())))
-            solution = solution.set_scores(score, f'Got score {score}, try minimising further.')
-        except Exception as e:
             solution = solution.set_scores(
-                float('inf'),
-                f'Encountered error {e}',
-                e
+                score, f"Got score {score}, try minimising further."
             )
+        except Exception as e:
+            solution = solution.set_scores(float("inf"), f"Encountered error {e}", e)
+        return solution
+
+    def test(self, solution: Solution):
+        return self.evaluate(solution)
+
+    def to_dict(self):
+        return self.__dict__
+
 
 if __name__ == "__main__":
     GraphColoring(benchmark_id=1)

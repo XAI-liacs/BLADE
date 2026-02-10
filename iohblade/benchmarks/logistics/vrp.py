@@ -1,5 +1,6 @@
 import json
 from dataclasses import dataclass
+from pathlib import Path
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -15,22 +16,23 @@ class Location:
 
     def vectorise(self):
         return [self.id, self.x, self.y, self.demand]
-    
-    def distance_to(self, other: 'Location'):
+
+    def distance_to(self, other: "Location"):
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
 
+
 class VehicleRoutingProblem(Problem):
-    def __init__(self):
-        self.customers : list[Location] = []
+    def __init__(self, benchmark_id):
+        self.customers: list[Location] = []
         self.depot: Location = Location(0, 0, 0, 0)
         self.vehicle_capacity = 0.0
         self.fleet_size = 0
-        self.best_known = float('inf')
-        self.benchmark = ''
+        self.best_known = float("inf")
+        self.benchmark = ""
         self.minimisation = True
-        self._readfile()
+        self._readfile(benchmark_id)
 
-        Problem.__init__(self, name=f'CVRP-{self.benchmark}')
+        Problem.__init__(self, name=f"CVRP-{self.benchmark}")
 
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for Capacitated Vehicle Routing Problem.
@@ -48,7 +50,7 @@ Write a python class with function `__call__`, that generate a solution for Capa
         - No customer must be left un-served.
         - Depot must not exist in the `paths`.
 - The optimisation goal is to minimise total distance travelled by the fleet of vehicles."""
-    
+
         self.example_prompt = f"""
 An example response can be
 ---
@@ -95,58 +97,74 @@ one-line description, describing the main idea. Give the response in the format:
 ```
 """
 
-    def _readfile(self):
-        with open('iohblade/benchmarks/logistics/A-n53-k7.json', 'r') as f:
-            data = '\n'.join(f.readlines())
+    def _readfile(self, benchmark_id: str):
+        path = Path(__file__).resolve().parent.joinpath(f"{benchmark_id}.json")
+        with open(path, "r") as f:
+            data = "\n".join(f.readlines())
             data = json.loads(data)
-            customers = data['customers']
-            vehicle_capacity = data['vehicleCapacity']
-            best_known = data['optimal']
-            fleet_size = data['fleetSize']
+            customers = data["customers"]
+            vehicle_capacity = data["vehicleCapacity"]
+            best_known = data["optimal"]
+            fleet_size = data["fleetSize"]
 
             for customer in customers:
-                if customer['demand'] == 0:
+                if customer["demand"] == 0:
                     self.depot = Location(
-                        customer['id'], customer['x'], customer['y'], customer['demand']
+                        customer["id"], customer["x"], customer["y"], customer["demand"]
                     )
                 else:
                     self.customers.append(
                         Location(
-                            customer['id'], 
-                            customer['x'], 
-                            customer['y'], 
-                            customer['demand']
+                            customer["id"],
+                            customer["x"],
+                            customer["y"],
+                            customer["demand"],
                         )
                     )
             self.vehicle_capacity = vehicle_capacity
             self.best_known = best_known
             self.fleet_size = fleet_size
-            self.lookup_table = dict([(location.id, location) for location in (self.customers + [self.depot])])
-            self.benchmark = data['benchmark']
+            self.lookup_table = dict(
+                [
+                    (location.id, location)
+                    for location in (self.customers + [self.depot])
+                ]
+            )
+            self.benchmark = data["benchmark"]
 
     def _check_accuracy(self, paths: list[list[int]]):
         if len(paths) != self.fleet_size:
-            raise ValueError(f'Expected {self.fleet_size} paths, got {len(paths)}.')
+            raise ValueError(f"Expected {self.fleet_size} paths, got {len(paths)}.")
         flatten_list = sum(paths, [])
         unknown = [item for item in flatten_list if item not in self.lookup_table]
         if unknown:
             raise ValueError(f'Location ids {", ".join(map(str, unknown))} unknown.')
-        missing = [item for item in self.lookup_table.keys() if item not in flatten_list and item != self.depot.id]
+        missing = [
+            item
+            for item in self.lookup_table.keys()
+            if item not in flatten_list and item != self.depot.id
+        ]
         if missing:
             raise ValueError(f'Unserved customers {", ".join(map(str, missing))}.')
         if self.depot.id in flatten_list:
-            raise ValueError(f'Depot inexpectedly found in path.')
+            raise ValueError(f"Depot inexpectedly found in path.")
         if len(flatten_list) != len(set(flatten_list)):
-            raise ValueError(f'Some customers were revisited.')
-    
-    def _transform_to_location_list(self, paths: list[list[int]]) -> list[list[Location]]:
+            raise ValueError(f"Some customers were revisited.")
+
+    def _transform_to_location_list(
+        self, paths: list[list[int]]
+    ) -> list[list[Location]]:
         routine = []
         for path in paths:
-            location_path = list(map(lambda customer: self.lookup_table[customer], path))
+            location_path = list(
+                map(lambda customer: self.lookup_table[customer], path)
+            )
             routine.append(location_path)
             filled = sum(map(lambda x: x.demand, location_path))
             if filled > self.vehicle_capacity:
-                raise ValueError(f'Path {", ".join(map(str, path))}, exceeds vehicle capacity {self.vehicle_capacity}')
+                raise ValueError(
+                    f'Path {", ".join(map(str, path))}, exceeds vehicle capacity {self.vehicle_capacity}'
+                )
         return routine
 
     def _calculate_length(self, paths: list[list[int]]) -> float:
@@ -166,25 +184,32 @@ one-line description, describing the main idea. Give the response in the format:
         try:
             local_ns = {}
             global_ns = prepare_namespace(code, self.dependencies)
-            compiled_code = compile(code, name, 'exec')
+            compiled_code = compile(code, name, "exec")
             exec(compiled_code, global_ns, local_ns)
 
             cls = local_ns[name]
-            paths = cls(self.depot.vectorise(), [customer.vectorise() for customer in self.customers], self.fleet_size, self.vehicle_capacity)()
+            paths = cls(
+                self.depot.vectorise(),
+                [customer.vectorise() for customer in self.customers],
+                self.fleet_size,
+                self.vehicle_capacity,
+            )()
             length = self._calculate_length(paths)
-            solution = solution.set_scores(length, f'Got distance {length}, best known distance is {self.best_known}.')
+            solution = solution.set_scores(
+                length,
+                f"Got distance {length}, best known distance is {self.best_known}.",
+            )
         except Exception as e:
-            solution = solution.set_scores(float('inf'), f"Got error {e}", e)
+            solution = solution.set_scores(float("inf"), f"Got error {e}", e)
         return solution
 
     def test(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         return self.__dict__
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     vrp = VehicleRoutingProblem()
     print(vrp.get_prompt())
-

@@ -756,9 +756,9 @@ class LMStudio_LLM(LLM):
         for _ in range(max_tries):
             try:
                 response = (
-                self.llm.respond(request, config=self.config)
-                if self.config is not None
-                else self.llm.respond(request)
+                    self.llm.respond(request, config=self.config)
+                    if self.config is not None
+                    else self.llm.respond(request)
                 )
 
                 text = "".join(str(chunk) for chunk in response)
