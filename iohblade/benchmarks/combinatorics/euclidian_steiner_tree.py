@@ -15,10 +15,10 @@ class Location:
 
     def vectorise(self) -> list[float]:
         return [self.x, self.y]
-    
+
     def __repr__(self) -> str:
         return f'Point(id: {self.id}, x: {self.x}, y: {self.y})'
-    
+
     def distance_to(self, other: 'Location'):
         return math.hypot(self.x - other.x, self.y - other.y)
 
@@ -28,9 +28,9 @@ class EuclidianSteinerTree(Problem):
         """
         ## Euclidian Steiner Tree Benchmark:
             Implements a Eucldian Steiner Tree Algorithm, which optimises the mimimum spanning tree, but with extra points.
-            Adding these points allows for shorts MST connecting each of the nodes. This benchmarks takes the set of points, 
+            Adding these points allows for shorts MST connecting each of the nodes. This benchmarks takes the set of points,
             runs mst on it and on points + steiner_points, and return their ratio. Optimisation goal: min mst(steiner_points + points)/mst(points).
-        
+
         ## Args:
         `benchmark_id: int` A benchmark id, selects a benchmark from the available instances in [20, 30, 40, 50, 60, 70, 80, 90, 250, 500, 1000]
         `tolerance: float (10^-6)`: A tolerance to limit how close two points can be, stops algorithms from generating optimisers that may generate float-overflow.
@@ -56,10 +56,10 @@ Write a python class with function `__call__`, that generates optimal Steiner Po
     - `normal_mst` is a mimumum spanning tree found using the only the provided points.
 - The returned fitness is going to be average fitness across {len(self.points)} distinct benchmarks.
     """
-        self.example_prompt = f"""
+        self.example_prompt = """
 An example response can be
 ---
-# Descripition: 
+# Descripition:
 A novel algorithm for finding steiner points to optimise MST.
 # Code:
 ```python
@@ -99,7 +99,7 @@ one-line description, describing the main idea. Give the response in the format:
                     points.append(location)
                 self.points[i] = points
         return
-    
+
     def compute_mst_length(self, points: list[Location]):
         n = len(points)
         if n == 0:
@@ -125,19 +125,18 @@ one-line description, describing the main idea. Give the response in the format:
                     if d < min_dist[v]:
                         min_dist[v] = d
         return total
-    
+
     def evaluate(self, solution: Solution, logger = None):
         code = solution.code
         name = solution.name if solution.name else 'EuclidianSteinerSolver'
         try:
-            local_ns = {}
-            global_ns = prepare_namespace(code, self.dependencies)
+            ns = prepare_namespace(code, self.dependencies)
             compiled_code = compile(code, name, 'exec')
-            exec(compiled_code, global_ns, local_ns)
-            cls = local_ns[name]
+            exec(compiled_code, ns, ns)
+            cls = ns[name]
             fitness = {}
             for bench_id, points in self.points.items():
-                steiner_pts = cls([point.vectorise() for point in points], self.tolerance)
+                steiner_pts = cls([point.vectorise() for point in points], self.tolerance)()
                 steiner_points = []
                 for index, steiner_point in enumerate(steiner_pts):
                     steiner_points.append(Location(len(self.points) + index + 1, steiner_point[0], steiner_point[1]))
@@ -146,7 +145,7 @@ one-line description, describing the main idea. Give the response in the format:
 
                 assert steiner_mst + self.tolerance >= normal_mst, f"Steiner's MST ({steiner_mst}) was close to or geater thn normal MST ({normal_mst})"
                 fitness[bench_id] = normal_mst / steiner_mst
-            
+
             solution = solution.set_scores(
                 mean(fitness.values()),
                 f'Got fitness {fitness} across {len(self.points)} benchmarks.'
@@ -159,12 +158,13 @@ one-line description, describing the main idea. Give the response in the format:
             )
         return solution
 
-    
+
     def test(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         return self.__dict__
 
 if __name__ == '__main__':
-    EuclidianSteinerTree(20)
+    est = EuclidianSteinerTree(20)
+    print(est.get_prompt())

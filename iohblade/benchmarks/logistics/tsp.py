@@ -1,5 +1,6 @@
 import json
 import math
+from pathlib import Path
 from dataclasses import dataclass
 
 from iohblade.problem import Problem
@@ -20,12 +21,12 @@ class Location:
         return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
 
 class TravelingSalesmanProblem(Problem):
-    def __init__(self):
+    def __init__(self, benchmark):
         self.customers : list[Location] = []
         self.best_known = float('inf')
         self.benchmark = ''
         self.minimisation = True
-        self._readfile()
+        self._readfile(benchmark)
 
         Problem.__init__(self, name=f'TSP-{self.benchmark}')
 
@@ -69,8 +70,9 @@ one-line description, describing the main idea. Give the response in the format:
 ```
 """
 
-    def _readfile(self):
-        with open('iohblade/benchmarks/logistics/A-n53-k7.json', 'r') as f:
+    def _readfile(self, benchmark: str):
+        path = Path(__file__).resolve().parent.joinpath(f'{benchmark}.json')
+        with open(path, 'r') as f:
             data = '\n'.join(f.readlines())
             data = json.loads(data)
             customers = data['customers']
