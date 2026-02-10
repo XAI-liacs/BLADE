@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 from dataclasses import dataclass
 
 from iohblade.solution import Solution
@@ -90,7 +91,8 @@ one-line description, describing the main idea. Give the response in the format:
 """
 
     def _read_file(self):
-        with open("./iohblade/benchmarks/packing/circles.bench") as f:
+        path = Path(__file__).resolve().parent.joinpath("circles.bench")
+        with open(path) as f:
             for line in f.readlines():
                 data = list(map(float, line.strip().split()))
                 if len(data) == 4:
