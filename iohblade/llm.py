@@ -755,16 +755,19 @@ class LMStudio_LLM(LLM):
         request = session[-1]["content"]
         for _ in range(max_tries):
             try:
-                if self.config is not None:
-                    response = self.llm.respond(request, config=self.config)
-                else:
-                    response = self.llm.respond(request)
+                response = (
+                    self.llm.respond(request, config=self.config)
+                    if self.config is not None
+                    else self.llm.respond(request)
+                )
+
+                text = "".join(str(chunk) for chunk in response)
                 response = re.sub(  # Remove thinking section, if avaiable.
-                    r"<think>.*?</think>", "", str(response), flags=re.DOTALL
+                    r"<think>.*?</think>", "", str(text), flags=re.DOTALL
                 )
                 return response
             except:
-                pass
+                time.sleep(0.2)
         return ""
 
     def __getstate__(self):
