@@ -4,12 +4,11 @@ import difflib
 import os
 from collections import Counter
 
-import plotly.graph_objects as go
-
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA
@@ -678,6 +677,140 @@ def plotly_code_evolution(
         yaxis_title=feature.replace("_", " "),
     )
     return fig
+
+
+def code_diff_chain(
+    run_data: pd.DataFrame, solution_id: str
+) -> list[dict[str, pd.Series | str]]:
+    """Return diffs along the lineage of ``solution_id``.
+
+    The function follows the first parent of each solution until the root is
+    reached. For every parent-child pair a unified diff of their code is
+    produced.
+
+    Args:
+        run_data: DataFrame containing at least ``id``, ``parent_ids`` and
+            ``code`` columns. ``name``, ``generation`` and ``fitness`` are
+            optional but will be preserved if present.
+        solution_id: Identifier of the final solution.
+
+    Returns:
+        A list of dictionaries ordered from the first ancestor to
+        ``solution_id``. Each dictionary has ``parent`` and ``child`` keys with
+        the respective rows and a ``diff`` key containing a unified diff string.
+    """
+
+    data = run_data.copy()
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+    data = data.set_index("id", drop=False)
+    if solution_id not in data.index:
+        raise ValueError(f"Unknown solution_id: {solution_id}")
+
+    chain: list[dict[str, pd.Series | str]] = []
+    current = solution_id
+
+    while True:
+        row = data.loc[current]
+        parents = row["parent_ids"]
+        if not parents:
+            break
+        parent_id = parents[0]
+        parent_row = data.loc[parent_id]
+        parent_code = parent_row["code"]
+        current_code = row["code"]
+        parent_lines = parent_code.splitlines()
+        current_lines = current_code.splitlines()
+        diff_lines = difflib.unified_diff(
+            parent_lines,
+            current_lines,
+            fromfile=str(parent_id),
+            tofile=str(current),
+            lineterm="",
+            n=max(len(parent_lines), len(current_lines)),
+        )
+        chain.append(
+            {"parent": parent_row, "child": row, "diff": "\n".join(diff_lines)}
+        )
+        current = parent_id
+
+    chain.reverse()
+    return chain
+
+
+def get_code_lineage(run_data: pd.DataFrame, solution_id: str) -> list[pd.Series]:
+    """Return lineage of an individual with id ``solution_id``, across generation.
+
+    The function follows the first parent of each solution until the root is
+    reached. Generating a chin from first generation to the last generation.
+    Args:
+        run_data: DataFrame containing at least ``id``, ``parent_ids`` and
+            ``code`` columns. ``name``, ``generation`` and ``fitness`` are
+            optional but will be preserved if present.
+        solution_id: Identifier of the final solution.
+
+    Returns:
+        A list of pd.Series `rows` that present individual lineage in ascending order, oldest -> newest.
+    """
+    data = run_data.copy()
+    data["parent_ids"] = data["parent_ids"].apply(
+        lambda x: ast.literal_eval(x) if isinstance(x, str) else x
+    )
+    data = data.set_index("id", drop=False)
+    if solution_id not in data.index:
+        raise ValueError(f"Unknown solution_id: {solution_id}")
+
+    lineage: list[pd.Series] = []
+    id = solution_id
+    while id:
+        try:
+            parent = data.loc[data["id"] == id].iloc[0]
+        except:
+            parent = None
+        if parent is not None:
+            lineage.append(parent)
+        pid = parent["parent_ids"]
+        if pid:
+            id = pid[0]
+        else:
+            id = None
+    return lineage[::-1]
+
+
+def print_code_diff_chain(run_data: pd.DataFrame, solution_id: str) -> None:
+    """Print the code diff chain for ``solution_id``."""
+
+    chain = code_diff_chain(run_data, solution_id)
+    if not chain:
+        return
+    root = chain[0]["parent"]
+    print(
+        "Initial {p} (gen {pg}, fit {pf})".format(
+            p=root.get("name", root["id"]),
+            pg=root.get("generation", "?"),
+            pf=root.get("fitness", "?"),
+        )
+    )
+    print(root["code"])
+    print()
+    for step, entry in enumerate(chain, start=1):
+        parent = entry["parent"]
+        child = entry["child"]
+        diff = entry["diff"]
+        print(
+            "Step {step}: {p} (gen {pg}, fit {pf}) -> {c} (gen {cg}, fit {cf})".format(
+                step=step,
+                p=parent.get("name", parent["id"]),
+                pg=parent.get("generation", "?"),
+                pf=parent.get("fitness", "?"),
+                c=child.get("name", child["id"]),
+                cg=child.get("generation", "?"),
+                cf=child.get("fitness", "?"),
+            )
+        )
+        print(diff)
+        print()
 
 
 def plot_boxplot_fitness(
