@@ -4,7 +4,7 @@ from iohblade import Solution
 from iohblade.problem import Problem
 
 from .packing_base import PackingBase
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 
 class UnitSquarePacking(PackingBase, Problem):
@@ -23,7 +23,7 @@ class UnitSquarePacking(PackingBase, Problem):
         self.best_solution = best_solution
 
         task_name = f"unit_square_packing_n{self.n_circles}"
-        PackingBase.__init__(self, task_name)
+        PackingBase.__init__(self, task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name)
 
         print(
@@ -48,37 +48,35 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
     # ---------- evaluation ----------
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
-        safe = prepare_namespace(code, self.dependencies)
+        name = solution.name if solution.name else "UnitSquarePackingSolver"
+
         try:
             local_ns = {}
+            safe = prepare_namespace(code, self.dependencies)
 
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            circles = cls(self.n_circles)()
+            compiled_code = compile(code, name, "exec")
+
+            exec(compiled_code, safe, local_ns)
+            cls = local_ns[name]
+            if self.best_solution is not None:
+                circles = cls(self.n_circles, self.best_solution)()
+            else:
+                circles = cls(self.n_circles)()
         except Exception as e:
-            solution.set_scores(float("-inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("-inf"), f"exec-error {e}", e)
             return solution
 
         try:
             U = np.asarray(circles, dtype=float)
             if U.shape != (self.n_circles, 3):
-                solution.set_scores(
-                    float("-inf"),
-                    f"expected ({self.n_circles},3), got {U.shape}",
-                    "format-error",
+                raise ValueError(
+                    f"Format error: expected ({self.n_circles},3), got {U.shape}"
                 )
-                return solution
 
             # radii positive
             if np.any(U[:, 2] <= 0):
                 idx = int(np.where(U[:, 2] <= 0)[0][0])
-                solution.set_scores(
-                    float("-inf"),
-                    f"non-positive radius at index {idx}",
-                    "invalid-radius",
-                )
-                return solution
+                raise ValueError(f"Negative radius at index {idx}.")
 
             # containment in unit square
             x, y, r = U[:, 0], U[:, 1], U[:, 2]
@@ -88,10 +86,7 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
                 or np.any(y - r < -self.tolerance)
                 or np.any(y + r > 1 + self.tolerance)
             ):
-                solution.set_scores(
-                    float("-inf"), "circle outside the unit square", "out-of-bounds"
-                )
-                return solution
+                raise ValueError("Circle outside the unit square.")
 
             # pairwise disjoint
             for i in range(self.n_circles):
@@ -99,10 +94,7 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
                     dx = U[i, 0] - U[j, 0]
                     dy = U[i, 1] - U[j, 1]
                     if dx * dx + dy * dy < (U[i, 2] + U[j, 2] - self.tolerance) ** 2:
-                        solution.set_scores(
-                            float("-inf"), f"overlap between {i} and {j}", "overlap"
-                        )
-                        return solution
+                        raise ValueError(f"circles {i} and {j} overlap.")
 
             score = float(np.sum(U[:, 2]))
             solution.set_scores(
@@ -111,7 +103,7 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
             )
             return solution
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}", e)
             return solution
 
     def test(self, solution: Solution):

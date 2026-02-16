@@ -13,18 +13,18 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     #----------------------------------------------
     # Helibronn packing problem.
     # * a[0] = n11 problem.
     # * a[1] = n12 problem.
     #----------------------------------------------
-    hexagon_packing = get_hexagon_packing_problems(True)[0]
+    hexagon_packing = get_hexagon_packing_problems(False)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,

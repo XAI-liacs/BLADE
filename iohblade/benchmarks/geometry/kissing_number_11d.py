@@ -109,24 +109,29 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution: Solution, explogger=None) -> Solution:
         code = solution.code
-        safe_globals = prepare_namespace(code, allowed=self.dependencies)
+        name = solution.name if solution.name else "KissingNumber11D"
+
         try:
             local_ns = {}
-            exec(code, safe_globals, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe_globals)
+            safe_globals = prepare_namespace(code, allowed=self.dependencies)
+            compiled_code = compile(code, name, "exec")
 
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            exec(compiled_code, safe_globals, local_ns)
+
+            cls = local_ns[name]
+            if self.best_solution is not None:
                 C = np.array(cls(self.best_solution)(), dtype=float)
-            except:
+            else:
                 C = np.array(cls()(), dtype=float)
 
             if C.ndim != 2 or C.shape[1] != self.dim:
                 raise ValueError(f"expected shape (m, {self.dim})")
             if not np.isfinite(C).all():
                 raise ValueError("non-finite coordinates")
-
-            norms2 = np.sum(C * C, axis=1)
+            try:
+                norms2 = np.sum(C * C, axis=1)
+            except Exception as e:
+                raise ValueError(f"Possibly jagged series: {c}. Got error {e}")
             if np.any(norms2 <= self.tolerance):
                 raise ValueError("zero vector present")
 
@@ -139,7 +144,7 @@ one-line description, describing the main idea. Give the response in the format:
             m = int(C.shape[0])
             solution.set_scores(float(m), f"|C|={m}")
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution: Solution) -> Solution:

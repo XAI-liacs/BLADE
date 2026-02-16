@@ -1,16 +1,21 @@
 import ioh
 import numpy as np
+import pandas as pd
 import pytest
 
 from iohblade.utils import (
     OverBudgetException,
     aoc_logger,
+    bootstrap_ci,
     class_info,
+    cliffs_delta,
     code_compare,
+    compare_auc,
     convert_to_serializable,
     correct_aoc,
     first_class_name,
     is_jsonable,
+    paired_cohens_d,
 )
 
 
@@ -113,3 +118,70 @@ def test_aoc_logger():
                 has_improved=False,
             )
         )
+
+
+def test_cliffs_delta_all_less():
+    a = [1, 2]
+    b = [3, 4]
+    assert cliffs_delta(a, b) == -1.0
+
+
+def test_paired_cohens_d():
+    a = [2, 4, 7]
+    b = [1, 3, 5]
+    assert paired_cohens_d(a, b) == pytest.approx(2.309, rel=1e-3)
+
+
+def test_bootstrap_ci_contains_mean():
+    diff = np.array([1.0, 2.0, 3.0])
+    ci_low, ci_high = bootstrap_ci(diff, n_boot=1000, alpha=0.1, rng=123)
+    assert ci_low < diff.mean() < ci_high
+
+
+def test_compare_auc_basic():
+    class DummyLogger:
+        def __init__(self, frame):
+            self.frame = frame
+
+        def get_methods_problems(self):
+            return ["method_a", "method_b"], ["problem_1"]
+
+        def get_problem_data(self, problem_name):
+            return self.frame.copy()
+
+    rows = []
+    for seed in [1, 2]:
+        for idx in range(3):
+            rows.append(
+                {
+                    "method_name": "method_a",
+                    "seed": seed,
+                    "_id": idx,
+                    "fitness": idx + seed,
+                    "code": "a",
+                }
+            )
+            rows.append(
+                {
+                    "method_name": "method_b",
+                    "seed": seed,
+                    "_id": idx,
+                    "fitness": idx,
+                    "code": "b",
+                }
+            )
+
+    logger_instance = DummyLogger(pd.DataFrame(rows))
+    result = compare_auc(
+        logger_instance,
+        "method_a",
+        "method_b",
+        budget=3,
+        metric="fitness",
+        test="ttest",
+        n_boot=500,
+        alpha=0.1,
+        rng=123,
+    )
+    assert result.shape[0] == 1
+    assert result["n_seeds"].iloc[0] == 2

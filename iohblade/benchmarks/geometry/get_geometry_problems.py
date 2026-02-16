@@ -7874,7 +7874,6 @@ def get_kissing_number_11D_problems(use_best: bool) -> list[KissingNumber11D]:
     if use_best:
         kn = KissingNumber11D(best_solution=best_kissing_number_11D)
         return [kn]
-
     kn = KissingNumber11D()
     return [kn]
 

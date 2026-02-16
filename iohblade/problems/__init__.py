@@ -8,6 +8,10 @@ try:
 except Exception:
     BBOB_SBOX = None
 try:
+    from .hlp import HLP
+except Exception:
+    HLP = None
+try:
     from .kerneltuner import Kerneltuner
 except Exception:
     Kerneltuner = None
@@ -15,3 +19,8 @@ try:
     from .mabbob import MA_BBOB
 except Exception:
     MA_BBOB = None
+
+try:
+    from .photonics import Photonics
+except Exception:
+    Photonics = None

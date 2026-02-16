@@ -13,14 +13,14 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    # gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
 
     # Helibronn n11 benchmark.
-    heilbronn_triangle = get_heilbronn_triangle_problems(True)[0]
+    heilbronn_triangle = get_heilbronn_triangle_problems(False)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
             minimization=heilbronn_triangle.minimisation,
         )
         methods.append(method)
-    logger = ExperimentLogger(f"results/{heilbronn_triangle.task_name}")
+    logger = ExperimentLogger(f"results/Helibronn_Triangle")
     experiment = Experiment(
         methods,
         [heilbronn_triangle],

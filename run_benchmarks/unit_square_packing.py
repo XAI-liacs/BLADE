@@ -13,18 +13,18 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     #----------------------------------------------------------------------------------
     # Gets benchmarks for unit square packing problems:
     #   arr[0]:  Unit Square Packing benchmark for Unit Square, packing 26 circles.
     #   arr[1] = Unit Square Packing benchmark for Unit Square, packing 32 circles.
     #----------------------------------------------------------------------------------
-    unit_square_packing = get_square_packing_problems(True)[0]
+    unit_square_packing = get_square_packing_problems(False)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,

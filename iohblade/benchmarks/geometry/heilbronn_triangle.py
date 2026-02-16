@@ -56,8 +56,7 @@ Write a python class with function `__call__`, that generate a solution for Heil
   - (None, points) where points is ndarray (n,2) interpreted inside a default unit-area triangle, or
   - (triangle, points): with triangle shape (3,2), both of which we rescale similarly as to have area of triangle = 1.
     - Upon scaling points must lie inside the tringle, within the given tolerance.
-- The solution is scored as minimum triangle area formed by picking 3 of the n points.
-- The optimisation goal is to maximise the score.
+- The optimisation goal is to maximise the area of the smallest triangle, formed by picking 3 of the n points.
 """
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
@@ -115,27 +114,33 @@ one-line description, describing the main idea. Give the response in the format:
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
+        name = solution.name
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            compiled_code = compile(code, filename=name, mode="exec")
+
+            exec(compiled_code, safe, local_ns)
+            cls = local_ns[solution.name]
+            if self.best_solution is None:
                 triangle, points = cls(self.n_points)()
-            except:
-                triangle, points = cls(self.n_points)()
+            else:
+                triangle, points = cls(
+                    self.n_points,
+                    best_known_configuration=self.best_solution,
+                    in_triangle=self.triangle_best_solution,
+                )()
         except Exception as e:
             # tb = e.__traceback__
             solution.set_scores(
                 float("-inf"),
                 f"exec-error {e}",
-                "exec-failed",
+                e,
             )
             return solution
 
         try:
-            if triangle:
+            if triangle is not None:
                 T, P = self._parse_candidate((triangle, points))
             else:
                 T, P = self._parse_candidate(points)
@@ -154,7 +159,11 @@ one-line description, describing the main idea. Give the response in the format:
                 f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
             )
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(
+                float("-inf"),
+                f"calc-error, for values returned by candidate: Triangle {triangle}, points: {points}",
+                e,
+            )
         return solution
 
     def test(self, solution):
@@ -167,3 +176,6 @@ one-line description, describing the main idea. Give the response in the format:
 if __name__ == "__main__":
     hbt = HeilbronnTriangle(n_points=10, best_known=1.11)
     print(hbt.get_prompt())
+    print(
+        "------------------------------------------------------------------------------------------------"
+    )

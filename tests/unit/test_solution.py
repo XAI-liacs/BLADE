@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import math
 
 from iohblade import Solution
 
@@ -9,7 +10,7 @@ def test_solution_initialization():
     assert s.code == "print('Hello')"
     assert s.name == "MyAlgo"
     assert s.description == "A test algo"
-    assert s.fitness == -np.inf
+    assert math.isnan(s.fitness)
 
 
 def test_solution_set_scores():

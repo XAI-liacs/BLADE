@@ -54,7 +54,7 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
     * Overlap functional uses zero-extension of g outside [-1,1].
     * Optimize the objective:
         * minimize  sup_{x ∈ [-2,2]} ∫_{-1}^{1} f(t) · g(x+t) dt,  with g = 1 - f
-    * Do not use scipy's interp1d, it is no longer supported.
+    * Do not use scipy's interp1d, it is no depricated.
 """
 
         self.task_prompt += f"""
@@ -121,27 +121,27 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
     def evaluate(self, solution: Solution, explogger=None):
         local_ns = {}
         code = solution.code
-
+        name = solution.name if solution.name else "ErdosCandidate"
         try:
             safe_globals = prepare_namespace(code, self.dependencies)
+            compiled = compile(code, filename=name, mode="exec")
+            exec(compiled, safe_globals, local_ns)
 
-            exec(code, safe_globals, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe_globals)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
+            cls = local_ns[name]
 
-            try:
+            if self.best_solution is not None:
                 f = np.asarray(
                     cls(best_known_configuration=self.best_solution)(), dtype=np.float64
                 )
-            except:
+            else:
                 f = np.asarray(cls()(), dtype=np.float64)
         except Exception as e:
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution = solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
         try:
             if f.ndim != 1 or f.size != self.n_bins:
-                raise ValueError(f"f must be length {self.n_bins}")
+                raise ValueError(f"f must be length {self.n_bins} got {f.shape}.")
             # bounds f ∈ [0,1] within tolerance
             if np.any(f < -self.tolerance) or np.any(f > 1.0 + self.tolerance):
                 raise ValueError("entries of f must lie in [0,1]")
@@ -155,9 +155,9 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
             score = self._sup_overlap(f, g)  # minimize
             msg = f"Score = {score:.6g}; with configuration: N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}.\n\t Best known score = {self.best_known}"
-            solution.set_scores(score, msg)
+            solution = solution.set_scores(score, msg)
         except Exception as e:
-            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
+            solution = solution.set_scores(float("inf"), f"calc-error {e}")
 
         return solution
 

@@ -1,7 +1,8 @@
 import json
 import uuid
-
+import traceback
 import numpy as np
+from typing import Optional
 
 
 class Solution:
@@ -40,7 +41,7 @@ class Solution:
         self.description = description
         self.configspace = configspace
         self.generation = generation
-        self.fitness = -np.inf
+        self.fitness = float("nan")
         self.feedback = ""
         self.error = ""
         self.parent_ids = parent_ids
@@ -90,6 +91,43 @@ class Solution:
         self.error = error
         return self
 
+    def set_scores(
+        self, fitness: float, feedback="", error: Optional[Exception] = None
+    ):
+        """
+            Set the score of current instance of individual.
+        Args:
+            `fitness: float | Fitness`: Fitness/Score of the individual. It is of type `float` when single objective, or `Fitness` when multi-objective.
+            `Feedback: str` feedback for the LLM, suggest improvements or target score.
+            `error: Exception`: Exception object encountered during `exec` of the code block.
+        """
+        self.fitness = fitness
+        self.feedback = feedback
+
+        if error is not None:
+            if not isinstance(error, Exception):
+                self.error = str(error)
+                return self
+
+            error_type = type(error).__name__
+            error_msg = str(error)
+            self.error = repr(error)
+
+            tb = traceback.extract_tb(error.__traceback__)[-1]
+
+            if tb.filename in ("<string>", self.name):
+                code_lines = self.code.splitlines()
+                line_no = tb.lineno
+
+                if 1 <= line_no <= len(code_lines):
+                    code_line = code_lines[line_no - 1]
+                    self.error = (
+                        f"{error_type}: {error_msg}.\n"
+                        f"On line {line_no}: {code_line}.\n"
+                    )
+
+        return self
+
     def get_summary(self):
         """
         Returns a string summary of this solution's key attributes.
@@ -116,6 +154,8 @@ class Solution:
             operator=self.operator,
             task_prompt=self.task_prompt,
         )
+        new_solution.feedback = self.feedback
+        new_solution.error = self.error
         new_solution.metadata = self.metadata.copy()  # Copy the metadata as well
         return new_solution
 

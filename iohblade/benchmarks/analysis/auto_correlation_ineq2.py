@@ -13,7 +13,7 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
         functionality.
         Optimisation:
             \[\min -(||f*f||_2^2 / (||f*f||_1 • ||f*f||_\infty))\]
-        Best known auto-correlation 1 score by alpha evolve: is C_2 >= 0.8962 (prev 0.8892).
+        Best known auto-correlation 2 score by alpha evolve: is C_2 >= 0.8962 (prev 0.8892).
     """
 
     def __init__(
@@ -42,12 +42,11 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
         code = solution.code
 
         try:
-            f, err = self._get_time_series(code)
+            f, err = self._get_time_series(code, name=solution.name)
             if err is not None:
                 raise err
         except Exception as e:
-            print("\t Exception in `auto_correlation_ineq2.py`, " + e.__repr__())
-            solution.set_scores(float("-inf"), f"exec-error {e}", "exec-failed")
+            solution = solution.set_scores(float("-inf"), f"exec-error {e}", e)
             return solution
 
         try:
@@ -67,11 +66,11 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
                 raise ValueError("Denominator zero in C2 ratio")
 
             score = L2sq / den  # maximize in paper
-            solution.set_scores(
+            solution = solution.set_scores(
                 score, f"C2 ratio = {score:.6g}, best known = {self.best_known:.6g}"
             )
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution = solution.set_scores(float("-inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution: Solution) -> Solution:

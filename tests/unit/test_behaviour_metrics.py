@@ -114,6 +114,9 @@ class DummyLogger:
     def log_conversation(self, who, text, cost=0.0, tokens=0):
         self.logged.append((who, text, cost, tokens))
 
+    def budget_exhausted(self):
+        return False
+
 
 class DummyLLM(llm_mod.LLM):
     def __init__(self):

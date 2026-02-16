@@ -54,6 +54,8 @@ Instantiated Heibronn Convex Region Problem with number of points: {self.n_point
         allowed = self.dependencies.copy()
         _add_builtins_into(allowed)
 
+        allowed_libraries = "\n    - ".join(allowed)
+
         self.task_prompt = f"""
 Write a python class with function `__call__`, that generate a solution for the Heilbronn on a unit-area convex region
 - The `__call__` method must return n points of type ndarray (n,2).
@@ -61,7 +63,8 @@ Write a python class with function `__call__`, that generate a solution for the 
 - The solution is scored on the area of smallest triangle formed by picking 3 of the n points, after rescaling.
 - The optimisation goal is to maximise the score.
 - The environment only provides access to the libraries:
-    - {"\n    - ".join(allowed)}
+{allowed_libraries}
+
 """
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
@@ -109,17 +112,19 @@ one-line description, describing the main idea. Give the response in the format:
         try:
             safe = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+
+            compiled_code = compile(code, solution.name, "exec")
+            exec(compiled_code, safe, local_ns)
+            cls = local_ns[solution.name]
+
+            if self.best_solution is not None:
                 result = cls(self.n_points, self.best_solution)()
-            except:
+            else:
                 result = cls(self.n_points)()
             P = self.to_np_points(result)
         except Exception as e:
             # tb = e.__traceback__
-            solution.set_scores(float("-inf"), f"exec-error \n{e}", "exec-failed")
+            solution.set_scores(float("-inf"), f"exec-error \n{e}", e)
             return solution
 
         try:
@@ -141,7 +146,7 @@ one-line description, describing the main idea. Give the response in the format:
                 f"min_triangle_area={min_area:.6g}, {'best known = ' + str(self.best_known) if self.best_known is not None else ''}.",
             )
         except Exception as e:
-            solution.set_scores(float("-inf"), f"calc-error {e}", "calc-failed")
+            solution.set_scores(float("-inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution):

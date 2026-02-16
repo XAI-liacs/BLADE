@@ -5,7 +5,7 @@ from numpy.polynomial.hermite import hermval
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 from iohblade.benchmarks.fourier.fourier_base import FourierBase
 
@@ -114,23 +114,25 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
 
     def evaluate(self, solution: Solution, explogger=None):
         code = solution.code
-
+        name = solution.name
         # 1) execute candidate
         try:
-            safe_globals = prepare_namespace(code, self.dependencies)
             local_ns = {}
-            exec(code, safe_globals, local_ns)
-            local_ns = clean_local_namespace(local_ns, safe_globals)
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
-            try:
+            safe_globals = prepare_namespace(code, self.dependencies)
+
+            compiled_code = compile(code, filename=name, mode="exec")
+            exec(compiled_code, safe_globals, local_ns)
+            cls = local_ns[name]
+
+            if self.best_known_configuration is not None:
                 c = np.asanyarray(
-                    cls(self.best_known_configuration)(), dtype=np.float64
+                    cls(self.n_terms, self.best_known_configuration)(), dtype=np.float64
                 )
-            except:
+            else:
                 c = np.asarray(cls(self.n_terms)(), dtype=np.float64)
 
         except Exception as e:
-            solution.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+            solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
         # 2) validate and score
@@ -167,8 +169,7 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
                 f"Score = {score:.9g}; r_max={r:.6g}; best known score = {self.best_known}",
             )
         except Exception as e:
-            solution.set_scores(float("inf"), f"calc-error {e}", "calc-failed")
-
+            solution.set_scores(float("inf"), f"calc-error {e}", e)
         return solution
 
     def test(self, solution: Solution) -> Solution:

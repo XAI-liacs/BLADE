@@ -12,17 +12,17 @@ if __name__ == "__main__":
 
     api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM()
-    gemini_llm = Gemini_LLM(api_key=api_key)
+    ollama_llm = Ollama_LLM('gemma3:12b')
+    # gemini_llm = Gemini_LLM(api_key=api_key)
 
     ## Min max Distance ratio problem;
     # a[0] = 2-D min max distance ration problem.
     # a[1] = 3-D min max distance ration problem.
 
-    min_max_min_distance = get_min_max_dist_ratio_problem(True)[0]
+    min_max_min_distance = get_min_max_dist_ratio_problem(False)[0]
 
     methods = []
-    for llm in [gemini_llm]:
+    for llm in [ollama_llm]:
         method = LLaMEA(
             llm,
             n_parents=1,

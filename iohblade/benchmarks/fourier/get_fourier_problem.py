@@ -19,6 +19,9 @@ def get_fourier_problems(use_best: bool) -> list[UncertaintyInequality]:
             array[0] = Fourier Uncertainty Inequality benchmark object.
 
     """
-    ue1 = UncertaintyInequality(best_solution=best_known_configuration)
+    if use_best:
+        ue1 = UncertaintyInequality(best_solution=best_known_configuration)
+    else:
+        ue1 = UncertaintyInequality()
 
     return [ue1]
