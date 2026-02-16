@@ -62,11 +62,25 @@ class AutoML(Problem):
         eval_timeout=3600,
         openml_task_id: int | None = None,
         use_official_split: bool = True,
+        dependencies=None,
+        imports=None,
     ):
         """
         If openml_task_id is provided, this problem loads the OpenML task
         and uses the official train/test split.
         """
+
+        if dependencies is None:
+            dependencies = [
+                "pandas>=2",
+                "scipy>=1.10",
+                "scikit-learn>=1.4",
+                "openml>=0.14",
+                "ConfigSpace>=1.2",
+                "smac>=2.1",
+            ]
+        if imports is None:
+            imports = "import numpy as np\nimport sklearn\nimport pandas as pd\nimport math\nimport openml\n"
 
         super().__init__(
             logger=logger,
@@ -74,6 +88,8 @@ class AutoML(Problem):
             test_instances=[],
             name=name,
             eval_timeout=eval_timeout,
+            dependencies=dependencies,
+            imports=imports,
         )
         self.openml_task_id = openml_task_id
         self.eval_name = None

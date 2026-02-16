@@ -30,12 +30,30 @@ try:
 except ImportError:
     genai = None
 
-from tokencost import (
-    calculate_completion_cost,
-    calculate_prompt_cost,
-    count_message_tokens,
-    count_string_tokens,
-)
+try:
+    import lmstudio as lms  # Platform dependent dependency.
+except:
+    lms = object
+
+try:
+    from mlx_lm import load, generate  # Platform dependent dependency.
+except:
+    load = None
+    generate = None
+
+try:
+    from tokencost import (
+        calculate_completion_cost,
+        calculate_prompt_cost,
+        count_message_tokens,
+        count_string_tokens,
+    )
+except ImportError:
+    calculate_completion_cost = None
+    calculate_prompt_cost = None
+    count_message_tokens = None
+    count_string_tokens = None
+
 
 from .solution import Solution
 from .utils import NoCodeException
