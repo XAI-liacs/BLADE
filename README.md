@@ -76,7 +76,7 @@ In addition, several real-world applications are included.
 | **AutoML** | |
 | AutoML Pipelines | Generate and evaluate machine learning pipelines using scikit-learn. |
 | **Combinatorics** | |
-| Erdős Minimum-Overlap Problem | Minimise the supremum overlap integral between complementary measurable functions. |
+| Erdős Minimum-Overlap Problem | Minimise the suprenum overlap integral between complementary measurable functions. |
 | Euclidean Steiner Tree Problem | Minimise MST(points + Steiner points) / MST(points) ratio by adding optimal Steiner nodes. |
 | Graph Colouring Problem | Minimise the number of colours needed for a colouring nodes of a graph, s.t. no adjacent nodes share same colour. |
 | **Fourier** | |
