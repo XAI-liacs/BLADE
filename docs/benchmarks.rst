@@ -76,7 +76,17 @@ Auto-Correlation 3
 AutoML
 ^^^^^^
 
-- Used to generate a set of machine learning pipelines using libraries `scikit-learn`.
+The AutoML benchmark evaluates **LLM-generated scikit-learn pipelines** on supervised
+learning tasks hosted on the `OpenML <https://www.openml.org/>`_ platform.
+
+- **Task source:** OpenML tasks (either individual task IDs or suites such as
+  ``amlb-classification-all`` from the AutoML Benchmark).
+- **What is optimized:** a single Python class implementing a pipeline with:
+  ``__init__(self, X, y, **hyperparameters)`` (fit once) and ``__call__(self, X)``
+  (predict), using only standard ML libraries (primarily ``scikit-learn``).
+- **Evaluation protocol:** uses the **official OpenML split definition**
+  (repeat/fold/sample) and the task’s default evaluation measure (e.g., accuracy, AUC,
+  RMSE/MAE). Scores are aggregated across all official splits.
 
 -----------
 
