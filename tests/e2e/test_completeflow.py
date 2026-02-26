@@ -10,7 +10,7 @@ from iohblade.llm import LLM, Gemini_LLM, OpenAI_LLM, Ollama_LLM, Dummy_LLM, Cla
 from iohblade.loggers import ExperimentLogger
 from iohblade.method import Method
 from iohblade.problem import Problem
-from iohblade.problems import BBOB_SBOX, MA_BBOB, AutoML
+from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, AutoML
 from iohblade.methods import LLaMEA, EoH, RandomSearch, ReEvo
 import ioh
 
@@ -28,7 +28,7 @@ def cleanup_tmp_dir():
 
 
 DUMMY_REPLY_OPT = """# Description: test algo
-# Code: 
+# Code:
 ```python
 import numpy as np
 
@@ -42,7 +42,7 @@ class RandomSearch:
         x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
-            
+
             f = func(x)
             if f < f_opt:
                 f_opt = f

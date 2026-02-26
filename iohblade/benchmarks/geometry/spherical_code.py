@@ -8,7 +8,7 @@ from iohblade.misc.prepare_namespace import prepare_namespace
 class SphericalCode(Problem):
     """
     Sherical Code is a `maximisation` problem where 30 distinct points are projected on to a
-    unit sphere, and the optimisation goil is to maximise the minimum pairwise angle.
+    unit sphere, and the optimisation goal is to maximise the minimum pairwise angle.
     Best Known: n=30: 0.6736467551690225
     """
 
@@ -48,7 +48,7 @@ Write a python class with function `__call__`, that generate a solution for Sphe
         self.example_prompt = f"""
 An example response can be
 ---
-# Descripition: 
+# Descripition:
 A random selection algorithm for Spherical Code Solver.
 # Code:
 ```python

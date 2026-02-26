@@ -26,7 +26,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 import openml
 
-from iohblade.problems.automl import AutoML
+from iohblade.benchmarks import AutoML
 from iohblade.loggers import ExperimentLogger
 from iohblade.experiment import Experiment
 from iohblade.llm import Ollama_LLM
@@ -199,7 +199,7 @@ if __name__ == "__main__":
     if not task_ids:
         print("No tasks to run for this shard (empty task list after filtering/sharding).")
         raise SystemExit(0)
-    
+
     print(
         f"Total tasks in suite: {len(all_task_ids)} | "
         f"Running shard {args.shard}/{args.num_shards} -> {len(task_ids)} tasks",

@@ -22,8 +22,8 @@ from sklearn.metrics import (
     root_mean_squared_error,
     mean_absolute_error,
 )
-from ..problem import Problem
-from ..solution import Solution
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 def _summarize_dataset(X, y):
@@ -133,12 +133,12 @@ class AutoML(Problem):
                 "classification" if _is_classification_task(self.task) else "regression"
             )
 
-        self.task_prompt = f""" 
+        self.task_prompt = f"""
         You can use the following Python packages: scikit-learn, numpy, scipy, pandas.
         Design an ML pipeline for a {task_type} task with {samples_desc} and {feats_desc}.
         Write a single Python class:
         - __init__(self, X, y, **hyperparameters)  -> fit exactly once (no CV here)
-        - __call__(self, X)    
+        - __call__(self, X)
         IMPORTANT CONSTRAINTS (must follow):
         - Do NOT use any internal HPO or CV search (no GridSearchCV, RandomizedSearchCV, BayesSearchCV, Optuna, Hyperopt, skopt, etc.).
         - Do NOT implement your own tuning loops (no KFold/StratifiedKFold loops, no parameter sweeps).
@@ -174,7 +174,7 @@ class AutoML(Problem):
         self.format_prompt = """
         Give an excellent and novel ML pipeline to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
         # Description: <short-description>
-        # Code: 
+        # Code:
         ```python
         <code>
         ```

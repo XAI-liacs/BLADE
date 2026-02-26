@@ -1,5 +1,5 @@
 BLADE API
-======
+=========
 
 .. toctree::
    :titlesonly:

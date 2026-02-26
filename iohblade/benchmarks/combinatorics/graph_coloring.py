@@ -6,6 +6,14 @@ from pathlib import Path
 
 class GraphColoring(Problem):
     def __init__(self, benchmark_id: str, logger=None):
+        """
+        A Graph Colouring Benchmark focuses on assigning colours to all the nodes in undirected graph G(V,E), such that no two connecting
+        nodes have the same colour.
+
+        ## Args:
+        - `benchmark_id: str` A string defining which benchmark to use from `./Graph_Coloring_Benchmarks`.
+        - `logger: object`: An instance of one of the logger classes from `iohblade/loggers`.
+        """
         self.nodes: list[int] = []
         self.edges: list[tuple[int, int]] = []
         self.benchmark = ""

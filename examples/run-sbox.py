@@ -4,7 +4,7 @@ from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA, RandomSearch
-from iohblade.problems import BBOB_SBOX
+from iohblade.benchmarks import BBOB_SBOX
 
 if __name__ == "__main__":  # prevents weird restarting behaviour
     api_key = os.getenv("GEMINI_API_KEY")

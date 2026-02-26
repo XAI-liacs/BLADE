@@ -3,7 +3,7 @@ import pytest
 import random
 from decimal import Decimal
 
-from iohblade.problems.bbob_sboxcost import BBOB_SBOX
+from iohblade.benchmarks import BBOB_SBOX
 from iohblade.solution import Solution
 from iohblade.llm import Dummy_LLM, NoCodeException
 from iohblade.problem import Problem
@@ -24,13 +24,13 @@ def test_simulated_annealing_rejects_unfit():
     ]
     test_cases[0]["old"].fitness = float('inf')
     test_cases[0]["new"].fitness = float('inf')
-    
+
     test_cases[1]["old"].fitness = float('inf')
     test_cases[1]["new"].fitness = 5.0
-    
+
     test_cases[2]["old"].fitness = 10.0
     test_cases[2]["new"].fitness = float('inf')
-    
+
 
     dllm = Dummy_LLM()
     problem = BBOB_SBOX()
@@ -78,13 +78,13 @@ def test_taboo_table_maintains_order():
         next.set_scores(-10 + (random.random() * 10))
         tt.update_taboo_search_table(next, prev)
         prev = next
-    
+
     print(f"{tt.taboo_table[0].fitness:.2f}", end="\t")
     for i in range(1, 10):
         print(f"{tt.taboo_table[i].fitness:.2f}", end="\t")
         assert tt.taboo_table[i - 1].fitness < tt.taboo_table[i].fitness
         assert -10 < tt.taboo_table[i].fitness < 0
-    
+
     # Descending in maximisation.
     tt = TabooTable(size=10, minimisation=False)
     prev = Solution()
@@ -103,7 +103,7 @@ def test_taboo_table_maintains_order():
         next.set_scores(10 + (random.random() * 10))
         tt.update_taboo_search_table(next, prev)
         prev = next
-    
+
     print(f"{tt.taboo_table[0].fitness:.2f}", end="\t")
     for i in range(1, 10):
         print(f"{tt.taboo_table[i].fitness:.2f}", end="\t")
@@ -352,10 +352,10 @@ class DummyProblem(Problem):
 
     def __call__(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def test(self, solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         return super().to_dict()
 
@@ -363,7 +363,7 @@ def test_log_best_solution():
     # Maximisation
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
     a = Solution()
-    
+
     old = lhns.best_solution
     new = a
 
@@ -393,11 +393,11 @@ def test_log_best_solution():
     lhns._log_best_solution(c)
     assert lhns.best_solution == new
     assert lhns.best_solution != old
-    
+
     # Minimisation
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns', minimisation=True)
     a = Solution()
-    
+
     old = lhns.best_solution
     new = a
 
@@ -427,7 +427,7 @@ def test_log_best_solution():
     lhns._log_best_solution(c)
     assert lhns.best_solution == new
     assert lhns.best_solution != old
-    
+
     # log_best_solution doesn't degenerate into wrong direction of optimality.
     d = Solution()
     d.set_scores(15, 'nada')
@@ -454,7 +454,7 @@ def test_simulated_annealing_picks_optimal_solution():
 
     assert new_id == lhns.current_solution.id
     assert old_id != lhns.current_solution.id
-    
+
     # Minimisation
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns', minimisation=True)
 
@@ -489,7 +489,7 @@ def test_simulated_annealing_accepts_with_probability(monkeypatch):
         assert lhns.current_solution != current_solution
     else:
         assert lhns.current_solution == next_solution
-    
+
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'ts', minimisation=True, cooling_rate=2)
     monkeypatch.setattr(lhns_module.random, "random", lambda: 0.1)
     lhns.current_solution.set_scores(80)
@@ -527,9 +527,9 @@ def HelloWorld():
 """
     def fake_sample_solution(self, messages):
         return Solution(code, "HelloWorld", "Greets you.")
-    
-    monkeypatch.setattr(Dummy_LLM, 
-                        'sample_solution', 
+
+    monkeypatch.setattr(Dummy_LLM,
+                        'sample_solution',
                         fake_sample_solution
                         )
 
@@ -546,7 +546,7 @@ def test_evaluate_returns_on_success_and_logs_best_solution(monkeypatch):
     def evaluate(solution: Solution):
         solution.set_scores(10.6, 'The algorithm scored 10.6, best known score is 9.8')
         return solution
-    
+
     lhns = LHNS(DummyProblem(), Dummy_LLM(), 'vns')
     monkeypatch.setattr(lhns.problem, "evaluate", evaluate)
 
@@ -555,7 +555,7 @@ def test_evaluate_returns_on_success_and_logs_best_solution(monkeypatch):
 
     assert solution.fitness == 10.6
     assert solution.feedback == 'The algorithm scored 10.6, best known score is 9.8'
-    
+
     assert lhns.best_solution.fitness == 10.6
     assert lhns.best_solution.feedback == 'The algorithm scored 10.6, best known score is 9.8'
 
@@ -563,7 +563,7 @@ def test_evaluate_returns_unmutated_on_failure(monkeypatch):
 
     def evaluate(solution: Solution):
         return None
-    
+
     lhns = LHNS(DummyProblem(), Dummy_LLM(), 'vns')
     monkeypatch.setattr(lhns.problem, "evaluate", evaluate)
 
@@ -606,7 +606,7 @@ def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list
                      (17, '        return [-b/(2 * a)]'),
                      (18, '    else:'),
                      (19, '        return [(-b - (determinant) ** 0.5)/(2 * a), (-b + (determinant) ** 0.5)/(2 * a)]')]
-    
+
     assert data == expected_data
 
 def test_get_destroyed_code_only_destroys_executable_non_defs():
@@ -646,7 +646,7 @@ def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list
     """
 
 '''
-    
+
     lhns = LHNS(BBOB_SBOX(), Dummy_LLM(), 'vns')
     soln = Solution(code=code)
     output = lhns.get_destroyed_code(1.0, soln)
@@ -661,7 +661,7 @@ def get_roots_of_quadratic_with_parameters(a: float, b: float, c: float) -> list
 
 
 def test_mutate_lhns_vns_calls_methods_properly(monkeypatch):
-    
+
     destruction_ratio = []
     destroyed_code_arr = []
     destruction_prompt = []
@@ -670,7 +670,7 @@ def test_mutate_lhns_vns_calls_methods_properly(monkeypatch):
         code = f'destroyed code r={r}'
         destroyed_code_arr.append(code)
         return code
-    
+
     def fake_destruction_prompt(individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
         proompt = f'destruction prompt with code {destroyed_code}.'
         destruction_prompt.append(proompt)
@@ -694,7 +694,7 @@ def test_lhns_vns_raises_after_5x_tries(monkeypatch):
         nonlocal counter
         counter += 1
         raise NoCodeException
-    
+
     problem = DummyProblem()
     llm = Dummy_LLM()
     lhns_instance = LHNS(problem, llm, 'vns', budget=10)
@@ -705,7 +705,7 @@ def test_lhns_vns_raises_after_5x_tries(monkeypatch):
     assert counter == 5
 
 def test_mutate_lhns_ils_calls_methods_properly(monkeypatch):
-    
+
     destruction_ratio = []
     destroyed_code_arr = []
     destruction_prompt = []
@@ -714,12 +714,12 @@ def test_mutate_lhns_ils_calls_methods_properly(monkeypatch):
         code = f'destroyed code r={r}'
         destroyed_code_arr.append(code)
         return code
-    
+
     def fake_destruction_prompt(individual: Solution, destroyed_code: str, deleted_line_count: int) -> str:
         proompt = f'destruction prompt with code {destroyed_code}.'
         destruction_prompt.append(proompt)
         return proompt
-    
+
 
     def fake_initialisation_prompt():
         destruction_ratio.append(None)
@@ -752,7 +752,7 @@ def test_lhns_ils_raises_after_5x_tries(monkeypatch):
         nonlocal counter
         counter += 1
         raise NoCodeException
-    
+
     problem = DummyProblem()
     llm = Dummy_LLM()
     lhns_instance = LHNS(problem, llm, 'ils', budget=10)
@@ -811,7 +811,7 @@ def test_taboo_search_calls_functions_appripriately(monkeypatch):
     _ = lhns_instance.run()
 
     print(f"Length of destruction ratio={len(destruction_ratio)}, destroyed code={len(destroyed_code_arr)}, taboo elements={len(taboo_elements)}, prompt={len(prompt)}")
-    
+
     for index in range(lhns_instance.budget):
         print(f"{index}| {destruction_ratio[index]} | {prompt[index]} | {destroyed_code_arr[index]} | {taboo_elements[index]}")
         if destruction_ratio[index] is not None:
@@ -828,7 +828,7 @@ def test_lhns_ts_raises_after_5x_tries(monkeypatch):
         nonlocal counter
         counter += 1
         raise NoCodeException
-    
+
     problem = DummyProblem()
     llm = Dummy_LLM()
     lhns_instance = LHNS(problem, llm, 'ts', budget=10)
@@ -836,9 +836,9 @@ def test_lhns_ts_raises_after_5x_tries(monkeypatch):
 
     with pytest.raises(NoCodeException):
         lhns_instance.mutate_lhns_ts(4)
-    
+
     assert counter == 5
-    
+
     counter = 0
     with pytest.raises(NoCodeException):
         lhns_instance.mutate_lhns_ts(9)

@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .loggers import ExperimentLogger
-from .problems import MA_BBOB
+from .benchmarks import MA_BBOB
 
 BLADE_ASCII = r"""
     ____  __    ___    ____  ______

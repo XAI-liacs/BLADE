@@ -62,10 +62,10 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
     r = min(w,h)/(2*(g+1))
     U=[]
     for i in range(n):
-    row, col = divmod(i, g)
-    x = (col+1)/(g+1)*w
-    y = (row+1)/(g+1)*h
-    U.append([x, y, r])
+        row, col = divmod(i, g)
+        x = (col+1)/(g+1)*w
+        y = (row+1)/(g+1)*h
+        U.append([x, y, r])
     return np.array(U, dtype=float), w, h
 """,
             n_circles=self.n_circles,

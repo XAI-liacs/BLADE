@@ -3,7 +3,7 @@ from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
 from iohblade.methods import LLaMEA, RandomSearch
 from iohblade.loggers import TrackioExperimentLogger, ExperimentLogger
 from iohblade import Problem, Solution, wrap_problem
-from iohblade.problems import AutoML
+from iohblade.benchmarks import AutoML
 import numpy as np
 import os
 import logging
@@ -57,18 +57,18 @@ class RandomSearch:
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
-            
+
             f = func(x)
             if f < self.f_opt:
                 self.f_opt = f
                 self.x_opt = x
-            
+
         return self.f_opt, self.x_opt
 ```
 """
 
-minimal_problem = wrap_problem(f, 
-                            eval_timeout=30, 
+minimal_problem = wrap_problem(f,
+                            eval_timeout=30,
                             training_instances=[], #not used
                             test_instances = [], #not used
                             dependencies = None, #Default dependencies
@@ -84,14 +84,14 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
 
     # Set up the LLaMEA algorithm
     mutation_prompts = [
-        "Refine the strategy of the selected solution to improve it.", 
+        "Refine the strategy of the selected solution to improve it.",
     ]
     LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=1, n_offspring=1, elitism=True)
-    
+
     # Set up a random search baseline
     RS = RandomSearch(llm, budget=budget, name="RS")
-    
-    methods = [LLaMEA_method, RS] 
+
+    methods = [LLaMEA_method, RS]
     # make sure the "results" directory exist.
     if not os.path.exists("results"):
         os.mkdir("results")

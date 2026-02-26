@@ -7,9 +7,9 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
-from ..problem import BASE_DEPENDENCIES, Problem
-from ..solution import Solution
-from ..utils import OverBudgetException, aoc_logger, correct_aoc
+from iohblade.problem import BASE_DEPENDENCIES, Problem
+from iohblade.solution import Solution
+from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
 from .photonics_instances import (
     algorithmic_insights,
     get_photonic_instance,
@@ -77,7 +77,7 @@ class Photonics(Problem):
 You are a Python developer and AI and physics researcher.
 Your task is to develop a novel heuristic optimization algorithm for photonic optimization problems.
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
-The func() can only be called as many times as the budget allows, not more. 
+The func() can only be called as many times as the budget allows, not more.
 """
         self.example_prompt = """
 An example of such code (a simple random search), is as follows:
@@ -94,19 +94,19 @@ class RandomSearch:
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
-            
+
             f = func(x)
             if f < self.f_opt:
                 self.f_opt = f
                 self.x_opt = x
-            
+
         return self.f_opt, self.x_opt
 ```
         """
         self.format_prompt = """
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
-# Code: 
+# Code:
 ```python
 <code>
 ```

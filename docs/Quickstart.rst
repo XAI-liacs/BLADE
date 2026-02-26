@@ -46,6 +46,7 @@ Quick Start
     To run the web app:
 
     .. code-block:: bash
+
         uv run iohblade-webapp
 
     Read more :doc:`here <webapp>`.

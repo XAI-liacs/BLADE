@@ -16,9 +16,9 @@ except Exception:  # pragma: no cover - allow absence in lightweight installs
     AlgorithmConfigurationFacade = None
     Scenario = None
 
-from ..problem import BASE_DEPENDENCIES, Problem
-from ..solution import Solution
-from ..utils import OverBudgetException, aoc_logger, correct_aoc
+from iohblade.problem import BASE_DEPENDENCIES, Problem
+from iohblade.solution import Solution
+from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
 
 
 class BBOB_SBOX(Problem):
@@ -169,10 +169,10 @@ class BBOB_SBOX(Problem):
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
-{extra_prompt} Your task is to write the optimization algorithm in Python code. 
+{extra_prompt} Your task is to write the optimization algorithm in Python code.
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
-The func() can only be called as many times as the budget allows, not more. 
+The func() can only be called as many times as the budget allows, not more.
 """
         self.example_prompt = """
 An example of such code (a simple random search), is as follows:
@@ -190,19 +190,19 @@ class RandomSearch:
         self.x_opt = None
         for i in range(self.budget):
             x = np.random.uniform(func.bounds.lb, func.bounds.ub)
-            
+
             f = func(x)
             if f < self.f_opt:
                 self.f_opt = f
                 self.x_opt = x
-            
+
         return self.f_opt, self.x_opt
 ```
         """
         self.format_prompt = """
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
-# Code: 
+# Code:
 ```python
 <code>
 ```

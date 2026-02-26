@@ -16,8 +16,8 @@
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
-  <a href="https://codecov.io/gh/XAI-liacs/BLADE" > 
-    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/> 
+  <a href="https://codecov.io/gh/XAI-liacs/BLADE" >
+    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/>
   </a>
 </p>
 
@@ -35,7 +35,7 @@
 - [License](#-license)
 - [Citation](#-citation)
 
-## 🔥 News 
+## 🔥 News
 
 - 2025.03 ✨✨ **BLADE v0.0.1 released**!
 
@@ -63,12 +63,47 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 | **GECCO MA-BBOB Competition Instances** | A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. [Reference](https://iohprofiler.github.io/competitions) | 1,000               | Yes                |
 | **HLP** (High-Level Properties)   | Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality). | Generator-Based     | Yes                |
 
-In addition, several real-world applications are included such as several photonics problems.
+In addition, several real-world applications are included.
 
-### AlphaEvolve Benchmarks
+### Real World Benchmarks
 
-BLADE bundles benchmark instances inspired by the Google DeepMind
-AlphaEvolve paper. The ready-to-run reference scripts live in
+| Name | Description |
+|------|-------------|
+| **Analysis** | |
+| Auto-Correlation 1 | Minimise $\max(g) / I^2$ for non-negative signals under fixed discretisation of $[-1/4, 1/4]$. |
+| Auto-Correlation 2 | Maximise $L_2^2 / (L_1 · L_\infty)$ for non-negative signals using discrete auto-convolution. |
+| Auto-Correlation 3 | Minimise $\max(\|g\|) / I^2$ for real-valued signals with non-zero integral. |
+| **AutoML** | |
+| AutoML Pipelines | Generate and evaluate machine learning pipelines using scikit-learn. |
+| **Combinatorics** | |
+| Erdős Minimum-Overlap Problem | Minimise the suprenum overlap integral between complementary measurable functions. |
+| Euclidean Steiner Tree Problem | Minimise MST(points + Steiner points) / MST(points) ratio by adding optimal Steiner nodes. |
+| Graph Colouring Problem | Minimise the number of colours needed for a colouring nodes of a graph, s.t. no adjacent nodes share same colour. |
+| **Fourier** | |
+| Fourier Uncertainty Inequality | Minimise uncertainty bound for functions of form $P(x)e^{-πx²}$ under Hermite constraints. |
+| **Geometry** | |
+| Heilbronn (Unit Triangle) | Maximise the area of smallest triangle formed by 11 points in a unit-area triangle. |
+| Heilbronn (Unit Convex Region) | Maximise the area of smallest triangle formed by 13–14 points in a unit-area convex region. |
+| Kissing Number (11D) | Maximise number of integer vectors satisfying high-dimensional kissing constraints. |
+| Min/Max Distance Ratio | Minimise squared ratio of maximum to minimum pairwise distances (2D/3D variants). |
+| Spherical Code | Maximise the minimum pairwise angle among 30 points on a unit sphere. |
+| **Kernel Tuner** | |
+| Kernel Tuning Benchmark | Evaluate metaheuristics for hardware kernel optimisation under constraints. |
+| **Logistics** | |
+| Travelling Salesman Problem | Minimise total tour distance visiting each 2D point exactly once. |
+| Vehicle Routing Problem | Minimise total travel distance for capacitated vehicles serving weighted customers. |
+| **Matrix Multiplication via Tensor Decomposition** | |
+| Tensor CP Factorisation | Find smallest CP rank enabling exact matrix multiplication under quantised factors. |
+| **Number Theory** | |
+| Sums vs Differences | Maximise c(U) measuring imbalance between sumsets and difference sets. |
+| **Packing** | |
+| Circle Packing | Maximise total packed circle area inside a circular container without overlap. |
+| Hexagonal Packing | Minimise area of smallest enclosing hexagon containing disjoint regular hexagons. |
+| Rectangle Packing | Pack disjoint circles inside a fixed-perimeter rectangle under containment constraints. |
+| Unit Square Packing | Pack disjoint circles inside a unit square while satisfying non-overlap constraints. |
+
+
+These benchmarks are provided with ready to run instances in
 [`run_benchmarks/`](./run_benchmarks), while the reusable benchmark
 definitions are organized under [`iohblade/benchmarks`](./iohblade/benchmarks)
 by domain (analysis, combinatorics, geometry, matrix multiplication, number
@@ -142,7 +177,7 @@ make sure you have `uv` installed.
    uv sync --group kerneltuner --group dev --group docs
    ```
    This will install additional dependencies for development and building documentation.
-   The (experimental) auto-kernel application is also under a separate group for now. 
+   The (experimental) auto-kernel application is also under a separate group for now.
 4. *(Optional)* Intall Support for MLX optimised LLMs:
     ```bash
     uv sync --group dev --group apple-silicon --prerelease=allow
