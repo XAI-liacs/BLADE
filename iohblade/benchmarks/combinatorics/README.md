@@ -74,3 +74,31 @@ AlphaEvolve tackled the **continuous version** of Erdős's minimum-overlap probl
 * R. K. Guy, "Unsolved problems in number theory", Section C17, Springer (2004).
 * E. P. White, "Erdős' minimum overlap problem", arXiv:2201.05704 (2022).
 * J. K. Haugland, "The minimum overlap problem revisited", arXiv:1609.08000 (2016).
+
+---
+
+# Euclidian Steiner Benchmarks
+
+* Implement Euclidian Steiner Optimisation problem, where given a set of 2-d points $P$, the algorithm returns a set of Euclidian Steiner Points $s \notin P$.
+* The `Problem` object then evaluates the ratio:
+  $$
+    \frac{\text{MST(s + P)}}{\text{MST(P)}}
+  $$
+    * Where `MST` stands for Minimum Spanning Tree, representing the shortest length of vertices to connect each node to other.
+  * The goal is to minimise this ratio.
+---
+
+# Graph Coloring Problem
+
+* Give a graph $G(V, E)$, select a set of colours $c \in \{1, \ldots, n\}$, such that no two nodes $V$ sharing an edge $E$, share the same colour $c$:
+$$ c: V \rightarrow {1, \ldots, k}$$
+
+* The optimisation goal is to minimise the size of the color set $c$:
+  $$
+    \chi(G) = \min_{c} \; \max_{v \in V} c(v)
+  $$
+  * subject to:
+    $$
+      c(u) \neq c(v), \quad \forall (u,v) \in E
+    $$
+---

@@ -76,7 +76,9 @@ Auto-Correlation 3
 AutoML
 ^^^^^^
 
-- Used to generate a set of machine learning pipelines using libraries `scikit-learn`.
+- This benchmark evaluates **LLM-generated scikit-learn pipelines** on **OpenML tasks**.
+- Given an OpenML task ID, BLADE downloads the dataset/splits from OpenML and asks the LLM
+to produce a single Python class implementing a pipeline to optimise said task.
 
 -----------
 

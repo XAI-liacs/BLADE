@@ -44,3 +44,34 @@ This folder implements the geometry problems from the paper.
 * Distance-ratio results are reported as the squared ratio; our objective matches that quantity.
 * For 11D kissing numbers we enforce integer coordinates and the lemma condition.
 ---
+
+# Spherical Code
+
+* Goal: Maximise the minimum pairwise angle between 30 points placed on the surface of a unit sphere.
+
+* Decision Variables.
+    $$X = \{x_1, \dots, x_{30}\}, \quad x_i \in \mathbb{R}^3$$
+
+* Constraints.
+    $\|x_i\|_2 = 1 \quad \forall i$
+
+* Objective.
+    * Max–min angle formulation:
+
+        $$\max_{X} \; \min_{i \neq j} \arccos(x_i^\top x_j)$$
+
+    *  Equivalent dot-product formulation (used in practice):
+
+        $$ \min_{X} \; \max_{i \neq j} x_i^\top x_j$$
+
+        * Lower objective value corresponds to a larger minimum separation angle.
+
+* Evaluation.
+	*	Reshape candidate into $30 \times 3$
+	*	Project each vector to unit norm
+	*	Compute all pairwise dot products
+	*	Return the maximum off-diagonal entry
+
+* Constraint:
+    * No two points on the sphere should be closer than tolerance $\epsilon = 10^{-12}$.
+---
