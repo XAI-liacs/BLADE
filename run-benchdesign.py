@@ -8,9 +8,10 @@ import numpy as np
 import os
 
 if __name__ == "__main__": # prevents weird restarting behaviour
-    api_key = os.getenv("OPENAI_API_KEY")
-    ai_model = "gpt-5-mini"
-    llm = OpenAI_LLM(api_key, ai_model, temperature=1.0)
+    # api_key = os.getenv("OPENAI_API_KEY")
+    # ai_model = "gpt-5-mini"
+    llm1 = Ollama_LLM('gpt-oss:20b')
+    llm2 = Ollama_LLM('gemma3:27b')
     budget = 100
 
 
@@ -21,9 +22,10 @@ if __name__ == "__main__": # prevents weird restarting behaviour
         "Change the dimensionality of some functions."
     ]
     
-    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=6, elitism=True)
+    LLaMEA_method = LLaMEA(llm1, budget=budget, name="LLaMEA-gpt-oss", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=6, elitism=True)
+    LLaMEA_method2 = LLaMEA(llm2, budget=budget, name="LLaMEA-gemma", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=6, elitism=True)
 
-    methods = [LLaMEA_method] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
+    methods = [LLaMEA_method, LLaMEA_method2] #, LLaMEA_method4, LLaMEA_method5]#, LLaMEA_method4, LLaMEA_method5]
     logger = ExperimentLogger("results/benchdesign")
     problem = BenchDesign(logger=logger,
         name="BenchDesign",

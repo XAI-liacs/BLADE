@@ -12,6 +12,7 @@ import math
 
 from ..problem import Problem
 from ..solution import Solution
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 ALGORITHMS = {
     "CMA": CMA,
@@ -297,10 +298,11 @@ Provide your response in the following format:
     def evaluate(self, solution: Solution, test=False):
         warnings.filterwarnings("ignore", category=Warning)
 
-        local_env = {}
-        safe_globals = {"np": np, "math": math}
+        # local_env = {}
+        # safe_globals = {"np": np, "math": math}
         try:
-            exec(solution.code, safe_globals, local_env)
+            ns = prepare_namespace(solution.code, self.dependencies)
+            exec(solution.code, ns, ns)
         except Exception as exc:
             print(exc)
             solution.set_scores(
@@ -310,8 +312,8 @@ Provide your response in the following format:
             )
             return solution
 
-        problems = local_env.get("problems")
-        meta_dims = local_env.get("meta_dims")
+        problems = ns.get("problems")
+        meta_dims = ns.get("meta_dims")
 
         error = _validate_suite(problems, meta_dims)
         if error:
@@ -324,7 +326,7 @@ Provide your response in the following format:
 
         with tempfile.TemporaryDirectory() as log_root:
             run_benchmark(
-                local_env,
+                ns,
                 problems,
                 meta_dims,
                 self.budget,
