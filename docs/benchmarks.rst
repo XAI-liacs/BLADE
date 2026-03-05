@@ -12,6 +12,49 @@ These instances are available in two complementary forms:
 
 The packaged benchmarks are grouped by domain.
 
+Methodology Taxonomy
+--------------------
+
+The benchmark families in ``iohblade/benchmarks`` can also be grouped by
+optimization structure.
+
+.. _taxonomy_black_box_continuous:
+
+Black-box Continuous
+^^^^^^^^^^^^^^^^^^^^
+
+- ``BBOB``
+- ``mabbob``
+- ``photonics``
+
+.. _taxonomy_black_box_discrete_mixed_integer:
+
+Black-box Discrete/Mixed-Integer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``combinatorics``
+- ``logistics``
+- ``packing``
+- ``kerneltuner``
+
+.. _taxonomy_structured_scientific_program_search:
+
+Structured Scientific Program/Search
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``analysis``
+- ``fourier``
+- ``number_theory``
+- ``matrix_multiplication``
+- ``geometry``
+
+.. _taxonomy_ml_pipeline_optimization:
+
+ML Pipeline Optimization
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- ``automl``
+
 ------------------------------------------------------------------------------------
 
 .. _list_of_benchmarks:
@@ -20,6 +63,9 @@ List of Benchmarks
 
 Analysis
 ^^^^^^^^
+
+Methodology class:
+:ref:`Structured Scientific Program/Search <taxonomy_structured_scientific_program_search>`.
 
 Perform auto-correlation on a time series using the following configuration:
 
@@ -76,6 +122,9 @@ Auto-Correlation 3
 AutoML
 ^^^^^^
 
+Methodology class: :ref:`ML Pipeline Optimization
+<taxonomy_ml_pipeline_optimization>`.
+
 The AutoML benchmark evaluates **LLM-generated scikit-learn pipelines** on supervised
 learning tasks hosted on the `OpenML <https://www.openml.org/>`_ platform.
 
@@ -93,7 +142,11 @@ learning tasks hosted on the `OpenML <https://www.openml.org/>`_ platform.
 Black Box and Photonics Optimisation (BBO & Photonics)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Methodology class:
+:ref:`Black-box Continuous <taxonomy_black_box_continuous>`.
+
 - Contains a set of Black Box Optimisation problems from the `ioh benchmarks`_ library.
+- Includes both ``BBOB`` and ``mabbob`` benchmark families.
 
 .. _ioh benchmarks: https://iohprofiler.github.io/IOHexp/
 
@@ -102,6 +155,9 @@ Black Box and Photonics Optimisation (BBO & Photonics)
 
 Combinatorics
 ^^^^^^^^^^^^^
+
+Methodology class: :ref:`Black-box Discrete/Mixed-Integer
+<taxonomy_black_box_discrete_mixed_integer>`.
 
 Erdős Minimum-Overlap Problem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -148,6 +204,9 @@ Graph Colouring Problem
 Fourier
 ^^^^^^^
 
+Methodology class:
+:ref:`Structured Scientific Program/Search <taxonomy_structured_scientific_program_search>`.
+
 Fourier Uncertainty Inequality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -173,6 +232,9 @@ Fourier Uncertainty Inequality
 
 Geometry
 ^^^^^^^^
+
+Methodology class:
+:ref:`Structured Scientific Program/Search <taxonomy_structured_scientific_program_search>`.
 
 Heilbronn Problem on a Unit-Area Triangle
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -250,6 +312,9 @@ Spherical Code
 Kernel Tuner
 ^^^^^^^^^^^^
 
+Methodology class: :ref:`Black-box Discrete/Mixed-Integer
+<taxonomy_black_box_discrete_mixed_integer>`.
+
 - This benchmark evaluates **metaheuristic algorithms for hardware kernel tuning** across integer and variable-dimensional search spaces with constraints.
 - The algorithm is scored based on performance of the kernel using metrices like:
     - runtime
@@ -259,6 +324,9 @@ Kernel Tuner
 
 Logistics
 ^^^^^^^^^
+
+Methodology class: :ref:`Black-box Discrete/Mixed-Integer
+<taxonomy_black_box_discrete_mixed_integer>`.
 
 Travelling Salesman Problem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -291,6 +359,9 @@ Vehicle Routing Problem
 
 Matrix Multiplication via Tensor Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Methodology class:
+:ref:`Structured Scientific Program/Search <taxonomy_structured_scientific_program_search>`.
 
 - Given matrix dimensions:
     .. math::
@@ -326,6 +397,10 @@ Matrix Multiplication via Tensor Decomposition
 
 Number Theory
 ^^^^^^^^^^^^^
+
+Methodology class:
+:ref:`Structured Scientific Program/Search <taxonomy_structured_scientific_program_search>`.
+
 Sums vs Differences (Single-Set Formulation)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -358,6 +433,9 @@ Sums vs Differences (Single-Set Formulation)
 
 Packing
 ^^^^^^^
+
+Methodology class: :ref:`Black-box Discrete/Mixed-Integer
+<taxonomy_black_box_discrete_mixed_integer>`.
 
 - Contains a set of packing problems, ranging from Hexagonal Packing to Circle Packing.
 
