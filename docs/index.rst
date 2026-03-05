@@ -7,8 +7,8 @@
 BLADE
 ===========================================================
 
-.. image:: https://badge.fury.io/py/blade.svg
-   :target: https://pypi.org/project/blade/
+.. image:: https://badge.fury.io/py/iohblade.svg
+   :target: https://pypi.org/project/iohblade/
    :alt: PyPI version
    :height: 18
 .. image:: https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg
@@ -44,6 +44,15 @@ It focuses on **continuous black-box optimization** and integrates a diverse set
 
 Features
 --------
+
+Documentation Guide
+-------------------
+
+- Start here for conceptual usage: :doc:`Introduction` and :doc:`Quickstart`.
+- For benchmark catalog and taxonomy: :doc:`benchmarks`.
+- For API reference by feature area: :doc:`modules`.
+- For interactive monitoring: :doc:`webapp`.
+
 
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Algorithm Design:** Supports algorithm evolution and design using large language models.
@@ -188,6 +197,7 @@ If you use BLADE in your research, please consider citing the associated paper:
    benchmarks
    webapp
    modules
+   methods
    notebooks/simple_experiment
    notebooks/custom_problem
    notebooks/custom_method

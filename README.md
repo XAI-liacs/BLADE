@@ -51,6 +51,23 @@
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
 - **Automatic Logging & Visualization:** Integrated with **IOHprofiler** for performance tracking.
 
+#### Feature Coverage Map
+
+To make feature discovery easier, this table maps the main BLADE features
+to the implementation location and corresponding documentation entry.
+
+| Feature | Implementation | Documentation |
+|---|---|---|
+| Experiment orchestration | `iohblade/experiment.py` | `docs/experiment.rst` |
+| Problems and benchmark wrapping | `iohblade/problem.py`, `iohblade/benchmarks/` | `docs/problem.rst`, `docs/benchmarks.rst` |
+| Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch helper) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
+| LLM provider integration | `iohblade/llm.py` | `docs/llm.rst` |
+| Loggers (local, MLflow, Trackio) | `iohblade/loggers/` | `docs/loggers.rst` |
+| Baselines | `iohblade/baselines/` | `docs/baselines.rst` |
+| Plotting and analysis helpers | `iohblade/plots.py`, `iohblade/behaviour_metrics.py` | `docs/plots.rst`, `docs/behaviour_metrics.rst` |
+| Streamlit result browser | `iohblade/webapp.py` | `docs/webapp.rst` |
+| Utility helpers and exceptions | `iohblade/utils.py` | `docs/utils.rst` |
+
 #### Included Benchmark Function Sets
 
 BLADE incorporates several benchmark function sets to provide a comprehensive evaluation environment:
@@ -204,7 +221,7 @@ make sure you have `uv` installed.
     from iohblade.experiment import Experiment
     from iohblade.llm import Ollama_LLM
     from iohblade.methods import LLaMEA, RandomSearch
-    from iohblade.problems import BBOB_SBOX
+    from iohblade.benchmarks import BBOB_SBOX
     from iohblade.loggers import ExperimentLogger
 
     llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b

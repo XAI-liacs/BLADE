@@ -19,7 +19,7 @@ Quick Start
       from iohblade.experiment import Experiment
       from iohblade.llm import Ollama_LLM
       from iohblade.methods import LLaMEA, RandomSearch
-      from iohblade.problems import BBOB_SBOX
+      from iohblade.benchmarks import BBOB_SBOX
       from iohblade.loggers import ExperimentLogger
 
       llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
@@ -36,7 +36,7 @@ Quick Start
       problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
       # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
       logger = ExperimentLogger("results/SBOX")
-      experiment = Experiment(methods=methods, problems=problems, llm=llm, runs=5, show_stdout=True, exp_logger=logger) #normal run
+      experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
       experiment() #run the experiment, all data is logged in the folder results/SBOX/
 
 3. Monitoring experiment progress.
@@ -55,4 +55,4 @@ Quick Start
 Examples
 --------
 
-Additional examples can be founnd in our `examples` folder on Github.
+Additional examples can be found in our `examples` folder on GitHub.

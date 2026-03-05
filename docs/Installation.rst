@@ -11,7 +11,7 @@ It is easiest to use BLADE from the PyPI package:
    The Python version **must** be >= 3.11.
    An OpenAI/Gemini/Ollama/Claude/DeepSeek API key is needed for using LLM models.
 
-You can also install the package from source using **uv** (0.7.9).
+You can also install the package from source using **uv** (0.7.19 or newer).
 
 1. Clone the repository:
 
@@ -32,8 +32,8 @@ You can also install the package from source using **uv** (0.7.9).
 
       uv sync --group dev --group docs
 
-4. (Optional) Install support for running MLX optimised LLMs locally on apple silicon machine:
+4. (Optional) Install support for running MLX optimised LLMs locally on Apple Silicon machines:
 
    .. code-block:: bash
 
-      uv sync --group dev --group docs --group apple_silicon --prerelease=allow
+      uv sync --group dev --group docs --group apple-silicon --prerelease=allow
