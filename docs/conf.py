@@ -33,6 +33,7 @@ extensions = [
     "myst_parser",
     "nbsphinx",
     "sphinx_copybutton",
+    "sphinx_multiversion",
 ]
 
 nbsphinx_allow_errors = True  # Continue through errors in notebook cells
@@ -46,6 +47,12 @@ templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 autodoc_mock_imports = ["modcma"]
+
+# sphinx-multiversion configuration
+smv_tag_whitelist = r"^v\d+\.\d+\.\d+$"
+smv_branch_whitelist = r"^main$"
+smv_released_pattern = r"^refs/tags/v\d+\.\d+\.\d+$"
+smv_outputdir_format = "{ref.name}"
 
 # -- Options for HTML output -------------------------------------------------
 
