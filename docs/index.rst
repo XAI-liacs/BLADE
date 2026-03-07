@@ -33,17 +33,8 @@ BLADE
 
 **BLADE** is a Python framework for benchmarking the Llm Assisted Design and Evolution of algorithms.
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs).
-It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
+It focuses on **heuristic optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
-
-🔥 News
---------
-
-- 2025.03 ✨✨ **iohblade v0.0.1 released**!
-
-
-Features
---------
 
 Documentation Guide
 -------------------
