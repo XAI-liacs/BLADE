@@ -88,8 +88,90 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
      - A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. `Reference <https://iohprofiler.github.io/competitions>`_
      - 1,000
      - Yes
+   * - **HLP** (High-Level Properties)
+     - Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality).
+     - Generator-Based
+     - Yes
 
-In addition, several real-world applications are included, such as several photonics problems.
+In addition, several real-world applications are included.
+
+Real World Benchmarks
+---------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Name
+     - Description
+   * - **Analysis**
+     -
+   * - Auto-Correlation 1
+     - Minimise ``max(g) / I^2`` for non-negative signals under fixed discretisation of ``[-1/4, 1/4]``.
+   * - Auto-Correlation 2
+     - Maximise ``L_2^2 / (L_1 · L_∞)`` for non-negative signals using discrete auto-convolution.
+   * - Auto-Correlation 3
+     - Minimise ``max(||g||) / I^2`` for real-valued signals with non-zero integral.
+   * - **AutoML**
+     -
+   * - AutoML Pipelines
+     - Generate and evaluate machine learning pipelines using scikit-learn.
+   * - **Combinatorics**
+     -
+   * - Erdős Minimum-Overlap Problem
+     - Minimise the suprenum overlap integral between complementary measurable functions.
+   * - Euclidean Steiner Tree Problem
+     - Minimise ``MST(points + Steiner points) / MST(points)`` ratio by adding optimal Steiner nodes.
+   * - Graph Colouring Problem
+     - Minimise the number of colours needed to colour graph nodes so adjacent nodes never share a colour.
+   * - **Fourier**
+     -
+   * - Fourier Uncertainty Inequality
+     - Minimise uncertainty bound for functions of form ``P(x)e^{-πx²}`` under Hermite constraints.
+   * - **Geometry**
+     -
+   * - Heilbronn (Unit Triangle)
+     - Maximise the area of the smallest triangle formed by 11 points in a unit-area triangle.
+   * - Heilbronn (Unit Convex Region)
+     - Maximise the area of the smallest triangle formed by 13-14 points in a unit-area convex region.
+   * - Kissing Number (11D)
+     - Maximise number of integer vectors satisfying high-dimensional kissing constraints.
+   * - Min/Max Distance Ratio
+     - Minimise squared ratio of maximum to minimum pairwise distances (2D/3D variants).
+   * - Spherical Code
+     - Maximise the minimum pairwise angle among 30 points on a unit sphere.
+   * - **Kernel Tuner**
+     -
+   * - Kernel Tuning Benchmark
+     - Evaluate metaheuristics for hardware kernel optimisation under constraints.
+   * - **Logistics**
+     -
+   * - Travelling Salesman Problem
+     - Minimise total tour distance visiting each 2D point exactly once.
+   * - Vehicle Routing Problem
+     - Minimise total travel distance for capacitated vehicles serving weighted customers.
+   * - **Matrix Multiplication via Tensor Decomposition**
+     -
+   * - Tensor CP Factorisation
+     - Find smallest CP rank enabling exact matrix multiplication under quantised factors.
+   * - **Number Theory**
+     -
+   * - Sums vs Differences
+     - Maximise ``c(U)`` measuring imbalance between sumsets and difference sets.
+   * - **Packing**
+     -
+   * - Circle Packing
+     - Maximise total packed circle area inside a circular container without overlap.
+   * - Hexagonal Packing
+     - Minimise area of smallest enclosing hexagon containing disjoint regular hexagons.
+   * - Rectangle Packing
+     - Pack disjoint circles inside a fixed-perimeter rectangle under containment constraints.
+   * - Unit Square Packing
+     - Pack disjoint circles inside a unit square while satisfying non-overlap constraints.
+
+These benchmarks are provided with ready-to-run instances in
+``run_benchmarks/``, while reusable benchmark definitions are organized under
+``iohblade/benchmarks`` by domain.
 
 Included Search Methods
 -----------------------
