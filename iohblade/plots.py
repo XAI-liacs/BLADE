@@ -44,6 +44,7 @@ def plot_convergence(
     return_fig: bool = False,
     separate_lines: bool = False,
     show_std: bool = True,
+    replace_labels = None,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
@@ -59,6 +60,7 @@ def plot_convergence(
         return_fig (bool, optional): Whether to return the figure object.
         separate_lines (bool, optional): If True, plots each run using separate line.
         show_std (bool, optional): If True, shows standard deviation as shaded area.
+        replace_labels (dict, optional): A mapping from original method names to display names for the legend.
     """
     methods_to_use = methods
     methods, problems = logger.get_methods_problems()
@@ -72,6 +74,11 @@ def plot_convergence(
         data = logger.get_problem_data(problem_name=problem).drop(
             columns=["code"]
         )  # for efficiency we drop code for now
+
+        # replace method names
+        if replace_labels is not None:
+            data['method_name'].replace(replace_labels, inplace=True)
+
         data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
 
@@ -150,6 +157,7 @@ def plot_speedup(
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
+    replace_labels= None,
 ):
     """
     Plots speed-up of method_fast over method_slow.
@@ -168,6 +176,7 @@ def plot_speedup(
         budget (int): max evaluations
         save (bool)
         return_fig (bool)
+        replace_labels (dict, optional): A mapping from original method names to display names for the legend.
     """
 
     methods, problems = logger.get_methods_problems()
@@ -185,6 +194,9 @@ def plot_speedup(
         data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
         data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
+        # replace method names
+        if replace_labels is not None:
+            data['method_name'].replace(replace_labels, inplace=True)
 
         def compute_summary(method):
             df = data[data["method_name"] == method].copy()
@@ -274,6 +286,7 @@ def compare_auc(
     n_boot: int = 10000,
     alpha: float = 0.05,
     rng: int = 0,
+    replace_labels = None,
 ):
     """
     Compares convergence AUCs of two methods using paired statistics,
@@ -293,6 +306,9 @@ def compare_auc(
         data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
         data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
+        if replace_labels is not None:
+            data['method_name'].replace(replace_labels, inplace=True)
+
 
         aucs = {}
 
