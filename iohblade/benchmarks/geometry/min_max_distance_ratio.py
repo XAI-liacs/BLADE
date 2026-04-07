@@ -42,13 +42,11 @@ class MinMaxMinDistanceRatio(Problem):
             raise ValueError("dim must be >= 1")
 
         self.best_known = best_known
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
         self.minimisation = True
         self.dependencies += ["scipy", "scikit-learn"]
 

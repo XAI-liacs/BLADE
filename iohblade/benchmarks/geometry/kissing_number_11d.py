@@ -33,13 +33,11 @@ class KissingNumber11D(Problem):
         self.tolerance = float(tolerance)
         self.best_solution = best_solution
         self.best_known = best_known
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Kissing Number {self.dim}D, and best solution: {self.best_known}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
         self.dependencies += ["scipy"]
         self.minimisation = False
 

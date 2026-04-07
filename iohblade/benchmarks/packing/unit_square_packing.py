@@ -26,13 +26,11 @@ class UnitSquarePacking(PackingBase, Problem):
         PackingBase.__init__(self, task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name)
 
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Unit Square Packing problem, with {self.n_circles} circles, best known score {self.best_known}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
 
         headline = "Packing n disjoint circles inside the unit square [0,1]×[0,1]."
         contract = "Return a numpy array U with shape (n,3), U[i]=[x_i, y_i, r_i]."

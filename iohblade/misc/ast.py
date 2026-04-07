@@ -19,7 +19,6 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler, minmax_scale
 
-
 CACHE_DIR = os.path.join(tempfile.gettempdir(), "iohblade_cache")
 memory = Memory(CACHE_DIR, verbose=0)
 

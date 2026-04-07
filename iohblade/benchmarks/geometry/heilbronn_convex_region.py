@@ -41,13 +41,11 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
         else:
             self.best_solution = None
 
-        print(
-            f"""
+        print(f"""
 ------------------------------------------------------------------------------------------------------------------------
 Instantiated Heibronn Convex Region Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
 ------------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
         Problem.__init__(self, name=f"heilbronn_convex_region-n{n_points}")
 
         self.dependencies += ["scipy", "shapely"]
