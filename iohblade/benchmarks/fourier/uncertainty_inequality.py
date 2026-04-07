@@ -34,13 +34,11 @@ class UncertaintyInequality(FourierBase, Problem):
         self.format_prompt = self.make_format_prompt()
 
         self.best_known = best_known
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Fourier Uncertainty Inequality problem with number of terms = {self.n_terms}, best known {self.best_known}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
 
         self.dependencies += ["scipy"]
         self.minimisation = True

@@ -8,7 +8,6 @@ import numpy as np
 
 from iohblade.solution import Solution
 
-
 # Type hint only - not imported at runtime
 if TYPE_CHECKING:
     from benchmarks.matrix_multiplication.task_specification import (

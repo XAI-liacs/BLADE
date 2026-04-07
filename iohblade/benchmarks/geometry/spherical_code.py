@@ -31,8 +31,7 @@ class SphericalCode(Problem):
             dependencies=["scipy", "shapely"],
         )
         ## Set prompts:
-        self.task_prompt = (
-            f"""
+        self.task_prompt = f"""
 Write a python class with function `__call__`, that generate a solution for Spherical Code Problem on a unit sphere.
 - The class must initialise with 2 positional parameters:
     1. n_points: Number of 3-D points that __call__ returns.
@@ -41,9 +40,7 @@ Write a python class with function `__call__`, that generate a solution for Sphe
     - `points : list[tuple[float, float, float]]`: A list of {self.n_points} 3-D points as solution to the problem.
 - The optimisation goal is to maximize the minimum pairwise angle given by:
 
-"""
-            + "\\[\\theta_{\\min} = \\min_{i < j} \\cos^{-1}(\\braket{p_i, p_j})\\]"
-        )
+""" + "\\[\\theta_{\\min} = \\min_{i < j} \\cos^{-1}(\\braket{p_i, p_j})\\]"
 
         self.example_prompt = f"""
 An example response can be

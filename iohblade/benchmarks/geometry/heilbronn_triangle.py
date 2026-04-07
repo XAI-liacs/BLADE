@@ -42,13 +42,11 @@ class HeilbronnTriangle(GeometryBase, Problem):
             self.triangle_best_solution = None
         self.best_solution = best_solution
 
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
 
         self.task_prompt = """
 Write a python class with function `__call__`, that generate a solution for Heilbronn on a unit area triangle.

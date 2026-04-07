@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-
 MATMUL_RANKS: Dict[Tuple[int, int, int], Dict[str, int]] = {
     # 2x2xp family
     (2, 2, 2): {"best_known": 7, "alphaevolve_best": 7},
