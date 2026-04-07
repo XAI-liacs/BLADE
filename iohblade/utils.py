@@ -8,7 +8,6 @@ from typing import Optional, Tuple
 
 import numpy as np
 
-
 try:
     from ioh import LogInfo, logger
 except ModuleNotFoundError:  # pragma: no cover - optional dependency

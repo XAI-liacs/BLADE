@@ -69,9 +69,7 @@ class {class_name}:
         n_circles: int,
         body_hint: Optional[str] = None,
     ) -> str:
-        hint = (
-            body_hint
-            or """import numpy as np
+        hint = body_hint or """import numpy as np
 
 rng = np.random.default_rng(0)
 n = getattr(self, 'n_circles', 8)
@@ -89,7 +87,6 @@ for i in range(n):
     pts.append([x, y, r])
 return np.array(pts, dtype=float)
 """
-        )
 
         best_known_initialiser = f"""
     def __init__(self, n_circles: int = {n_circles}):

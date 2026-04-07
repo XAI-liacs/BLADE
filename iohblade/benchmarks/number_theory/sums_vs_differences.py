@@ -29,13 +29,11 @@ class SumDifference(NumberTheoryBase, Problem):
         NumberTheoryBase.__init__(self, task_name, best_solution)
         Problem.__init__(self, task_name)
 
-        print(
-            f"""
+        print(f"""
 --------------------------------------------------------------------------------------------------------------------
 Instantiated Sums vs Difference benchmark with best known solution {self.best_score}.
 --------------------------------------------------------------------------------------------------------------------
-"""
-        )
+""")
 
         # Prompting strings used by the outer orchestration, if any.
         self.task_prompt = self.make_task_prompt(
