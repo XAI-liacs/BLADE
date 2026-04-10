@@ -29,9 +29,7 @@ from iohblade.fitness import Fitness
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
-
-_REFERENCE_CODE = textwrap.dedent(
-    """\
+_REFERENCE_CODE = textwrap.dedent("""\
     import numpy as np
 
     class BiSphereSearcher:
@@ -47,8 +45,7 @@ _REFERENCE_CODE = textwrap.dedent(
             f1s = xs ** 2
             f2s = (xs - 2.0) ** 2
             return float(f1s.min()), float(f2s.min())
-    """
-)
+    """)
 
 
 class ToyMultiObjective(Problem):
@@ -78,8 +75,7 @@ class ToyMultiObjective(Problem):
         Problem name (shown in logs and plots).
     """
 
-    task_prompt = textwrap.dedent(
-        """\
+    task_prompt = textwrap.dedent("""\
         You are given a bi-objective optimisation task. Your goal is to write
         a Python class that searches for a scalar value x in [-1, 3] and
         simultaneously minimises:
@@ -100,21 +96,17 @@ class ToyMultiObjective(Problem):
         values for each objective found within `budget` function evaluations.
         You are free to use any search strategy you like (random search,
         grid search, gradient-free optimisation, etc.).
-        """
-    )
+        """)
 
-    example_prompt = textwrap.dedent(
-        f"""\
+    example_prompt = textwrap.dedent(f"""\
         Here is a simple reference implementation:
 
         ```python
         {_REFERENCE_CODE}
         ```
-        """
-    )
+        """)
 
-    format_prompt = textwrap.dedent(
-        """\
+    format_prompt = textwrap.dedent("""\
         Your solution must be a Python class named `BiSphereSearcher` with a
         `run(self, budget: int = 100) -> tuple[float, float]` method.
         Wrap the class in a Python code block:
@@ -123,8 +115,7 @@ class ToyMultiObjective(Problem):
         class BiSphereSearcher:
             ...
         ```
-        """
-    )
+        """)
 
     def __init__(self, budget: int = 100, name: str = "ToyMultiObjective"):
         super().__init__(name=name)
@@ -179,9 +170,7 @@ class ToyMultiObjective(Problem):
 
         # BLADE maximises: negate so that closer to 0 → higher fitness
         fitness = Fitness({"f1": -best_f1, "f2": -best_f2})
-        feedback = (
-            f"Best f1 (x²) = {best_f1:.4f}, best f2 ((x-2)²) = {best_f2:.4f}."
-        )
+        feedback = f"Best f1 (x²) = {best_f1:.4f}, best f2 ((x-2)²) = {best_f2:.4f}."
         return solution.set_scores(fitness=fitness, feedback=feedback)
 
     def test(self, solution: Solution) -> Solution:

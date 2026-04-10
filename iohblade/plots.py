@@ -329,7 +329,9 @@ def plot_pareto_front(
 
         data = data.dropna(subset=[f"obj_{objective_x}", f"obj_{objective_y}"])
 
-        unique_methods = [m for m in data["method_name"].unique() if m in methods_to_use]
+        unique_methods = [
+            m for m in data["method_name"].unique() if m in methods_to_use
+        ]
         colors = plt.cm.tab10(np.linspace(0, 1, max(len(unique_methods), 1)))
 
         for method, color in zip(unique_methods, colors):
@@ -346,12 +348,23 @@ def plot_pareto_front(
                 py = ys[pareto_mask]
                 order = np.argsort(px)
                 ax.scatter(
-                    px, py, color=color, edgecolors="black", linewidths=0.8,
-                    s=60, zorder=5, label=f"{method} (Pareto)"
+                    px,
+                    py,
+                    color=color,
+                    edgecolors="black",
+                    linewidths=0.8,
+                    s=60,
+                    zorder=5,
+                    label=f"{method} (Pareto)",
                 )
                 ax.step(
-                    px[order], py[order], where="post",
-                    color=color, linewidth=1.5, linestyle="--", alpha=0.7,
+                    px[order],
+                    py[order],
+                    where="post",
+                    color=color,
+                    linewidth=1.5,
+                    linestyle="--",
+                    alpha=0.7,
                 )
 
         ax.set_xlabel(objective_x)
@@ -539,9 +552,10 @@ def plot_code_evolution_graphs(
     data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     # For multi-objective fitness (stored as dict), derive a scalar before scaling
-    if "fitness" in data.columns and data["fitness"].apply(
-        lambda v: isinstance(v, dict)
-    ).any():
+    if (
+        "fitness" in data.columns
+        and data["fitness"].apply(lambda v: isinstance(v, dict)).any()
+    ):
         from .loggers import ExperimentLogger
 
         data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
@@ -759,9 +773,10 @@ def plotly_code_evolution(
     data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
     # For multi-objective fitness (stored as dict), derive a scalar before scaling
-    if "fitness" in data.columns and data["fitness"].apply(
-        lambda v: isinstance(v, dict)
-    ).any():
+    if (
+        "fitness" in data.columns
+        and data["fitness"].apply(lambda v: isinstance(v, dict)).any()
+    ):
         from .loggers import ExperimentLogger
 
         data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
