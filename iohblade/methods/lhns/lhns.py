@@ -58,18 +58,9 @@ class LHNS:
         self.current_solution = Solution()
         self.best_solution = Solution()
 
-    @staticmethod
-    def _fitness_scalar(fitness) -> float:
-        """Return a scalar float for any fitness value (float or Fitness)."""
-        try:
-            return float(fitness)
-        except (TypeError, ValueError):
-            return math.nan
-
     def _log_best_solution(self, next: Solution):
         print(f"Self score: {self.best_solution.fitness}; new score: {next.fitness}")
-        best_scalar = self._fitness_scalar(self.best_solution.fitness)
-        if math.isnan(best_scalar):
+        if math.isnan(self.best_solution.fitness):
             self.best_solution = next
             return
         else:
@@ -91,18 +82,17 @@ class LHNS:
         `None`: Will replace self.current_solution with aforementioned probability.
         """
         print("Simulated Annealing....")
-        cur_scalar = self._fitness_scalar(self.current_solution.fitness)
-        nxt_scalar = self._fitness_scalar(next_solution.fitness)
-
-        if math.isnan(cur_scalar) or math.isinf(cur_scalar):
-            if math.isnan(nxt_scalar) or math.isinf(nxt_scalar):
+        if math.isnan(self.current_solution.fitness) or math.isinf(
+            self.current_solution.fitness
+        ):
+            if math.isnan(next_solution.fitness) or math.isinf(next_solution.fitness):
                 self.current_solution = random.choice(
                     [self.current_solution, next_solution]
                 )
             else:
                 self.current_solution = next_solution
             return
-        if math.isnan(nxt_scalar) or math.isinf(nxt_scalar):
+        if math.isnan(next_solution.fitness) or math.isinf(next_solution.fitness):
             return
 
         temperature = self.alpha * iteration_number / self.budget
@@ -111,7 +101,7 @@ class LHNS:
             if next_solution.fitness < self.current_solution.fitness:
                 self.current_solution = next_solution
             else:
-                delta = abs(nxt_scalar - cur_scalar)
+                delta = abs(next_solution.fitness - self.current_solution.fitness)
                 p = math.e ** (-1 * delta / temperature)
                 if random.random() <= p:
                     self.current_solution = next_solution
@@ -119,7 +109,7 @@ class LHNS:
             if next_solution.fitness > self.current_solution.fitness:
                 self.current_solution = next_solution
             else:
-                delta = abs(nxt_scalar - cur_scalar)
+                delta = abs(next_solution.fitness - self.current_solution.fitness)
                 p = math.e ** (-1 * delta / temperature)
                 if random.random() <= p:
                     self.current_solution = next_solution
