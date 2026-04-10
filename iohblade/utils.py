@@ -108,6 +108,10 @@ def sanitize(o):
 
 
 def convert_to_serializable(data):
+    from .fitness import Fitness
+
+    if isinstance(data, Fitness):
+        return data.to_dict()
     if isinstance(data, dict):
         return {key: convert_to_serializable(value) for key, value in data.items()}
     elif isinstance(data, list):

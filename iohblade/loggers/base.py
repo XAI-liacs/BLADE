@@ -211,15 +211,46 @@ class ExperimentLogger:
                 frames.append(pd.read_json(path, lines=True))
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
+    @staticmethod
+    def _fitness_to_scalar(fitness_val) -> float:
+        """Convert a fitness value to a scalar float.
+
+        Handles both plain ``float`` values and multi-objective
+        :class:`~iohblade.fitness.Fitness` dicts that were serialised to JSON.
+        When the value is a dict (serialised ``Fitness``), the scalar is the
+        mean of all objectives — matching ``Fitness.__float__``.
+
+        Args:
+            fitness_val: A float, int, or dict representing a fitness value.
+
+        Returns:
+            float: A scalar fitness value.
+        """
+        if isinstance(fitness_val, dict):
+            from ..fitness import Fitness
+
+            return float(Fitness.from_dict(fitness_val))
+        try:
+            return float(fitness_val)
+        except (TypeError, ValueError):
+            import math
+
+            return math.nan
+
     def get_problem_data(self, problem_name):
         """
         Retrieves the data for a specific method and problem from the experiment log.
+
+        For multi-objective problems the ``fitness`` column contains the per-objective
+        dict (as stored in ``log.jsonl``).  A companion column ``fitness_scalar`` is
+        added that holds a single float for use in plots that require a scalar metric
+        (e.g. convergence curves).
 
         Args:
             problem_name (str): The name of the problem.
 
         Returns:
-            list: List of run data for the specified method and problem.
+            pd.DataFrame: DataFrame of run data for the specified problem.
         """
         bigdf = pd.DataFrame()
         for d in self.dirs:
@@ -240,6 +271,11 @@ class ExperimentLogger:
                         df["problem_name"] = line["problem_name"]
                         df["seed"] = line["seed"]
                         df["_id"] = df.index
+                        # Add scalar fitness column for multi-objective support
+                        if "fitness" in df.columns:
+                            df["fitness_scalar"] = df["fitness"].apply(
+                                self._fitness_to_scalar
+                            )
                         bigdf = pd.concat([bigdf, df], ignore_index=True)
         return bigdf
 

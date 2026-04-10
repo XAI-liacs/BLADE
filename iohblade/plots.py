@@ -75,13 +75,14 @@ def plot_speedup(
 
     for ax, problem in zip(axes, problems):
         data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
+        fitness_col = _get_scalar_fitness_column(data)
         data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
 
-        def compute_summary(method):
+        def compute_summary(method, fitness_col=fitness_col):
             df = data[data["method_name"] == method].copy()
             df = df.sort_values(by=["seed", "_id"])
-            df["cummax_fitness"] = df.groupby("seed")["fitness"].cummax()
+            df["cummax_fitness"] = df.groupby("seed")[fitness_col].cummax()
 
             summary = (
                 df.groupby("_id")["cummax_fitness"]
@@ -135,6 +136,22 @@ def plot_speedup(
     plt.close()
 
 
+def _get_scalar_fitness_column(data: pd.DataFrame) -> str:
+    """Return the column name to use for scalar fitness comparisons.
+
+    For multi-objective problems ``get_problem_data`` adds a ``fitness_scalar``
+    column containing the mean of all objectives.  For single-objective problems
+    the plain ``fitness`` column is used directly.
+
+    Args:
+        data (pd.DataFrame): DataFrame returned by ``ExperimentLogger.get_problem_data``.
+
+    Returns:
+        str: ``"fitness_scalar"`` when available, otherwise ``"fitness"``.
+    """
+    return "fitness_scalar" if "fitness_scalar" in data.columns else "fitness"
+
+
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
@@ -149,6 +166,10 @@ def plot_convergence(
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
+
+    For multi-objective problems the scalar summary (mean of all objectives) is
+    used as the convergence metric.  Use :func:`plot_pareto_front` to visualise
+    the Pareto front directly.
 
     Args:
         logger (ExperimentLogger): The experiment logger object.
@@ -174,6 +195,9 @@ def plot_convergence(
         data = logger.get_problem_data(problem_name=problem).drop(
             columns=["code"]
         )  # for efficiency we drop code for now
+
+        fitness_col = _get_scalar_fitness_column(data)
+
         data.replace([-np.inf, np.inf], 0, inplace=True)
         data.fillna(0, inplace=True)
 
@@ -188,7 +212,7 @@ def plot_convergence(
 
             # Group by 'seed' and calculate the cumulative max fitness
             method_data["cummax_fitness"] = method_data.groupby("seed")[
-                "fitness"
+                fitness_col
             ].cummax()
 
             # Calculate mean and std deviation of the cumulative max fitness
@@ -241,6 +265,137 @@ def plot_convergence(
     if return_fig:
         return fig
     plt.close()
+
+
+def plot_pareto_front(
+    logger: ExperimentLogger,
+    objective_x: str,
+    objective_y: str,
+    methods: list = None,
+    problems: list = None,
+    save: bool = True,
+    return_fig: bool = False,
+):
+    """
+    Plot the Pareto front discovered by each method for each multi-objective problem.
+
+    Each point in the scatter plot represents one evaluated solution.
+    Non-dominated solutions (i.e. the empirical Pareto front) are highlighted.
+
+    Args:
+        logger (ExperimentLogger): The experiment logger object.
+        objective_x (str): Name of the objective to plot on the x-axis.
+        objective_y (str): Name of the objective to plot on the y-axis.
+        methods (list, optional): Methods to include.  ``None`` includes all.
+        problems (list, optional): Problems to include.  ``None`` includes all.
+        save (bool, optional): If ``True``, saves the figure to the log directory.
+        return_fig (bool, optional): If ``True``, returns the ``Figure`` object.
+
+    Returns:
+        matplotlib.figure.Figure | None
+    """
+    all_methods, all_problems = logger.get_methods_problems()
+    problems_to_use = problems if problems is not None else all_problems
+    methods_to_use = methods if methods is not None else all_methods
+
+    fig, axes = plt.subplots(
+        figsize=(7 * len(problems_to_use), 6),
+        nrows=1,
+        ncols=len(problems_to_use),
+        squeeze=False,
+    )
+
+    for col_i, problem in enumerate(problems_to_use):
+        ax = axes[0, col_i]
+        data = logger.get_problem_data(problem_name=problem)
+
+        if "fitness" not in data.columns:
+            ax.set_title(f"{problem}\n(no fitness data)")
+            continue
+
+        # Expand multi-objective fitness dicts into per-objective columns
+        def _extract_obj(fitness_val, key):
+            if isinstance(fitness_val, dict):
+                return fitness_val.get(key, float("nan"))
+            return float("nan")
+
+        data = data.copy()
+        data[f"obj_{objective_x}"] = data["fitness"].apply(
+            lambda v: _extract_obj(v, objective_x)
+        )
+        data[f"obj_{objective_y}"] = data["fitness"].apply(
+            lambda v: _extract_obj(v, objective_y)
+        )
+
+        data = data.dropna(subset=[f"obj_{objective_x}", f"obj_{objective_y}"])
+
+        unique_methods = [m for m in data["method_name"].unique() if m in methods_to_use]
+        colors = plt.cm.tab10(np.linspace(0, 1, max(len(unique_methods), 1)))
+
+        for method, color in zip(unique_methods, colors):
+            mdata = data[data["method_name"] == method]
+            xs = mdata[f"obj_{objective_x}"].values
+            ys = mdata[f"obj_{objective_y}"].values
+
+            ax.scatter(xs, ys, color=color, alpha=0.35, s=20, label=f"{method} (all)")
+
+            # Identify the non-dominated (Pareto) front for this method
+            pareto_mask = _pareto_front_mask(xs, ys)
+            if pareto_mask.any():
+                px = xs[pareto_mask]
+                py = ys[pareto_mask]
+                order = np.argsort(px)
+                ax.scatter(
+                    px, py, color=color, edgecolors="black", linewidths=0.8,
+                    s=60, zorder=5, label=f"{method} (Pareto)"
+                )
+                ax.step(
+                    px[order], py[order], where="post",
+                    color=color, linewidth=1.5, linestyle="--", alpha=0.7,
+                )
+
+        ax.set_xlabel(objective_x)
+        ax.set_ylabel(objective_y)
+        ax.set_title(problem)
+        ax.legend(fontsize="x-small")
+        ax.grid(True)
+
+    plt.tight_layout()
+    if save:
+        fname = f"{logger.dirname}/pareto_front_{objective_x}_vs_{objective_y}.png"
+        fig.savefig(fname)
+    elif not return_fig:
+        plt.show()
+
+    if return_fig:
+        return fig
+    plt.close()
+
+
+def _pareto_front_mask(xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
+    """Return a boolean mask selecting non-dominated points (minimisation).
+
+    A point ``(x_i, y_i)`` is non-dominated if no other point ``(x_j, y_j)``
+    satisfies ``x_j <= x_i`` **and** ``y_j <= y_i`` with at least one strict
+    inequality.
+
+    Args:
+        xs: x-coordinates of the candidate solutions.
+        ys: y-coordinates of the candidate solutions.
+
+    Returns:
+        np.ndarray: Boolean array, ``True`` where a point is non-dominated.
+    """
+    n = len(xs)
+    is_pareto = np.ones(n, dtype=bool)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            if xs[j] <= xs[i] and ys[j] <= ys[i] and (xs[j] < xs[i] or ys[j] < ys[i]):
+                is_pareto[i] = False
+                break
+    return is_pareto
 
 
 def plot_experiment_CEG(
@@ -383,6 +538,13 @@ def plot_code_evolution_graphs(
     data = run_data.copy().reset_index(drop=True)
     data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    # For multi-objective fitness (stored as dict), derive a scalar before scaling
+    if "fitness" in data.columns and data["fitness"].apply(
+        lambda v: isinstance(v, dict)
+    ).any():
+        from .loggers import ExperimentLogger
+
+        data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
 
@@ -596,6 +758,13 @@ def plotly_code_evolution(
     data = run_data.copy().reset_index(drop=True)
     data["eval_index"] = data.index + 1
     data.replace([np.inf, -np.inf], np.nan, inplace=True)
+    # For multi-objective fitness (stored as dict), derive a scalar before scaling
+    if "fitness" in data.columns and data["fitness"].apply(
+        lambda v: isinstance(v, dict)
+    ).any():
+        from .loggers import ExperimentLogger
+
+        data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
     data["fitness"] = minmax_scale(data["fitness"])
     data.fillna(0, inplace=True)
 

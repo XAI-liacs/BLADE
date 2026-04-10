@@ -4,6 +4,8 @@ import traceback
 import numpy as np
 from typing import Optional
 
+from .fitness import Fitness
+
 
 class Solution:
     """
@@ -189,9 +191,14 @@ class Solution:
             cs = cs.to_serialized_dict()
         except Exception:
             cs = ""
+        fitness_value = (
+            self.fitness.to_dict()
+            if isinstance(self.fitness, Fitness)
+            else self.fitness
+        )
         return {
             "id": self.id,
-            "fitness": self.fitness,
+            "fitness": fitness_value,
             "name": self.name,
             "description": self.description,
             "code": self.code,
@@ -225,7 +232,11 @@ class Solution:
 
         # Update instance attributes
         self.id = data.get("id")
-        self.fitness = data.get("fitness")
+        fitness_data = data.get("fitness")
+        if isinstance(fitness_data, dict):
+            self.fitness = Fitness.from_dict(fitness_data)
+        else:
+            self.fitness = fitness_data
         self.name = data.get("name")
         self.description = data.get("description")
         self.code = data.get("code")
