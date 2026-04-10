@@ -341,8 +341,9 @@ def plot_pareto_front(
 
             ax.scatter(xs, ys, color=color, alpha=0.35, s=20, label=f"{method} (all)")
 
-            # Identify the non-dominated (Pareto) front for this method
-            pareto_mask = _pareto_front_mask(xs, ys)
+            # Identify the non-dominated (Pareto) front for this method.
+            # BLADE stores negated objectives (higher = better), so maximisation=True.
+            pareto_mask = _pareto_front_mask(xs, ys, maximisation=True)
             if pareto_mask.any():
                 px = xs[pareto_mask]
                 py = ys[pareto_mask]
@@ -385,16 +386,18 @@ def plot_pareto_front(
     plt.close()
 
 
-def _pareto_front_mask(xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
-    """Return a boolean mask selecting non-dominated points (minimisation).
-
-    A point ``(x_i, y_i)`` is non-dominated if no other point ``(x_j, y_j)``
-    satisfies ``x_j <= x_i`` **and** ``y_j <= y_i`` with at least one strict
-    inequality.
+def _pareto_front_mask(
+    xs: np.ndarray, ys: np.ndarray, maximisation: bool = True
+) -> np.ndarray:
+    """Return a boolean mask selecting non-dominated points.
 
     Args:
         xs: x-coordinates of the candidate solutions.
         ys: y-coordinates of the candidate solutions.
+        maximisation: When ``True`` (default), higher objective values are
+            better — matching BLADE's convention of storing negated raw
+            objectives so that the framework can always maximise.  Set to
+            ``False`` for raw minimisation problems.
 
     Returns:
         np.ndarray: Boolean array, ``True`` where a point is non-dominated.
@@ -405,9 +408,25 @@ def _pareto_front_mask(xs: np.ndarray, ys: np.ndarray) -> np.ndarray:
         for j in range(n):
             if i == j:
                 continue
-            if xs[j] <= xs[i] and ys[j] <= ys[i] and (xs[j] < xs[i] or ys[j] < ys[i]):
-                is_pareto[i] = False
-                break
+            if maximisation:
+                # j dominates i when j is better-or-equal on all axes and
+                # strictly better on at least one (higher = better)
+                if (
+                    xs[j] >= xs[i]
+                    and ys[j] >= ys[i]
+                    and (xs[j] > xs[i] or ys[j] > ys[i])
+                ):
+                    is_pareto[i] = False
+                    break
+            else:
+                # minimisation: lower = better
+                if (
+                    xs[j] <= xs[i]
+                    and ys[j] <= ys[i]
+                    and (xs[j] < xs[i] or ys[j] < ys[i])
+                ):
+                    is_pareto[i] = False
+                    break
     return is_pareto
 
 

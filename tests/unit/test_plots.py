@@ -324,27 +324,26 @@ def mock_mo_logger(tmp_path):
 
 
 def test_pareto_front_mask_basic():
-    """Non-dominated mask should correctly identify the Pareto front."""
-    # Points: (0,2), (1,1), (2,0), (0.5,0.5)
-    # (1,1) is dominated by (0.5,0.5): 0.5<1 and 0.5<1
-    # The rest are non-dominated
-    xs = np.array([0.0, 1.0, 2.0, 0.5])
-    ys = np.array([2.0, 1.0, 0.0, 0.5])
-    mask = _pareto_front_mask(xs, ys)
-    assert mask[0]       # (0.0, 2.0) – non-dominated
-    assert not mask[1]   # (1.0, 1.0) – dominated by (0.5, 0.5)
-    assert mask[2]       # (2.0, 0.0) – non-dominated
-    assert mask[3]       # (0.5, 0.5) – non-dominated
+    """Non-dominated mask uses maximisation (BLADE convention: higher = better)."""
+    # Points (xs, ys) where each axis is a negated objective.
+    # (3, 0), (2, 1), (0, 3) form the Pareto front; (1, 0.5) is dominated.
+    xs = np.array([3.0, 2.0, 0.0, 1.0])
+    ys = np.array([0.0, 1.0, 3.0, 0.5])
+    mask = _pareto_front_mask(xs, ys)  # maximisation=True by default
+    assert mask[0]       # (3.0, 0.0) – non-dominated
+    assert mask[1]       # (2.0, 1.0) – non-dominated
+    assert mask[2]       # (0.0, 3.0) – non-dominated
+    assert not mask[3]   # (1.0, 0.5) – dominated by (2.0, 1.0)
 
 
 def test_pareto_front_mask_dominated():
-    """A dominated point should NOT appear in the Pareto front."""
+    """A dominated point should NOT appear in the Pareto front (minimisation)."""
     xs = np.array([0.0, 1.0, 0.5])
     ys = np.array([0.0, 1.0, 0.5])
-    # (0.5, 0.5) is dominated by (0.0, 0.0)
-    mask = _pareto_front_mask(xs, ys)
-    assert mask[0]          # (0.0, 0.0) is non-dominated
-    assert not mask[2]      # (0.5, 0.5) is dominated
+    # With minimisation=False: (0.5, 0.5) is dominated by (0.0, 0.0)
+    mask = _pareto_front_mask(xs, ys, maximisation=False)
+    assert mask[0]       # (0.0, 0.0) is non-dominated
+    assert not mask[2]   # (0.5, 0.5) is dominated by (0.0, 0.0)
 
 
 def test_plot_convergence_multiobjective(mock_mo_logger):

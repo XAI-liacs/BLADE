@@ -55,6 +55,13 @@ class Solution:
         return self.to_dict()
 
     def __setstate__(self, state):
+        # Reconstruct Fitness from the serialised dict produced by __getstate__
+        # (which calls to_dict()). Without this, fitness stays a plain dict after
+        # every pickle round-trip, breaking Pareto comparisons in search methods.
+        fitness_data = state.get("fitness")
+        if isinstance(fitness_data, dict):
+            state = dict(state)  # don't mutate the incoming state
+            state["fitness"] = Fitness.from_dict(fitness_data)
         self.__dict__.update(state)
         if self.configspace == "":
             self.configspace = None

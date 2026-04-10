@@ -1,4 +1,5 @@
 import math
+import pickle
 
 import numpy as np
 import pytest
@@ -127,3 +128,25 @@ def test_solution_to_dict_from_dict_roundtrip_multiobjective():
     assert isinstance(s2.fitness, Fitness)
     assert s2.fitness["speed"] == pytest.approx(0.8)
     assert s2.fitness["quality"] == pytest.approx(0.95)
+
+
+def test_solution_pickle_roundtrip_multiobjective():
+    """Fitness must survive pickle/unpickle as a Fitness instance, not a plain dict.
+
+    Problem.__call__ pickles solutions via cloudpickle/multiprocessing; without
+    __setstate__ reconstructing Fitness, comparisons like
+    ``solution.fitness > best.fitness`` would receive a dict and raise TypeError.
+    """
+    s = Solution(name="pickled")
+    s.set_scores(Fitness({"f1": -0.5, "f2": -1.5}))
+
+    s2 = pickle.loads(pickle.dumps(s))
+
+    assert isinstance(s2.fitness, Fitness), (
+        "fitness must be a Fitness instance after unpickling, not "
+        f"{type(s2.fitness).__name__}"
+    )
+    assert s2.fitness["f1"] == pytest.approx(-0.5)
+    assert s2.fitness["f2"] == pytest.approx(-1.5)
+    # Pareto comparison must work without TypeError
+    assert not (s2.fitness < s2.fitness)  # equal → not strictly dominated
