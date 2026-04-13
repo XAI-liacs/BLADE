@@ -11,23 +11,11 @@
   <select
     id="version-selector"
     style="width: 100%;"
-    onchange="
-      if (!this.value) return;
-      const target = this.value;
-      if (/^https?:\/\//.test(target)) {
-        window.location.href = target;
-      } else if (target.startsWith('{{ _docs_base }}/')) {
-        window.location.href = target;
-      } else if (target.startsWith('/')) {
-        window.location.href = '{{ _docs_base }}' + target;
-      } else {
-        window.location.href = '{{ _docs_base }}/' + target;
-      }
-    "
+    onchange="if (this.value) window.location.href = this.value;"
   >
     {%- for item in _versions %}
     <option
-      value="{{ item.url }}"
+      value="{{ _docs_base }}/{{ item.name }}/index.html"
       {% if item.name == _current.name %}selected{% endif %}
     >
       {{ item.name }}
