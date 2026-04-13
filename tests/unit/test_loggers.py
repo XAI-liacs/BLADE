@@ -1,9 +1,11 @@
 import json
+import math
 import os
 import shutil
 
 import pytest
 
+from iohblade.fitness import Fitness
 from iohblade.loggers import ExperimentLogger, RunLogger
 from iohblade.method import Method
 from iohblade.problem import Problem
@@ -335,3 +337,74 @@ def test_open_run_create_and_restart(tmp_path):
     assert new_entry is not None
     assert new_entry is not entry_after  # distinct entry
     assert os.path.isdir(run3.dirname)
+
+
+# ---------------------------------------------------------------------------
+# Multi-objective Fitness logging tests
+# ---------------------------------------------------------------------------
+
+
+def test_run_logger_log_individual_multiobjective(cleanup_tmp_dir):
+    """log_individual should serialise a Fitness object to valid JSON."""
+    run_logger = RunLogger(name="test_mo_run", root_dir=cleanup_tmp_dir)
+    sol = Solution(name="mo_solution")
+    sol.set_scores(Fitness({"f1": 0.5, "f2": 1.5}))
+    run_logger.log_individual(sol)
+
+    log_file = os.path.join(run_logger.dirname, "log.jsonl")
+    assert os.path.exists(log_file)
+    with open(log_file) as f:
+        entry = json.loads(f.readline())
+
+    assert entry["fitness"] == {"f1": 0.5, "f2": 1.5}
+
+
+def test_fitness_to_scalar_float():
+    """_fitness_to_scalar should pass plain floats through unchanged."""
+    assert ExperimentLogger._fitness_to_scalar(3.0) == pytest.approx(3.0)
+
+
+def test_fitness_to_scalar_dict():
+    """_fitness_to_scalar should return the mean for a Fitness dict."""
+    result = ExperimentLogger._fitness_to_scalar({"f1": 1.0, "f2": 3.0})
+    assert result == pytest.approx(2.0)
+
+
+def test_fitness_to_scalar_nan_dict():
+    """_fitness_to_scalar should return NaN when any objective is NaN."""
+    result = ExperimentLogger._fitness_to_scalar({"f1": float("nan"), "f2": 1.0})
+    assert math.isnan(result)
+
+
+def test_get_problem_data_adds_fitness_scalar(cleanup_tmp_dir):
+    """get_problem_data should add a fitness_scalar column for multi-objective data."""
+    exp_dir = os.path.join(cleanup_tmp_dir, "mo_exp")
+
+    logger = ExperimentLogger(name=exp_dir)
+    run_logger = RunLogger(name="test_mo", root_dir=exp_dir)
+
+    # Log two solutions with multi-objective fitness
+    for f1, f2 in [(0.1, 0.9), (0.5, 0.5)]:
+        sol = Solution(name="algo")
+        sol.set_scores(Fitness({"f1": f1, "f2": f2}))
+        run_logger.log_individual(sol)
+
+    # Write a minimal experimentlog.jsonl pointing to this run directory
+    import jsonlines
+
+    rel_log = os.path.relpath(run_logger.dirname, exp_dir)
+    with jsonlines.open(os.path.join(exp_dir, "experimentlog.jsonl"), "a") as f:
+        f.write(
+            {
+                "method_name": "dummy",
+                "problem_name": "mo_problem",
+                "seed": 0,
+                "log_dir": rel_log,
+            }
+        )
+
+    df = logger.get_problem_data("mo_problem")
+    assert "fitness_scalar" in df.columns
+    # Mean of (0.1, 0.9) = 0.5; mean of (0.5, 0.5) = 0.5
+    for val in df["fitness_scalar"]:
+        assert math.isclose(val, 0.5, abs_tol=1e-6)

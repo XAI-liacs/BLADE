@@ -4,6 +4,8 @@ import traceback
 import numpy as np
 from typing import Optional
 
+from .fitness import Fitness
+
 
 class Solution:
     """
@@ -53,6 +55,13 @@ class Solution:
         return self.to_dict()
 
     def __setstate__(self, state):
+        # Reconstruct Fitness from the serialised dict produced by __getstate__
+        # (which calls to_dict()). Without this, fitness stays a plain dict after
+        # every pickle round-trip, breaking Pareto comparisons in search methods.
+        fitness_data = state.get("fitness")
+        if isinstance(fitness_data, dict):
+            state = dict(state)  # don't mutate the incoming state
+            state["fitness"] = Fitness.from_dict(fitness_data)
         self.__dict__.update(state)
         if self.configspace == "":
             self.configspace = None
@@ -189,9 +198,14 @@ class Solution:
             cs = cs.to_serialized_dict()
         except Exception:
             cs = ""
+        fitness_value = (
+            self.fitness.to_dict()
+            if isinstance(self.fitness, Fitness)
+            else self.fitness
+        )
         return {
             "id": self.id,
-            "fitness": self.fitness,
+            "fitness": fitness_value,
             "name": self.name,
             "description": self.description,
             "code": self.code,
@@ -225,7 +239,11 @@ class Solution:
 
         # Update instance attributes
         self.id = data.get("id")
-        self.fitness = data.get("fitness")
+        fitness_data = data.get("fitness")
+        if isinstance(fitness_data, dict):
+            self.fitness = Fitness.from_dict(fitness_data)
+        else:
+            self.fitness = fitness_data
         self.name = data.get("name")
         self.description = data.get("description")
         self.code = data.get("code")

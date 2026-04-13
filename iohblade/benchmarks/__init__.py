@@ -24,3 +24,8 @@ try:
     from .photonics.photonics import Photonics
 except Exception:
     Photonics = None
+
+try:
+    from .toy_multiobjective.toy_multiobjective import ToyMultiObjective
+except Exception:
+    ToyMultiObjective = None

@@ -16,12 +16,14 @@ import iohblade
 
 # Adjust imports to match your actual package structure
 from iohblade.plots import (
+    _pareto_front_mask,
     fitness_table,
     plot_boxplot_fitness,
     plot_boxplot_fitness_hue,
     plot_code_evolution_graphs,
     plot_convergence,
     plot_experiment_CEG,
+    plot_pareto_front,
     plot_token_usage,
 )
 
@@ -265,3 +267,124 @@ def test_plot_token_usage(mock_logger):
     plot_token_usage(mock_logger, save=False)
     assert isinstance(plt.gcf(), plt.Figure)
     plt.close("all")
+
+
+# ---------------------------------------------------------------------------
+# Multi-objective helpers and plots
+# ---------------------------------------------------------------------------
+
+
+class MockMOLogger:
+    """Mock logger that returns multi-objective fitness dicts."""
+
+    def __init__(self):
+        self.mock_data = pd.DataFrame(
+            {
+                "method_name": ["m1", "m1", "m2", "m2"],
+                "problem_name": ["mo1", "mo1", "mo1", "mo1"],
+                "seed": [0, 0, 1, 1],
+                "_id": [0, 1, 2, 3],
+                "id": ["0", "1", "2", "3"],
+                # multi-objective fitness stored as dict
+                "fitness": [
+                    {"f1": -0.5, "f2": -3.0},
+                    {"f1": -0.1, "f2": -3.5},
+                    {"f1": -1.0, "f2": -2.0},
+                    {"f1": -0.3, "f2": -3.2},
+                ],
+                "fitness_scalar": [-1.75, -1.80, -1.50, -1.75],
+                "code": ["code_a", "code_b", "code_c", "code_d"],
+                "parent_ids": ["[]", '["0"]', '["1"]', '["2"]'],
+                "log_dir": [f"run{i}" for i in range(4)],
+            }
+        )
+
+    @property
+    def dirname(self):
+        return "mock_mo_dir"
+
+    def get_methods_problems(self):
+        methods = self.mock_data["method_name"].unique().tolist()
+        problems = self.mock_data["problem_name"].unique().tolist()
+        return methods, problems
+
+    def get_problem_data(self, problem_name):
+        return self.mock_data[self.mock_data["problem_name"] == problem_name].copy()
+
+    def get_data(self):
+        return self.mock_data.copy()
+
+
+@pytest.fixture
+def mock_mo_logger(tmp_path):
+    os.chdir(tmp_path)
+    logger = MockMOLogger()
+    os.makedirs(logger.dirname, exist_ok=True)
+    return logger
+
+
+def test_pareto_front_mask_basic():
+    """Non-dominated mask uses maximisation (BLADE convention: higher = better)."""
+    # Points (xs, ys) where each axis is a negated objective.
+    # (3, 0), (2, 1), (0, 3) form the Pareto front; (1, 0.5) is dominated.
+    xs = np.array([3.0, 2.0, 0.0, 1.0])
+    ys = np.array([0.0, 1.0, 3.0, 0.5])
+    mask = _pareto_front_mask(xs, ys)  # maximisation=True by default
+    assert mask[0]       # (3.0, 0.0) – non-dominated
+    assert mask[1]       # (2.0, 1.0) – non-dominated
+    assert mask[2]       # (0.0, 3.0) – non-dominated
+    assert not mask[3]   # (1.0, 0.5) – dominated by (2.0, 1.0)
+
+
+def test_pareto_front_mask_dominated():
+    """A dominated point should NOT appear in the Pareto front (minimisation)."""
+    xs = np.array([0.0, 1.0, 0.5])
+    ys = np.array([0.0, 1.0, 0.5])
+    # With minimisation=False: (0.5, 0.5) is dominated by (0.0, 0.0)
+    mask = _pareto_front_mask(xs, ys, maximisation=False)
+    assert mask[0]       # (0.0, 0.0) is non-dominated
+    assert not mask[2]   # (0.5, 0.5) is dominated by (0.0, 0.0)
+
+
+def test_plot_convergence_multiobjective(mock_mo_logger):
+    """plot_convergence should run without error on multi-objective data."""
+    plot_convergence(
+        logger=mock_mo_logger,
+        metric="Fitness (scalar)",
+        budget=4,
+        save=False,
+    )
+    fig = plt.gcf()
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
+def test_plot_pareto_front(mock_mo_logger):
+    """plot_pareto_front should produce a Figure for multi-objective data."""
+    fig = plot_pareto_front(
+        logger=mock_mo_logger,
+        objective_x="f1",
+        objective_y="f2",
+        save=False,
+        return_fig=True,
+    )
+    assert isinstance(fig, plt.Figure)
+    plt.close(fig)
+
+
+def test_plotly_code_evolution_multiobjective():
+    """plotly_code_evolution should handle fitness stored as dicts."""
+    df = pd.DataFrame(
+        {
+            "id": ["a", "b", "c"],
+            "parent_ids": ["[]", '["a"]', '["b"]'],
+            "fitness": [
+                {"f1": -1.0, "f2": -2.0},
+                {"f1": -0.5, "f2": -2.5},
+                {"f1": -0.2, "f2": -3.0},
+            ],
+            "code": ["print('a')", "print('b')", "print('c')"],
+        }
+    )
+    fig = iohblade.plots.plotly_code_evolution(df, feature="total_token_count")
+    assert isinstance(fig, go.Figure)

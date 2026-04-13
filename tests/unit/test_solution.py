@@ -1,8 +1,10 @@
+import math
+import pickle
+
 import numpy as np
 import pytest
-import math
 
-from iohblade import Solution
+from iohblade import Fitness, Solution
 
 
 def test_solution_initialization():
@@ -68,3 +70,83 @@ def test_solution_from_dict():
     assert s.error == "None"
     assert s.operator == "MockOp"
     assert s.metadata["key"] == "value"
+
+
+# ---------------------------------------------------------------------------
+# Multi-objective Fitness support
+# ---------------------------------------------------------------------------
+
+
+def test_solution_set_scores_multiobjective():
+    """set_scores() should accept a Fitness object."""
+    s = Solution()
+    f = Fitness({"f1": 0.5, "f2": 1.5})
+    s.set_scores(f, feedback="ok")
+    assert isinstance(s.fitness, Fitness)
+    assert s.fitness["f1"] == 0.5
+    assert s.fitness["f2"] == 1.5
+
+
+def test_solution_to_dict_multiobjective():
+    """to_dict() must serialise Fitness as a plain dict."""
+    s = Solution()
+    s.set_scores(Fitness({"f1": 1.0, "f2": 2.0}))
+    d = s.to_dict()
+    assert d["fitness"] == {"f1": 1.0, "f2": 2.0}
+
+
+def test_solution_from_dict_multiobjective():
+    """from_dict() must reconstruct Fitness from a dict fitness value."""
+    data = {
+        "id": "abc",
+        "fitness": {"f1": 3.0, "f2": 4.0},
+        "name": "MO",
+        "description": "",
+        "code": "",
+        "generation": 0,
+        "feedback": "",
+        "error": "",
+        "parent_ids": [],
+        "operator": None,
+        "metadata": {},
+    }
+    s = Solution()
+    s.from_dict(data)
+    assert isinstance(s.fitness, Fitness)
+    assert s.fitness["f1"] == 3.0
+    assert s.fitness["f2"] == 4.0
+
+
+def test_solution_to_dict_from_dict_roundtrip_multiobjective():
+    """to_dict → from_dict round-trip preserves Fitness values."""
+    s = Solution(name="algo")
+    s.set_scores(Fitness({"speed": 0.8, "quality": 0.95}))
+    d = s.to_dict()
+
+    s2 = Solution()
+    s2.from_dict(d)
+    assert isinstance(s2.fitness, Fitness)
+    assert s2.fitness["speed"] == pytest.approx(0.8)
+    assert s2.fitness["quality"] == pytest.approx(0.95)
+
+
+def test_solution_pickle_roundtrip_multiobjective():
+    """Fitness must survive pickle/unpickle as a Fitness instance, not a plain dict.
+
+    Problem.__call__ pickles solutions via cloudpickle/multiprocessing; without
+    __setstate__ reconstructing Fitness, comparisons like
+    ``solution.fitness > best.fitness`` would receive a dict and raise TypeError.
+    """
+    s = Solution(name="pickled")
+    s.set_scores(Fitness({"f1": -0.5, "f2": -1.5}))
+
+    s2 = pickle.loads(pickle.dumps(s))
+
+    assert isinstance(s2.fitness, Fitness), (
+        "fitness must be a Fitness instance after unpickling, not "
+        f"{type(s2.fitness).__name__}"
+    )
+    assert s2.fitness["f1"] == pytest.approx(-0.5)
+    assert s2.fitness["f2"] == pytest.approx(-1.5)
+    # Pareto comparison must work without TypeError
+    assert not (s2.fitness < s2.fitness)  # equal → not strictly dominated

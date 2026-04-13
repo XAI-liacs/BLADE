@@ -6,6 +6,7 @@ BLADE API
    :caption: BLADE Modules
 
    experiment
+   fitness
    llm
    loggers
    method
