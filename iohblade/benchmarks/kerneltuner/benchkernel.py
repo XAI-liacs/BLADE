@@ -27,13 +27,63 @@ class KernelBench(Problem):
         dependencies=BASE_DEPENDENCIES,
         imports=None,
     ):
+        """
+        KernelBench: Benchmarking wrapper for evaluating LLM-generated GPU kernels.
+
+        This class integrates KernelBench dataset problems with iohblade's evaluation
+        framework to compile, execute, and score generated kernels against reference
+        implementations.
+
+        Core responsibilities:
+        - Loads a KernelBench problem instance from HuggingFace dataset
+        - Constructs backend-specific prompts for kernel generation
+        - Evaluates candidate solutions via compilation + correctness checks
+        - Computes performance score based on runtime speedup vs reference kernel
+        - Returns enriched Solution objects with scores and diagnostic feedback
+
+        Key parameters:
+        - `problem_id: int` Identifier for the KernelBench task
+        - `sample_id: int` Dataset sample index for reproducibility
+        - `gpu_name: str` Target GPU name used in prompt construction (e.g., "T4", "L40S")
+        - `precision: str= fp32` Numeric precision mode for kernel execution (fp32, fp16, bf16)
+        - `gpu_type: str` Torch device type string (e.g., "cuda", "mps", etc)
+        - `backend: str` Kernel backend to target (triton, cuda, cute, tilelang)
+        - `logger: str` Optional logging interface for debugging and tracing
+        - `eval_timeout: str` Maximum allowed evaluation time per solution
+
+        Main methods:
+        - get_prompt() -> str
+            Returns a formatted backend-specific prompt for LLM kernel generation.
+
+        - evaluate(solution: Solution) -> Solution
+            Compiles and evaluates a candidate kernel against the reference
+            implementation. Returns a scored Solution object containing:
+            - compilation status
+            - correctness status
+            - runtime comparison
+            - structured diagnostic feedback
+
+        - test(solution: Solution) -> Solution
+            Alias for evaluate() used for compatibility with benchmark runners.
+
+        Scoring:
+        Score is computed as:
+            ref_runtime / candidate_runtime
+
+        Higher values indicate faster generated kernels relative to reference.
+
+        Failure cases include:
+        - Kernel compilation failure
+        - Incorrect kernel behavior
+        - Missing or invalid runtime measurements
+        """
         dependencies = list(dependencies)
         dependencies.append("torch")
 
         self.workargs = WorkArgs(
             problem_id, sample_id=sample_id, device=torch.device(gpu_type)
         )
-        self.minimization = True
+        self.minimization = False
         self.gpu = gpu_name
         dataset = construct_kernelbench_dataset(
             1, "huggingface", problem_ids=[problem_id]
@@ -104,7 +154,7 @@ class KernelBench(Problem):
         return solution
 
     def to_dict(self):
-        return super().to_dict()
+        return self.__dict__
 
     def test(self, solution: Solution):
         return self.evaluate(solution)
