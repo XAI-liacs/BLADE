@@ -22,7 +22,7 @@ class KernelBench(Problem):
         logger=None,
         training_instances=None,
         test_instances=None,
-        name="Problem",
+        name="KernelBench",
         eval_timeout=6000,
         dependencies=BASE_DEPENDENCIES,
         imports=None,
