@@ -13,7 +13,7 @@ if __name__ == '__main__':
     kb = KernelBench(
         problem_id=1,
         sample_id=1,
-        gpu_name="RTX 5060Ti",
+        gpu_name="T4",
         gpu_type="cuda"
     )
 
@@ -24,10 +24,10 @@ if __name__ == '__main__':
             n_parents=1,
             n_offspring=1,
             budget=budget,
-            minimization=kb.minimisation,
+            minimization=kb.minimization,
         )
         methods.append(method)
-    logger = ExperimentLogger(f"results/{kb.task_name}")
+    logger = ExperimentLogger(f"results/{kb.name}")
     experiment = Experiment(
         methods,
         [kb],
