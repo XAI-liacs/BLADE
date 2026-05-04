@@ -1,3 +1,4 @@
+import textwrap
 import numpy as np
 from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
@@ -54,12 +55,12 @@ Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best
 
         formula = "minimise [max_{i < j} d(i, j) / min{i < j} d(i, j)]^2"
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 * Write a python class with `__call__` method that:
     * Returns a set of {self.n_points} points, in {self.dim}-D hypervolume.
     * The Optimisation goal is to {formula}.
     * The tolerance for the point overlap is set to {self.tolerance}
-"""
+""")
         best_known_initialiser = """
     def __init__(self, n_points : int, dimensions : int):
         pass"""
@@ -71,7 +72,7 @@ Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best
         pass
 """
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 
@@ -83,9 +84,9 @@ class MinMaxDistanceSolver:
         return [(0.0,) * {self.dim}] * {self.n_points}
 ```
 
-"""
+""")
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
@@ -95,7 +96,7 @@ one-line description, describing the main idea. Give the response in the format:
 <code>
 ```
 
-"""
+""")
 
     @staticmethod
     def _pairwise_d2(P: np.ndarray) -> np.ndarray:

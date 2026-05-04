@@ -1,3 +1,4 @@
+import textwrap
 import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
@@ -92,7 +93,7 @@ class AutoCorrBaseSpec:
             else "The runner will L2-normalize f; you do not need to"
         )
 
-        return f"""
+        return textwrap.dedent(f"""
 
 Write a python class with function `__call__`, that returns a list of floats f of length N.
 - Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
@@ -101,7 +102,7 @@ Write a python class with function `__call__`, that returns a list of floats f o
 - Symmetry or piecewise-constant structure is allowed if helpful.
 - Set N = {self.n_bins} as default.
 
-"""
+""")
 
     def make_example_prompt(self, class_name: str) -> str:
         best_known_initialiser = ""
@@ -112,7 +113,7 @@ Write a python class with function `__call__`, that returns a list of floats f o
         optimised for better results.
 """
 
-        return f"""
+        return textwrap.dedent(f"""
 
 An example template of such program is given by:
 ```python
@@ -122,10 +123,10 @@ class {class_name}:
         return [0,0]*{self.n_bins}
 ```
 
-"""
+""")
 
     def make_format_prompt(self):
-        return """
+        return textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -134,7 +135,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 <code>
 ```
 
-"""
+""")
 
     def _get_time_series(
         self, code, name

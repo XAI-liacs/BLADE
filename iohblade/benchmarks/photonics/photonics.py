@@ -1,4 +1,5 @@
 import os
+import textwrap
 import traceback
 
 import ioh
@@ -73,13 +74,13 @@ class Photonics(Problem):
         self.description_prompt = problem_descriptions[self.problem_type]
         self.extra_prompt = algorithmic_insights[self.problem_type]
         self.seeds = list(range(seeds))
-        self.task_prompt = """
+        self.task_prompt = textwrap.dedent("""
 You are a Python developer and AI and physics researcher.
 Your task is to develop a novel heuristic optimization algorithm for photonic optimization problems.
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
 The func() can only be called as many times as the budget allows, not more.
-"""
-        self.example_prompt = """
+""")
+        self.example_prompt = textwrap.dedent("""
 An example of such code (a simple random search), is as follows:
 ```python
 import numpy as np
@@ -102,15 +103,15 @@ class RandomSearch:
 
         return self.f_opt, self.x_opt
 ```
-        """
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
 # Code:
 ```python
 <code>
 ```
-"""
+""")
 
     def get_prompt(self):
         """

@@ -1,6 +1,7 @@
 import json
 import math
 import os
+import textwrap
 import random
 import re
 import time
@@ -133,7 +134,7 @@ class AutoML(Problem):
                 "classification" if _is_classification_task(self.task) else "regression"
             )
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
         You can use the following Python packages: scikit-learn, numpy, scipy, pandas.
         Design an ML pipeline for a {task_type} task with {samples_desc} and {feats_desc}.
         Write a single Python class:
@@ -145,9 +146,9 @@ class AutoML(Problem):
         - Pick ONE primary estimator inside the class (no estimator-switching in a param grid).
         - If you do preprocessing (e.g., StandardScaler, PCA), assign them to self.* and reuse them in __call__.
         - Expose tunable hyperparameters via __init__ kwargs with sensible defaults; external HPO will tune them.
-        """
+        """)
 
-        self.example_prompt = """
+        self.example_prompt = textwrap.dedent("""
         Here is a minimal template (for reference only; you must output your own improved class). An example code structure is as follows:
         ```python
         import numpy as np
@@ -169,9 +170,9 @@ class AutoML(Problem):
                 Xs = self.scaler.transform(X)
                 return self.model.predict(Xs)
         ```
-        """
+        """)
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
         Give an excellent and novel ML pipeline to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
         # Description: <short-description>
         # Code:
@@ -184,7 +185,7 @@ class AutoML(Problem):
             # e.g. "C": (1e-3, 10.0), "max_depth": (3, 15), "alpha": (1e-4, 1.0)
         }
         ```
-        """
+        """)
 
         self.func_name = "__call__"
         self.init_inputs = ["X", "y"]

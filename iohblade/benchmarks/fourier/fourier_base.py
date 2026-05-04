@@ -1,3 +1,6 @@
+import textwrap
+
+
 class FourierBase:
     """
     Base spec for the uncertainty inequality (Appendix B.4).
@@ -42,7 +45,7 @@ class FourierBase:
         return f"{self.task_name} | Hermite degrees 0..{4*(self.n_terms-1)} step 4"
 
     def make_task_prompt(self, formula: str) -> str:
-        return (
+        return textwrap.dedent(
             """
 - Write a class whose __call__() yields a list of floats c of length K (= n_terms).
 - Define P(x) = sum_{k=0..K-1} c[k] * H_{4k}(x) using physicists' Hermite H_n.
@@ -54,10 +57,10 @@ class FourierBase:
 - Objective (minimize):
     - """
             + formula
-            + f"""
+            + textwrap.dedent(f"""
 - Tip: enforce structure (e.g., small |c|, P(0)≈0) to aid root placement.
 K = {self.n_terms}."
-"""
+""")
         )
 
     def make_example_prompt(self, class_name: str) -> str:
@@ -73,7 +76,7 @@ K = {self.n_terms}."
         # Accepts a mumber of terms K and best known configuration (if available) for the problem, as a initial configuration, which is then 
         optimised for better results.
 """
-        return f"""
+        return textwrap.dedent(f"""
 Here is an example template of program to solve the problem:
 ```python
 class {class_name}:
@@ -82,10 +85,10 @@ class {class_name}:
         # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...
         return [...., 0.33, -0.01, -9e-05][: {self.n_terms}]
 ```
-"""
+""")
 
     def make_format_prompt(self) -> str:
-        return """
+        return textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 
@@ -94,4 +97,4 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <your class here>
 ```
-"""
+""")

@@ -1,4 +1,5 @@
 import math
+import textwrap
 from typing import Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
@@ -54,7 +55,7 @@ Instantiated Heibronn Convex Region Problem with number of points: {self.n_point
 
         allowed_libraries = "\n    - ".join(allowed)
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generate a solution for the Heilbronn on a unit-area convex region
 - The `__call__` method must return n points of type ndarray (n,2).
     - We use their convex hull as the region and rescale to area of 1 sq unit.
@@ -63,7 +64,7 @@ Write a python class with function `__call__`, that generate a solution for the 
 - The environment only provides access to the libraries:
 {allowed_libraries}
 
-"""
+""")
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
@@ -80,7 +81,7 @@ Write a python class with function `__call__`, that generate a solution for the 
         pass
 """
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 ```
@@ -90,9 +91,9 @@ class HeilbronnConvexRegion-n{self.n_points}:
         return np.zeros(({self.n_points}, 2))
 
 ```
-"""
+""")
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
@@ -102,7 +103,7 @@ one-line description, describing the main idea. Give the response in the format:
 <code>
 ```
 
-"""
+""")
         self.minimisation = False
 
     def evaluate(self, solution: Solution, explogger=None):

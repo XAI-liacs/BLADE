@@ -1,4 +1,5 @@
 import math
+import textwrap
 from pathlib import Path
 from statistics import mean
 from dataclasses import dataclass
@@ -49,7 +50,7 @@ class EuclidianSteinerTree(Problem):
         self.best_so_far = [float("nan")] * len(self.points)
         self.minimisation = True
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generates optimal Steiner Points for a given set of point, in order to optimise their Minimum Spanning Tree distance.
 - The class must initialise with 2 positional parameter:
     1. `points: list[list[float][:2]]`: A list of locations, representing 2-D coordinates of nodes that needs to be connected using Minimum Spanning Tree using Steiner Points.
@@ -61,8 +62,8 @@ Write a python class with function `__call__`, that generates optimal Steiner Po
     - `steiner_mst` is minimum spanning tree found using the provided points + returned `steiner_points`
     - `normal_mst` is a mimumum spanning tree found using the only the provided points.
 - The returned fitness is going to be average fitness across {len(self.points)} distinct benchmarks.
-    """
-        self.example_prompt = """
+""")
+        self.example_prompt = textwrap.dedent("""
 An example response can be
 ---
 # Descripition:
@@ -81,8 +82,8 @@ class SteinerPointGenerator:
         # Find steiner points.
         return self.steiner_points
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -90,7 +91,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _read_file(self):
         with open(self.benchmark) as f:

@@ -1,4 +1,5 @@
 import math
+import textwrap
 from typing import Optional
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -31,7 +32,7 @@ class SphericalCode(Problem):
             dependencies=["scipy", "shapely"],
         )
         ## Set prompts:
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generate a solution for Spherical Code Problem on a unit sphere.
 - The class must initialise with 2 positional parameters:
     1. n_points: Number of 3-D points that __call__ returns.
@@ -40,9 +41,9 @@ Write a python class with function `__call__`, that generate a solution for Sphe
     - `points : list[tuple[float, float, float]]`: A list of {self.n_points} 3-D points as solution to the problem.
 - The optimisation goal is to maximize the minimum pairwise angle given by:
 
-""" + "\\[\\theta_{\\min} = \\min_{i < j} \\cos^{-1}(\\braket{p_i, p_j})\\]"
+""") + "\\[\\theta_{\\min} = \\min_{i < j} \\cos^{-1}(\\braket{p_i, p_j})\\]"
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
 # Descripition:
@@ -64,8 +65,8 @@ class SphericalCodeSolver:
             )
         return points
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -73,7 +74,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _check_dimension(self, points: list[tuple[float, float, float]]):
         if len(points) != self.n_points:

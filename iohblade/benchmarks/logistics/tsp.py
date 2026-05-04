@@ -1,5 +1,6 @@
 import json
 import math
+import textwrap
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -31,7 +32,7 @@ class TravelingSalesmanProblem(Problem):
 
         Problem.__init__(self, name=f"TSP-{self.benchmark}")
 
-        self.task_prompt = """
+        self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Traveling Salesman Problem.
 - The class must initialise with 1 positional parameter:
     1. `locations`: A list of locations, representing customers, that a traveling salesman must visit.
@@ -40,12 +41,13 @@ Write a python class with function `__call__`, that generate a solution for Trav
     - `paths : list[int]`: A list of customer `id`s, representing the path.
         - Each customer must only be served once.
         - No customer must be left un-served.
-- The optimisation goal is to minimise total distance travelled by the salesman."""
+- The optimisation goal is to minimise total distance travelled by the salesman.
+""")
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
-# Descripition: 
+# Descripition:
 A random selection algorithm for Capacited Vehicle Routing Problem.
 # Code:
 ```python
@@ -60,8 +62,8 @@ class TravelingSalesmanSolver:
         random.shuffle(ids)
         return ids
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -69,7 +71,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _readfile(self, benchmark: str):
         path = Path(__file__).resolve().parent.joinpath(f"{benchmark}.json")

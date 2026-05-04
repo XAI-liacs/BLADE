@@ -1,7 +1,9 @@
+import textwrap
+from pathlib import Path
+
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
-from pathlib import Path
 
 
 class GraphColoring(Problem):
@@ -21,7 +23,7 @@ class GraphColoring(Problem):
         Problem.__init__(self, name=self.benchmark, logger=logger)
         self.minimisation = True
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generates optimal Graph Coloring for a given set of vertices and edges.
 - The class must initialise with 2 positional parameter:
     1. `nodes: list[int]`: A list of nodes id'd 1...{self.nodes}.
@@ -32,8 +34,8 @@ Write a python class with function `__call__`, that generates optimal Graph Colo
 - The optimisation goal is to minimise `n`, number of colours used, such that:
     - The assertion of color_mapping[u] != color_mapping[v] for all (u,v) pairs in `edges` stands.
 - The returned fitness is going to be `len(set(color_mapping.values()))`.
-    """
-        self.example_prompt = """
+""")
+        self.example_prompt = textwrap.dedent("""
 An example response can be
 ---
 # Descripition:
@@ -53,8 +55,8 @@ class GraphColoring:
         # Find steiner points.
         return self.color_mapping
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -62,7 +64,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _load_data(self, benchmark_id: str):
         path = (

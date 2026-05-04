@@ -1,4 +1,5 @@
 import json
+import textwrap
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -34,7 +35,7 @@ class VehicleRoutingProblem(Problem):
 
         Problem.__init__(self, name=f"CVRP-{self.benchmark}")
 
-        self.task_prompt = """
+        self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Capacitated Vehicle Routing Problem.
 - The class must initialise with 4 positional parameters:
     1. `depot`: A location from where all vehicles start and end their journey.
@@ -49,12 +50,13 @@ Write a python class with function `__call__`, that generate a solution for Capa
         - Each customer must only be served once.
         - No customer must be left un-served.
         - Depot must not exist in the `paths`.
-- The optimisation goal is to minimise total distance travelled by the fleet of vehicles."""
+- The optimisation goal is to minimise total distance travelled by the fleet of vehicles.
+""")
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
-# Descripition: 
+# Descripition:
 A random selection algorithm for Capacited Vehicle Routing Problem.
 # Code:
 ```python
@@ -86,8 +88,8 @@ class CapacitatedVehicleRoutingProblem:
 
         return paths
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -95,7 +97,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _readfile(self, benchmark_id: str):
         path = Path(__file__).resolve().parent.joinpath(f"{benchmark_id}.json")
