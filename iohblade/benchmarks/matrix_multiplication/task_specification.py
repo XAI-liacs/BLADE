@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import textwrap
 from typing import Optional
 
 from iohblade.problem import Problem
@@ -15,7 +16,7 @@ class MatMulTensorDecomposition(Problem):
         self.grid: int = grid
         self.rank: int = rank
 
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Your goal is to find a rank-{self.rank} CP decomposition of the <{self.n},{self.m},{self.p}>
 matrix‐multiplication tensor with zero error.
 
@@ -30,9 +31,9 @@ The reconstruction is calculated as:
 t_hat[i,j,k] = Σₗ F1[i*{self.m}+j, l] · F2[j*{self.p}+k, l] · F3[k*{self.n}+i, l]
 Your goal is to minimise this score.
 Return a flattened list of the factor matrices' entries.
-"""
+""")
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 An example code structure is as follows:
 
 ```python
@@ -53,9 +54,9 @@ class TensorDecomposition:
 
         return [F1.tolist(), F2.tolist(), F3.tolist()]
 ```
-"""
+""")
 
-        self.format_prompt = f"""
+        self.format_prompt = textwrap.dedent(f"""
 Give an excellent and novel rank-{self.rank} CP decomposition of the <{self.n},{self.m},{self.p}> matrix‐multiplication tensor with zero error.
 Give the response in the format:
 
@@ -64,7 +65,7 @@ Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
         self.minimisation = True
         self.dependencies += []
 

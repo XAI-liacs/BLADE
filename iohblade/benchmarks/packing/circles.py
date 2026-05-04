@@ -1,4 +1,5 @@
 import math
+import textwrap
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -37,7 +38,7 @@ class CirclePacking(Problem):
         Problem.__init__(self, name="circle_packing_n40")
         self.minimisation = False
         ## Prompts;
-        self.task_prompt = f"""
+        self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generate a solution for Circle Packing Area Problem.
 - The class must initialise with 3 positional parameters:
     1. `container : list[float][:3]`: A list of float representing a container as [x, y, r].
@@ -51,12 +52,12 @@ Write a python class with function `__call__`, that generate a solution for Circ
         - No two circle must intersect, witin the tolerance.
 - The optimisation goal is to maximize the area of the container filled by circles. Given by:
     \\[\\omega = \\max \\sum_i^{self.n_circles} \\alpha_i \\pi R_i^2\\]
-"""
+""")
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
-# Descripition: 
+# Descripition:
 A random selection algorithm for Circle Packing Area Problem.
 # Code:
 ```python
@@ -79,8 +80,8 @@ class CirclePackingSolver:
                 break
     return cs
 ```
-"""
-        self.format_prompt = """
+""")
+        self.format_prompt = textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -88,7 +89,7 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <code>
 ```
-"""
+""")
 
     def _read_file(self):
         path = Path(__file__).resolve().parent.joinpath("circles.bench")

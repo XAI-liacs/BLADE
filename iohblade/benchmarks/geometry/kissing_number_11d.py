@@ -1,5 +1,6 @@
 from __future__ import annotations
 import math, random
+import textwrap
 import numpy as np
 
 from iohblade.problem import Problem
@@ -68,7 +69,7 @@ Write a python class with function `__call__`, that generate a solution for the 
         pass
 """
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 ```
@@ -80,9 +81,9 @@ class KissingNumber-{self.dim}d:
         return np.zeros((n, {self.dim}))        #Maximise n.
 
 ```
-"""
+""")
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
@@ -92,7 +93,7 @@ one-line description, describing the main idea. Give the response in the format:
 <code>
 ```
 
-"""
+""")
         self.minimisation = False
 
     @staticmethod

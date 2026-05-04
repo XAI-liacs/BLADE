@@ -1,3 +1,4 @@
+import textwrap
 import numpy as np
 import math
 
@@ -156,7 +157,9 @@ class GeometryBase:
 
     # ---------- prompt helper ----------
     def make_task_prompt(self, headline: str) -> str:
-        return f"""
+        return textwrap.dedent(
+            f"""
 Task: {headline}
 Constraints: use hard feasibility checks. Optimisation objective is to maximise.
 Output: return numpy array of shape (n,2), or a dict with keys 'triangle' and 'points'."""
+        )
