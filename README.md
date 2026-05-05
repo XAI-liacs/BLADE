@@ -8,14 +8,16 @@
 
 <h1 align="center">IOH-BLADE: Benchmarking LLM-driven Automated Design and Evolution of Iterative Optimization Heuristics</h1>
 
+> ⭐ If you like this, please give the repo a star – it helps!
+
 <p align="center">
   <a href="https://pypi.org/project/iohblade/">
     <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
   <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
-  <a href="https://codecov.io/gh/XAI-liacs/BLADE" > 
-    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/> 
+  <a href="https://codecov.io/gh/XAI-liacs/BLADE" >
+    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/>
   </a>
 </p>
 
@@ -28,11 +30,12 @@
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Webapp](#-webapp)
+- [AlphaEvolve Benchmarks](#alphaevolve-benchmarks)
 - [Contributing](#-contributing)
 - [License](#-license)
 - [Citation](#-citation)
 
-## 🔥 News 
+## 🔥 News
 
 - 2025.03 ✨✨ **BLADE v0.0.1 released**!
 
@@ -48,6 +51,23 @@
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
 - **Automatic Logging & Visualization:** Integrated with **IOHprofiler** for performance tracking.
 
+#### Feature Coverage Map
+
+To make feature discovery easier, this table maps the main BLADE features
+to the implementation location and corresponding documentation entry.
+
+| Feature | Implementation | Documentation |
+|---|---|---|
+| Experiment orchestration | `iohblade/experiment.py` | `docs/experiment.rst` |
+| Problems and benchmark wrapping | `iohblade/problem.py`, `iohblade/benchmarks/` | `docs/problem.rst`, `docs/benchmarks.rst` |
+| Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch helper) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
+| LLM provider integration | `iohblade/llm.py` | `docs/llm.rst` |
+| Loggers (local, MLflow, Trackio) | `iohblade/loggers/` | `docs/loggers.rst` |
+| Baselines | `iohblade/baselines/` | `docs/baselines.rst` |
+| Plotting and analysis helpers | `iohblade/plots.py`, `iohblade/behaviour_metrics.py` | `docs/plots.rst`, `docs/behaviour_metrics.rst` |
+| Streamlit result browser | `iohblade/webapp.py` | `docs/webapp.rst` |
+| Utility helpers and exceptions | `iohblade/utils.py` | `docs/utils.rst` |
+
 #### Included Benchmark Function Sets
 
 BLADE incorporates several benchmark function sets to provide a comprehensive evaluation environment:
@@ -58,8 +78,54 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 | **SBOX-COST**                      | A set of 24 boundary-constrained functions focusing on strict box-constraint optimization scenarios. [Reference](https://inria.hal.science/hal-04403658/file/sboxcost-cmacomparison-authorversion.pdf) | 24                  | Yes                |
 | **MA-BBOB** (Many-Affine BBOB)     | An extension of the BBOB suite, generating functions through affine combinations and shifts. [Reference](https://dl.acm.org/doi/10.1145/3673908) | Generator-Based     | Yes                |
 | **GECCO MA-BBOB Competition Instances** | A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. [Reference](https://iohprofiler.github.io/competitions) | 1,000               | Yes                |
+| **HLP** (High-Level Properties)   | Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality). | Generator-Based     | Yes                |
 
-In addition, several real-world applications are included such as several photonics problems.
+In addition, several real-world applications are included.
+
+### Real World Benchmarks
+
+| Name | Description |
+|------|-------------|
+| **Analysis** | |
+| Auto-Correlation 1 | Minimise $\max(g) / I^2$ for non-negative signals under fixed discretisation of $[-1/4, 1/4]$. |
+| Auto-Correlation 2 | Maximise $L_2^2 / (L_1 · L_\infty)$ for non-negative signals using discrete auto-convolution. |
+| Auto-Correlation 3 | Minimise $\max(\|g\|) / I^2$ for real-valued signals with non-zero integral. |
+| **AutoML** | |
+| AutoML Pipelines | Generate and evaluate machine learning pipelines using scikit-learn. |
+| **Combinatorics** | |
+| Erdős Minimum-Overlap Problem | Minimise the suprenum overlap integral between complementary measurable functions. |
+| Euclidean Steiner Tree Problem | Minimise MST(points + Steiner points) / MST(points) ratio by adding optimal Steiner nodes. |
+| Graph Colouring Problem | Minimise the number of colours needed for a colouring nodes of a graph, s.t. no adjacent nodes share same colour. |
+| **Fourier** | |
+| Fourier Uncertainty Inequality | Minimise uncertainty bound for functions of form $P(x)e^{-πx²}$ under Hermite constraints. |
+| **Geometry** | |
+| Heilbronn (Unit Triangle) | Maximise the area of smallest triangle formed by 11 points in a unit-area triangle. |
+| Heilbronn (Unit Convex Region) | Maximise the area of smallest triangle formed by 13–14 points in a unit-area convex region. |
+| Kissing Number (11D) | Maximise number of integer vectors satisfying high-dimensional kissing constraints. |
+| Min/Max Distance Ratio | Minimise squared ratio of maximum to minimum pairwise distances (2D/3D variants). |
+| Spherical Code | Maximise the minimum pairwise angle among 30 points on a unit sphere. |
+| **Kernel Tuner** | |
+| Kernel Tuning Benchmark | Evaluate metaheuristics for hardware kernel optimisation under constraints. |
+| **Logistics** | |
+| Travelling Salesman Problem | Minimise total tour distance visiting each 2D point exactly once. |
+| Vehicle Routing Problem | Minimise total travel distance for capacitated vehicles serving weighted customers. |
+| **Matrix Multiplication via Tensor Decomposition** | |
+| Tensor CP Factorisation | Find smallest CP rank enabling exact matrix multiplication under quantised factors. |
+| **Number Theory** | |
+| Sums vs Differences | Maximise c(U) measuring imbalance between sumsets and difference sets. |
+| **Packing** | |
+| Circle Packing | Maximise total packed circle area inside a circular container without overlap. |
+| Hexagonal Packing | Minimise area of smallest enclosing hexagon containing disjoint regular hexagons. |
+| Rectangle Packing | Pack disjoint circles inside a fixed-perimeter rectangle under containment constraints. |
+| Unit Square Packing | Pack disjoint circles inside a unit square while satisfying non-overlap constraints. |
+
+
+These benchmarks are provided with ready to run instances in
+[`run_benchmarks/`](./run_benchmarks), while the reusable benchmark
+definitions are organized under [`iohblade/benchmarks`](./iohblade/benchmarks)
+by domain (analysis, combinatorics, geometry, matrix multiplication, number
+theory, packing, and Fourier). Each domain folder includes a short README that
+summarizes the task and instances.
 
 ### Included Search Methods
 
@@ -71,6 +137,8 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **EoH** | Evolution of Heuristics         | [code](https://github.com/FeiLiu36/EoH) [paper](https://arxiv.org/abs/2401.02051) |
 | **FunSearch**   | Google's GA-like algorithm | [code](https://github.com/google-deepmind/funsearch) [paper](https://www.nature.com/articles/s41586-023-06924-6) |
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
+| **LLM-Driven Heuristics Neighbourhood Search** | LLM-Driven Neighborhood Search for Efficient Heuristic Design | [code](https://github.com/Acquent0/LHNS) [paper](https://ieeexplore.ieee.org/abstract/document/11043025) |
+| **Monte Carlo Tree Search** | Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design | [code](https://github.com/zz1358m/MCTS-AHD-master/) [paper](https://arxiv.org/abs/2501.08603) |
 
 > Note, FunSearch is currently not yet integrated.
 
@@ -126,7 +194,13 @@ make sure you have `uv` installed.
    uv sync --group kerneltuner --group dev --group docs
    ```
    This will install additional dependencies for development and building documentation.
-   The (experimental) auto-kernel application is also under a separate group for now. 
+   The (experimental) auto-kernel application is also under a separate group for now.
+4. *(Optional)* Intall Support for MLX optimised LLMs:
+    ```bash
+    uv sync --group dev --group apple-silicon --prerelease=allow
+    ```
+    Select all the groups required, and append it with `--group apple-silicon --prerelease=allow`, to install
+    libraries that enable MLX Optimised LLMs support through `mlx-lm` and `LMStudio`.
 
 ## 💻 Quick Start
 
@@ -142,12 +216,13 @@ make sure you have `uv` installed.
     To run a benchmarking experiment using BLADE:
 
     ```python
-    from iohblade import Experiment
-    from iohblade import Ollama_LLM
-    from iohblade.methods import LLaMEA, RandomSearch
-    from iohblade.problems import BBOB_SBOX
-    from iohblade.loggers import ExperimentLogger
     import os
+
+    from iohblade.experiment import Experiment
+    from iohblade.llm import Ollama_LLM
+    from iohblade.methods import LLaMEA, RandomSearch
+    from iohblade.benchmarks import BBOB_SBOX
+    from iohblade.loggers import ExperimentLogger
 
     llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
     budget = 50 #short budget for testing
@@ -166,6 +241,22 @@ make sure you have `uv` installed.
     experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
+
+### Trackio logging
+
+To mirror results to a [Trackio](https://github.com/gradio-app/trackio) dashboard,
+install the optional dependency and use ``TrackioExperimentLogger``:
+
+```bash
+uv sync --group trackio
+```
+
+```python
+from iohblade.loggers import TrackioExperimentLogger
+
+logger = TrackioExperimentLogger("my-project")
+experiment = Experiment(methods=methods, problems=problems, runs=5, exp_logger=logger)
+```
 
 ## 🌐 Webapp
 
@@ -202,19 +293,24 @@ Distributed under the [MIT](https://choosealicense.com/licenses/mit/) License. S
 
 
 ## ✨ Citation
-
+If you use BLADE in your research, please cite the following work:
 
 ```bibtex
-@article{vanstein2025blade,
-      title={BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics}, 
-      author={Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas Bäck},
-      year={2025},
-      eprint={2504.20183},
-      archivePrefix={arXiv},
-      primaryClass={cs.SE},
-      url={https://arxiv.org/abs/2504.20183}, 
+@inproceedings{vanstein2025blade,
+  author    = {Niki van Stein and Anna V. Kononova and Haoran Yin and Thomas B{\"a}ck},
+  title     = {BLADE: Benchmark suite for LLM-driven Automated Design and Evolution of iterative optimisation heuristics},
+  booktitle = {Proceedings of the Genetic and Evolutionary Computation Conference Companion},
+  series    = {GECCO '25 Companion'},
+  year      = {2025},
+  pages     = {2336--2344},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  doi       = {10.1145/3712255.3734347},
+  url       = {https://doi.org/10.1145/3712255.3734347}
 }
 ```
+
+The repository also provides a [`CITATION.cff`](./CITATION.cff) file for use with GitHub's citation feature.
 
 -----
 Happy Benchmarking with IOH-BLADE! 🚀

@@ -5,10 +5,10 @@
 
 
 BLADE
-===================================================
+===========================================================
 
-.. image:: https://badge.fury.io/py/blade.svg
-   :target: https://pypi.org/project/blade/
+.. image:: https://badge.fury.io/py/iohblade.svg
+   :target: https://pypi.org/project/iohblade/
    :alt: PyPI version
    :height: 18
 .. image:: https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg
@@ -17,11 +17,14 @@ BLADE
 .. image:: https://img.shields.io/badge/Python-3.11+-blue.svg
    :alt: Python 3.11+
    :height: 18
-.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7 
+.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7
    :target: https://codecov.io/gh/XAI-liacs/BLADE
    :alt: Codecov
    :height: 18
-
+.. image:: https://colab.research.google.com/img/colab_favicon_256px.png
+   :target: https://colab.research.google.com/drive/1gJPpQPvCGu0v2LoSsxtdGmot73A-ypSf?usp=sharing
+   :alt: Colab Notebook
+   :height: 18
 
 .. image:: blade-framework.png
    :align: center
@@ -30,17 +33,17 @@ BLADE
 
 **BLADE** is a Python framework for benchmarking the Llm Assisted Design and Evolution of algorithms.
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs).
-It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
+It focuses on **heuristic optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
 
-🔥 News
-----
+Documentation Guide
+-------------------
 
-- 2025.03 ✨✨ **iohblade v0.0.1 released**!
+- Start here for conceptual usage: :doc:`Introduction` and :doc:`Quickstart`.
+- For benchmark catalog and taxonomy: :doc:`benchmarks`.
+- For API reference by feature area: :doc:`modules`.
+- For interactive monitoring: :doc:`webapp`.
 
-
-Features
---------
 
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Algorithm Design:** Supports algorithm evolution and design using large language models.
@@ -76,8 +79,90 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
      - A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. `Reference <https://iohprofiler.github.io/competitions>`_
      - 1,000
      - Yes
+   * - **HLP** (High-Level Properties)
+     - Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality).
+     - Generator-Based
+     - Yes
 
-In addition, several real-world applications are included, such as several photonics problems.
+In addition, several real-world applications are included.
+
+Real World Benchmarks
+---------------------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Name
+     - Description
+   * - **Analysis**
+     -
+   * - Auto-Correlation 1
+     - Minimise ``max(g) / I^2`` for non-negative signals under fixed discretisation of ``[-1/4, 1/4]``.
+   * - Auto-Correlation 2
+     - Maximise ``L_2^2 / (L_1 · L_∞)`` for non-negative signals using discrete auto-convolution.
+   * - Auto-Correlation 3
+     - Minimise ``max(||g||) / I^2`` for real-valued signals with non-zero integral.
+   * - **AutoML**
+     -
+   * - AutoML Pipelines
+     - Generate and evaluate machine learning pipelines using scikit-learn.
+   * - **Combinatorics**
+     -
+   * - Erdős Minimum-Overlap Problem
+     - Minimise the suprenum overlap integral between complementary measurable functions.
+   * - Euclidean Steiner Tree Problem
+     - Minimise ``MST(points + Steiner points) / MST(points)`` ratio by adding optimal Steiner nodes.
+   * - Graph Colouring Problem
+     - Minimise the number of colours needed to colour graph nodes so adjacent nodes never share a colour.
+   * - **Fourier**
+     -
+   * - Fourier Uncertainty Inequality
+     - Minimise uncertainty bound for functions of form ``P(x)e^{-πx²}`` under Hermite constraints.
+   * - **Geometry**
+     -
+   * - Heilbronn (Unit Triangle)
+     - Maximise the area of the smallest triangle formed by 11 points in a unit-area triangle.
+   * - Heilbronn (Unit Convex Region)
+     - Maximise the area of the smallest triangle formed by 13-14 points in a unit-area convex region.
+   * - Kissing Number (11D)
+     - Maximise number of integer vectors satisfying high-dimensional kissing constraints.
+   * - Min/Max Distance Ratio
+     - Minimise squared ratio of maximum to minimum pairwise distances (2D/3D variants).
+   * - Spherical Code
+     - Maximise the minimum pairwise angle among 30 points on a unit sphere.
+   * - **Kernel Tuner**
+     -
+   * - Kernel Tuning Benchmark
+     - Evaluate metaheuristics for hardware kernel optimisation under constraints.
+   * - **Logistics**
+     -
+   * - Travelling Salesman Problem
+     - Minimise total tour distance visiting each 2D point exactly once.
+   * - Vehicle Routing Problem
+     - Minimise total travel distance for capacitated vehicles serving weighted customers.
+   * - **Matrix Multiplication via Tensor Decomposition**
+     -
+   * - Tensor CP Factorisation
+     - Find smallest CP rank enabling exact matrix multiplication under quantised factors.
+   * - **Number Theory**
+     -
+   * - Sums vs Differences
+     - Maximise ``c(U)`` measuring imbalance between sumsets and difference sets.
+   * - **Packing**
+     -
+   * - Circle Packing
+     - Maximise total packed circle area inside a circular container without overlap.
+   * - Hexagonal Packing
+     - Minimise area of smallest enclosing hexagon containing disjoint regular hexagons.
+   * - Rectangle Packing
+     - Pack disjoint circles inside a fixed-perimeter rectangle under containment constraints.
+   * - Unit Square Packing
+     - Pack disjoint circles inside a unit square while satisfying non-overlap constraints.
+
+These benchmarks are provided with ready-to-run instances in
+``run_benchmarks/``, while reusable benchmark definitions are organized under
+``iohblade/benchmarks`` by domain.
 
 Included Search Methods
 -----------------------
@@ -103,6 +188,12 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
    * - **ReEvo**
      - Large Language Models as Hyper-Heuristics with Reflective Evolution
      - `code <https://github.com/ai4co/LLM-as-HH>`_, `paper <https://arxiv.org/abs/2402.01145>`_
+   * - **LLM-Driven Heuristics Neighbourhood Search**
+     - LLM-Driven Neighborhood Search for Efficient Heuristic Design
+     - `code <https://github.com/Acquent0/LHNS>`_, `paper <https://ieeexplore.ieee.org/abstract/document/11043025>`_
+   * - **Monte Carlo Tree Search**
+     - Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design
+     - `code <https://github.com/zz1358m/MCTS-AHD-master/tree/main>`_, `paper <https://arxiv.org/abs/2501.08603>`_
 
 .. note::
    ``FunSearch`` is currently not yet integrated.
@@ -144,7 +235,7 @@ For the final validation, **BLADE** uses **IOHprofiler**, providing detailed tra
 
 
 🤖 Contributing
-------------
+-----------------
 
 Contributions to BLADE are welcome! Here are a few ways you can help:
 
@@ -155,7 +246,7 @@ Contributions to BLADE are welcome! Here are a few ways you can help:
 Please refer to ``CONTRIBUTING.md`` for more details on contributing guidelines.
 
 License
--------
+---------
 
 Distributed under the `MIT <https://choosealicense.com/licenses/mit/>`_ License.
 See ``LICENSE`` for more information.
@@ -176,8 +267,16 @@ If you use BLADE in your research, please consider citing the associated paper:
 
    Introduction
    Installation
+   benchmarks
+   fitness
+   webapp
    modules
+   methods
+   notebooks/simple_experiment
+   notebooks/custom_problem
+   notebooks/custom_method
    notebooks/mabbob_example
+   notebooks/visualization_options
 
 
 Indices and tables

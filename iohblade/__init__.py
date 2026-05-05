@@ -1,41 +1,11 @@
 import multiprocessing
 
-from .method import Method
-from .plots import (
-    fitness_table,
-    plot_boxplot_fitness,
-    plot_boxplot_fitness_hue,
-    plot_code_evolution_graphs,
-    plotly_code_evolution,
-    CEG_FEATURES,
-    plot_convergence,
-    plot_experiment_CEG,
-    plot_token_usage,
-)
-from .llm import (
-    LLM,
-    Gemini_LLM,
-    Ollama_LLM,
-    OpenAI_LLM,
-    Claude_LLM,
-    DeepSeek_LLM,
-    Dummy_LLM,
-)
-
-
-try:  # Optional plotting dependencies may be missing
-    from .plots import (
-        fitness_table,
-        plot_boxplot_fitness,
-        plot_boxplot_fitness_hue,
-        plot_code_evolution_graphs,
-        plot_convergence,
-        plot_experiment_CEG,
-        plot_token_usage,
-    )
-except Exception:  # pragma: no cover - optional dependency
-    pass
-from .problem import Problem
+# Only import the minimal set of objects that do not pull in heavy
+# dependencies.  Modules such as ``llm`` or ``plots`` require optional
+# third-party packages and should be imported explicitly by consumers
+# that need them.
+from .fitness import Fitness
+from .problem import Problem, wrap_problem
 from .solution import Solution
 from .utils import (
     NoCodeException,
@@ -47,6 +17,21 @@ from .utils import (
     convert_to_serializable,
     correct_aoc,
 )
+
+__all__ = [
+    "Fitness",
+    "Problem",
+    "wrap_problem",
+    "Solution",
+    "NoCodeException",
+    "OverBudgetException",
+    "ThresholdReachedException",
+    "TimeoutException",
+    "aoc_logger",
+    "budget_logger",
+    "convert_to_serializable",
+    "correct_aoc",
+]
 
 
 def ensure_spawn_start_method():

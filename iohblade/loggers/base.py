@@ -90,6 +90,21 @@ class ExperimentLogger:
         os.mkdir(dirname)
         return dirname
 
+    def _before_open_run(self, run_name, method, problem, budget, seed):
+        """Hook executed before a run is opened."""
+        return None
+
+    def _create_run_logger(self, run_name, budget, progress_cb):
+        """Create and return the run logger for a run."""
+        from .base import RunLogger
+
+        return RunLogger(
+            name=run_name,
+            root_dir=self.dirname,
+            budget=budget,
+            progress_callback=progress_cb,
+        )
+
     def open_run(self, method, problem, budget=100, seed=0):
         """
         Opens (starts) a new run for logging.
@@ -97,14 +112,11 @@ class ExperimentLogger:
         """
         run_name = f"{method.name}-{problem.name}-{seed}"
 
+        self._before_open_run(run_name, method, problem, budget, seed)
+
         progress_cb = partial(self.increment_eval, method.name, problem.name, seed)
 
-        self.run_logger = RunLogger(
-            name=run_name,
-            root_dir=self.dirname,
-            budget=budget,
-            progress_callback=progress_cb,
-        )
+        self.run_logger = self._create_run_logger(run_name, budget, progress_cb)
         problem.set_logger(self.run_logger)
         with self._lock:
             entry = self._get_run_entry(method.name, problem.name, seed)
@@ -160,7 +172,10 @@ class ExperimentLogger:
             log_dir (str): The directory where the run is logged.
             seed (int): The seed used in the run.
         """
-        rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        try:
+            rel_log_dir = os.path.relpath(log_dir, self.dirname)
+        except ValueError:
+            rel_log_dir = log_dir
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
@@ -196,15 +211,46 @@ class ExperimentLogger:
                 frames.append(pd.read_json(path, lines=True))
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
+    @staticmethod
+    def _fitness_to_scalar(fitness_val) -> float:
+        """Convert a fitness value to a scalar float.
+
+        Handles both plain ``float`` values and multi-objective
+        :class:`~iohblade.fitness.Fitness` dicts that were serialised to JSON.
+        When the value is a dict (serialised ``Fitness``), the scalar is the
+        mean of all objectives — matching ``Fitness.__float__``.
+
+        Args:
+            fitness_val: A float, int, or dict representing a fitness value.
+
+        Returns:
+            float: A scalar fitness value.
+        """
+        if isinstance(fitness_val, dict):
+            from ..fitness import Fitness
+
+            return float(Fitness.from_dict(fitness_val))
+        try:
+            return float(fitness_val)
+        except (TypeError, ValueError):
+            import math
+
+            return math.nan
+
     def get_problem_data(self, problem_name):
         """
         Retrieves the data for a specific method and problem from the experiment log.
+
+        For multi-objective problems the ``fitness`` column contains the per-objective
+        dict (as stored in ``log.jsonl``).  A companion column ``fitness_scalar`` is
+        added that holds a single float for use in plots that require a scalar metric
+        (e.g. convergence curves).
 
         Args:
             problem_name (str): The name of the problem.
 
         Returns:
-            list: List of run data for the specified method and problem.
+            pd.DataFrame: DataFrame of run data for the specified problem.
         """
         bigdf = pd.DataFrame()
         for d in self.dirs:
@@ -225,6 +271,11 @@ class ExperimentLogger:
                         df["problem_name"] = line["problem_name"]
                         df["seed"] = line["seed"]
                         df["_id"] = df.index
+                        # Add scalar fitness column for multi-objective support
+                        if "fitness" in df.columns:
+                            df["fitness_scalar"] = df["fitness"].apply(
+                                self._fitness_to_scalar
+                            )
                         bigdf = pd.concat([bigdf, df], ignore_index=True)
         return bigdf
 
@@ -519,3 +570,20 @@ class RunLogger:
             else:
                 file.write("Failed to extract config space")
         self.attempt += 1
+
+    def log_output(self, stdout: str = "", stderr: str = "", append: bool = False):
+        """Log captured standard output and error to files.
+
+        Args:
+            stdout (str): Captured text from ``stdout``.
+            stderr (str): Captured text from ``stderr``.
+            append (bool): If ``True``, append to existing log files instead of
+                overwriting them.
+        """
+        mode = "a" if append else "w"
+        if stdout:
+            with open(os.path.join(self.dirname, "stdout.log"), mode) as file:
+                file.write(stdout)
+        if stderr:
+            with open(os.path.join(self.dirname, "stderr.log"), mode) as file:
+                file.write(stderr)

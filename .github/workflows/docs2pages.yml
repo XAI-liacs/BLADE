@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - main
+  release:
+    types: [published]
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
@@ -51,10 +53,27 @@ jobs:
     #----------------------------------------------
     - name: Install dependencies
       if: steps.cached-uv-dependencies.outputs.cache-hit != 'true'
-      run: uv sync --dev --group docs
+      run: uv sync --dev --group docs --no-group apple-silicon
     - name: Build documentation
       run: |
-        uv run sphinx-build -b html docs/ ./_site      
+        uv run sphinx-multiversion docs/ ./_site
+
+    - name: Select default docs version for site root
+      shell: bash
+      run: |
+        set -euo pipefail
+        latest_tag_dir="$(find ./_site -maxdepth 1 -mindepth 1 -type d -name 'v*' | sort -V | tail -n 1 || true)"
+
+        if [[ -n "${latest_tag_dir}" ]]; then
+          echo "Using latest released docs as default: ${latest_tag_dir}"
+          cp -a "${latest_tag_dir}/." ./_site/
+        elif [[ -d ./_site/main ]]; then
+          echo "No release tags found; falling back to main docs for root index"
+          cp -a ./_site/main/. ./_site/
+        else
+          echo "No eligible docs directory found to publish at site root" >&2
+          exit 1
+        fi
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
 

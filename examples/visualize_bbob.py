@@ -1,20 +1,26 @@
-import iohinspector
-import polars as pl
-from iohblade.behaviour_metrics import compute_behavior_metrics
-from tqdm import tqdm
-import pandas as pd
-import numpy as np
-from iohblade.loggers import ExperimentLogger
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
-import seaborn as sns
-from pandas.plotting import parallel_coordinates
-from iohblade import plot_convergence, plot_experiment_CEG, plot_boxplot_fitness_hue, plot_boxplot_fitness, fitness_table
 import os
+
+import iohinspector
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import polars as pl
+import seaborn as sns
 import tqdm
-from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from matplotlib.colors import Normalize
+from pandas.plotting import parallel_coordinates
+from sklearn.preprocessing import MinMaxScaler, RobustScaler
+from tqdm import tqdm
+
+from iohblade.behaviour_metrics import compute_behavior_metrics
+from iohblade.loggers import ExperimentLogger
+from iohblade.plots import (
+    fitness_table,
+    plot_boxplot_fitness,
+    plot_boxplot_fitness_hue,
+    plot_convergence,
+    plot_experiment_CEG,
+)
 
 
 # ── 2. HELPER FUNCTION (drop it right after `behaviour_feats` is first defined) ─
@@ -22,13 +28,14 @@ def robust_minmax(df, cols, q=(0.01, 0.99)):
     """
     Robust [0-1] scaling that flattens outliers.
 
-    • Clips each feature to the q-th and (1-q)-th quantile.  
+    • Clips each feature to the q-th and (1-q)-th quantile.
     • Then rescales the clipped values to the 0-1 interval.
     """
     lo = df[cols].quantile(q[0])
     hi = df[cols].quantile(q[1])
     df[cols] = df[cols].clip(lo, hi, axis=1)
     return (df[cols] - lo) / (hi - lo)
+
 
 """
     mutation_prompts1 = [
@@ -70,53 +77,63 @@ def robust_minmax(df, cols, q=(0.01, 0.99)):
 # | **Step Length Trend**                   | Change of step size over time (convergence indicator)   | – (implied by 1/5th rule)              |
 
 
-#df.to_pickle("./BBOB0.pkl")
+# df.to_pickle("./BBOB0.pkl")
 
-llm_per_folder = {"BBOB0": "gpt-4.1",
-                  "BBOB1": "gemini-2.0-flash",
-                  "BBOB2": "o4-mini",
-                  "BBOB3": "gemma3-27b"}
+llm_per_folder = {
+    "BBOB0": "gpt-4.1",
+    "BBOB1": "gemini-2.0-flash",
+    "BBOB2": "o4-mini",
+    "BBOB3": "gemma3-27b",
+}
 
-for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): # 
-    #print(f"Processing {folder}...")
+for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]):  #
+    # print(f"Processing {folder}...")
 
     llm_name = llm_per_folder[folder]
 
-    df = pd.read_pickle(f"{folder}.pkl")  
+    df = pd.read_pickle(f"{folder}.pkl")
     img_dir = f"examples/img/"
-    #df.describe()
+    # df.describe()
 
     # Some columns you’ll want handy later
     behaviour_feats = [
-        "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
-        "avg_distance_to_best", 
-        "average_convergence_rate", "avg_improvement", "success_rate",
-        "longest_no_improvement_streak", 
+        "avg_nearest_neighbor_distance",
+        "dispersion",
+        "avg_exploration_pct",
+        "avg_distance_to_best",
+        "average_convergence_rate",
+        "avg_improvement",
+        "success_rate",
+        "longest_no_improvement_streak",
     ]
     all_behaviour_feats = [
-        "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
-        "avg_distance_to_best",  "intensification_ratio", "avg_exploitation_pct", "last_improvement_fraction",
-        "average_convergence_rate", "avg_improvement", "success_rate",
-        "longest_no_improvement_streak", 
+        "avg_nearest_neighbor_distance",
+        "dispersion",
+        "avg_exploration_pct",
+        "avg_distance_to_best",
+        "intensification_ratio",
+        "avg_exploitation_pct",
+        "last_improvement_fraction",
+        "average_convergence_rate",
+        "avg_improvement",
+        "success_rate",
+        "longest_no_improvement_streak",
     ]
-    #leave out: 
-    agg_map  = {c: 'mean' for c in all_behaviour_feats} | {           # mean for numbers
-                'id': 'first',                              # keep id constant
-                'fitness_fid': 'mean',                     # average fitness per id
-                'fid': 'first',                             
-                '_id': 'first',
-                'seed': 'first',
-                'method_name': 'first',                    # keep one value
-                'problem_name': 'first'}                   #  – they should be constant per id
-    print(df['_id'].describe())
+    # leave out:
+    agg_map = {c: "mean" for c in all_behaviour_feats} | {  # mean for numbers
+        "id": "first",  # keep id constant
+        "fitness_fid": "mean",  # average fitness per id
+        "fid": "first",
+        "_id": "first",
+        "seed": "first",
+        "method_name": "first",  # keep one value
+        "problem_name": "first",
+    }  #  – they should be constant per id
+    print(df["_id"].describe())
 
-    df_all = (df
-            .groupby('id', as_index=False)
-            .agg(agg_map))
+    df_all = df.groupby("id", as_index=False).agg(agg_map)
 
-    print(df_all['_id'].head())
-
-
+    print(df_all["_id"].head())
 
     # ------------------------------------------------------------------
     # 0  House‑keeping
@@ -126,40 +143,40 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
     # Replace ±∞ with NaN, then drop rows that have no finite fitness at all
     data.replace([np.inf, -np.inf, np.nan], 0, inplace=True)
-    #data = data.dropna(subset=["fitness"])
+    # data = data.dropna(subset=["fitness"])
 
     # Normalise fitness to [0, 1] per algorithm so colour scales are comparable
-    data["fitness_norm"] = (
-        data.groupby("method_name")["fitness_fid"]
-            .transform(lambda s: (s - s.min()) / (s.max() - s.min()))
+    data["fitness_norm"] = data.groupby("method_name")["fitness_fid"].transform(
+        lambda s: (s - s.min()) / (s.max() - s.min())
     )
 
-    
     nice_names = {
-        "avg_nearest_neighbor_distance":  "NN-dist",
-        "dispersion":                     "Disp",
-        "avg_exploration_pct":            "Expl %",
-        "avg_distance_to_best":           "Dist→best",
-        "intensification_ratio":          "Inten-ratio",
-        "avg_exploitation_pct":           "Explt %",
-        "average_convergence_rate":       "Conv-rate",
-        "avg_improvement":                "Δ fitness",
-        "success_rate":                   "Success %",
-        "longest_no_improvement_streak":  "No-imp streak",
-        "last_improvement_fraction":      "Last-imp frac",
+        "avg_nearest_neighbor_distance": "NN-dist",
+        "dispersion": "Disp",
+        "avg_exploration_pct": "Expl %",
+        "avg_distance_to_best": "Dist→best",
+        "intensification_ratio": "Inten-ratio",
+        "avg_exploitation_pct": "Explt %",
+        "average_convergence_rate": "Conv-rate",
+        "avg_improvement": "Δ fitness",
+        "success_rate": "Success %",
+        "longest_no_improvement_streak": "No-imp streak",
+        "last_improvement_fraction": "Last-imp frac",
     }
 
-    log_folder = {"BBOB0": "BBOB",
-                "BBOB1": "BBOB-1",
-                "BBOB2": "BBOB-2",
-                "BBOB3": "BBOB-3"}
+    log_folder = {
+        "BBOB0": "BBOB",
+        "BBOB1": "BBOB-1",
+        "BBOB2": "BBOB-2",
+        "BBOB3": "BBOB-3",
+    }
     loc = log_folder[folder]
-    logger = ExperimentLogger(f'/data/neocortex/{loc}', True)
-    df_log = logger.get_problem_data(problem_name='BBOB')
-    
+    logger = ExperimentLogger(f"/data/neocortex/{loc}", True)
+    df_log = logger.get_problem_data(problem_name="BBOB")
 
-    data = data.merge(df_log[['id', 'parent_ids']], on='id', how='left') #add parent_ids
-
+    data = data.merge(
+        df_log[["id", "parent_ids"]], on="id", how="left"
+    )  # add parent_ids
 
     if True:
         # ── NEW BLOCK — STN-style export (drop this *after* `behaviour_feats` is defined
@@ -170,28 +187,28 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
         feature_cols = [
             "avg_exploration_pct",
-            "average_convergence_rate", "avg_improvement",
+            "average_convergence_rate",
+            "avg_improvement",
             "success_rate",
             "longest_no_improvement_streak",
         ]  # the columns that go into the STN feature list (subset)
         #         "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
         # "avg_distance_to_best",  "intensification_ratio", "avg_exploitation_pct", "last_improvement_fraction",
         # "average_convergence_rate", "avg_improvement", "success_rate",
-        # "longest_no_improvement_streak", 
+        # "longest_no_improvement_streak",
 
         data_stn = data.copy()
         data_stn[behaviour_feats] = robust_minmax(data_stn, behaviour_feats)
         for method, g in data_stn.groupby("method_name", sort=False):
-
 
             lines = []
             lines_best = []
             # one file line per evaluation, ordered by run (seed) then _id
             for seed, sg in g.groupby("seed", sort=False):
                 # Quick lookup table: id  ➜ row (Series)
-                #id_lookup = sg.set_index("id", drop=False)
+                # id_lookup = sg.set_index("id", drop=False)
                 id_lookup = (
-                    sg.sort_values("_id")           # ensures _id ascending
+                    sg.sort_values("_id")  # ensures _id ascending
                     .drop_duplicates("id", keep="first")
                     .set_index("id", drop=False)
                 )
@@ -208,24 +225,34 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
                         pid = parent_list[0]
                         if pid in id_lookup.index:
                             parent = id_lookup.loc[pid]
-                    
+
                     if parent is None:
                         # No parent found, use the current child as parent
                         parent = child
-                            
+
                     # ── stringify parent & child info ───────────────────────
                     # parent block
                     if parent is not None:
                         try:
-                            feat_str_parent = ",".join(f"{parent[c]:.12g}" for c in feature_cols)
-                            parent_block = f"{parent['fitness_fid']:.12g}\t{feat_str_parent}"
+                            feat_str_parent = ",".join(
+                                f"{parent[c]:.12g}" for c in feature_cols
+                            )
+                            parent_block = (
+                                f"{parent['fitness_fid']:.12g}\t{feat_str_parent}"
+                            )
                             # child block
-                            feat_str_child = ",".join(f"{child[c]:.12g}" for c in feature_cols)
-                            child_block = f"{child['fitness_fid']:.12g}\t{feat_str_child}"
+                            feat_str_child = ",".join(
+                                f"{child[c]:.12g}" for c in feature_cols
+                            )
+                            child_block = (
+                                f"{child['fitness_fid']:.12g}\t{feat_str_child}"
+                            )
                             # complete line: seed ⟶ parent ⟶ child
                             lines.append(f"{seed}\t{parent_block}\t{child_block}")
                         except Exception as e:
-                            print(f"Error processing seed {seed} with parent {pid}: {e}")
+                            print(
+                                f"Error processing seed {seed} with parent {pid}: {e}"
+                            )
                             print(parent)
                             continue
 
@@ -239,33 +266,30 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             with open(os.path.join(stn_dir, fname), "w") as fh:
                 fh.write("\n".join(lines))
 
-        #continue #only do STN for now
+        # continue #only do STN for now
 
-            # fname_best = f"{llm_name}_{method}_best.csv".replace(" ", "_")
-            # with open(os.path.join(stn_dir, fname_best), "w") as fh:
-            #     fh.write("\n".join(lines_best))
-
-
+        # fname_best = f"{llm_name}_{method}_best.csv".replace(" ", "_")
+        # with open(os.path.join(stn_dir, fname_best), "w") as fh:
+        #     fh.write("\n".join(lines_best))
 
         # ------------------------------------------------------------------
         # 0  Pre-filter: keep only rows where fitness_fid strictly improves
         #    relative to the previous evaluation of the *same seed*.
         # ------------------------------------------------------------------
         improving = (
-            data.sort_values(["seed", "_id"])          # just to be safe
-                .groupby("seed")["fitness_fid"]
-                .apply(lambda s: s > s.shift())        # True where improvement
-                .reset_index(level=0, drop=True)       # align with original index
+            data.sort_values(["seed", "_id"])  # just to be safe
+            .groupby("seed")["fitness_fid"]
+            .apply(lambda s: s > s.shift())  # True where improvement
+            .reset_index(level=0, drop=True)  # align with original index
         )
 
-        data_imp = data[improving].copy()              # <- only improving evals
+        data_imp = data[improving].copy()  # <- only improving evals
 
-            
         # ------------------------------------------------------------------
         # 1  Visualise behaviour features *along those improving steps only*
         # ------------------------------------------------------------------
         for algo, g in data_imp.groupby("method_name", sort=False):
-            g = g.sort_values(["seed", "_id"])          # nicer lines
+            g = g.sort_values(["seed", "_id"])  # nicer lines
 
             for feat in behaviour_feats:
                 plt.figure(figsize=(8, 4))
@@ -281,10 +305,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
                 # mean trend of improving steps
                 mean_curve = (
-                    g.groupby("_id")[feat]
-                    .mean()
-                    .reset_index()
-                    .sort_values("_id")
+                    g.groupby("_id")[feat].mean().reset_index().sort_values("_id")
                 )
                 plt.plot(
                     mean_curve["_id"],
@@ -301,7 +322,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
                 plt.savefig(f"{img_dir}{llm_name}_{algo}_{feat}_improving.png")
                 plt.clf()
                 plt.close()
-        
+
         # ------------------------------------------------------------------
         # 1  Behaviour features over evaluations
         #     (_id is assumed to be monotonically increasing per seed)
@@ -313,7 +334,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             for feat in behaviour_feats:
                 plt.figure(figsize=(8, 4))
 
-                # All individual runs in the background
+                # All individual runs in the background
                 for _, seed_group in g.groupby("seed"):
                     plt.plot(
                         seed_group["_id"],
@@ -324,10 +345,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
                 # Mean trend over runs on top
                 mean_curve = (
-                    g.groupby("_id")[feat]
-                    .mean()
-                    .reset_index()
-                    .sort_values("_id")
+                    g.groupby("_id")[feat].mean().reset_index().sort_values("_id")
                 )
                 plt.plot(
                     mean_curve["_id"],
@@ -356,14 +374,15 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             # Average each method over seeds at every evaluation step
             mean_per_method = (
                 data.groupby(["method_name", "_id"])[feat]
-                    .median()
-                    .reset_index()
-                    .sort_values("_id")
+                .median()
+                .reset_index()
+                .sort_values("_id")
             )
 
             # One line per algorithm
-            for (algo, g), colour in zip(mean_per_method.groupby("method_name", sort=False),
-                                        palette):
+            for (algo, g), colour in zip(
+                mean_per_method.groupby("method_name", sort=False), palette
+            ):
                 plt.plot(
                     g["_id"],
                     g[feat],
@@ -384,31 +403,42 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
     if False:
         # ------------------------------------------------------------------
-        # 1  Correlation heat‑map 
+        # 1  Correlation heat‑map
         # ------------------------------------------------------------------
-        #for algo, g in data.groupby("method_name", sort=False):
+        # for algo, g in data.groupby("method_name", sort=False):
 
         nice_names_corr = {
-            "avg_nearest_neighbor_distance":  "NN-dist",
-            "dispersion":                     "Disp",
-            "avg_exploration_pct":            "Expl %",
-            "avg_distance_to_best":           "Dist→best",
-            "intensification_ratio":          "Inten-ratio",
-            "avg_exploitation_pct":           "Explt %",
-            "average_convergence_rate":       "Conv-rate",
-            "avg_improvement":                "Δ fitness",
-            "success_rate":                   "Success %",
-            "longest_no_improvement_streak":  "No-imp streak",
-            "last_improvement_fraction":      "Last-imp frac",
-            "fitness_norm":                   "Normalized Fitness",
+            "avg_nearest_neighbor_distance": "NN-dist",
+            "dispersion": "Disp",
+            "avg_exploration_pct": "Expl %",
+            "avg_distance_to_best": "Dist→best",
+            "intensification_ratio": "Inten-ratio",
+            "avg_exploitation_pct": "Explt %",
+            "average_convergence_rate": "Conv-rate",
+            "avg_improvement": "Δ fitness",
+            "success_rate": "Success %",
+            "longest_no_improvement_streak": "No-imp streak",
+            "last_improvement_fraction": "Last-imp frac",
+            "fitness_norm": "Normalized Fitness",
         }
 
-        
         corr_data = data.copy()
         corr_data[all_behaviour_feats] = robust_minmax(corr_data, all_behaviour_feats)
         corr_data.rename(columns=nice_names_corr, inplace=True)
-        
-        corr_data.drop(columns=["id", "fitness_fid", "fid", "_id", "seed", "method_name", "problem_name", 'parent_ids'], inplace=True)
+
+        corr_data.drop(
+            columns=[
+                "id",
+                "fitness_fid",
+                "fid",
+                "_id",
+                "seed",
+                "method_name",
+                "problem_name",
+                "parent_ids",
+            ],
+            inplace=True,
+        )
 
         corr_data.dropna(inplace=True)  # drop rows with NaN values
         plot_df = corr_data.corr()
@@ -429,12 +459,11 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         plt.title(f"Behaviour metrics\ncorrelation matrix")
         plt.tight_layout()
         plt.savefig(f"{img_dir}{llm_name}_behaviour-metrics-correlation.png")
-        #plt.show()
+        # plt.show()
         plt.clf()
-    
+
     if False:
         # ------------------------------
-
 
         # Parallel coordinates for all!
         pc = data[behaviour_feats + ["fitness_norm"]].copy()
@@ -456,14 +485,18 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         pc = pc.sort_values("fitness_group", key=lambda s: s.cat.codes)
 
         # ── optional: subsample to keep the plot readable ──────────────
-        #sample = pc.sample(n=min(len(pc), 600), random_state=42)
+        # sample = pc.sample(n=min(len(pc), 600), random_state=42)
 
         fig, ax = plt.subplots(figsize=(16, 12))
 
         plot_df = pc.rename(columns=nice_names)
         parallel_coordinates(
-            plot_df, "fitness_group", alpha=0.3, linewidth=1.0,
-            colormap="seismic", ax=ax,
+            plot_df,
+            "fitness_group",
+            alpha=0.3,
+            linewidth=1.0,
+            colormap="seismic",
+            ax=ax,
         )
 
         handles, _ = ax.get_legend_handles_labels()
@@ -492,17 +525,23 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
 
             # 2‑b.  Quartile‑bin fitness so we can colour by performance
             pc["fitness_group"] = pd.qcut(
-                pc["fitness_norm"], 4, labels=quartile_labels, duplicates="drop" #["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
+                pc["fitness_norm"],
+                4,
+                labels=quartile_labels,
+                duplicates="drop",  # ["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
             )
             pc["fitness_group"] = pc["fitness_group"].astype(quart_cat)
 
             pc = pc.sort_values("fitness_group", key=lambda s: s.cat.codes)
             # ── optional: subsample to keep the plot readable ──────────────
-            #sample = pc.sample(n=min(len(pc), 600), random_state=42)
+            # sample = pc.sample(n=min(len(pc), 600), random_state=42)
 
             plt.figure(figsize=(16, 12))
             parallel_coordinates(
-                pc, "fitness_group", alpha=0.4, linewidth=1.0,
+                pc,
+                "fitness_group",
+                alpha=0.4,
+                linewidth=1.0,
                 colormap="seismic",
             )
             plt.title(f"{algo} — parallel‑coordinate behaviour profile")
@@ -517,37 +556,40 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         # 0  Aggregate the 50 raw auc‑columns into 10 function‑level scores
         # ------------------------------------------------------------------
 
-
-
-        func_ids        = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
-        runs_per_func   = 5          # we know each function has 5 runs
-        quart_labels    = ["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
-        quart_cat       = pd.CategoricalDtype(quart_labels, ordered=True)
-
-
+        func_ids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
+        runs_per_func = 5  # we know each function has 5 runs
+        quart_labels = ["Q1 (low)", "Q2", "Q3", "Q4 (high)"]
+        quart_cat = pd.CategoricalDtype(quart_labels, ordered=True)
 
         # ------------------------------------------------------------------
         # 1  Build a helper with min‑max‑scaled behaviour features
         # ------------------------------------------------------------------
         behaviour_feats = [
-            "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
-            "avg_distance_to_best", "intensification_ratio", "avg_exploitation_pct",
-            "average_convergence_rate", "avg_improvement", "success_rate",
-            "longest_no_improvement_streak", "last_improvement_fraction",
+            "avg_nearest_neighbor_distance",
+            "dispersion",
+            "avg_exploration_pct",
+            "avg_distance_to_best",
+            "intensification_ratio",
+            "avg_exploitation_pct",
+            "average_convergence_rate",
+            "avg_improvement",
+            "success_rate",
+            "longest_no_improvement_streak",
+            "last_improvement_fraction",
         ]
 
         nice_names = {
-            "avg_nearest_neighbor_distance":  "NN-dist",
-            "dispersion":                     "Disp",
-            "avg_exploration_pct":            "Expl %",
-            "avg_distance_to_best":           "Dist→best",
-            "intensification_ratio":          "Inten-ratio",
-            "avg_exploitation_pct":           "Explt %",
-            "average_convergence_rate":       "Conv-rate",
-            "avg_improvement":                "Δ fitness",
-            "success_rate":                   "Success %",
-            "longest_no_improvement_streak":  "No-imp streak",
-            "last_improvement_fraction":      "Last-imp frac",
+            "avg_nearest_neighbor_distance": "NN-dist",
+            "dispersion": "Disp",
+            "avg_exploration_pct": "Expl %",
+            "avg_distance_to_best": "Dist→best",
+            "intensification_ratio": "Inten-ratio",
+            "avg_exploitation_pct": "Explt %",
+            "average_convergence_rate": "Conv-rate",
+            "avg_improvement": "Δ fitness",
+            "success_rate": "Success %",
+            "longest_no_improvement_streak": "No-imp streak",
+            "last_improvement_fraction": "Last-imp frac",
         }
 
         data = df.copy()
@@ -559,26 +601,22 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         # ------------------------------------------------------------------
         # 2  Parallel‑coordinate plot for each function‑level AUC
         # ------------------------------------------------------------------
-        from pandas.plotting import parallel_coordinates
         import matplotlib.pyplot as plt
+        from pandas.plotting import parallel_coordinates
 
         col = "fitness_fid"
         for fid in func_ids:
-            num_cols = data.select_dtypes('number').columns          # all numeric columns
-            agg_map  = {c: 'mean' for c in num_cols} | {           # mean for numbers
-                        'method_name': 'first',                    # keep one value
-                        'problem_name': 'first'}                   #  – they should be constant per id
+            num_cols = data.select_dtypes("number").columns  # all numeric columns
+            agg_map = {c: "mean" for c in num_cols} | {  # mean for numbers
+                "method_name": "first",  # keep one value
+                "problem_name": "first",
+            }  #  – they should be constant per id
 
             df_fid = data[data["fid"] == fid].copy()
-            df_f = (df_fid
-                    .groupby('id', as_index=False)
-                    .agg(agg_map))
+            df_f = df_fid.groupby("id", as_index=False).agg(agg_map)
 
-
-            if df_f.empty:       # nothing to draw for this function
+            if df_f.empty:  # nothing to draw for this function
                 continue
-
-
 
             # quartile‑bin the aggregated fitness score
             q = pd.qcut(df_f[col], 4, labels=quart_labels).astype(quart_cat)
@@ -588,15 +626,19 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             plot_df["fitness_quartile"] = q
 
             # (optional) thin out lines for readability
-            #plot_df = plot_df.sample(n=min(len(plot_df), 2000), random_state=42)
+            # plot_df = plot_df.sample(n=min(len(plot_df), 2000), random_state=42)
             plot_df = plot_df.sort_values("fitness_quartile", key=lambda s: s.cat.codes)
 
             fig, ax = plt.subplots(figsize=(16, 12))
-            
+
             plot_df = plot_df.rename(columns=nice_names)
             parallel_coordinates(
-                plot_df, "fitness_quartile", ax=ax,
-                alpha=0.35, linewidth=1.0, colormap="seismic",
+                plot_df,
+                "fitness_quartile",
+                ax=ax,
+                alpha=0.35,
+                linewidth=1.0,
+                colormap="seismic",
             )
 
             # handles, _ = ax.get_legend_handles_labels()
@@ -611,7 +653,7 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
             plt.clf()
             plt.close()
 
-        TOP_K     = 100            # ← change this to whatever "top‑k" you want
+        TOP_K = 100  # ← change this to whatever "top‑k" you want
 
         # ---------------------------------------------------------------
         # 1  Gather top‑k rows per function (by aggregated auc_f*)
@@ -619,38 +661,41 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         pieces = []
 
         behaviour_feats = [
-            "avg_nearest_neighbor_distance", "dispersion", "avg_exploration_pct",
-            "avg_distance_to_best", "intensification_ratio", "avg_exploitation_pct",
-            #"average_convergence_rate", "avg_improvement", "success_rate",
-            "longest_no_improvement_streak", "last_improvement_fraction",
+            "avg_nearest_neighbor_distance",
+            "dispersion",
+            "avg_exploration_pct",
+            "avg_distance_to_best",
+            "intensification_ratio",
+            "avg_exploitation_pct",
+            # "average_convergence_rate", "avg_improvement", "success_rate",
+            "longest_no_improvement_streak",
+            "last_improvement_fraction",
         ]
         nice_names = {
-            "avg_nearest_neighbor_distance":  "NN-dist",
-            "dispersion":                     "Disp",
-            "avg_exploration_pct":            "Expl %",
-            "avg_distance_to_best":           "Dist→best",
-            "intensification_ratio":          "Inten-ratio",
-            "avg_exploitation_pct":           "Explt %",
-        #    "average_convergence_rate":       "Conv-rate",
-        #    "avg_improvement":                "Δ fitness",
-        #    "success_rate":                   "Success %",
-            "longest_no_improvement_streak":  "No-imp streak",
-            "last_improvement_fraction":      "Last-imp frac",
+            "avg_nearest_neighbor_distance": "NN-dist",
+            "dispersion": "Disp",
+            "avg_exploration_pct": "Expl %",
+            "avg_distance_to_best": "Dist→best",
+            "intensification_ratio": "Inten-ratio",
+            "avg_exploitation_pct": "Explt %",
+            #    "average_convergence_rate":       "Conv-rate",
+            #    "avg_improvement":                "Δ fitness",
+            #    "success_rate":                   "Success %",
+            "longest_no_improvement_streak": "No-imp streak",
+            "last_improvement_fraction": "Last-imp frac",
         }
 
         col = "fitness_fid"
         for fid in func_ids:
 
             df_fid = data[data["fid"] == fid].copy()
-            df_f = (df_fid
-                    .groupby('id', as_index=False)
-                    .agg(agg_map))
+            df_f = df_fid.groupby("id", as_index=False).agg(agg_map)
 
             # take the k rows with highest score for this function
             topk = df_f.nlargest(TOP_K, columns=col)
 
             # scaled behaviour + fid label
-            
+
             frame = df_f[behaviour_feats + ["fitness_fid"]].loc[topk.index].copy()
             frame["fid"] = f"f{fid}"
             pieces.append(frame)
@@ -664,16 +709,17 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         # ------------------------------------------------------------------
         # 3  Parallel‑coordinate plot
         # ------------------------------------------------------------------
-        from pandas.plotting import parallel_coordinates
         import matplotlib.pyplot as plt
+        from pandas.plotting import parallel_coordinates
 
         # Build a colour list (one per fid) – tab10 has 10 distinct hues
-        cmap   = plt.get_cmap("tab10")
+        cmap = plt.get_cmap("tab10")
         colors = [cmap(i) for i in range(len(func_ids))]
 
         fig, ax = plt.subplots(figsize=(16, 12))
         parallel_coordinates(
-            plot_df, "fid",
+            plot_df,
+            "fid",
             ax=ax,
             linewidth=1.1,
             alpha=0.9,
@@ -690,12 +736,13 @@ for folder in tqdm.tqdm(["BBOB0", "BBOB1", "BBOB2", "BBOB3"]): #
         plt.close()
 
         # BLADE loggers
-        log_folder = {"BBOB0": "BBOB",
-                    "BBOB1": "BBOB-1",
-                    "BBOB2": "BBOB-2",
-                    "BBOB3": "BBOB-3"}
+        log_folder = {
+            "BBOB0": "BBOB",
+            "BBOB1": "BBOB-1",
+            "BBOB2": "BBOB-2",
+            "BBOB3": "BBOB-3",
+        }
         loc = log_folder[folder]
-        logger = ExperimentLogger(f'/data/neocortex/{loc}', True)
+        logger = ExperimentLogger(f"/data/neocortex/{loc}", True)
         plot_convergence(logger, metric="AOCC", save=True, budget=100)
         plot_experiment_CEG(logger, save=True, budget=100, max_seeds=5)
-

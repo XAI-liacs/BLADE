@@ -2,7 +2,7 @@ from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from iohblade.methods import LLaMEA, RandomSearch
 from iohblade.loggers import ExperimentLogger
-from iohblade.problems import Kerneltuner
+from iohblade.benchmarks import Kerneltuner
 import numpy as np
 import os
 
@@ -59,7 +59,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
                 budget=1000,
                 cache_dir="/data/neocortex/repos/benchmark_hub/",
                 extra_info=False),
-            
+
             ]
         experiment = Experiment(methods=methods, problems=problems, runs=3, budget = budget, show_stdout=True, exp_logger=logger) #normal run
         experiment() #run the experiment

@@ -1,0 +1,26 @@
+{%- set _versions = versions | default([]) -%}
+{%- set _current = current_version | default({'name': version}) -%}
+{%- set _docs_base = '/BLADE' -%}
+
+{%- if _versions %}
+<div class="sidebar-tree">
+  <p class="caption" role="heading">
+    <span class="caption-text">Version</span>
+  </p>
+  <label for="version-selector" class="visually-hidden">Version</label>
+  <select
+    id="version-selector"
+    style="width: 100%;"
+    onchange="if (this.value) window.location.href = this.value;"
+  >
+    {%- for item in _versions %}
+    <option
+      value="{{ _docs_base }}/{{ item.name }}/index.html"
+      {% if item.name == _current.name %}selected{% endif %}
+    >
+      {{ item.name }}
+    </option>
+    {%- endfor %}
+  </select>
+</div>
+{%- endif %}
