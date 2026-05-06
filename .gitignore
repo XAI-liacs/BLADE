@@ -181,3 +181,6 @@ _site/
 
 # Apple File System
 .DS_Store
+
+/ignore/
+/paper_results/
