@@ -1,6 +1,6 @@
 import torch
 
-from iohblade.problem import Problem, BASE_DEPENDENCIES
+from iohblade.problem import Problem
 
 from kernelbench.compile import WorkArgs
 from kernelbench.dataset import construct_kernelbench_dataset
@@ -9,6 +9,7 @@ from kernelbench.eval import eval_kernel_against_ref, KernelExecResult
 
 from iohblade.solution import Solution
 
+import kernelbench
 
 class KernelBench(Problem):
     def __init__(
@@ -22,10 +23,11 @@ class KernelBench(Problem):
         logger=None,
         training_instances=None,
         test_instances=None,
-        name="Problem",
+        name="KernelBench",
         eval_timeout=6000,
-        dependencies=BASE_DEPENDENCIES,
-        imports=None,
+        dependencies=['torch', 
+                        'kernelbench @ git+https://github.com/ScalingIntelligence/KernelBench.git'],
+        imports=None
     ):
         """
         KernelBench: Benchmarking wrapper for evaluating LLM-generated GPU kernels.
@@ -77,8 +79,17 @@ class KernelBench(Problem):
         - Incorrect kernel behavior
         - Missing or invalid runtime measurements
         """
-        dependencies = list(dependencies)
-        dependencies.append("torch")
+
+
+        super().__init__(
+            logger,
+            training_instances,
+            test_instances,
+            name,
+            eval_timeout,
+            dependencies,
+            imports,
+        )
 
         self.workargs = WorkArgs(
             problem_id, sample_id=sample_id, device=torch.device(gpu_type)
@@ -91,21 +102,14 @@ class KernelBench(Problem):
         self.problem = dataset.get_problem_by_id(problem_id)
         self.backend = backend
         self.precision = precision
-
-        super().__init__(
-            logger,
-            training_instances,
-            test_instances,
-            name,
-            eval_timeout,
-            dependencies,
-            imports,
-        )
-
-    def get_prompt(self):
-        return get_prompt_for_backend(
+        self.task_prompt = get_prompt_for_backend(
             self.problem.code, self.backend, gpu_name=self.gpu, precision=self.precision
         )
+        self.format_prompt = ""
+        self.example_prompt = ""
+
+    def get_prompt(self):
+        return self.prompt
 
     def _stringify_metadata(self, metadata: dict) -> str:
         string = "{\n"
@@ -116,7 +120,7 @@ class KernelBench(Problem):
 
     def evaluate(self, solution: Solution) -> Solution:
         try:
-            evaluation_result = eval_kernel_against_ref(
+            evaluation_result: KernelExecResult = eval_kernel_against_ref(
                 self.problem.code,
                 solution.code,
                 device=self.workargs.device,

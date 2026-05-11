@@ -29,3 +29,8 @@ try:
     from .toy_multiobjective.toy_multiobjective import ToyMultiObjective
 except Exception:
     ToyMultiObjective = None
+
+try:
+    from .kerneltuner.benchkernel import KernelBench
+except Exception:
+    KernelBench = None
