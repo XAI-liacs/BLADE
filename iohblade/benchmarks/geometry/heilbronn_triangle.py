@@ -1,3 +1,4 @@
+import textwrap
 from typing import Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
@@ -48,14 +49,14 @@ Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, a
 --------------------------------------------------------------------------------------------------------------------
 """)
 
-        self.task_prompt = """
+        self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Heilbronn on a unit area triangle.
 - The `__call__` method may return:
   - (None, points) where points is ndarray (n,2) interpreted inside a default unit-area triangle, or
   - (triangle, points): with triangle shape (3,2), both of which we rescale similarly as to have area of triangle = 1.
     - Upon scaling points must lie inside the tringle, within the given tolerance.
 - The optimisation goal is to maximise the area of the smallest triangle, formed by picking 3 of the n points.
-"""
+""")
         self.task_prompt += (
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
@@ -81,22 +82,22 @@ def __call__(self):
     return (np.zeros((3, 2)), np.zeros(({self.n_points}, 2)))
 """
 
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 Must follow the following template for code:
 Description: A short one line description of technique used.
 
 ```python
 
 class HeilbronnTriangle-n{self.n_points}:
-    
+
     {best_known_initialiser}
 
     {call_format}
 
 ```
-"""
+""")
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
@@ -106,7 +107,7 @@ one-line description, describing the main idea. Give the response in the format:
 <code>
 ```
 
-"""
+""")
         self.minimisation = False
         self.dependencies += ["scipy", "shapely"]
 

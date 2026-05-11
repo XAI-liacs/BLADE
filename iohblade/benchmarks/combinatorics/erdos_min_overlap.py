@@ -2,6 +2,7 @@ import builtins
 import math
 import random
 import importlib
+import textwrap
 import numpy as np
 
 from iohblade.problem import Problem
@@ -43,7 +44,7 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
         self.minimisation = True
         self.dependencies += ["scipy"]
 
-        self.task_prompt = """
+        self.task_prompt = textwrap.dedent("""
 * Write a Python class whose `__call__` returns a list f of length N with values in range [0,1], such that:
     * It has domain in range [-1, 1], over `N` equal bins with dx = 2/N.
     * g is a point wise complement hence g = 1 - f, giving us f + g = 1. Both lie in range [0,1].
@@ -53,7 +54,7 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
     * Optimize the objective:
         * minimize  sup_{x ∈ [-2,2]} ∫_{-1}^{1} f(t) · g(x+t) dt,  with g = 1 - f
     * Do not use scipy's interp1d, it is no depricated.
-"""
+""")
 
         self.task_prompt += f"""
     * Use N = {self.n_bins}.
@@ -67,7 +68,7 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
         # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
         optimised for better results.
 """
-        self.example_prompt = f"""
+        self.example_prompt = textwrap.dedent(f"""
 
 An example template of such program is given by:
 ```python
@@ -79,9 +80,9 @@ class ErdosCandidate:
         return [0,0]*{self.n_bins}
 ```
 
-"""
+""")
 
-        self.format_prompt = """
+        self.format_prompt = textwrap.dedent("""
 
 Give an excellent and novel algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
@@ -90,7 +91,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 <code>
 ```
 
-"""
+""")
         if self.n_bins <= 0:
             raise ValueError("Expected n-bins to be positive number.")
 

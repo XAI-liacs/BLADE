@@ -1,3 +1,6 @@
+import textwrap
+
+
 class NumberTheoryBase:
     """
     Base spec for number-theory benchmarks.
@@ -17,7 +20,7 @@ class NumberTheoryBase:
 
     def make_task_prompt(self, formula: str) -> str:
         # Single-set U specification; matches Appendix B.6, eq. (3).
-        return f"""
+        return textwrap.dedent(f"""
 - Write a Python class, with `__call__` method that CONSTRUCTS a finite integer set U.
 - Constraints:
     - U is non negative integer.
@@ -40,7 +43,7 @@ class NumberTheoryBase:
         - greedy/Sidon-like sets,
         - Golomb-ruler style, block + gaps,
         - digital/bit-pattern constructions, unions of progressions, randomized hill-climbing.
-"""
+""")
 
     def make_example_prompt(self, class_name: str) -> str:
         # Minimal, valid example that returns a simple U.
@@ -56,7 +59,7 @@ class NumberTheoryBase:
         # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
         # optimised for better results.
 """
-        return f"""
+        return textwrap.dedent(f"""
 An example template of the program is:
 ```python
 class {class_name}:
@@ -73,10 +76,10 @@ class {class_name}:
             gap = gap * 2 if random.random() < 0.3 else gap + 1
         return U
 ```
-"""
+""")
 
     def make_format_prompt(self) -> str:
-        return """
+        return textwrap.dedent("""
 Give an excellent and novel algorithm to solve this task and also give it a
 one-line description, describing the main idea. Give the response in the format:
 
@@ -85,4 +88,4 @@ one-line description, describing the main idea. Give the response in the format:
 ```python
 <your class here>
 ```
-"""
+""")
