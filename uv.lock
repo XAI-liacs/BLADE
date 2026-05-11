@@ -2176,6 +2176,7 @@ dependencies = [
     { name = "gradio-client" },
     { name = "typer" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/86/c9694b7cfada5780e75769e60dc161a161f4dd7fc91b61db5e3a3338bef9/hf_gradio-0.4.1.tar.gz", hash = "sha256:a017d942618f0d495a58ee4563047fa04bef614c00e0cb789a9a6d0633cffa7b", size = 6560, upload-time = "2026-04-22T14:01:32.334Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/30/2d/afff2ee87e75d8eb85c92bb8cf0e15b05c23c2ebd8fd8dec781d8601ed7f/hf_gradio-0.4.1-py3-none-any.whl", hash = "sha256:76b8cb8be6abe62d74c1ad2d35b42f0629db89aa9e1a8d033cecfe7c856eeab3", size = 4482, upload-time = "2026-04-17T19:53:31.827Z" },
 ]
@@ -2532,7 +2533,7 @@ extraproblems = [
     { name = "pygdm2", specifier = "==1.1.12" },
     { name = "pymoosh", specifier = "==3.2" },
 ]
-kernelbench = [{ name = "kernelbench", git = "https://github.com/ScalingIntelligence/KernelBench.git?rev=423217d9fda91e0c2d67e4a43bf62f96f6d104f1" }]
+kernelbench = [{ name = "kernelbench", git = "https://github.com/anantashahane/KernelBench.git?rev=ce17add664ac104e3799942d323a42c823b9dc38" }]
 kerneltuner = [
     { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" },
     { name = "kernel-tuner", git = "https://github.com/KernelTuner/kernel_tuner.git?rev=ad41cfe99aec44c99ae79b4ececcc7227eb20db2" },
@@ -3119,7 +3120,7 @@ dependencies = [
 [[package]]
 name = "kernelbench"
 version = "0.2.0.dev0"
-source = { git = "https://github.com/ScalingIntelligence/KernelBench.git?rev=423217d9fda91e0c2d67e4a43bf62f96f6d104f1#423217d9fda91e0c2d67e4a43bf62f96f6d104f1" }
+source = { git = "https://github.com/anantashahane/KernelBench.git?rev=ce17add664ac104e3799942d323a42c823b9dc38#ce17add664ac104e3799942d323a42c823b9dc38" }
 dependencies = [
     { name = "datasets" },
     { name = "einops" },

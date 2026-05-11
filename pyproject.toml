@@ -94,7 +94,7 @@ eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev 
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
-kernelbench = {git = "https://github.com/ScalingIntelligence/KernelBench.git", rev = "423217d9fda91e0c2d67e4a43bf62f96f6d104f1"}
+kernelbench = {git = "https://github.com/anantashahane/KernelBench.git", rev = "ce17add664ac104e3799942d323a42c823b9dc38"}
 
 [build-system]
 requires = ["hatchling"]
