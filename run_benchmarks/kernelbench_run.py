@@ -14,7 +14,7 @@ if __name__ == '__main__':
         problem_id=1,
         sample_id=1,
         gpu_name="T4",
-        gpu_type="cuda"
+        gpu_type="cuda:5" # Set "cuda" if only 1 gpu in computer; else set 'cuda:{index}' where index is gpu index to test on.
     )
 
     methods = []

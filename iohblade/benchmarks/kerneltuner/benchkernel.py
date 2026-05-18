@@ -25,8 +25,11 @@ class KernelBench(Problem):
         test_instances=None,
         name="KernelBench",
         eval_timeout=6000,
-        dependencies=['torch', 
-                        'kernelbench @ git+https://github.com/ScalingIntelligence/KernelBench.git'],
+        dependencies=[
+                        'kernelbench @ git+https://github.com/anantashahane/KernelBench.git@eacd8f3a05c33b6e05504b37dc5d9153728f8ac6',
+                        "torch",
+                        "torchvision"
+                    ],
         imports=None
     ):
         """
@@ -80,6 +83,10 @@ class KernelBench(Problem):
         - Missing or invalid runtime measurements
         """
 
+        # version = "".join(torch.version.cuda.split('.'))
+        version = 122
+        dependencies.insert(2, f"--extra-index-url=https://download.pytorch.org/whl/cu{version}")
+        print(dependencies)
 
         super().__init__(
             logger,
@@ -154,7 +161,7 @@ class KernelBench(Problem):
                         score, f"Got Score {score}...\nAdditional Feedback:\n{feedback}"
                     )
         except Exception as e:
-            solution = solution.set_scores(float("inf"), str(e), e)
+            solution = solution.set_scores(float("inf"), f"{str(e)} CUDA version installed: {torch.version.cuda}", e)
         return solution
 
     def to_dict(self):
