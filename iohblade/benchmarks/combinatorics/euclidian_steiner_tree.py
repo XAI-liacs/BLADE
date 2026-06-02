@@ -1,9 +1,10 @@
 import math
+import inspect
 import textwrap
 from pathlib import Path
 from statistics import mean
 from dataclasses import dataclass
-
+from typing import Any
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
@@ -177,6 +178,19 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            'tags': ['combinatorics', 'graph', 'discrete mathematics'],
+            'name': 'Euclidean Steiner Tree',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': inspect.getsource(self.compute_mst_length) + inspect.getsource(self.evaluate),
+            'config': {
+                'benchmark': self.benchmark,
+                'tolerance': self.tolerance
+            }
+        }
+        return config
 
 if __name__ == "__main__":
     est = EuclidianSteinerTree(20)

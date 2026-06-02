@@ -1,8 +1,10 @@
+from typing import Any
+
 import numpy as np
 
+import inspect
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-
 from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 
 
@@ -27,7 +29,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         """
         AutoCorrBaseSpec.__init__(
             self,
-            task_name="auto_corr_ineq_1",
+            task_name="Auto-Correlation_Inequality_1",
             n_bins=600,
             best_known=best_known,
             best_solution=best_solution,
@@ -44,6 +46,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         self.minimisation = (
             True  # Provide tool to instantiate LLaMEA with appropritate max/min
         )
+
 
     def evaluate(self, solution: Solution) -> Solution:
         code = solution.code
@@ -83,6 +86,18 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        return {
+            'tags': ['trends', 'analysis', 'time-series'],
+            'name': 'Auto-Correlation 1',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': inspect.getsource(self.evaluate),
+            'config': {
+                'dependencies': self.dependencies,
+                'n_bins': self.n_bins
+            }
+        }
 
 if __name__ == "__main__":
     ac1 = AutoCorrIneq1()

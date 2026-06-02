@@ -6,6 +6,7 @@ import random
 import re
 import time
 import traceback
+from typing import Any
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import numpy as np
@@ -499,3 +500,24 @@ class AutoML(Problem):
             d["openml_task_id"] = self.openml_task_id
             d["metric"] = self.eval_name
         return d
+
+    def get_config(self) -> dict[str, Any]:
+        task_type = (
+                "classification" if _is_classification_task(self.task) else "regression"
+            )
+        config = {
+            'dependencies': self.dependencies,
+            'imports': self.imports,
+            'task_id': self.openml_task_id,
+            'task_type': task_type,
+        }
+        tags = ['automl']
+        tags.extend(self.task.class_labels or [])
+        return {
+            'tags': tags,
+            'name': self.name,
+            'prompt': self.get_prompt(),
+            'minimisation': False,
+            'evaluator': 'https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/automl',
+            'config': config
+        }

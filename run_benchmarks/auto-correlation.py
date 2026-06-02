@@ -13,14 +13,14 @@ from iohblade.benchmarks.analysis import get_analysis_problems
 if __name__ == "__main__":
     budget = 10
 
-    api_key = environ.get("GOOGLE_API_KEY")
+    # api_key = environ.get("GOOGLE_API_KEY")
 
-    ollama_llm = Ollama_LLM("gemma3:12b")
+    ollama_llm = Ollama_LLM("llama3.2:latest")
     # gemini_llm = Gemini_LLM(api_key=api_key)
 
     # Select the instances of Auto-Correlation 1-3.
     # ===============================================
-    autocorrineq = get_analysis_problems(use_best=False)[2]
+    autocorrineq = get_analysis_problems(use_best=False)[0]
     # ================================================
 
 

@@ -10,6 +10,7 @@ import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from typing import Optional, Any
 import cloudpickle
 import numpy as np
 
@@ -375,6 +376,31 @@ class Problem(ABC):
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
+    def log_data(self, minimisation: bool, tags:list[str], config: Optional[dict]=None) -> dict[str, Any]:
+        """
+        Generate a dictionary to export configuration settings for database usage.
+        Exports:
+            1. name: Problem Name.
+            2. prompt: result from get_prompt()
+            3. evaluator: The stringified evaluate() function.
+            4. minimisation: Indicator on whether the problem is of minimisation type.
+            5. config: An optional dictionary for extra configuration.
+        ## Parameters:
+            `log_location: str`: location to export the data to, set logger's dictionary for best results.
+            `minimisation: bool`: True if optimisation direction of the problem is minimisation (not all problems have this defination.),
+            `tags: list[str]`: A list of tags associate with problem.
+            `config: Dict['str': Any]`
+        """
+        data = {
+            'name': self.name,
+            'tags': tags,
+            'prompt': self.get_prompt(),
+            'evaluator': inspect.getsource(self.evaluate),
+            'minimisation': minimisation,
+            'config': config
+        }
+        return data
+
     @abstractmethod
     def evaluate(self, solution: Solution):
         """
@@ -404,6 +430,22 @@ class Problem(ABC):
             dict: Dictionary representation of the problem.
         """
         pass
+
+    @abstractmethod
+    def get_config(self) -> dict[str, Any]:
+        """
+        * Return a dictionary of properties to log:
+            ```
+                {
+                    `tags`: list[str],
+                    `name`: str,
+                    `prompt`: str,
+                    `minimisation`: bool,
+                    `evaluator`: str,
+                    `config`: {}    Extra configuration for a problem; like HPO.
+                }
+            ```
+        """
 
 
 class WrappedProblem(Problem):

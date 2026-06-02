@@ -1,4 +1,6 @@
 import math
+import inspect
+from typing import Any
 
 import numpy as np
 from numpy.polynomial.hermite import hermval
@@ -176,6 +178,30 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        evaluator_string = (
+            inspect.getsource(self._build_hcoef) + "\n" +
+            inspect.getsource(self._P) + "\n" + 
+            inspect.getsource(self._largest_positive_root) + "\n" + 
+            inspect.getsource(self._check_tail_nonnegative) + "\n" + 
+            inspect.getsource(self.evaluate)
+        )
+        config = {
+            'tags': ['signal processing', 'fourier analysis', 'uncertainty'],
+            'name': 'Fourier Uncertainty Inequality',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator_string,
+            'config': {
+                'n_terms': self.n_terms,
+                'tolerance': self.tolerance,
+                'x_max': self.x_max,
+                'grid_step': self.grid_step,
+                'check_points': self.check_points
+            }
+        }
+        return config
+        
 
 if __name__ == "__main__":
     uncertain_ineq = UncertaintyInequality()

@@ -1,6 +1,8 @@
 import os
+import inspect
 import textwrap
 import traceback
+from typing import Any
 
 import ioh
 import numpy as np
@@ -224,3 +226,16 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
         }
+
+
+    def get_config(self) -> dict[str, Any]:
+        extra_config = self.to_dict()
+        extra_config.pop('name')
+        config = {
+            'tags': ['MABBOB', 'Multi-Affine', 'Black Box Optimisation'],
+            'name': self.name,
+            'prompt': self.get_prompt(),
+            'minimisation': False,
+            'evaluator': inspect.getsource(self.evaluate)
+        }
+        return config

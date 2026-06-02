@@ -1,5 +1,7 @@
+import inspect
 import textwrap
 from pathlib import Path
+from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -117,6 +119,18 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            'tags': ['combinatorics', 'graph', 'discrete mathematics'],
+            'name': 'Graph Coloring',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': inspect.getsource(self.evaluate),
+            'config': {
+                'benchmark': self.benchmark
+            }
+        }
+        return config
 
 if __name__ == "__main__":
-    GraphColoring(benchmark_id=1)
+    GraphColoring(benchmark_id='1')
