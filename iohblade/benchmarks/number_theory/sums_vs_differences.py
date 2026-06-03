@@ -1,4 +1,6 @@
 import math
+import inspect
+from typing import Any
 import numpy as np
 
 from iohblade.problem import Problem
@@ -170,6 +172,30 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
 
     def to_dict(self):
         return self.__dict__
+
+    def get_config(self) -> dict[str, Any]:
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._compute_support_stats),
+                inspect.getsource(self._validate_U),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            'tags': ['algebra', 'sums', 'differences', 'finite set'],
+            'name': 'Sums vs Differences',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': {
+                'dependencies': self.dependencies,
+                'imports': self.imports,
+                'max_set_size': self.max_set_size
+            }
+        }
+
+        return config
 
 
 if __name__ == "__main__":

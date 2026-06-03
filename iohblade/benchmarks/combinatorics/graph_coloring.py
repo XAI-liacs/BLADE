@@ -127,7 +127,8 @@ one-line description, describing the main idea. Give the response in the format:
             'minimisation': self.minimisation,
             'evaluator': inspect.getsource(self.evaluate),
             'config': {
-                'benchmark': self.benchmark
+                'benchmark': self.benchmark,
+                'dependencies': self.dependencies
             }
         }
         return config

@@ -1,4 +1,6 @@
+import inspect
 import numpy as np
+from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -151,6 +153,25 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
 
     def to_dict(self):
         return self.__dict__
+    
+    def get_config(self) -> dict[str, Any]:
+        evaluator = inspect.getsource(self.evaluate)
+
+        config = {
+            'tags': ['packing', 'rectangle', 'geometry'],
+            'name': 'Rectangle Packing',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': {
+                'n_circles': self.n_circles,
+                'perimeter': self.perimeter,
+                'tolerance': self.tolerance,
+                'depencencies': self.dependencies,
+                'imports': self.imports
+            }
+        }
+        return config
 
 
 if __name__ == "__main__":

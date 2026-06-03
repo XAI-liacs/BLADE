@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import textwrap
-from typing import Optional
+from typing import Any, Optional
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -91,6 +91,25 @@ Give the response in the format:
 
     def to_dict(self):
         return self.__dict__
+
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            'tags': ['matrix', 'optimisation', 'linear algebra', 'rank'],
+            'name': 'Matrix Multiplication',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': 'https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/matrix_multiplication',
+            'config': {
+                'm': self.m,
+                'n': self.n,
+                'p': self.p,
+                'rank': self.rank,
+                'grid': self.grid,
+                'imports': self.imports,
+                'dependencies': self.dependencies
+            }
+        }
+        return config
 
     @property
     def target_fitness(self) -> Optional[float]:

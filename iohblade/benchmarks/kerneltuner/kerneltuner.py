@@ -1,12 +1,14 @@
+import re
+import os
 import json
 import math
-import os
 import random
-import re
+import inspect
 import textwrap
 import time
 import traceback
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -324,3 +326,23 @@ from kernel_tuner.strategies.wrapper import OptAlg
             "test_instances": self.test_instances,
             "budget": self.budget,
         }
+    
+    def get_config(self) -> dict[str, Any]:
+        extra_config = {
+            'gpus': self.gpus,
+            'applications': self.applications,
+            'kernels': self.kernels,
+            'dependencies': self.dependencies,
+            'imports': self.imports
+        }
+
+        config = {
+            'tags': ["gpu", "kernel", "machine learning", "tuning"],
+            'name': 'KernelTuner',
+            'prompt': self.get_prompt(),
+            'minimisation': False,
+            'evaluator': inspect.getsource(self.evaluate),
+            'config': extra_config
+        }
+
+        return config

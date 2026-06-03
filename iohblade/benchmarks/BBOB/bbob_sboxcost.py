@@ -318,6 +318,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
     def get_config(self) -> dict[str, Any]:
         extra_config = self.to_dict()
         extra_config.pop('name')
+        extra_config['dependencies'] = self.dependencies
+        extra_config['imports'] = self.imports
         config = {
             'tags': ['black box optimisation', "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB"],
             'name': self.name,

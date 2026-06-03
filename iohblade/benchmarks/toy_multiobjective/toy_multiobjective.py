@@ -23,7 +23,10 @@ A reference solution is shown in :attr:`ToyMultiObjective.example_prompt`.
 
 from __future__ import annotations
 
+import inspect
 import textwrap
+
+from typing import Any
 
 from iohblade.fitness import Fitness
 from iohblade.problem import Problem
@@ -179,3 +182,21 @@ class ToyMultiObjective(Problem):
 
     def to_dict(self) -> dict:
         return {"name": self.name, "eval_budget": self.eval_budget}
+
+    def get_config(self) -> dict[str, Any]:
+        evaluator = inspect.getsource(self.evaluate)
+
+        config = {
+            'tags': ['spherical', 'multi-objective', 'BBOB'],
+            'name': 'Toy Multi-Objective',
+            'prompt': self.get_prompt(),
+            'minimisation': False,
+            'evaluator': evaluator,
+            'config': {
+                'budget': self.eval_budget,
+                'keys': ['f1', 'f2'],
+                'depencencies': self.dependencies,
+                'imports': self.imports
+            }
+        }
+        return config

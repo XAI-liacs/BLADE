@@ -177,7 +177,8 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             'evaluator': inspect.getsource(self.evaluate),
             'config': {
                 'n_bins': self.n_bins,
-                'tolerance': self.tolerance
+                'tolerance': self.tolerance,
+                'dependencies': self.dependencies
             }
         }
         return config

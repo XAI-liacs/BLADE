@@ -187,7 +187,8 @@ one-line description, describing the main idea. Give the response in the format:
             'evaluator': inspect.getsource(self.compute_mst_length) + inspect.getsource(self.evaluate),
             'config': {
                 'benchmark': self.benchmark,
-                'tolerance': self.tolerance
+                'tolerance': self.tolerance,
+                'dependencies': self.dependencies
             }
         }
         return config

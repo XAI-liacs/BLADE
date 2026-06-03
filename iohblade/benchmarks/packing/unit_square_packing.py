@@ -1,3 +1,4 @@
+import inspect
 import numpy as np
 
 from iohblade import Solution
@@ -110,6 +111,23 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        evaluator = inspect.getsource(self.evaluate)
+
+        config = {
+            'tags': ['packing', 'rectangle', 'geometry'],
+            'name': 'Unit Square Packing',
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': {
+                'n_circles': self.n_circles,
+                'tolerance': self.tolerance,
+                'depencencies': self.dependencies,
+                'imports': self.imports
+            }
+        }
+        return config
 
 if __name__ == "__main__":
     u26 = UnitSquarePacking()

@@ -1,6 +1,7 @@
 import math
+import inspect
 import textwrap
-from typing import Optional
+from typing import Any, Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import (
@@ -154,6 +155,32 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        extra_config = {
+            'n_points': self.n_points,
+            'tolerance': self.tolerance,
+            'dependencies': self.dependencies
+        }
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self.to_np_points),
+                inspect.getsource(self.convex_hull),
+                inspect.getsource(self.polygon_area),
+                inspect.getsource(self.min_triangle_area),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            'tags': ['geometry', 'area', 'geometric discrepancy theory', 'computational geometry'],
+            'name': "Heilbronn Convex Region",
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': extra_config
+        }
+        return config
 
 if __name__ == "__main__":
     hbc = HeilbronnConvexRegion(n_points=10, best_known=None)

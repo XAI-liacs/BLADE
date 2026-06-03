@@ -231,6 +231,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
     def get_config(self) -> dict[str, Any]:
         extra_config = self.to_dict()
         extra_config.pop('name')
+        extra_config['imports'] = self.imports
+        extra_config['dependencies'] = self.dependencies
         config = {
             'tags': ['MABBOB', 'Multi-Affine', 'Black Box Optimisation'],
             'name': self.name,

@@ -1,7 +1,9 @@
 import json
+import inspect
 import textwrap
-from dataclasses import dataclass
+from typing import Any
 from pathlib import Path
+from dataclasses import dataclass
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -211,6 +213,32 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(Location),
+                inspect.getsource(self._check_accuracy),
+                inspect.getsource(self._transform_to_location_list),
+                inspect.getsource(self._calculate_length),
+                inspect.getsource(self.evaluate)
+            ]
+        )
+
+        config = {
+            'tag': ['logistics', 'discrete mathematics', 'vehicle routing', 'graph', 'optimisation'],
+            'name': "Vehicle Routing Problem",
+            'prompt': self.get_prompt(),
+            'minimisation': True,
+            'evaluator': evaluator,
+            'config': {
+                'benchmark': self.benchmark,
+                'dependencies': self.dependencies,
+                'imports': self.imports,
+                'objectives': ['distance']
+            }
+        }
+
+        return config
 
 if __name__ == "__main__":
     vrp = VehicleRoutingProblem()

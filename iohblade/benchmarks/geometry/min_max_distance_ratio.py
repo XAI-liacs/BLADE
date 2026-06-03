@@ -1,5 +1,7 @@
+import inspect
 import textwrap
 import numpy as np
+from typing import Any
 from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
@@ -152,7 +154,31 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        extra_config = {
+            'dimensions': self.dim,
+            'n_points': self.n_points,
+            'tolerance': self.tolerance,
+            'dependencies': self.dependencies
+        }
 
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._pairwise_d2),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            'tags': ['geometry', 'euclidian geometry', 'computational geometry'],
+            'name': "Min Max Distance Ratio",
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': extra_config
+        }
+        return config
+    
 if __name__ == "__main__":
     mmd = MinMaxMinDistanceRatio(n_points=10, dim=2, best_known=0)
     print(mmd.get_prompt())

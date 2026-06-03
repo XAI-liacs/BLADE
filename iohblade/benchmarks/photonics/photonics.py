@@ -1,6 +1,8 @@
 import os
+import inspect
 import textwrap
 import traceback
+from typing import Any
 
 import ioh
 import numpy as np
@@ -257,3 +259,21 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             setattr(new, k, copy.deepcopy(v, memo))
         new._rebuild_problem()
         return new
+
+def get_config(self) -> dict[str, Any]:
+        evaluator = inspect.getsource(self.evaluate)
+
+        config = {
+            'tags': ['photonics', 'BBOB', 'physics'],
+            'name': 'Photonics',
+            'prompt': self.get_prompt(),
+            'minimisation': False,
+            'evaluator': evaluator,
+            'config': {
+                'problem_type': self.problem_type,
+                'budget_factor': self.budget_factor,
+                'depencencies': self.dependencies,
+                'imports': self.imports
+            }
+        }
+        return config

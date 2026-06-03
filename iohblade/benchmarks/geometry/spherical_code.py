@@ -1,4 +1,5 @@
 import math
+import inspect
 import textwrap
 from typing import Optional
 from iohblade.problem import Problem
@@ -169,6 +170,31 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        extra_config = {
+            'n_points': self.n_points,
+            'tolerance': self.tolerance,
+            'dependencies': self.dependencies
+        }
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._check_dimension),
+                inspect.getsource(self._check_tolerance),
+                inspect.getsource(self._get_unit_vetor),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            'tags': ['geometry', 'projection', 'computational geometry'],
+            'name': "Spherical Code",
+            'prompt': self.get_prompt(),
+            'minimisation': self.minimisation,
+            'evaluator': evaluator,
+            'config': extra_config
+        }
+        return config
 
 if __name__ == "__main__":
     sc = SphericalCode()
