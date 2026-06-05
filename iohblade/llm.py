@@ -934,7 +934,9 @@ class LMStudio_LLM(LLM):
         :param kwargs: Keyed arguements for setting up the LLM chat.
         """
         super().__init__(api_key="", model=model, **kwargs)
-        self.llm = lms.llm(model)
+        self.llm = object
+        if lms is not object:
+            self.llm = lms.llm(model)
         self.config = config
 
     def _query(self, session: list[dict[str, str]], max_tries: int = 5) -> str:

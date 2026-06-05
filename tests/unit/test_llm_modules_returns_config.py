@@ -64,6 +64,10 @@ except:
 def test_lmstudio_returns_config():
     if LMStudio_LLM is None:
         return
+    try:
+        import lmstudio as lms
+    except:
+        return
     with patch("iohblade.llm.lms.llm") as mock_llm:
         mock_instance = MagicMock()
         mock_llm.return_value = mock_instance
