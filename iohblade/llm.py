@@ -69,9 +69,7 @@ from cpuinfo import get_cpu_info
 def _run(cmd):
     try:
         return subprocess.check_output(
-            cmd,
-            stderr=subprocess.DEVNULL,
-            text=True
+            cmd, stderr=subprocess.DEVNULL, text=True
         ).strip()
     except Exception:
         return ""
@@ -83,15 +81,17 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
     # WINDOWS
     if system == "Windows":
         try:
-            output = _run([
-                "powershell",
-                "-NoProfile",
-                "-Command",
-                (
-                    "Get-CimInstance Win32_VideoController | "
-                    "Select-Object Name,AdapterRAM | ConvertTo-Csv -NoTypeInformation"
-                )
-            ])
+            output = _run(
+                [
+                    "powershell",
+                    "-NoProfile",
+                    "-Command",
+                    (
+                        "Get-CimInstance Win32_VideoController | "
+                        "Select-Object Name,AdapterRAM | ConvertTo-Csv -NoTypeInformation"
+                    ),
+                ]
+            )
 
             lines = [x for x in output.splitlines() if x.strip()]
             if len(lines) >= 2:
@@ -101,7 +101,7 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
 
                 video_memory = None
                 if len(cols) > 1 and cols[1].isdigit():
-                    video_memory = int(cols[1]) // (1024 ** 2)
+                    video_memory = int(cols[1]) // (1024**2)
 
                 return gpu_name, video_memory
 
@@ -128,11 +128,13 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
 
                 # NVIDIA VRAM
                 try:
-                    smi = _run([
-                        "nvidia-smi",
-                        "--query-gpu=memory.total",
-                        "--format=csv,noheader,nounits"
-                    ])
+                    smi = _run(
+                        [
+                            "nvidia-smi",
+                            "--query-gpu=memory.total",
+                            "--format=csv,noheader,nounits",
+                        ]
+                    )
                     if smi:
                         return gpu_name, int(smi.splitlines()[0])
                 except Exception:
@@ -146,10 +148,7 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
     # MACOS
     elif system == "Darwin":
         try:
-            output = _run([
-                "system_profiler",
-                "SPDisplaysDataType"
-            ])
+            output = _run(["system_profiler", "SPDisplaysDataType"])
 
             gpu_name = None
             vram = None
@@ -183,16 +182,13 @@ def get_hardware_info() -> Dict:
 
     gpu_name, video_memory = _get_gpu_info()
 
-    memory_gb = round(
-        psutil.virtual_memory().total / (1024 ** 2),
-        1
-    )
+    memory_gb = round(psutil.virtual_memory().total / (1024**2), 1)
 
     return {
         "cpu_name": cpu_name,
         "gpu_name": gpu_name,
-        "memory": memory_gb,          # MB
-        "video_memory": video_memory, # MB
+        "memory": memory_gb,  # MB
+        "video_memory": video_memory,  # MB
         "cpu_core_count": psutil.cpu_count(logical=False),
         "os_name": platform.platform(),
     }
@@ -460,7 +456,7 @@ class LLM(ABC):
             "desc_pattern": self.desc_pattern,
             "cs_pattern": self.cs_pattern,
         }
-    
+
     @abstractmethod
     def get_config(self) -> list[dict[str, Any]]:
         """
@@ -481,6 +477,7 @@ class LLM(ABC):
         """
 
         pass
+
 
 class Multi_LLM(LLM):
     def __init__(self, llms: list[LLM]):
@@ -512,14 +509,13 @@ class Multi_LLM(LLM):
     def _query(self, session_messages, **kwargs):
         llm = self._pick_llm()
         return llm._query(session_messages, **kwargs)
-    
+
     def get_config(self) -> list[dict[str, Any]]:
         config_data = []
         for llm in self.llms:
-            config_data.extend(
-                llm.get_config()
-            )
+            config_data.extend(llm.get_config())
         return config_data
+
 
 class OpenAI_LLM(LLM):
     """
@@ -544,13 +540,9 @@ class OpenAI_LLM(LLM):
 
     def get_config(self) -> list[dict[str, Any]]:
         llm_config = self._client_kwargs.copy()
-        llm_config['temperature'] = self.temperature
-        llm_config.pop('api_key')
-        config = {
-            'model' : f'{self.model}',
-            'config': llm_config,
-            'hardware': {}
-        }
+        llm_config["temperature"] = self.temperature
+        llm_config.pop("api_key")
+        config = {"model": f"{self.model}", "config": llm_config, "hardware": {}}
         return [config]
 
     def _query(
@@ -649,13 +641,9 @@ class DeepSeek_LLM(OpenAI_LLM):
 
     def get_config(self) -> list[dict[str, Any]]:
         llm_config = self._client_kwargs.copy()
-        llm_config.pop('api_key')
-        llm_config['temperature'] = self.temperature
-        config = {
-            'model' : f'{self.model}',
-            'config': llm_config,
-            'hardware': {}
-        }
+        llm_config.pop("api_key")
+        llm_config["temperature"] = self.temperature
+        config = {"model": f"{self.model}", "config": llm_config, "hardware": {}}
         return [config]
 
 
@@ -757,13 +745,9 @@ class Gemini_LLM(LLM):
             setattr(new, k, copy.deepcopy(v, memo))
         new.client = genai.Client(api_key=new.api_key)
         return new
-    
+
     def get_config(self) -> list[dict[str, Any]]:
-        config = {
-            'model': self.model,
-            'config': self.generation_config,
-            'hardware': {}
-        }
+        config = {"model": self.model, "config": self.generation_config, "hardware": {}}
         return [config]
 
 
@@ -832,9 +816,9 @@ class Ollama_LLM(LLM):
     def get_config(self) -> list[dict[str, Any]]:
         hw_info = get_hardware_info()
         config = {
-            'model': self.model,
-            'config': {'port': self.port},
-            'hardware': hw_info
+            "model": self.model,
+            "config": {"port": self.port},
+            "hardware": hw_info,
         }
         return [config]
 
@@ -931,13 +915,10 @@ class Claude_LLM(LLM):
 
     def get_config(self) -> list[dict[str, Any]]:
         llm_config = self._client_kwargs.copy()
-        llm_config['temperature'] = self.temperature
-        llm_config.pop('api_key')
+        llm_config["temperature"] = self.temperature
+        llm_config.pop("api_key")
 
-        config = {
-            'model': self.model,
-            'config': self._client_kwargs
-        }
+        config = {"model": self.model, "config": self._client_kwargs}
         return [config]
 
 
@@ -1001,16 +982,11 @@ class LMStudio_LLM(LLM):
             setattr(new, k, copy.deepcopy(v, memo))
         new.llm = self.llm
         return new
-    
+
     def get_config(self) -> list[dict[str, Any]]:
-        hw_info =get_hardware_info()
-        config = {
-            'model': self.model,
-            'config': self.config or {},
-            'hardware': hw_info
-        }
+        hw_info = get_hardware_info()
+        config = {"model": self.model, "config": self.config or {}, "hardware": hw_info}
         return [config]
-    
 
 
 class MLX_LM_LLM(LLM):
@@ -1092,14 +1068,10 @@ class MLX_LM_LLM(LLM):
             except:
                 pass
         return ""
-    
+
     def get_config(self) -> list[dict[str, Any]]:
         hw_info = get_hardware_info()
-        config = {
-            'model': self.model,
-            'config': self.config or {},
-            'hardware': hw_info
-        }
+        config = {"model": self.model, "config": self.config or {}, "hardware": hw_info}
         return [config]
 
 

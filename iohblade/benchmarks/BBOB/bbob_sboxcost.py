@@ -314,18 +314,28 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "specific_fid": self.specific_fid,
             "specific_group": self.specific_group,
         }
-    
+
     def get_config(self) -> dict[str, Any]:
         extra_config = self.to_dict()
-        extra_config.pop('name')
-        extra_config['dependencies'] = self.dependencies
-        extra_config['imports'] = self.imports
+        extra_config.pop("name")
+        extra_config["dependencies"] = self.dependencies
+        extra_config["imports"] = self.imports
         config = {
-            'tags': ['black box optimisation', "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB"],
-            'name': self.name,
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': extra_config
+            "tags": [
+                "black box optimisation",
+                "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB",
+            ],
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": extra_config,
         }
         return config
+
+
+if __name__ == "__main__":
+    bbob = BBOB_SBOX()
+    for key, value in bbob.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

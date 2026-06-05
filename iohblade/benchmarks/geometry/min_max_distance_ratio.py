@@ -156,10 +156,10 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         extra_config = {
-            'dimensions': self.dim,
-            'n_points': self.n_points,
-            'tolerance': self.tolerance,
-            'dependencies': self.dependencies
+            "dimensions": self.dim,
+            "n_points": self.n_points,
+            "tolerance": self.tolerance,
+            "dependencies": self.dependencies,
         }
 
         evaluator = "\n\n".join(
@@ -170,15 +170,18 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            'tags': ['geometry', 'euclidian geometry', 'computational geometry'],
-            'name': "Min Max Distance Ratio",
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': extra_config
+            "tags": ["geometry", "euclidian geometry", "computational geometry"],
+            "name": "Min Max Distance Ratio",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": extra_config,
         }
         return config
-    
+
+
 if __name__ == "__main__":
     mmd = MinMaxMinDistanceRatio(n_points=10, dim=2, best_known=0)
-    print(mmd.get_prompt())
+    for key, value in mmd.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

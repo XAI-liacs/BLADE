@@ -326,23 +326,30 @@ from kernel_tuner.strategies.wrapper import OptAlg
             "test_instances": self.test_instances,
             "budget": self.budget,
         }
-    
+
     def get_config(self) -> dict[str, Any]:
         extra_config = {
-            'gpus': self.gpus,
-            'applications': self.applications,
-            'kernels': self.kernels,
-            'dependencies': self.dependencies,
-            'imports': self.imports
+            "gpus": self.gpus,
+            "applications": self.applications,
+            "kernels": self.kernels,
+            "dependencies": self.dependencies,
+            "imports": self.imports,
         }
 
         config = {
-            'tags': ["gpu", "kernel", "machine learning", "tuning"],
-            'name': 'KernelTuner',
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': extra_config
+            "tags": ["gpu", "kernel", "machine learning", "tuning"],
+            "name": "KernelTuner",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": extra_config,
         }
 
         return config
+
+
+if __name__ == "__main__":
+    kt = Kerneltuner()
+    for key, value in kt.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

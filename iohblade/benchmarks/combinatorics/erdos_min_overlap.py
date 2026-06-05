@@ -167,18 +167,25 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
     def to_dict(self):
         return self.__dict__.copy()
-    
+
     def get_config(self) -> builtins.dict[builtins.str, Any]:
         config = {
-            'tags': ['combinatorics', 'series-analysis', 'discrete mathematics'],
-            'name': 'Erdös Minimum Overlap',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': {
-                'n_bins': self.n_bins,
-                'tolerance': self.tolerance,
-                'dependencies': self.dependencies
-            }
+            "tags": ["combinatorics", "series-analysis", "discrete mathematics"],
+            "name": "Erdös Minimum Overlap",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "n_bins": self.n_bins,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+            },
         }
         return config
+
+
+if __name__ == "__main__":
+    eop = ErdosMinOverlap()
+    for key, value in eop.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

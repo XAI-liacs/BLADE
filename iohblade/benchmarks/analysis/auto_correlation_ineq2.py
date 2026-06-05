@@ -1,5 +1,7 @@
 import numpy as np
 
+from typing import Any
+
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 import inspect
@@ -75,15 +77,16 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
 
     def get_config(self) -> dict[str, Any]:
         return {
-            'tags': ['trends', 'analysis', 'time-series'],
-            'name': 'Auto-Correlation 2',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': {
-                'dependencies': self.dependencies,
-                'n_bins': self.n_bins
-            }
+            "tags": ["trends", "analysis", "time-series"],
+            "name": "Auto-Correlation 2",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "n_bins": self.n_bins,
+            },
         }
 
     def test(self, solution: Solution) -> Solution:
@@ -91,3 +94,10 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
 
     def to_dict(self):
         return self.__dict__
+
+
+if __name__ == "__main__":
+    ac2 = AutoCorrIneq2()
+    for key, value in ac2.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

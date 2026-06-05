@@ -183,16 +183,16 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         )
 
         config = {
-            'tags': ['algebra', 'sums', 'differences', 'finite set'],
-            'name': 'Sums vs Differences',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': {
-                'dependencies': self.dependencies,
-                'imports': self.imports,
-                'max_set_size': self.max_set_size
-            }
+            "tags": ["algebra", "sums", "differences", "finite set"],
+            "name": "Sums vs Differences",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "max_set_size": self.max_set_size,
+            },
         }
 
         return config
@@ -200,4 +200,6 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
 
 if __name__ == "__main__":
     sd = SumDifference()
-    print(sd.get_prompt())
+    for key, value in sd.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

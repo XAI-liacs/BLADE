@@ -227,17 +227,24 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "budget_factor": self.budget_factor,
         }
 
-
     def get_config(self) -> dict[str, Any]:
         extra_config = self.to_dict()
-        extra_config.pop('name')
-        extra_config['imports'] = self.imports
-        extra_config['dependencies'] = self.dependencies
+        extra_config.pop("name")
+        extra_config["imports"] = self.imports
+        extra_config["dependencies"] = self.dependencies
         config = {
-            'tags': ['MABBOB', 'Multi-Affine', 'Black Box Optimisation'],
-            'name': self.name,
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': inspect.getsource(self.evaluate)
+            "tags": ["MABBOB", "Multi-Affine", "Black Box Optimisation"],
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": extra_config,
         }
         return config
+
+
+if __name__ == "__main__":
+    bbob = MA_BBOB()
+    for key, value in bbob.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

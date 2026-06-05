@@ -4,7 +4,7 @@ from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from .packing_base import PackingBase
+from iohblade.benchmarks.packing.packing_base import PackingBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
@@ -153,27 +153,29 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
 
     def to_dict(self):
         return self.__dict__
-    
+
     def get_config(self) -> dict[str, Any]:
         evaluator = inspect.getsource(self.evaluate)
 
         config = {
-            'tags': ['packing', 'rectangle', 'geometry'],
-            'name': 'Rectangle Packing',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': {
-                'n_circles': self.n_circles,
-                'perimeter': self.perimeter,
-                'tolerance': self.tolerance,
-                'depencencies': self.dependencies,
-                'imports': self.imports
-            }
+            "tags": ["packing", "rectangle", "geometry"],
+            "name": "Rectangle Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "n_circles": self.n_circles,
+                "perimeter": self.perimeter,
+                "tolerance": self.tolerance,
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
         }
         return config
 
 
 if __name__ == "__main__":
     rect_packing = RectanglePacking()
-    print(rect_packing.get_prompt())
+    for key, value in rect_packing.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

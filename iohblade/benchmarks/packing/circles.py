@@ -160,7 +160,7 @@ one-line description, describing the main idea. Give the response in the format:
 
     def to_dict(self):
         return self.__dict__
-    
+
     def get_config(self) -> dict[str, Any]:
         evaluator = "\n\n".join(
             [
@@ -172,22 +172,25 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            'tags': ['packing', 'circles in circles', 'geometry'],
-            'name': 'Circle Packing',
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': evaluator,
-            'config': {
-                'candidate_radii': self.candidate_radii,
-                'n_circles': self.n_circles,
-                'tolerance': self.tolerance,
-                'dependencies': self.dependencies,
-                'imports': self.imports
-            }
+            "tags": ["packing", "circles in circles", "geometry"],
+            "name": "Circle Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": evaluator,
+            "config": {
+                "candidate_radii": self.candidate_radii,
+                "container": self.container,
+                "n_circles": self.n_circles,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+            },
         }
         return config
 
 
 if __name__ == "__main__":
     cp = CirclePacking()
-    print(cp.get_prompt())
+    for key, value in cp.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

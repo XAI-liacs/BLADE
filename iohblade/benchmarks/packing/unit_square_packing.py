@@ -1,10 +1,12 @@
 import inspect
 import numpy as np
 
+from typing import Any
+
 from iohblade import Solution
 from iohblade.problem import Problem
 
-from .packing_base import PackingBase
+from iohblade.benchmarks.packing.packing_base import PackingBase
 from iohblade.misc.prepare_namespace import prepare_namespace
 
 
@@ -14,7 +16,7 @@ class UnitSquarePacking(PackingBase, Problem):
     def __init__(
         self,
         n_circles: int,
-        best_known: float,
+        best_known: float = False,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float, float]] | None = None,
     ):
@@ -115,23 +117,23 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
         evaluator = inspect.getsource(self.evaluate)
 
         config = {
-            'tags': ['packing', 'rectangle', 'geometry'],
-            'name': 'Unit Square Packing',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': {
-                'n_circles': self.n_circles,
-                'tolerance': self.tolerance,
-                'depencencies': self.dependencies,
-                'imports': self.imports
-            }
+            "tags": ["packing", "rectangle", "geometry"],
+            "name": "Unit Square Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "n_circles": self.n_circles,
+                "tolerance": self.tolerance,
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
         }
         return config
 
+
 if __name__ == "__main__":
-    u26 = UnitSquarePacking()
-    print(u26.get_prompt())
-    dictionary = u26.to_dict()
-    for key in dictionary:
-        print(key, dictionary[key], sep="\t")
+    u26 = UnitSquarePacking(26)
+    for key, value in u26.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

@@ -220,26 +220,35 @@ one-line description, describing the main idea. Give the response in the format:
                 inspect.getsource(self._check_accuracy),
                 inspect.getsource(self._transform_to_location_list),
                 inspect.getsource(self._calculate_length),
-                inspect.getsource(self.evaluate)
+                inspect.getsource(self.evaluate),
             ]
         )
 
         config = {
-            'tag': ['logistics', 'discrete mathematics', 'vehicle routing', 'graph', 'optimisation'],
-            'name': "Vehicle Routing Problem",
-            'prompt': self.get_prompt(),
-            'minimisation': True,
-            'evaluator': evaluator,
-            'config': {
-                'benchmark': self.benchmark,
-                'dependencies': self.dependencies,
-                'imports': self.imports,
-                'objectives': ['distance']
-            }
+            "tag": [
+                "logistics",
+                "discrete mathematics",
+                "vehicle routing",
+                "graph",
+                "optimisation",
+            ],
+            "name": "Vehicle Routing Problem",
+            "prompt": self.get_prompt(),
+            "minimisation": True,
+            "evaluator": evaluator,
+            "config": {
+                "benchmark": self.benchmark,
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "objectives": ["distance"],
+            },
         }
 
         return config
 
+
 if __name__ == "__main__":
-    vrp = VehicleRoutingProblem()
-    print(vrp.get_prompt())
+    vrp = VehicleRoutingProblem("A-n53-k7")
+    for key, value in vrp.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

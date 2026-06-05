@@ -162,23 +162,32 @@ one-line description, describing the main idea. Give the response in the format:
                 inspect.getsource(self.evaluate),
             ]
         )
-    
+
         config = {
-            'tags': ['logistics', 'traveling salesman problem', 'discrete mathematics', 'optimisation', 'graph'],
-            'name': f'Travelling Salesman Problem',
-            'prompt': self.get_prompt(),
-            'minimisation': True,
-            'evaluator': evaluator,
-            'config': {
-                'benchmark': self.benchmark,
-                'dependencies': self.dependencies,
-                'imports': self.imports,
-                'objectives': ['distance']
-            }
+            "tags": [
+                "logistics",
+                "traveling salesman problem",
+                "discrete mathematics",
+                "optimisation",
+                "graph",
+            ],
+            "name": f"Travelling Salesman Problem",
+            "prompt": self.get_prompt(),
+            "minimisation": True,
+            "evaluator": evaluator,
+            "config": {
+                "benchmark": self.benchmark,
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "objectives": ["distance"],
+            },
         }
 
         return config
 
+
 if __name__ == "__main__":
-    tsp = TravelingSalesmanProblem()
-    print(tsp.get_prompt())
+    tsp = TravelingSalesmanProblem("A-n53-k7")
+    for key, value in tsp.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

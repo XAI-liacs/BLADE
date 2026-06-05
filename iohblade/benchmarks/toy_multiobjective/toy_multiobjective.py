@@ -125,7 +125,13 @@ class ToyMultiObjective(Problem):
         self.eval_budget = budget
 
     def get_prompt(self) -> str:  # pragma: no cover
-        return self.task_prompt
+        return (
+            ToyMultiObjective.task_prompt
+            + "\n\n"
+            + ToyMultiObjective.example_prompt
+            + "\n\n"
+            + ToyMultiObjective.format_prompt
+        )
 
     def evaluate(self, solution: Solution) -> Solution:
         """Execute the generated algorithm and score it with a Fitness object.
@@ -187,16 +193,23 @@ class ToyMultiObjective(Problem):
         evaluator = inspect.getsource(self.evaluate)
 
         config = {
-            'tags': ['spherical', 'multi-objective', 'BBOB'],
-            'name': 'Toy Multi-Objective',
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': evaluator,
-            'config': {
-                'budget': self.eval_budget,
-                'keys': ['f1', 'f2'],
-                'depencencies': self.dependencies,
-                'imports': self.imports
-            }
+            "tags": ["spherical", "multi-objective", "BBOB"],
+            "name": "Toy Multi-Objective",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": evaluator,
+            "config": {
+                "budget": self.eval_budget,
+                "keys": ["f1", "f2"],
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
         }
         return config
+
+
+if __name__ == "__main__":
+    tm = ToyMultiObjective()
+    for key, value in tm.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

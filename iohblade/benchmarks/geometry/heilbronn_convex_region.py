@@ -157,9 +157,9 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         extra_config = {
-            'n_points': self.n_points,
-            'tolerance': self.tolerance,
-            'dependencies': self.dependencies
+            "n_points": self.n_points,
+            "tolerance": self.tolerance,
+            "dependencies": self.dependencies,
         }
 
         evaluator = "\n\n".join(
@@ -173,15 +173,23 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            'tags': ['geometry', 'area', 'geometric discrepancy theory', 'computational geometry'],
-            'name': "Heilbronn Convex Region",
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': extra_config
+            "tags": [
+                "geometry",
+                "area",
+                "geometric discrepancy theory",
+                "computational geometry",
+            ],
+            "name": "Heilbronn Convex Region",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": extra_config,
         }
         return config
 
+
 if __name__ == "__main__":
     hbc = HeilbronnConvexRegion(n_points=10, best_known=None)
-    print(hbc.get_prompt())
+    for key, value in hbc.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

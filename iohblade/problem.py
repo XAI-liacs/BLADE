@@ -376,7 +376,9 @@ class Problem(ABC):
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
-    def log_data(self, minimisation: bool, tags:list[str], config: Optional[dict]=None) -> dict[str, Any]:
+    def log_data(
+        self, minimisation: bool, tags: list[str], config: Optional[dict] = None
+    ) -> dict[str, Any]:
         """
         Generate a dictionary to export configuration settings for database usage.
         Exports:
@@ -392,12 +394,12 @@ class Problem(ABC):
             `config: Dict['str': Any]`
         """
         data = {
-            'name': self.name,
-            'tags': tags,
-            'prompt': self.get_prompt(),
-            'evaluator': inspect.getsource(self.evaluate),
-            'minimisation': minimisation,
-            'config': config
+            "name": self.name,
+            "tags": tags,
+            "prompt": self.get_prompt(),
+            "evaluator": inspect.getsource(self.evaluate),
+            "minimisation": minimisation,
+            "config": config,
         }
         return data
 

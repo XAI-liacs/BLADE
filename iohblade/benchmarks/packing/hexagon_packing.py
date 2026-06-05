@@ -7,7 +7,11 @@ from typing import Tuple
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from .packing_base import PackingBase
+
+try:
+    from .packing_base import PackingBase
+except:
+    from iohblade.benchmarks.packing.packing_base import PackingBase
 
 
 class HexagonPacking(PackingBase, Problem):
@@ -170,25 +174,28 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
                 inspect.getsource(self._outer_side_from_vertices),
                 inspect.getsource(self._intervals_overlap_strict),
                 inspect.getsource(self._overlap_strict),
-                inspect.getsource(self.evaluate)
+                inspect.getsource(self.evaluate),
             ]
         )
 
         config = {
-            'tags': ['packing', 'hexagon', 'geometry'],
-            'name': 'Hexagon Packing',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': evaluator,
-            'config': {
-                'n_hexagons': self.n_hex,
-                'tolerance': self.tolerance,
-                'depencencies': self.dependencies,
-                'imports': self.imports
-            }
+            "tags": ["packing", "hexagon", "geometry"],
+            "name": "Hexagon Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "n_hexagons": self.n_hex,
+                "tolerance": self.tolerance,
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
         }
         return config
 
+
 if __name__ == "__main__":
     hex = HexagonPacking(11, 1.167)
-    print(hex.get_prompt())
+    for key, value in hex.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

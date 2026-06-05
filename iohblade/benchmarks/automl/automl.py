@@ -503,21 +503,28 @@ class AutoML(Problem):
 
     def get_config(self) -> dict[str, Any]:
         task_type = (
-                "classification" if _is_classification_task(self.task) else "regression"
-            )
+            "classification" if _is_classification_task(self.task) else "regression"
+        )
         config = {
-            'dependencies': self.dependencies,
-            'imports': self.imports,
-            'task_id': self.openml_task_id,
-            'task_type': task_type,
+            "dependencies": self.dependencies,
+            "imports": self.imports,
+            "task_id": self.openml_task_id,
+            "task_type": task_type,
         }
-        tags = ['automl']
+        tags = ["automl"]
         tags.extend(self.task.class_labels or [])
         return {
-            'tags': tags,
-            'name': self.name,
-            'prompt': self.get_prompt(),
-            'minimisation': False,
-            'evaluator': 'https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/automl',
-            'config': config
+            "tags": tags,
+            "name": self.name or f"OpenML task {self.openml_task_id}",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/automl",
+            "config": config,
         }
+
+
+if __name__ == "__main__":
+    aml = AutoML(openml_task_id=13)
+    for key, value in aml.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

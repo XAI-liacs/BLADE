@@ -1,6 +1,8 @@
 import inspect
 import numpy as np
 
+from typing import Any
+
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
@@ -65,18 +67,19 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"calc-error {e}", e)
         return solution
-    
+
     def get_config(self) -> dict[str, Any]:
         return {
-            'tags': ['trends', 'analysis', 'time-series'],
-            'name': 'Auto-Correlation 1',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': {
-                'dependencies': self.dependencies,
-                'n_bins': self.n_bins
-            }
+            "tags": ["trends", "analysis", "time-series"],
+            "name": "Auto-Correlation 1",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "n_bins": self.n_bins,
+            },
         }
 
     def test(self, solution: Solution) -> Solution:
@@ -84,3 +87,10 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
 
     def to_dict(self):
         return self.__dict__
+
+
+if __name__ == "__main__":
+    ac3 = AutoCorrIneq3()
+    for key, value in ac3.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

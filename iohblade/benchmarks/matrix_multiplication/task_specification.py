@@ -94,20 +94,20 @@ Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         config = {
-            'tags': ['matrix', 'optimisation', 'linear algebra', 'rank'],
-            'name': 'Matrix Multiplication',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': 'https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/matrix_multiplication',
-            'config': {
-                'm': self.m,
-                'n': self.n,
-                'p': self.p,
-                'rank': self.rank,
-                'grid': self.grid,
-                'imports': self.imports,
-                'dependencies': self.dependencies
-            }
+            "tags": ["matrix", "optimisation", "linear algebra", "rank"],
+            "name": "Matrix Multiplication",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/matrix_multiplication",
+            "config": {
+                "m": self.m,
+                "n": self.n,
+                "p": self.p,
+                "rank": self.rank,
+                "grid": self.grid,
+                "imports": self.imports,
+                "dependencies": self.dependencies,
+            },
         }
         return config
 
@@ -120,3 +120,11 @@ Give the response in the format:
         meaning it exactly reconstructs the matrix multiplication tensor.
         """
         return 0.0
+
+
+if __name__ == "__main__":
+    matmul = MatMulTensorDecomposition(n=2, m=2, p=10, grid=1, rank=10)
+
+    for key, value in matmul.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

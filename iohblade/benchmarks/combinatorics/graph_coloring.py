@@ -74,7 +74,7 @@ one-line description, describing the main idea. Give the response in the format:
             .resolve()
             .parent.joinpath(f"Graph_Coloring_Benchmarks/gcol{benchmark_id}.txt")
         )
-        self.benchmark = f"Graph-Coloring-{benchmark_id}"
+        self.benchmark = benchmark_id
         data = []
         with open(path) as f:
             data = f.readlines()
@@ -121,17 +121,21 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         config = {
-            'tags': ['combinatorics', 'graph', 'discrete mathematics'],
-            'name': 'Graph Coloring',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': inspect.getsource(self.evaluate),
-            'config': {
-                'benchmark': self.benchmark,
-                'dependencies': self.dependencies
-            }
+            "tags": ["combinatorics", "graph", "discrete mathematics"],
+            "name": "Graph Coloring",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "benchmark": f"https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/combinatorics/Graph_Coloring_Benchmarks/gcol{self.benchmark}.txt",
+                "dependencies": self.dependencies,
+            },
         }
         return config
 
+
 if __name__ == "__main__":
-    GraphColoring(benchmark_id='1')
+    gc = GraphColoring(benchmark_id="1")
+    for key, value in gc.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

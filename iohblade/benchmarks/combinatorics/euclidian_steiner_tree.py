@@ -179,20 +179,35 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from pathlib import Path
+
+        base = Path("/Users/anantashahane/Work/BLADE/iohblade/benchmarks/combinatorics")
+
+        path = self.benchmark.relative_to(base)
+
+        path = (
+            "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/combinatorics/"
+            + path.as_posix()
+        )
+
         config = {
-            'tags': ['combinatorics', 'graph', 'discrete mathematics'],
-            'name': 'Euclidean Steiner Tree',
-            'prompt': self.get_prompt(),
-            'minimisation': self.minimisation,
-            'evaluator': inspect.getsource(self.compute_mst_length) + inspect.getsource(self.evaluate),
-            'config': {
-                'benchmark': self.benchmark,
-                'tolerance': self.tolerance,
-                'dependencies': self.dependencies
-            }
+            "tags": ["combinatorics", "graph", "discrete mathematics"],
+            "name": "Euclidean Steiner Tree",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.compute_mst_length)
+            + inspect.getsource(self.evaluate),
+            "config": {
+                "benchmark": path,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+            },
         }
         return config
 
+
 if __name__ == "__main__":
     est = EuclidianSteinerTree(20)
-    print(est.get_prompt())
+    for key, value in est.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)
