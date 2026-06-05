@@ -169,3 +169,12 @@ class ReEvo(Method):
             "budget": self.budget,
             "kwargs": self.kwargs,
         }
+
+    def get_config(self) -> dict[str, Any]:
+        config = self.kwargs.copy()
+        config["budget"] = self.budget
+        return {
+            "name": self.name,
+            "source": "https://github.com/nikivanstein/reevo",
+            "config": config,
+        }

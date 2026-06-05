@@ -1134,3 +1134,6 @@ class RandomSearch:
 ```
 """
         return response
+
+    def get_config(self) -> list[dict[str, Any]]:
+        return [{"model": self.model, "config": {}, "hardware": {}}]

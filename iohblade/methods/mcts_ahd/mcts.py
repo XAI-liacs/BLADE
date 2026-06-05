@@ -1,7 +1,7 @@
 import math
 import random
 import inspect
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 from iohblade.llm import LLM
 from iohblade.problem import Problem
@@ -11,7 +11,7 @@ from iohblade.method import Method
 import traceback
 
 from iohblade.mcts_node import MCTS_Node
-from .prompts import MCTS_Prompts
+from iohblade.methods.mcts_ahd.prompts import MCTS_Prompts
 
 
 # region Helper Functions:
@@ -643,5 +643,39 @@ class MCTS_Method(Method):
             "kwargs": kwargs,
         }
 
+    # endregion
+
+    # region Database Logger:
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            "lambda_0": self.lambda_0,
+            "alpha": self.alpha,
+            "max_children": self.max_children,
+            "expansion_factor": self.expansion_factor,
+            "budget": self.budget,
+            "minimisation": not self.maximisation,
+        }
+
+        return {
+            "name": "MCTS_AHD",
+            "source": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/methods/mcts_ahd",
+            "config": config,
+        }
+
 
 # endregion
+
+if __name__ == "__main__":
+    from iohblade.llm import Dummy_LLM
+
+    llm = Dummy_LLM()
+    mcts_ahd = MCTS_Method(
+        llm,
+        10,
+    )
+
+    for key, value in mcts_ahd.get_config().items():
+        print(
+            f"=============================={key}============================================="
+        )
+        print(value)

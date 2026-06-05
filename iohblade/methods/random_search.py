@@ -1,3 +1,5 @@
+from typing import Any
+
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
@@ -14,6 +16,7 @@ class RandomSearch(Method):
             kwargs: Additional arguments for configuring LLaMEA.
         """
         super().__init__(llm, budget, name)
+        self.kwargs = kwargs
 
     def __call__(self, problem: Problem):
         """
@@ -42,4 +45,12 @@ class RandomSearch(Method):
         return {
             "method_name": self.name if self.name != None else "RandomSearch",
             "budget": self.budget,
+        }
+
+    def get_config(self) -> dict[str, Any]:
+        config = self.kwargs.copy()
+        return {
+            "name": "RandomSearch",
+            "source": "https://github.com/XAI-liacs/BLADE/blob/main/iohblade/methods/random_search.py",
+            "config": config,
         }

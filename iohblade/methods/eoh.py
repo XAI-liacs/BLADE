@@ -4,7 +4,7 @@ import logging
 import os
 import re
 import textwrap
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from ..llm import LLM
 from ..method import Method
@@ -172,4 +172,13 @@ class EoH(Method):
             "method_name": self.name if self.name != None else "EoH",
             "budget": self.budget,
             "kwargs": self.kwargs,
+        }
+
+    def get_config(self) -> dict[str, Any]:
+        args = self.kwargs.copy()
+        args["budget"] = self.budget
+        return {
+            "name": "EoH",
+            "source": "https://github.com/nikivanstein/EoH/commit/f0d21b2f2f62c452bac545fd7f68d3af50845321",
+            "config": args,
         }
