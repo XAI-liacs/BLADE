@@ -265,7 +265,7 @@ class Experiment(ABC):
         """
         try:
             with open(location, "w") as f:
-                data = json.dumps(config)
+                data = json.dumps(config, indent=4)
                 f.write(data)
         except Exception as e:
             print(f"Error logging configuration {config} into file {location}: {e}.")
