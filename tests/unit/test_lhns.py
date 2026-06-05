@@ -1,7 +1,8 @@
 import math
 import pytest
 import random
-from decimal import Decimal
+
+from typing import Any
 
 from iohblade.benchmarks import BBOB_SBOX
 from iohblade.solution import Solution
@@ -358,6 +359,9 @@ class DummyProblem(Problem):
 
     def to_dict(self):
         return super().to_dict()
+    
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 def test_log_best_solution():
     # Maximisation

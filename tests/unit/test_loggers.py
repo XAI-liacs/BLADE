@@ -2,6 +2,7 @@ import json
 import math
 import os
 import shutil
+from typing import Any
 
 import pytest
 
@@ -36,6 +37,9 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -49,10 +53,17 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
+        
 
     method = DummyMethod(None, 100, name="dummy_method")
     problem = DummyProblem()
@@ -201,6 +212,9 @@ def test_start_progress_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -213,6 +227,9 @@ def test_start_progress_and_restart(tmp_path):
             return s
 
         def to_dict(self):
+            return {}
+        
+        def get_config(self) -> dict[str, Any]:
             return {}
 
     m = DummyMethod(None, 1, name="m")
@@ -234,6 +251,9 @@ def test_start_progress_mismatch(tmp_path):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -246,6 +266,9 @@ def test_start_progress_mismatch(tmp_path):
             return s
 
         def to_dict(self):
+            return {}
+        
+        def get_config(self) -> dict[str, Any]:
             return {}
 
     m1 = DummyMethod(None, 1, name="m1")
@@ -270,6 +293,9 @@ def test_open_run_create_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -282,6 +308,9 @@ def test_open_run_create_and_restart(tmp_path):
             return s
 
         def to_dict(self):
+            return {}
+        
+        def get_config(self) -> dict[str, Any]:
             return {}
 
         # Keep a reference so we can assert the logger was set.

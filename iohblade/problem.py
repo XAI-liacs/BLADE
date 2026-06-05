@@ -376,33 +376,6 @@ class Problem(ABC):
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
-    def log_data(
-        self, minimisation: bool, tags: list[str], config: Optional[dict] = None
-    ) -> dict[str, Any]:
-        """
-        Generate a dictionary to export configuration settings for database usage.
-        Exports:
-            1. name: Problem Name.
-            2. prompt: result from get_prompt()
-            3. evaluator: The stringified evaluate() function.
-            4. minimisation: Indicator on whether the problem is of minimisation type.
-            5. config: An optional dictionary for extra configuration.
-        ## Parameters:
-            `log_location: str`: location to export the data to, set logger's dictionary for best results.
-            `minimisation: bool`: True if optimisation direction of the problem is minimisation (not all problems have this defination.),
-            `tags: list[str]`: A list of tags associate with problem.
-            `config: Dict['str': Any]`
-        """
-        data = {
-            "name": self.name,
-            "tags": tags,
-            "prompt": self.get_prompt(),
-            "evaluator": inspect.getsource(self.evaluate),
-            "minimisation": minimisation,
-            "config": config,
-        }
-        return data
-
     @abstractmethod
     def evaluate(self, solution: Solution):
         """
@@ -508,6 +481,15 @@ class WrappedProblem(Problem):
             "test_instances": self.test_instances,
             "dependencies": self.dependencies,
             "imports": self.imports,
+        }
+
+    def get_config(self) -> dict[str, Any]:
+        return {
+            "tags": [],
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "config": self.__dict__.copy(),
         }
 
 

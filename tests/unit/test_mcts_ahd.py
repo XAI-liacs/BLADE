@@ -1,4 +1,5 @@
 import random
+from typing import Any
 import pytest
 
 from iohblade.llm import LLM
@@ -69,6 +70,9 @@ class RandomSearchMock:
     
     def _query(self, session, **kwargs):
         pass
+
+    def get_config(self) -> list[dict[str, Any]]:
+        return [{}]
     
     def query(self, session):
         return 'The algorithm uses random search using uniform random number generator, within the provided bounds. It applies the random ' \
@@ -97,6 +101,9 @@ class DummyProblem(Problem):
     
     def to_dict(self):
         return super().to_dict()
+    
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 def test_mcts_node_computed_properties_are_correct():
     r = MCTS_Node(Solution(), 'r')

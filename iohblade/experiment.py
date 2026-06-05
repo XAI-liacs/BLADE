@@ -1,7 +1,9 @@
+import os
 import contextlib
 import copy
 import logging
 import sys
+import json
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -219,7 +221,56 @@ class Experiment(ABC):
                     result = method(problem)
         if hasattr(logger, "finish_run"):
             logger.finish_run(result)
+        success = self._log_data(method, problem, logger)
+        print(
+            "Logged config files successfully"
+            if success
+            else "Some config logs failed."
+        )
         return result
+
+    def _log_data(self, method, problem, logger) -> bool:
+        root = logger.get_log_dir()
+        success = True
+        # method
+        method_path = os.path.join(root, "method.json")
+        method_config = method.get_config()
+        method_success = self._export_config_data(method_config, method_path)
+        success = method_success and success
+
+        # problem
+        problem_path = os.path.join(root, "problem.json")
+        problem_config = problem.get_config()
+        problem_success = self._export_config_data(problem_config, problem_path)
+        success = problem_success and success
+
+        # llm
+        llm_path = os.path.join(root, "llm.json")
+        llm_config = method.llm.get_config()
+        llm_success = self._export_config_data(llm_config, llm_path)
+        success = llm_success and success
+
+        return success
+
+    def _export_config_data(self, config: dict, location: str) -> bool:
+        """
+        Exports configuration data to associated data, for each method, problem and LLM object, configuration
+        using `get_config` function and exports it to the provided location.
+        ## Parameters:
+            `config: dict`: the configuration dictionary that needs to be exported,
+            `location: str`: Full location of the file where the configuration needs to be written.
+
+        ## Returns:
+            `bool`: Truth about whether the data was exported.
+        """
+        try:
+            with open(location, "w") as f:
+                data = json.dumps(config)
+                f.write(data)
+        except Exception as e:
+            print(f"Error logging configuration {config} into file {location}: {e}.")
+            return False
+        return True
 
 
 class MA_BBOB_Experiment(Experiment):

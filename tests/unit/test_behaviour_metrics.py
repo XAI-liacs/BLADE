@@ -1,3 +1,5 @@
+from typing import Any
+
 import ioh
 import numpy as np
 import pandas as pd
@@ -124,6 +126,9 @@ class DummyLLM(llm_mod.LLM):
 
     def _query(self, session_messages):
         return """```python\nclass Algo:\n    pass\n```\n# Description: test"""
+    
+    def get_config(self) -> list[dict[str, Any]]:
+        return {}
 
 
 def test_sample_solution_runs():

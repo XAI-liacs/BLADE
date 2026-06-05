@@ -3,6 +3,7 @@ import copy
 import types
 import datetime as _dt
 import pickle
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -101,6 +102,9 @@ def test_llm_instantiation():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "Mock response"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM(api_key="fake", model="fake")
     assert llm.api_key == "fake"
@@ -111,6 +115,8 @@ def test_llm_sample_solution_no_code_raises_exception():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "This has no code block"
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM(api_key="x", model="y")
     with pytest.raises(
@@ -123,6 +129,8 @@ def test_llm_sample_solution_good_code():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "# Description: MyAlgo\n```python\nclass MyAlgo:\n  pass\n```"
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM(api_key="x", model="y")
     sol = llm.sample_solution([{"role": "client", "content": "test"}])
