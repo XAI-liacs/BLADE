@@ -181,8 +181,8 @@ one-line description, describing the main idea. Give the response in the format:
     def get_config(self) -> dict[str, Any]:
         from pathlib import Path
 
-        base = Path("/Users/anantashahane/Work/BLADE/iohblade/benchmarks/combinatorics")
-
+        base = Path(__file__).parent.resolve()
+        print(base)
         path = self.benchmark.relative_to(base)
 
         path = (

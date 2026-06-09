@@ -225,7 +225,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tag": [
+            "tags": [
                 "logistics",
                 "discrete mathematics",
                 "vehicle routing",

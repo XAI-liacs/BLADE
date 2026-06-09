@@ -17,7 +17,7 @@ class MinMaxMinDistanceRatio(Problem):
         self,
         n_points: int,
         dim: int,
-        best_known: float | None,
+        best_known: float | None = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple] | None = None,
     ):

@@ -21,7 +21,7 @@ class HeilbronnTriangle(GeometryBase, Problem):
     def __init__(
         self,
         n_points: int,
-        best_known: Optional[float],
+        best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float]] | None = None,
         triangle_best_solution: list[tuple[float, float]] | None = None,

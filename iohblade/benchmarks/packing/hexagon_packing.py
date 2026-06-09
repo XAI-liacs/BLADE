@@ -1,8 +1,7 @@
 import math
 import inspect
 import numpy as np
-from typing import Any
-from typing import Tuple
+from typing import Any, Tuple, Optional
 
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.problem import Problem
@@ -25,7 +24,7 @@ class HexagonPacking(PackingBase, Problem):
     def __init__(
         self,
         n_hex: int,
-        best_known: float,
+        best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[Any] | None = None,
     ):
