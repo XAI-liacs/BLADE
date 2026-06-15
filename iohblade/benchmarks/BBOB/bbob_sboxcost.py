@@ -316,15 +316,23 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         }
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+        )
+
         extra_config = self.to_dict()
         extra_config.pop("name")
         extra_config["dependencies"] = self.dependencies
         extra_config["imports"] = self.imports
+        tags: list[Any] = [PrimaryCategories.BBO, PrimaryCategories.CO]
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
         config = {
-            "tags": [
-                "black box optimisation",
-                "SBOX" if self.problem_type == ioh.ProblemClass.SBOX else "BBOB",
-            ],
+            "tags": tags,
             "name": self.name,
             "prompt": self.get_prompt(),
             "minimisation": False,

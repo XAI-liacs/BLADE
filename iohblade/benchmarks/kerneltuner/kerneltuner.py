@@ -328,6 +328,26 @@ from kernel_tuner.strategies.wrapper import OptAlg
         }
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            Benchmark.KERNEL_TUNER,
+            PrimaryCategories.BBO,
+            PrimaryCategories.ML,
+            PrimaryCategories.PERFORMANCE,
+            StructureTag.MATRIX,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+            VariableType.MIXED,
+        ]
+
         extra_config = {
             "gpus": self.gpus,
             "applications": self.applications,
@@ -337,7 +357,7 @@ from kernel_tuner.strategies.wrapper import OptAlg
         }
 
         config = {
-            "tags": ["gpu", "kernel", "machine learning", "tuning"],
+            "tags": tags,
             "name": "KernelTuner",
             "prompt": self.get_prompt(),
             "minimisation": False,

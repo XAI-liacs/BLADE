@@ -114,10 +114,19 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
-        evaluator = inspect.getsource(self.evaluate)
+        from iohblade.tags import Benchmark, VariableType, StructureTag
 
+        evaluator = inspect.getsource(self.evaluate)
+        self.tags.extend(
+            [
+                Benchmark.UNIT_SQUARE_PACKING,
+                VariableType.CONTINUOUS,
+                StructureTag.PACKING,
+                StructureTag.GEOMETRIC,
+            ]
+        )
         config = {
-            "tags": ["packing", "rectangle", "geometry"],
+            "tags": self.tags,
             "name": "Unit Square Packing",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

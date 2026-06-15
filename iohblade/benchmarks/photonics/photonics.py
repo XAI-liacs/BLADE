@@ -261,10 +261,27 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         return new
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
         evaluator = inspect.getsource(self.evaluate)
+        tags: list[Any] = [
+            PrimaryCategories.BBO,
+            Benchmark.PHOTONICS,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            VariableType.CONTINUOUS,
+            StructureTag.PHYSICS,
+        ]
 
         config = {
-            "tags": ["photonics", "BBOB", "physics"],
+            "tags": tags,
             "name": "Photonics",
             "prompt": self.get_prompt(),
             "minimisation": False,

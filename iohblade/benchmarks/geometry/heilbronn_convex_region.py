@@ -156,11 +156,16 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import Benchmark, VariableType
+
         extra_config = {
             "n_points": self.n_points,
             "tolerance": self.tolerance,
             "dependencies": self.dependencies,
         }
+
+        self.tags.append(Benchmark.HEILBRONN_CONVEX_REGION)
+        self.tags.append(VariableType.CONTINUOUS)
 
         evaluator = "\n\n".join(
             [
@@ -173,12 +178,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tags": [
-                "geometry",
-                "area",
-                "geometric discrepancy theory",
-                "computational geometry",
-            ],
+            "tags": self.tags,
             "name": "Heilbronn Convex Region",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

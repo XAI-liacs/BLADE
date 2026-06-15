@@ -179,6 +179,15 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
         evaluator_string = (
             inspect.getsource(self._build_hcoef)
             + "\n"
@@ -190,8 +199,16 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
             + "\n"
             + inspect.getsource(self.evaluate)
         )
+
+        tags: list[Any] = [PrimaryCategories.OTHER]
+        tags.append(Benchmark.FOURIER_UNCERTAINTY)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
+        tags.append(StructureTag.SIGNAL)
+
         config = {
-            "tags": ["signal processing", "fourier analysis", "uncertainty"],
+            "tags": tags,
             "name": "Fourier Uncertainty Inequality",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

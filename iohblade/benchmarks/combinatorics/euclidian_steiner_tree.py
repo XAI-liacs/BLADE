@@ -180,6 +180,15 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from pathlib import Path
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+            ComplexityTag,
+        )
 
         base = Path(__file__).parent.resolve()
         print(base)
@@ -190,8 +199,16 @@ one-line description, describing the main idea. Give the response in the format:
             + path.as_posix()
         )
 
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.EUCLIDEAN_STEINER_TREE)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
+        tags.extend([StructureTag.GRAPH, StructureTag.GEOMETRIC])
+        tags.append(ComplexityTag.NP_HARD)
+
         config = {
-            "tags": ["combinatorics", "graph", "discrete mathematics"],
+            "tags": tags,
             "name": "Euclidean Steiner Tree",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

@@ -120,8 +120,26 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+            ComplexityTag,
+        )
+
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.GRAPH_COLOURING)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.DISCRETE)
+        tags.append(StructureTag.GRAPH)
+        tags.append(ComplexityTag.NP_COMPLETE)
+
         config = {
-            "tags": ["combinatorics", "graph", "discrete mathematics"],
+            "tags": tags,
             "name": "Graph Coloring",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

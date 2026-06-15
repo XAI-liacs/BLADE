@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, Any
+from iohblade.tags import PrimaryCategories, NoiseType, ObjectiveType
 
 
 class PackingBase:
@@ -13,6 +14,12 @@ class PackingBase:
     def __init__(self, name: str, best_solution):
         self.task_name = name
         self.best_solution = best_solution
+
+        self.tags: list[Any] = [
+            PrimaryCategories.CO,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+        ]
 
     ## Prompt helpers:
     def make_task_prompt(self, headline: str, contract: str, objective: str) -> str:

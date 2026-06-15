@@ -155,6 +155,23 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            StructureTag.PACKING,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+        ]
+        tags.extend([Benchmark.MIN_MAX_DISTANCE_RATIO, VariableType.CONTINUOUS])
+
         extra_config = {
             "dimensions": self.dim,
             "n_points": self.n_points,
@@ -170,7 +187,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tags": ["geometry", "euclidian geometry", "computational geometry"],
+            "tags": tags,
             "name": "Min Max Distance Ratio",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

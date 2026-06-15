@@ -162,6 +162,23 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            VariableType,
+            NoiseType,
+            ObjectiveType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            Benchmark.CIRCLE_PACKING,
+            VariableType.CONTINUOUS,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            StructureTag.PACKING,
+        ]
         evaluator = "\n\n".join(
             [
                 inspect.getsource(Container),
@@ -172,7 +189,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tags": ["packing", "circles in circles", "geometry"],
+            "tags": tags,
             "name": "Circle Packing",
             "prompt": self.get_prompt(),
             "minimisation": False,

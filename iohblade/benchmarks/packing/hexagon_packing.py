@@ -166,6 +166,8 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import Benchmark, VariableType, StructureTag
+
         evaluator = "\n\n".join(
             [
                 inspect.getsource(self._unit_hex_vertices),
@@ -177,8 +179,16 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
             ]
         )
 
+        self.tags.extend(
+            [
+                Benchmark.HEXAGONAL_PACKING,
+                VariableType.CONTINUOUS,
+                StructureTag.PACKING,
+                StructureTag.GEOMETRIC,
+            ]
+        )
         config = {
-            "tags": ["packing", "hexagon", "geometry"],
+            "tags": self.tags,
             "name": "Hexagon Packing",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

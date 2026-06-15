@@ -5,7 +5,7 @@ from typing import Any
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.benchmarks.packing.packing_base import PackingBase
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import prepare_namespace
 
 
 class RectanglePacking(PackingBase, Problem):
@@ -155,10 +155,20 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import Benchmark, VariableType, StructureTag
+
         evaluator = inspect.getsource(self.evaluate)
 
+        self.tags.extend(
+            [
+                Benchmark.RECTANGLE_PACKING,
+                VariableType.DISCRETE,
+                StructureTag.PACKING,
+                StructureTag.GEOMETRIC,
+            ]
+        )
         config = {
-            "tags": ["packing", "rectangle", "geometry"],
+            "tags": self.tags,
             "name": "Rectangle Packing",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

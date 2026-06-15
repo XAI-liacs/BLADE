@@ -17,6 +17,8 @@ from sklearn.model_selection import train_test_split
 import openml
 from ConfigSpace import Configuration, ConfigurationSpace
 from smac import AlgorithmConfigurationFacade, Scenario
+
+from iohblade.tags import PrimaryCategories, Benchmark
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -511,7 +513,7 @@ class AutoML(Problem):
             "task_id": self.openml_task_id,
             "task_type": task_type,
         }
-        tags = ["automl"]
+        tags = [Benchmark.AUTOML, PrimaryCategories.PD]
         tags.extend(self.task.class_labels or [])
         return {
             "tags": tags,

@@ -169,8 +169,23 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
         return self.__dict__.copy()
 
     def get_config(self) -> builtins.dict[builtins.str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.ERDOS_MIN_OVERLAP)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.DISCRETE)
+        tags.append(StructureTag.GEOMETRIC)
         config = {
-            "tags": ["combinatorics", "series-analysis", "discrete mathematics"],
+            "tags": tags,
             "name": "Erdös Minimum Overlap",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

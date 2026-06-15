@@ -152,7 +152,26 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            VariableType,
+            NoiseType,
+            ObjectiveType,
+            StructureTag,
+            ComplexityTag,
+        )
 
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            PrimaryCategories.LOGISTICS,
+            Benchmark.TSP,
+            VariableType.DISCRETE,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            StructureTag.GRAPH,
+            ComplexityTag.NP_HARD,
+        ]
         evaluator = "\n\n".join(
             [
                 inspect.getsource(Location),
@@ -164,13 +183,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tags": [
-                "logistics",
-                "traveling salesman problem",
-                "discrete mathematics",
-                "optimisation",
-                "graph",
-            ],
+            "tags": tags,
             "name": f"Travelling Salesman Problem",
             "prompt": self.get_prompt(),
             "minimisation": True,

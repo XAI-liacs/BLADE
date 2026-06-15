@@ -228,12 +228,24 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         }
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+        )
+
         extra_config = self.to_dict()
         extra_config.pop("name")
         extra_config["imports"] = self.imports
         extra_config["dependencies"] = self.dependencies
+        tags: list[Any] = [PrimaryCategories.BBO, PrimaryCategories.CO]
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
+
         config = {
-            "tags": ["MABBOB", "Multi-Affine", "Black Box Optimisation"],
+            "tags": tags,
             "name": self.name,
             "prompt": self.get_prompt(),
             "minimisation": False,

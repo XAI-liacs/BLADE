@@ -174,6 +174,23 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            VariableType,
+            NoiseType,
+            ObjectiveType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            Benchmark.SUMS_VS_DIFFERENCES,
+            VariableType.DISCRETE,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            StructureTag.MATHS,
+        ]
         evaluator = "\n\n".join(
             [
                 inspect.getsource(self._compute_support_stats),
@@ -183,7 +200,7 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         )
 
         config = {
-            "tags": ["algebra", "sums", "differences", "finite set"],
+            "tags": tags,
             "name": "Sums vs Differences",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

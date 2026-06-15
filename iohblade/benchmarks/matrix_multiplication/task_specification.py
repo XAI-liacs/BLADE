@@ -93,8 +93,27 @@ Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.PERFORMANCE,
+            PrimaryCategories.ML,
+            Benchmark.MATRIX_MULTIPLICATION,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            VariableType.INTEGER,
+            StructureTag.MATRIX,
+        ]
+
         config = {
-            "tags": ["matrix", "optimisation", "linear algebra", "rank"],
+            "tags": tags,
             "name": "Matrix Multiplication",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

@@ -173,6 +173,22 @@ one-line description, describing the main idea. Give the response in the format:
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            StructureTag.PACKING,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+        ]
+        tags.extend([Benchmark.SPHERICAL_CODE, VariableType.CONTINUOUS])
         extra_config = {
             "n_points": self.n_points,
             "tolerance": self.tolerance,
@@ -189,7 +205,7 @@ one-line description, describing the main idea. Give the response in the format:
         )
 
         config = {
-            "tags": ["geometry", "projection", "computational geometry"],
+            "tags": tags,
             "name": "Spherical Code",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

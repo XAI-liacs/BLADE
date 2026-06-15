@@ -190,10 +190,25 @@ class ToyMultiObjective(Problem):
         return {"name": self.name, "eval_budget": self.eval_budget}
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            "toy",
+            PrimaryCategories.BBO,
+            NoiseType.NOISELESS,
+            ObjectiveType.MULTI_OBJECTIVE,
+            VariableType.CONTINUOUS,
+        ]
+
         evaluator = inspect.getsource(self.evaluate)
 
         config = {
-            "tags": ["spherical", "multi-objective", "BBOB"],
+            "tags": tags,
             "name": "Toy Multi-Objective",
             "prompt": self.get_prompt(),
             "minimisation": False,
