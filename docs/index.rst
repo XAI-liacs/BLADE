@@ -225,6 +225,12 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
    * - **DeepSeek**
      - Developer of the DeepSeek family of models for code and chat. `Reference <https://www.deepseek.com/>`_
      - Access via OpenAI compatible API at ``https://api.deepseek.com``.
+   * - **LMStudio**
+     - A hardware specialised platform for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. `Reference <https://lmstudio.ai>`_
+     - Provides a local OpenAI-compatible server, allowing integration via standard OpenAI client libraries pointed at a localhost endpoint.
+   * - **MLX_LM** (Beta)
+     - A hardware specialised python package for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. `Reference <https://github.com/ml-explore/mlx-lm>`_
+     - Used via Python APIs and CLI tools, often integrated into local inference workflows and Apple MLX pipelines.
 
 Evaluating against Human Designed Baselines
 -------------------------------------------
