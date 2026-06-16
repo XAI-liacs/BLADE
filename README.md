@@ -153,6 +153,8 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
 | **Ollama**   | A platform offering access to various LLMs, enabling local and cloud-based model deployment. [Reference](https://www.ollama.ai/) | Integration details can be found in their official documentation.                                             |
 | **Claude**   | Anthropic's Claude models for safe and capable language generation. [Reference](https://www.anthropic.com/) | Accessed via the Anthropic API. |
 | **DeepSeek** | Developer of the DeepSeek family of models for code and chat. [Reference](https://www.deepseek.com/) | Access via OpenAI compatible API at `https://api.deepseek.com`. |
+| **LMStudio** | A hardware specialised platform for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. [Reference](https://lmstudio.ai) | Provides a local OpenAI-compatible server, allowing integration via standard OpenAI client libraries pointed at a localhost endpoint. |
+| **MLX_LM** (`Beta`) | A hardware specialised python package for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. [Reference](https://github.com/ml-explore/mlx-lm) | Used via Python APIs and CLI tools, often integrated into local inference workflows and Apple MLX pipelines. |
 
 
 ### Evaluating against Human Designed baselines
