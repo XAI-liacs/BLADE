@@ -1,14 +1,15 @@
 import re
 import math
 import random
+from typing import Any
 
 from iohblade.llm import LLM
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.method import Method
 
-from .prompt import Prompt
-from .taboo_table import TabooTable
+from iohblade.methods.lhns.prompt import Prompt
+from iohblade.methods.lhns.taboo_table import TabooTable
 
 
 class LHNS:
@@ -400,7 +401,16 @@ class LHNS:
 
 
 class LHNS_Method(Method):
-    def __init__(self, llm: LLM, budget, method, name="LHNS", minimisation=True):
+    def __init__(
+        self,
+        llm: LLM,
+        budget,
+        method,
+        cooling_rate: float = 0.1,
+        table_size: int = 10,
+        name="LHNS",
+        minimisation=True,
+    ):
         """
         Initializes the LLaMEA algorithm within the benchmarking framework.
 
@@ -415,6 +425,8 @@ class LHNS_Method(Method):
         super().__init__(llm, budget, f"{name}:{method}")
         self.method = method
         self.minimisation = minimisation
+        self.table_size = table_size
+        self.cooling_rate = cooling_rate
 
     def __call__(self, problem: Problem):
         """
@@ -427,6 +439,8 @@ class LHNS_Method(Method):
             problem=problem,
             llm=self.llm,
             method=self.method,
+            cooling_rate=self.cooling_rate,
+            table_size=self.table_size,
             budget=self.budget,
             minimisation=self.minimisation,
         )
@@ -444,3 +458,29 @@ class LHNS_Method(Method):
             "budget": self.budget,
             "kwargs": {"method": self.method, "minimisation": self.minimisation},
         }
+
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            "method": self.method,
+            "taboo_table_size": self.table_size,
+            "evaluation_budget": self.budget,
+            "cooling_rate": self.cooling_rate,
+        }
+        return {
+            "name": "LHNS",
+            "source": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/methods/lhns",
+            "config": config,
+        }
+
+
+if __name__ == "__main__":
+    from iohblade.benchmarks.packing.circles import CirclePacking
+    from iohblade.llm import Dummy_LLM
+
+    problem = CirclePacking()
+    llm = Dummy_LLM()
+    lhns = LHNS_Method(llm, 10, "vns", minimisation=problem.minimisation)
+
+    for key, value in lhns.get_config().items():
+        print(f"==========================={key}===========================")
+        print(value)

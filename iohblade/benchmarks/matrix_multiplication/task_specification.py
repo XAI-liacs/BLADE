@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import textwrap
-from typing import Optional
+from typing import Any, Optional
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -92,6 +92,44 @@ Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.PERFORMANCE,
+            PrimaryCategories.ML,
+            Benchmark.MATRIX_MULTIPLICATION,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            VariableType.INTEGER,
+            StructureTag.MATRIX,
+        ]
+
+        config = {
+            "tags": tags,
+            "name": "Matrix Multiplication",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/matrix_multiplication",
+            "config": {
+                "m": self.m,
+                "n": self.n,
+                "p": self.p,
+                "rank": self.rank,
+                "grid": self.grid,
+                "imports": self.imports,
+                "dependencies": self.dependencies,
+            },
+        }
+        return config
+
     @property
     def target_fitness(self) -> Optional[float]:
         """
@@ -101,3 +139,11 @@ Give the response in the format:
         meaning it exactly reconstructs the matrix multiplication tensor.
         """
         return 0.0
+
+
+if __name__ == "__main__":
+    matmul = MatMulTensorDecomposition(n=2, m=2, p=10, grid=1, rank=10)
+
+    for key, value in matmul.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,6 +29,9 @@ def test_run_logger_start_and_finish(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -41,10 +45,16 @@ def test_run_logger_start_and_finish(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyLLM(LLM):
         def _query(self, *args, **kwargs):
             return ""
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     dm = DummyMethod(None, budget=10, name="MyMethod")
     dp = DummyProblem(name="MyProblem")
@@ -65,6 +75,9 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -78,6 +91,9 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     method = DummyMethod(None, budget=10, name="MyMethod")
     problem = DummyProblem(name="MyProblem")
@@ -85,6 +101,9 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
     class DummyLLM(LLM):
         def _query(self, *args, **kwargs):
             return ""
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM(api_key="", model="gpt")
     solution = Solution(name="sol")

@@ -1,5 +1,6 @@
 import textwrap
-from typing import Optional
+import inspect
+from typing import Optional, Any
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
@@ -20,7 +21,7 @@ class HeilbronnTriangle(GeometryBase, Problem):
     def __init__(
         self,
         n_points: int,
-        best_known: Optional[float],
+        best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float]] | None = None,
         triangle_best_solution: list[tuple[float, float]] | None = None,
@@ -171,10 +172,41 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import Benchmark, VariableType
+
+        extra_config = {
+            "n_points": self.n_points,
+            "tolerance": self.tolerance,
+            "dependencies": self.dependencies,
+        }
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._parse_candidate),
+                inspect.getsource(self._ensure_unit_area),
+                inspect.getsource(self.to_np_points),
+                inspect.getsource(self.point_in_triangle),
+                inspect.getsource(self.min_triangle_area),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        self.tags.extend([Benchmark.HEILBRONN_TRIANGLE, VariableType.CONTINUOUS])
+
+        config = {
+            "tags": self.tags,
+            "name": "Heilbronn Triangle",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": extra_config,
+        }
+        return config
+
 
 if __name__ == "__main__":
     hbt = HeilbronnTriangle(n_points=10, best_known=1.11)
-    print(hbt.get_prompt())
-    print(
-        "------------------------------------------------------------------------------------------------"
-    )
+    for key, value in hbt.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

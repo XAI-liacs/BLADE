@@ -1,6 +1,8 @@
 import os
+import inspect
 import textwrap
 import traceback
+from typing import Any
 
 import ioh
 import numpy as np
@@ -11,7 +13,7 @@ from ioh import logger as ioh_logger
 from iohblade.problem import BASE_DEPENDENCIES, Problem
 from iohblade.solution import Solution
 from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
-from .photonics_instances import (
+from iohblade.benchmarks.photonics.photonics_instances import (
     algorithmic_insights,
     get_photonic_instance,
     problem_descriptions,
@@ -257,3 +259,45 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             setattr(new, k, copy.deepcopy(v, memo))
         new._rebuild_problem()
         return new
+
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
+        evaluator = inspect.getsource(self.evaluate)
+        tags: list[Any] = [
+            PrimaryCategories.BBO,
+            Benchmark.PHOTONICS,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            VariableType.CONTINUOUS,
+            StructureTag.PHYSICS,
+        ]
+
+        config = {
+            "tags": tags,
+            "name": "Photonics",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": evaluator,
+            "config": {
+                "problem_type": self.problem_type,
+                "budget_factor": self.budget_factor,
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
+        }
+        return config
+
+
+if __name__ == "__main__":
+    pn = Photonics(logger=None)
+    for key, value in pn.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

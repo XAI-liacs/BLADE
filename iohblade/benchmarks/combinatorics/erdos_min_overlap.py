@@ -1,8 +1,10 @@
 import builtins
 import math
 import random
+import inspect
 import importlib
 import textwrap
+from typing import Any
 import numpy as np
 
 from iohblade.problem import Problem
@@ -164,4 +166,41 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
         return self.evaluate(solution)
 
     def to_dict(self):
-        return self.__dict__
+        return self.__dict__.copy()
+
+    def get_config(self) -> builtins.dict[builtins.str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.ERDOS_MIN_OVERLAP)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.DISCRETE)
+        tags.append(StructureTag.GEOMETRIC)
+        config = {
+            "tags": tags,
+            "name": "Erdös Minimum Overlap",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "n_bins": self.n_bins,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+            },
+        }
+        return config
+
+
+if __name__ == "__main__":
+    eop = ErdosMinOverlap()
+    for key, value in eop.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

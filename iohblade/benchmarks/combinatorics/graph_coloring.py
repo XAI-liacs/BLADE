@@ -1,5 +1,7 @@
+import inspect
 import textwrap
 from pathlib import Path
+from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -72,7 +74,7 @@ one-line description, describing the main idea. Give the response in the format:
             .resolve()
             .parent.joinpath(f"Graph_Coloring_Benchmarks/gcol{benchmark_id}.txt")
         )
-        self.benchmark = f"Graph-Coloring-{benchmark_id}"
+        self.benchmark = benchmark_id
         data = []
         with open(path) as f:
             data = f.readlines()
@@ -117,6 +119,41 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+            ComplexityTag,
+        )
+
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.GRAPH_COLOURING)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.DISCRETE)
+        tags.append(StructureTag.GRAPH)
+        tags.append(ComplexityTag.NP_COMPLETE)
+
+        config = {
+            "tags": tags,
+            "name": "Graph Coloring",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": {
+                "benchmark": f"https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/combinatorics/Graph_Coloring_Benchmarks/gcol{self.benchmark}.txt",
+                "dependencies": self.dependencies,
+            },
+        }
+        return config
+
 
 if __name__ == "__main__":
-    GraphColoring(benchmark_id=1)
+    gc = GraphColoring(benchmark_id="1")
+    for key, value in gc.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

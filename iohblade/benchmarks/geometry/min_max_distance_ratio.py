@@ -1,5 +1,7 @@
+import inspect
 import textwrap
 import numpy as np
+from typing import Any
 from iohblade.problem import Problem
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
@@ -15,7 +17,7 @@ class MinMaxMinDistanceRatio(Problem):
         self,
         n_points: int,
         dim: int,
-        best_known: float | None,
+        best_known: float | None = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple] | None = None,
     ):
@@ -152,7 +154,51 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            StructureTag.PACKING,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+        ]
+        tags.extend([Benchmark.MIN_MAX_DISTANCE_RATIO, VariableType.CONTINUOUS])
+
+        extra_config = {
+            "dimensions": self.dim,
+            "n_points": self.n_points,
+            "tolerance": self.tolerance,
+            "dependencies": self.dependencies,
+        }
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._pairwise_d2),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            "tags": tags,
+            "name": "Min Max Distance Ratio",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": extra_config,
+        }
+        return config
+
 
 if __name__ == "__main__":
     mmd = MinMaxMinDistanceRatio(n_points=10, dim=2, best_known=0)
-    print(mmd.get_prompt())
+    for key, value in mmd.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

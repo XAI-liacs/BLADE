@@ -1,9 +1,10 @@
 import math
+import inspect
 import textwrap
 from pathlib import Path
 from statistics import mean
 from dataclasses import dataclass
-
+from typing import Any
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
@@ -177,7 +178,53 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from pathlib import Path
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+            StructureTag,
+            ComplexityTag,
+        )
+
+        base = Path(__file__).parent.resolve()
+        print(base)
+        path = self.benchmark.relative_to(base)
+
+        path = (
+            "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/combinatorics/"
+            + path.as_posix()
+        )
+
+        tags: list[Any] = [PrimaryCategories.CO]
+        tags.append(Benchmark.EUCLIDEAN_STEINER_TREE)
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
+        tags.extend([StructureTag.GRAPH, StructureTag.GEOMETRIC])
+        tags.append(ComplexityTag.NP_HARD)
+
+        config = {
+            "tags": tags,
+            "name": "Euclidean Steiner Tree",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": inspect.getsource(self.compute_mst_length)
+            + inspect.getsource(self.evaluate),
+            "config": {
+                "benchmark": path,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+            },
+        }
+        return config
+
 
 if __name__ == "__main__":
     est = EuclidianSteinerTree(20)
-    print(est.get_prompt())
+    for key, value in est.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

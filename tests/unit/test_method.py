@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -13,6 +14,9 @@ def test_random_search_calls_llm():
         def _query(self, s):
             return "# Description: MyAlgo\n```python\nclass MyAlgo:\n  pass\n```"
 
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
+        
     class DummyProblem:
         def get_prompt(self):
             return "some prompt"

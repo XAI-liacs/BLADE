@@ -1,6 +1,7 @@
 import platform
 import subprocess
 import time
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -28,6 +29,9 @@ class SlowProblem(Problem):
 
     def to_dict(self):
         return {}
+    
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 
 class DummyProblem(Problem):
@@ -44,6 +48,8 @@ class DummyProblem(Problem):
     def to_dict(self):
         return {}
 
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 class HangingProblem(Problem):
     def get_prompt(self):
@@ -59,6 +65,8 @@ class HangingProblem(Problem):
     def to_dict(self):
         return {}
 
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 def test_problem_abstract_methods():
     dp = DummyProblem(name="dummy")

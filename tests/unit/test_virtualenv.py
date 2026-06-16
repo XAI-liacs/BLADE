@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -21,6 +22,9 @@ class DummyDepProblem(Problem):
         return s
 
     def to_dict(self):
+        return {}
+    
+    def get_config(self) -> dict[str, Any]:
         return {}
 
 

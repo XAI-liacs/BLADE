@@ -3,6 +3,7 @@ import numpy as np
 import math
 
 from typing import Optional, Any
+from iohblade.tags import PrimaryCategories, StructureTag, ObjectiveType, NoiseType
 
 
 class GeometryBase:
@@ -26,6 +27,12 @@ class GeometryBase:
         self.tolerance = tolerance
 
         self.best_known = best_known
+        self.tags: list[Any] = [
+            PrimaryCategories.CO,
+            StructureTag.PACKING,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+        ]
 
     @staticmethod
     def to_np_points(

@@ -2,6 +2,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -48,6 +49,8 @@ class EvalProblem(Problem):
             self._env_path = Path(tempfile.mkdtemp())
             self._python_bin = Path(sys.executable)
 
+    def get_config(self) -> dict[str, Any]:
+        return {}
 
 def test_ma_bbob_experiment_init(cleanup_tmp_dir):
     class DummyMethod(Method):
@@ -56,10 +59,16 @@ def test_ma_bbob_experiment_init(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM(api_key="", model="")
     methods = [DummyMethod(llm, 10, name="m1")]
@@ -95,6 +104,9 @@ def test_experiment_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -108,10 +120,16 @@ def test_experiment_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyLLM(LLM):
         def _query(self, session_messages):
             return "response"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     l = DummyLLM("", "")
     m = DummyMethod(l, 5, name="DMethod")
@@ -135,6 +153,9 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -151,10 +172,15 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
 
         def _ensure_env(self):
             return None
-
+        def get_config(self) -> dict[str, Any]:
+            return {}
+        
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM("", "")
     method = DummyMethod(llm, 1, name="m")
@@ -181,10 +207,16 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
+        
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     llm = DummyLLM("", "")
     method = EvalMethod(llm, 1, name="m")
@@ -202,3 +234,39 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
         assert "eval out" in f.read()
     with open(os.path.join(run_dir, "stderr.log")) as f:
         assert "eval err" in f.read()
+
+def test_experiment_logs_configuration(cleanup_tmp_dir):
+    class EvalMethod(Method):
+        def __call__(self, problem):
+            sol = Solution()
+            return problem(sol)
+
+        def to_dict(self):
+            return {}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
+        
+    class DummyLLM(LLM):
+        def _query(self, s):
+            return "res"
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
+
+    llm = DummyLLM("", "")
+    method = EvalMethod(llm, 1, name="m")
+    problem = EvalProblem(name="p")
+    exp = Experiment(
+        methods=[method],
+        problems=[problem],
+        log_stdout=True,
+        runs=1,
+        exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "exp_eval")),
+    )
+    exp()
+    path = os.path.join(cleanup_tmp_dir, 'exp_eval', 'run-m-p-0')
+    print(path)
+    assert os.path.exists(os.path.join(path, 'method.json'))
+    assert os.path.exists(os.path.join(path, 'llm.json'))
+    assert os.path.exists(os.path.join(path, 'problem.json'))

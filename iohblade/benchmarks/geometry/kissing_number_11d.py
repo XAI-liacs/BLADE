@@ -1,7 +1,8 @@
-from __future__ import annotations
-import math, random
 import textwrap
 import numpy as np
+import math, random, inspect
+
+from typing import Any
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -152,7 +153,50 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            StructureTag.PACKING,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+        ]
+        tags.extend([Benchmark.KISSING_NUMBER_11D, VariableType.DISCRETE])
+
+        extra_config = {
+            "dimensions": self.dim,
+            "tolerance": self.tolerance,
+            "dependencies": self.dependencies,
+        }
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._pairwise_d2),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            "tags": tags,
+            "name": "Kissing Number",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": extra_config,
+        }
+        return config
+
 
 if __name__ == "__main__":
     kiss = KissingNumber11D()
-    print(kiss.get_prompt())
+    for key, value in kiss.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

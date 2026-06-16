@@ -10,6 +10,7 @@ import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from typing import Optional, Any
 import cloudpickle
 import numpy as np
 
@@ -405,6 +406,22 @@ class Problem(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_config(self) -> dict[str, Any]:
+        """
+        * Return a dictionary of properties to log:
+            ```
+                {
+                    `tags`: list[str],
+                    `name`: str,
+                    `prompt`: str,
+                    `minimisation`: bool,
+                    `evaluator`: str,
+                    `config`: {}    Extra configuration for a problem; like HPO.
+                }
+            ```
+        """
+
 
 class WrappedProblem(Problem):
     def __init__(
@@ -464,6 +481,15 @@ class WrappedProblem(Problem):
             "test_instances": self.test_instances,
             "dependencies": self.dependencies,
             "imports": self.imports,
+        }
+
+    def get_config(self) -> dict[str, Any]:
+        return {
+            "tags": [],
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "config": self.__dict__.copy(),
         }
 
 

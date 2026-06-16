@@ -41,3 +41,16 @@ class Method(ABC):
             dict: Dictionary representation of the method.
         """
         pass
+
+    @abstractmethod
+    def get_config(self) -> dict[str, Any]:
+        """
+        Each method in order to be loggable must return the a dictionary with following keys:
+        ```
+            {
+                `name: str`: Name of the method,
+                `source: str`: Global identifier of method, say a repository: <github.com/vendor/repository@<commit_hash>,
+                `config: dict`: Key value arguements defining the configuration of the method.
+            }
+        ```
+        """

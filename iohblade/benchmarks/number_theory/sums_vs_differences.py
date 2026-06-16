@@ -1,4 +1,6 @@
 import math
+import inspect
+from typing import Any
 import numpy as np
 
 from iohblade.problem import Problem
@@ -171,7 +173,50 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            VariableType,
+            NoiseType,
+            ObjectiveType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            Benchmark.SUMS_VS_DIFFERENCES,
+            VariableType.DISCRETE,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            StructureTag.MATHS,
+        ]
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._compute_support_stats),
+                inspect.getsource(self._validate_U),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            "tags": tags,
+            "name": "Sums vs Differences",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+                "max_set_size": self.max_set_size,
+            },
+        }
+
+        return config
+
 
 if __name__ == "__main__":
     sd = SumDifference()
-    print(sd.get_prompt())
+    for key, value in sd.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

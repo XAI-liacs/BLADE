@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import mlflow
@@ -98,6 +99,9 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -111,6 +115,9 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     dm = DummyMethod(None, budget=10, name="MyMethod")
     dp = DummyProblem(name="MyProblem")
@@ -135,6 +142,9 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyProblem(Problem):
         def get_prompt(self):
@@ -148,6 +158,9 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
+        
+        def get_config(self) -> dict[str, Any]:
+            return {}
 
     class DummyLLM(LLM):
         def _query(self, s):
@@ -155,6 +168,9 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"model": "dummy_LLM"}
+        
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
 
     method = DummyMethod(None, budget=10, name="myMethod")
     problem = DummyProblem(name="myProblem")

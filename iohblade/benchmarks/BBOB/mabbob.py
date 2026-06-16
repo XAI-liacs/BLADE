@@ -1,6 +1,8 @@
 import os
+import inspect
 import textwrap
 import traceback
+from typing import Any
 
 import ioh
 import numpy as np
@@ -224,3 +226,37 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
         }
+
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            NoiseType,
+            ObjectiveType,
+            VariableType,
+        )
+
+        extra_config = self.to_dict()
+        extra_config.pop("name")
+        extra_config["imports"] = self.imports
+        extra_config["dependencies"] = self.dependencies
+        tags: list[Any] = [PrimaryCategories.BBO, PrimaryCategories.CO]
+        tags.append(NoiseType.NOISELESS)
+        tags.append(ObjectiveType.SINGLE_OBJECTIVE)
+        tags.append(VariableType.CONTINUOUS)
+
+        config = {
+            "tags": tags,
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": extra_config,
+        }
+        return config
+
+
+if __name__ == "__main__":
+    bbob = MA_BBOB()
+    for key, value in bbob.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

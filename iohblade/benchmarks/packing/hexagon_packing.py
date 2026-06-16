@@ -1,12 +1,16 @@
-from typing import Any
 import math
+import inspect
 import numpy as np
-from typing import Tuple
+from typing import Any, Tuple, Optional
 
 from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from .packing_base import PackingBase
+
+try:
+    from .packing_base import PackingBase
+except:
+    from iohblade.benchmarks.packing.packing_base import PackingBase
 
 
 class HexagonPacking(PackingBase, Problem):
@@ -20,7 +24,7 @@ class HexagonPacking(PackingBase, Problem):
     def __init__(
         self,
         n_hex: int,
-        best_known: float,
+        best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[Any] | None = None,
     ):
@@ -161,7 +165,46 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import Benchmark, VariableType, StructureTag
+
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(self._unit_hex_vertices),
+                inspect.getsource(self._projections_ranges),
+                inspect.getsource(self._outer_side_from_vertices),
+                inspect.getsource(self._intervals_overlap_strict),
+                inspect.getsource(self._overlap_strict),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        self.tags.extend(
+            [
+                Benchmark.HEXAGONAL_PACKING,
+                VariableType.CONTINUOUS,
+                StructureTag.PACKING,
+                StructureTag.GEOMETRIC,
+            ]
+        )
+        config = {
+            "tags": self.tags,
+            "name": "Hexagon Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": self.minimisation,
+            "evaluator": evaluator,
+            "config": {
+                "n_hexagons": self.n_hex,
+                "tolerance": self.tolerance,
+                "depencencies": self.dependencies,
+                "imports": self.imports,
+            },
+        }
+        return config
+
 
 if __name__ == "__main__":
     hex = HexagonPacking(11, 1.167)
-    print(hex.get_prompt())
+    for key, value in hex.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

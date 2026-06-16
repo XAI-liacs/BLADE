@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Eoh run logs:
+**/EoHrun.jsonl
+
 # C extensions
 *.so
 

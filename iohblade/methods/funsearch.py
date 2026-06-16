@@ -2,6 +2,8 @@ from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
 
+from typing import Any
+
 # import funsearch
 
 
@@ -41,3 +43,7 @@ class funsearch(Method):
             "budget": self.budget,
             "kwargs": self.kwargs,
         }
+
+    def get_config(self) -> dict[str, Any]:
+        args = self.kwargs.copy()
+        return {"name": "funsearch", "source": "unknown", "config": args}

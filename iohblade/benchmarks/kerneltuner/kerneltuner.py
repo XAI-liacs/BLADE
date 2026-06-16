@@ -1,12 +1,14 @@
+import re
+import os
 import json
 import math
-import os
 import random
-import re
+import inspect
 import textwrap
 import time
 import traceback
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -324,3 +326,50 @@ from kernel_tuner.strategies.wrapper import OptAlg
             "test_instances": self.test_instances,
             "budget": self.budget,
         }
+
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            StructureTag,
+            ObjectiveType,
+            NoiseType,
+            Benchmark,
+            VariableType,
+        )
+
+        tags: list[Any] = [
+            Benchmark.KERNEL_TUNER,
+            PrimaryCategories.BBO,
+            PrimaryCategories.ML,
+            PrimaryCategories.PERFORMANCE,
+            StructureTag.MATRIX,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            NoiseType.NOISELESS,
+            VariableType.MIXED,
+        ]
+
+        extra_config = {
+            "gpus": self.gpus,
+            "applications": self.applications,
+            "kernels": self.kernels,
+            "dependencies": self.dependencies,
+            "imports": self.imports,
+        }
+
+        config = {
+            "tags": tags,
+            "name": "KernelTuner",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": inspect.getsource(self.evaluate),
+            "config": extra_config,
+        }
+
+        return config
+
+
+if __name__ == "__main__":
+    kt = Kerneltuner()
+    for key, value in kt.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

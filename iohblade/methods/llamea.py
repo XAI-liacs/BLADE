@@ -1,3 +1,5 @@
+from typing import Any
+
 from llamea import LLaMEA as LLAMEA_Algorithm
 
 from ..llm import LLM
@@ -54,4 +56,13 @@ class LLaMEA(Method):
             "method_name": self.name if self.name != None else "LLaMEA",
             "budget": self.budget,
             "kwargs": self.kwargs,
+        }
+
+    def get_config(self) -> dict[str, Any]:
+        config = self.kwargs.copy()
+        config["budget"] = self.budget
+        return {
+            "name": self.name,
+            "source": "https://github.com/XAI-liacs/LLaMEA",
+            "config": config,
         }

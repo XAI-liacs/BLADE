@@ -6,6 +6,7 @@ import random
 import re
 import time
 import traceback
+from typing import Any
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 import numpy as np
@@ -16,6 +17,8 @@ from sklearn.model_selection import train_test_split
 import openml
 from ConfigSpace import Configuration, ConfigurationSpace
 from smac import AlgorithmConfigurationFacade, Scenario
+
+from iohblade.tags import PrimaryCategories, Benchmark
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
@@ -499,3 +502,31 @@ class AutoML(Problem):
             d["openml_task_id"] = self.openml_task_id
             d["metric"] = self.eval_name
         return d
+
+    def get_config(self) -> dict[str, Any]:
+        task_type = (
+            "classification" if _is_classification_task(self.task) else "regression"
+        )
+        config = {
+            "dependencies": self.dependencies,
+            "imports": self.imports,
+            "task_id": self.openml_task_id,
+            "task_type": task_type,
+        }
+        tags = [Benchmark.AUTOML, PrimaryCategories.PD]
+        tags.extend(self.task.class_labels or [])
+        return {
+            "tags": tags,
+            "name": self.name or f"OpenML task {self.openml_task_id}",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/benchmarks/automl",
+            "config": config,
+        }
+
+
+if __name__ == "__main__":
+    aml = AutoML(openml_task_id=13)
+    for key, value in aml.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)

@@ -1,7 +1,9 @@
 import math
+import inspect
 import textwrap
 from pathlib import Path
 from dataclasses import dataclass
+from typing import Any
 
 from iohblade.solution import Solution
 from iohblade.problem import Problem
@@ -159,7 +161,53 @@ one-line description, describing the main idea. Give the response in the format:
     def to_dict(self):
         return self.__dict__
 
+    def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import (
+            PrimaryCategories,
+            Benchmark,
+            VariableType,
+            NoiseType,
+            ObjectiveType,
+            StructureTag,
+        )
+
+        tags: list[Any] = [
+            PrimaryCategories.CO,
+            Benchmark.CIRCLE_PACKING,
+            VariableType.CONTINUOUS,
+            NoiseType.NOISELESS,
+            ObjectiveType.SINGLE_OBJECTIVE,
+            StructureTag.PACKING,
+        ]
+        evaluator = "\n\n".join(
+            [
+                inspect.getsource(Container),
+                inspect.getsource(self._check_validity),
+                inspect.getsource(self._calc_area),
+                inspect.getsource(self.evaluate),
+            ]
+        )
+
+        config = {
+            "tags": tags,
+            "name": "Circle Packing",
+            "prompt": self.get_prompt(),
+            "minimisation": False,
+            "evaluator": evaluator,
+            "config": {
+                "candidate_radii": self.candidate_radii,
+                "container": self.container,
+                "n_circles": self.n_circles,
+                "tolerance": self.tolerance,
+                "dependencies": self.dependencies,
+                "imports": self.imports,
+            },
+        }
+        return config
+
 
 if __name__ == "__main__":
     cp = CirclePacking()
-    print(cp.get_prompt())
+    for key, value in cp.get_config().items():
+        print(f"------------------------------{key}------------------------------")
+        print(value)
