@@ -1,14 +1,14 @@
-from iohblade.mcts_node import MCTS_Node
+from iohblade.solution import Solution
 
 
-class MCTS_Prompts:
+class MoEH_Prompts:
     """
     An extension of `iohblade.Problem` instanced that adds necessary prompt mutation in algorithm including
-    `{i1, e1, e2, m1, m2, s1}`.
+    `{i1, e1, e2, m1, m2}`.
     """
 
     @classmethod
-    def get_desctiption_prompt(cls, task_prompt: str, solution: MCTS_Node) -> str:
+    def get_desctiption_prompt(cls, task_prompt: str, solution: Solution) -> str:
         prompt_content = (
             task_prompt
             + "\n"
@@ -22,7 +22,7 @@ class MCTS_Prompts:
         return prompt_content
 
     @classmethod
-    def get_prompt_refine(cls, task_prompt, solution: MCTS_Node):
+    def get_prompt_refine(cls, task_prompt, solution: Solution):
         prompt_content = (
             task_prompt
             + "\n"
@@ -42,7 +42,7 @@ class MCTS_Prompts:
 
     @classmethod
     def get_prompt_e1(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
+        cls, task_prompt, example_prompt, format_prompt, indivs: list[Solution]
     ):
         prompt_indiv = (
             "\n".join(
@@ -72,7 +72,7 @@ class MCTS_Prompts:
 
     @classmethod
     def get_prompt_e2(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
+        cls, task_prompt, example_prompt, format_prompt, indivs: list[Solution]
     ):
         prompt_indiv = "\n".join(
             list(
@@ -108,7 +108,7 @@ The description must be inside a brace. Thirdly, reply with a response adhering 
 
     @classmethod
     def get_prompt_m1(
-        cls, task_prompt, example_prompt, format_prompt, indiv: MCTS_Node
+        cls, task_prompt, example_prompt, format_prompt, indiv: Solution
     ):
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
@@ -127,7 +127,7 @@ Please create a new algorithm that is a modified version of the provided algorit
 
     @classmethod
     def get_prompt_m2(
-        cls, task_prompt, example_prompt, format_prompt, indiv: MCTS_Node
+        cls, task_prompt, example_prompt, format_prompt, indiv: Solution
     ):
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
@@ -140,37 +140,6 @@ Code:\n\
             + "\n\
 Please identify the main algorithm parameters and help me in creating a new algorithm that has different parameter settings to equations compared to the provided algorithm. \n"
             "Respond in adherance to following contract:"
-        )
-        prompt_content += "\n".join([task_prompt, example_prompt, format_prompt])
-        return prompt_content
-
-    @classmethod
-    def get_prompt_s1(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
-    ):
-        prompt_indiv = ""
-        for i in range(len(indivs)):
-            prompt_indiv = (
-                prompt_indiv
-                + "No."
-                + str(i + 1)
-                + " algorithm's description, its corresponding code and its objective value are: \n"
-                + indivs[i].description
-                + "\n"
-                + indivs[i].code
-                + "\n"
-                + f"Objective value: {indivs[i].fitness}"
-                + "\n\n"
-            )
-
-        prompt_content = (
-            "I have "
-            + str(len(indivs))
-            + " existing algorithms with their codes and objective values as follows: \n\n"
-            + prompt_indiv
-            + f"Please help me create a new algorithm that is inspired by all the above algorithms with its objective value lower than any of them.\n"
-            "Firstly, list some ideas in the provided algorithms that are clearly helpful to a better algorithm. Secondly, based on the listed ideas, describe the design idea and main steps of your new algorithm in one sentence.\n"
-            "Respond in adherance to following contract: "
         )
         prompt_content += "\n".join([task_prompt, example_prompt, format_prompt])
         return prompt_content

@@ -66,6 +66,19 @@ class Solution:
         if self.configspace == "":
             self.configspace = None
 
+    def fitness_is_valid(self) -> bool:
+        """
+            Checks validity of fitness.
+        """
+        if isinstance(self.fitness, Fitness):
+            for value in self.fitness.to_vector():
+                if np.isnan(value) or np.isinf(value):
+                    return False
+        else:
+            if np.isnan(self.fitness) or np.isinf(self.fitness):
+                return False
+        return True
+
     def set_operator(self, operator):
         """
         Sets the operator name that generated this individual.
@@ -101,7 +114,7 @@ class Solution:
         return self
 
     def set_scores(
-        self, fitness: float, feedback="", error: Optional[Exception] = None
+        self, fitness: float| Fitness, feedback="", error: Optional[Exception] = None
     ):
         """
             Set the score of current instance of individual.
@@ -120,20 +133,21 @@ class Solution:
 
             error_type = type(error).__name__
             error_msg = str(error)
-            self.error = repr(error)
+            try:
+                tb = traceback.extract_tb(error.__traceback__)[-1]
 
-            tb = traceback.extract_tb(error.__traceback__)[-1]
+                if tb.filename in ("<string>", self.name):
+                    code_lines = self.code.splitlines()
+                    line_no = tb.lineno
 
-            if tb.filename in ("<string>", self.name):
-                code_lines = self.code.splitlines()
-                line_no = tb.lineno
-
-                if 1 <= line_no <= len(code_lines):
-                    code_line = code_lines[line_no - 1]
-                    self.error = (
-                        f"{error_type}: {error_msg}.\n"
-                        f"On line {line_no}: {code_line}.\n"
-                    )
+                    if 1 <= line_no <= len(code_lines):
+                        code_line = code_lines[line_no - 1]
+                        self.error = (
+                            f"{error_type}: {error_msg}.\n"
+                            f"On line {line_no}: {code_line}.\n"
+                        )
+            except:
+                self.error = repr(error)
 
         return self
 

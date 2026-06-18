@@ -150,3 +150,62 @@ def test_solution_pickle_roundtrip_multiobjective():
     assert s2.fitness["f2"] == pytest.approx(-1.5)
     # Pareto comparison must work without TypeError
     assert not (s2.fitness < s2.fitness)  # equal → not strictly dominated
+
+
+def test_empty_solution_fitness_validity():
+    s = Solution()
+
+    assert not s.fitness_is_valid(), "Empty solution should not have valid solution."
+
+def test_scalar_solution_fitness_validity():
+    s = Solution()
+    s.set_scores(
+        0.5, "Scored 0.5, best known score is 0.991"
+    )
+
+    assert s.fitness_is_valid(), "Scalar solution has valid fitness, not invalid."
+
+    s.set_scores(
+        float('inf'),
+        'Import failure nonepy is not a library.',
+        Exception('Cannot find nonepy.')
+    )
+
+    assert not s.fitness_is_valid(), "±inf is invalid solution."
+    
+    s.set_scores(
+        float('-inf'),
+        'Import failure nonepy is not a library.',
+        Exception('Cannot find nonepy.')
+    )
+
+    assert not s.fitness_is_valid(), "±inf is invalid solution."
+
+def test_fitness_type_invalidity():
+    s = Solution()
+    s.set_scores(
+        Fitness({
+            'distance': 788,
+            'fuel': float('inf')
+        }),
+        "Got Distance = 788 km, and Fuel calculation failed."
+    )
+    assert not s.fitness_is_valid(), 'Fitness type with invalid values, expects invalidity.'
+
+    s.set_scores(
+        Fitness({
+            'distance': 788,
+            'fuel': 917
+        }),
+        "Got Distance = 788 km, and Fuel = 917 mL."
+    )
+    assert s.fitness_is_valid(), 'Fitness type with valid values, expects validity.'
+    
+    s.set_scores(
+        Fitness({
+            'distance': 788,
+            'fuel': float('nan')
+        }),
+        "Got Distance = 788 km, and Fuel capture failed."
+    )
+    assert not s.fitness_is_valid(), 'Fitness type with invalid values, expects invalidity.'
