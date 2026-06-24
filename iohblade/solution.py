@@ -43,7 +43,7 @@ class Solution:
         self.description = description
         self.configspace = configspace
         self.generation = generation
-        self.fitness = float("nan")
+        self.fitness: float | Fitness = float("nan")
         self.feedback = ""
         self.error = ""
         self.parent_ids = parent_ids
@@ -70,14 +70,12 @@ class Solution:
         """
             Checks validity of fitness.
         """
-        if isinstance(self.fitness, Fitness):
-            for value in self.fitness.to_vector():
-                if np.isnan(value) or np.isinf(value):
-                    return False
-        else:
-            if np.isnan(self.fitness) or np.isinf(self.fitness):
-                return False
-        return True
+        fitness_values = (
+            self.fitness.to_vector()
+            if isinstance(self.fitness, Fitness)
+            else [self.fitness]
+        )
+        return all(np.isfinite(v) for v in fitness_values)
 
     def set_operator(self, operator):
         """
@@ -107,7 +105,7 @@ class Solution:
         """
         return self.metadata[key] if key in self.metadata.keys() else None
 
-    def set_scores(self, fitness, feedback="", error=""):
+    def set_scores(self, fitness: float | Fitness, feedback="", error=""):
         self.fitness = fitness
         self.feedback = feedback
         self.error = error

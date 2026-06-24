@@ -37,43 +37,13 @@ class MoEH_Prompts:
         return prompt_content
 
     @classmethod
-    def get_prompt_i1(cls, task_prompt, example_prompt, format_prompt):
+    def get_prompt_i1(cls, task_prompt, example_prompt, format_prompt) -> str:
         return "\n".join([task_prompt, example_prompt, format_prompt])
-
-    @classmethod
-    def get_prompt_e1(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[Solution]
-    ):
-        prompt_indiv = (
-            "\n".join(
-                list(
-                    map(
-                        lambda ind: f"```python {ind.code}```\nObjective Value={ind.fitness}\n",
-                        indivs,
-                    )
-                )
-            )
-            + "\n"
-        )
-
-        prompt_content = (
-            "\n"
-            "I have "
-            + str(len(indivs))
-            + " existing algorithms with their codes as follows: \n\n"
-            + prompt_indiv
-            + "Please create a new algorithm that has a totally different form from the given algorithms. Try generating codes with different structures, flows or algorithms. The new algorithm should have a relatively low objective value, will adhering to following contract. \n"
-            + task_prompt
-            + example_prompt
-            + format_prompt
-        )
-
-        return prompt_content
 
     @classmethod
     def get_prompt_e2(
         cls, task_prompt, example_prompt, format_prompt, indivs: list[Solution]
-    ):
+    ) -> str:
         prompt_indiv = "\n".join(
             list(
                 map(
@@ -109,7 +79,7 @@ The description must be inside a brace. Thirdly, reply with a response adhering 
     @classmethod
     def get_prompt_m1(
         cls, task_prompt, example_prompt, format_prompt, indiv: Solution
-    ):
+    ) -> str:
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
 Algorithm's description: "
@@ -127,8 +97,8 @@ Please create a new algorithm that is a modified version of the provided algorit
 
     @classmethod
     def get_prompt_m2(
-        cls, task_prompt, example_prompt, format_prompt, indiv: Solution
-    ):
+        cls, task_prompt: str, example_prompt: str, format_prompt: str, indiv: Solution
+    ) -> str:
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
 Algorithm's description: "

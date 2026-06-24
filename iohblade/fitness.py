@@ -45,32 +45,32 @@ class Fitness:
         strictly_better = any(self[k] < other[k] for k in self.keys())
         return better_or_equal, strictly_better
 
-    def __eq__(self, other: object) -> bool:
+    def __eq__(self, other) -> bool:
         if not isinstance(other, Fitness):
             return False
         return self._fitness == other._fitness
 
-    def __lt__(self, other: "Fitness") -> bool:
+    def __lt__(self, other) -> bool:
         if not isinstance(other, Fitness):
-            return NotImplemented
+            return False
         be, sb = self._dominates(other)
         return be and sb
 
-    def __gt__(self, other: "Fitness") -> bool:
+    def __gt__(self, other) -> bool:
         if not isinstance(other, Fitness):
-            return NotImplemented
+            return False
         be, sb = other._dominates(self)
         return be and sb
 
-    def __le__(self, other: "Fitness") -> bool:
+    def __le__(self, other) -> bool:
         if not isinstance(other, Fitness):
-            return NotImplemented
+            return False
         be, sb = self._dominates(other)
         return be or sb
 
-    def __ge__(self, other: "Fitness") -> bool:
+    def __ge__(self, other) -> bool:
         if not isinstance(other, Fitness):
-            return NotImplemented
+            return False
         be, sb = other._dominates(self)
         return be or sb
 
