@@ -91,8 +91,14 @@ class Population:
         self._population = new_population
         return self._population
     
-    def get_best(self) -> Solution:
+    def get_best(self) -> list[Solution]:
         population = list(sorted(self._population, key=lambda x: x.fitness))
         if self.minimisation:
-            return population[0]
-        return population[-1]
+            try:
+                return [population[0]]
+            except:
+                return []
+        try:
+            return [population[-1]]
+        except:
+            return []

@@ -3,6 +3,7 @@ from .llamea import LLaMEA
 from .random_search import RandomSearch
 from .lhns import LHNS_Method
 from .mcts_ahd import MCTS_Method
+from .moeh import MoEH_Method, MutationType
 
 try:
     from .eoh import EoH
@@ -20,4 +21,6 @@ __all__ = [
     "ReEvo",
     "LHNS_Method",
     "MCTS_Method",
+    "MoEH_Method",
+    "MutationType"
 ]

@@ -30,7 +30,7 @@ dependencies = [
     "smac>=2.3.1",
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
-    "py-cpuinfo"
+    "py-cpuinfo",
 ]
 
 [project.urls]

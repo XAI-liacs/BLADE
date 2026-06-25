@@ -1,6 +1,7 @@
 import random
-import numpy as np
+import inspect
 from enum import Enum
+from typing import Any
 
 from iohblade.llm import LLM
 from iohblade.method import Method
@@ -50,11 +51,11 @@ class MoEH:
         
         assert max_sample_nums > 1, "Max sample number must be positive integer."
         assert type(max_sample_nums) == int, "Max sample number must be positive integer."
-        assert population_size > 1, "Population size must be positive integer."
+        assert population_size >= 1, "Population size must be positive integer."
         assert type(population_size) == int, "Population size must be positive integer."
-        assert iterations > 1, "Iteration count must be positive integer."
+        assert iterations >= 1, "Iteration count must be positive integer."
         assert type(iterations) == int, "Iteration count must be positive integer."
-        assert max_workers > 1, "Max Workers must be positive integer."
+        assert max_workers >= 1, "Max Workers must be positive integer."
         assert type(max_workers) == int, "Max Workers must be positive integer."
 
         # Accepted parameters.
@@ -101,14 +102,21 @@ class MoEH:
                                             self.problem.format_prompt)
         
         #TODO: Parallel this.....
-        while (len(self.population)  < self.population_size) and self.max_sample_nums > 0:
-            individual = self.llm.sample_solution([prompt])
-            individual = self.evaluate(individual)
+        while (len(self.population.population)  < self.population_size and self.max_sample_nums > 0):
+            individual = self.llm.sample_solution([
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ])
+            individual = self.get_fitness(individual)
             self.population.append(individual)
             self.max_sample_nums -= 1
     
-    def evaluate(self, individual: Solution):
-        return self.problem(individual)
+    def get_fitness(self, individual: Solution):
+        individual = self.problem(individual)
+        print(individual.fitness, individual.feedback, self.problem)
+        return individual
     
     def query_individual(self, type: MutationType, pop: list[Solution]) -> Solution:
         """
@@ -134,14 +142,22 @@ class MoEH:
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
-                solution = self.llm.sample_solution([prompt], parent_ids=[pop[0]])
+                solution = self.llm.sample_solution([
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }], parent_ids=[pop[0]])
                 return solution
             case MutationType.M2:
                 prompt = MoEH_Prompts.get_prompt_m2(self.problem.task_prompt, 
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
-                solution = self.llm.sample_solution([prompt], parent_ids=[pop[0]])
+                solution = self.llm.sample_solution([
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }], parent_ids=[pop[0]])
                 return solution
 
             case MutationType.E2:
@@ -149,7 +165,11 @@ class MoEH:
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop)
-                solution = self.llm.sample_solution([prompt], parent_ids=[pop[i] for i in range(len(pop))])
+                solution = self.llm.sample_solution([
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }], parent_ids=[pop[i] for i in range(len(pop))])
                 return solution
 
     def evolve_solution(self, population_index: int) -> Solution:
@@ -160,16 +180,16 @@ class MoEH:
                 solution = self.query_individual(mutation_type, pop)
             case _:
                 solution = self.query_individual(mutation_type, [pop[population_index]])
-        solution = self.evaluate(solution)
+        solution = self.get_fitness(solution)
         self.max_sample_nums -= 1
         return solution
     
-    def run(self) -> Solution:
+    def run(self) -> list[Solution]:
         generation = 0
         new_population : list[Solution] = []
 
         self.initialise()
-        while((self.iterations < generation) and (self.max_sample_nums > 0)):
+        while((self.iterations < generation) or (self.max_sample_nums > 0)):
             new_population = []
             self.population.parent_selection(self.population_size)
             for index in range(len(self.population.population)):
@@ -180,6 +200,103 @@ class MoEH:
                 self.population.append(individual)
             
             _ = self.population.population_management()
-        
+            print(len(self.population.population))
         return self.population.get_best()
             
+class MoEH_Method(Method):
+    def __init__(self, 
+                 llm: LLM, 
+                 budget: int,
+                 iterations: int,
+                 population_size: int,
+                 use_e2_operator: bool = True,
+                 use_m1_operator: bool = True,
+                 use_m2_operator: bool = True,
+                 name="MoEH"):
+        '''A `Multi-Objective Evolution of Heuristic Using LLLM` implementation for BLADE, as defined in paper: https://arxiv.org/pdf/2409.16867
+
+            ## Params:
+            - `llm: LLM`: Object of one of the final class in `iohblade.llm`.
+            - `problem: Problem`: Object instance of a class that inherits from `iohblade.problem`.
+            - `budget: int`: Max number sample that can be generated by the LLM.
+            - `iterations: int` Max number of iterations for which the algorithm is to be run.
+            - `population_size: int`: Population size (λ / µ) for the evolutionary algorithm.
+            - `use_e2_operator: bool(True)`: Use e2 operation as stated in the `moeh.prompts`; multi-individuals -> 1 individual mutation.
+            - `use_m1_operator: bool(True)`: Use m1 operation as stated in the `moeh.prompts`; 1 -> 1 mutation (adds novel methods.)
+            - `use_m2_operator: bool(True)`: Use m1 operation as stated in the `moeh.prompts`; 1 -> 1 mutation (used different approach.)
+            - `max_workers: int(2)`: Declaration of max `loky` workers for `joblib.Parallel`.
+
+            ## Note:
+
+            - The algorithm quits running when either of the conditons are met (||):
+                - `iterations` count of generations are iterated over.
+                - `max_sample_nums` count of samples are generated.
+        '''
+        super().__init__(llm, budget, name=name)
+        self.iterations = iterations
+        self.population_size = population_size
+        self.use_e2_operator = use_e2_operator
+        self.use_m1_operator = use_m1_operator
+        self.use_m2_operator = use_m2_operator
+        sig = inspect.signature(self.__init__)
+        self.init_params = {
+            k: getattr(self, k)
+            for k in sig.parameters
+            if k not in ("self", "name", "budget", "llm")
+        }
+
+    def __call__(self, problem: Problem) -> Solution:
+        self.moeh_instance = MoEH(
+            self.llm,
+            problem,
+            self.iterations,
+            self.budget,
+            self.population_size,
+            self.use_e2_operator,
+            self.use_m1_operator,
+            self.use_m2_operator,
+            1
+        )
+        try:
+            return self.moeh_instance.run()
+        except Exception as e:
+            import traceback
+            print("Some error occured, best solution till now V")
+            print(traceback.print_exc(), e, "-----------", sep="\n")
+            return self.moeh_instance.population.get_best()
+    
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the method including all parameters.
+
+        Returns:
+            dict: Dictionary representation of the method.
+        """
+        kwargs = dict(self.init_params)
+        return {
+            "method_name": self.name if self.name != None else "MCTS_AHD",
+            "budget": self.budget,
+            "kwargs": kwargs,
+        }
+
+
+    # region Database Logger:
+    def get_config(self) -> dict[str, Any]:
+        config = {
+            "iterations" : self.iterations,
+            "max_sample_nums" : self.budget,
+            "population_size" : self.population_size,
+            "use_e2_operator" : self.use_e2_operator,
+            "use_m1_operator" : self.use_m1_operator,
+            "use_m2_operator" : self.use_m2_operator,
+            "minimisation": self.moeh_instance.minimisation,
+        }
+
+        return {
+            "name": self.name,
+            "source": "https://github.com/XAI-liacs/BLADE/tree/main/iohblade/methods/moeh",
+            "config": config,
+        }
+
+
+# endregion
