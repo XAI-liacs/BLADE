@@ -1,5 +1,5 @@
 from iohblade.solution import Solution
-from iohblade.methods.moeh.population import Population
+from iohblade.methods.moeh_method.population import Population
 
 def test_population_accepts_valid_solution():
     s = Solution()

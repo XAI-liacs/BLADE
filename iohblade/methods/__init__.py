@@ -3,7 +3,8 @@ from .llamea import LLaMEA
 from .random_search import RandomSearch
 from .lhns import LHNS_Method
 from .mcts_ahd import MCTS_Method
-from .moeh import MoEH_Method, MutationType
+from .moeh_method.moeh import MutationType
+from .moeh_method.moeh import MoEH_Method
 
 try:
     from .eoh import EoH
@@ -22,5 +23,5 @@ __all__ = [
     "LHNS_Method",
     "MCTS_Method",
     "MoEH_Method",
-    "MutationType"
+    "MutationType",
 ]

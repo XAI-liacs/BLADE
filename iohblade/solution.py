@@ -138,11 +138,11 @@ class Solution:
                     code_lines = self.code.splitlines()
                     line_no = tb.lineno
 
-                    if 1 <= line_no <= len(code_lines):
+                    if line_no in range(1, len(code_lines) + 1):
                         code_line = code_lines[line_no - 1]
                         self.error = (
                             f"{error_type}: {error_msg}.\n"
-                            f"On line {line_no}: {code_line}.\n"
+                            f"\tOn line {line_no}: {code_line}.\n"
                         )
             except:
                 self.error = repr(error)

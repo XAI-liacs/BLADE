@@ -2,8 +2,7 @@ from typing import Any
 import numpy as np
 
 from iohblade.llm import Dummy_LLM
-from iohblade.methods.moeh.moeh import MoEH_Method
-from iohblade.methods.moeh.moeh import MutationType
+from iohblade.methods import MoEH_Method, MutationType
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -80,12 +79,11 @@ def test_initialise_ok():
         use_m1_operator=False,
         use_m2_operator=False
     )
-    print(type(moeh).__mro__)
-    _ = moeh(problem)
-    print(type(moeh.moeh_instance).__mro__)
 
-    assert moeh.moeh_instance.llm == llm
-    assert moeh.budget == 10
+    _ = moeh(problem)
+
+    assert moeh.llm == llm
+    assert moeh.moeh_instance.max_sample_nums == 10
     assert moeh.moeh_instance.population_size == 2
     assert moeh.moeh_instance.iterations == 2
     assert MutationType.E2 in moeh.moeh_instance.allowed_mutation_types
@@ -120,7 +118,7 @@ def test_initialiation_succeeds():
         1,
         4
     )
-    print(problem.evaluate(Solution()))
+
     solution = moeh(problem)
 
     assert len(solution) == 1

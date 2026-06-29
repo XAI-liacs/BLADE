@@ -1,6 +1,5 @@
 import random
 import inspect
-from enum import Enum
 from typing import Any
 
 from iohblade.llm import LLM
@@ -8,13 +7,9 @@ from iohblade.method import Method
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
-from iohblade.methods.moeh.prompts import MoEH_Prompts
-from iohblade.methods.moeh.population import Population
-
-class MutationType(Enum):
-    E2 = 'e2'
-    M1 = 'm1'
-    M2 = 'm2'
+from .prompts import MoEH_Prompts
+from .population import Population
+from .mutationtype import MutationType
 
 
 class MoEH:
@@ -104,20 +99,31 @@ class MoEH:
         #TODO: Parallel this.....
         while (len(self.population.population)  < self.population_size and self.max_sample_nums > 0):
             individual = self.llm.sample_solution([
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }
-                ])
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ])
             individual = self.get_fitness(individual)
             self.population.append(individual)
             self.max_sample_nums -= 1
     
     def get_fitness(self, individual: Solution):
         individual = self.problem(individual)
-        print(individual.fitness, individual.feedback, self.problem)
+        print(self.__dict__)
+        print(individual.fitness, individual.feedback, individual.error, sep='\n')
         return individual
     
+    def _sample_solution(self, prompt: str, parents: list[Solution]) -> Solution:
+        chat = [
+            {
+                'role': 'user',
+                'content': prompt
+            }
+        ]
+        parent_ids = list(map(lambda x: x.id, parents))
+        return self.llm.sample_solution(chat, parent_ids)
+
     def query_individual(self, type: MutationType, pop: list[Solution]) -> Solution:
         """
             Queries and returns a new LLM written solution using one of the MutationTypes.
@@ -142,22 +148,14 @@ class MoEH:
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
-                solution = self.llm.sample_solution([
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }], parent_ids=[pop[0]])
+                solution = self._sample_solution(prompt, [pop[0]])
                 return solution
             case MutationType.M2:
                 prompt = MoEH_Prompts.get_prompt_m2(self.problem.task_prompt, 
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
-                solution = self.llm.sample_solution([
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }], parent_ids=[pop[0]])
+                solution = self._sample_solution(prompt, [pop[0]])
                 return solution
 
             case MutationType.E2:
@@ -165,11 +163,7 @@ class MoEH:
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop)
-                solution = self.llm.sample_solution([
-                    {
-                        'role': 'user',
-                        'content': prompt
-                    }], parent_ids=[pop[i] for i in range(len(pop))])
+                solution = self._sample_solution(prompt, pop)
                 return solution
 
     def evolve_solution(self, population_index: int) -> Solution:
@@ -185,11 +179,10 @@ class MoEH:
         return solution
     
     def run(self) -> list[Solution]:
-        generation = 0
         new_population : list[Solution] = []
 
         self.initialise()
-        while((self.iterations < generation) or (self.max_sample_nums > 0)):
+        while((self._current_iteration < self.iterations) or (self.max_sample_nums > 0)):
             new_population = []
             self.population.parent_selection(self.population_size)
             for index in range(len(self.population.population)):
@@ -201,6 +194,7 @@ class MoEH:
             
             _ = self.population.population_management()
             print(len(self.population.population))
+            self._current_iteration += 1
         return self.population.get_best()
             
 class MoEH_Method(Method):
@@ -245,7 +239,7 @@ class MoEH_Method(Method):
             if k not in ("self", "name", "budget", "llm")
         }
 
-    def __call__(self, problem: Problem) -> Solution:
+    def __call__(self, problem: Problem):
         self.moeh_instance = MoEH(
             self.llm,
             problem,
@@ -274,7 +268,7 @@ class MoEH_Method(Method):
         """
         kwargs = dict(self.init_params)
         return {
-            "method_name": self.name if self.name != None else "MCTS_AHD",
+            "method_name": self.name if self.name != None else "MoEH",
             "budget": self.budget,
             "kwargs": kwargs,
         }
