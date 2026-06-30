@@ -27,7 +27,8 @@ class Population:
         return self._population
 
     def parent_selection(self, d: int, test: bool=False) -> list[Solution]:
-        N = self.size
+        N = min(self.size, len(self._population))
+        print(f'Parent Selection size: {N}.')
         S = np.zeros((N, N), dtype=float)
 
         for i in range(N):
@@ -58,7 +59,10 @@ class Population:
         return [self._population[i] for i in idx]
     
     def population_management(self, test: bool = False) -> list[Solution]:
+        # if len(self._population):
+        #     return []
         S = len(self._population)
+        print(f'Population Management size: {S}')
         M = np.zeros((S, S), dtype=float)
         for i in range(S):
             for j in range(S):

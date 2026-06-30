@@ -19,8 +19,6 @@ BASE_DEPENDENCIES = [
     "numpy>=2",
     "cloudpickle>=3.1.0,<4",
     "joblib>=1.4.2,<2",
-    # "psutil",
-    # "py-cpuinfo"
 ]
 
 import copy
