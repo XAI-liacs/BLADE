@@ -138,14 +138,13 @@ class MoEH:
         match(type):
             case MutationType.M1:
                 prompt = MoEH_Prompts.get_prompt_m1(
-                    self.problem.task_prompt, 
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
                 solution = self._sample_solution(prompt, [pop[0]])
                 return solution
             case MutationType.M2:
-                prompt = MoEH_Prompts.get_prompt_m2(self.problem.task_prompt, 
+                prompt = MoEH_Prompts.get_prompt_m2( 
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop[0])
@@ -153,7 +152,7 @@ class MoEH:
                 return solution
 
             case MutationType.E2:
-                prompt = MoEH_Prompts.get_prompt_e2(self.problem.task_prompt, 
+                prompt = MoEH_Prompts.get_prompt_e2(
                     self.problem.example_prompt, 
                     self.problem.format_prompt, 
                     pop)
@@ -175,8 +174,11 @@ class MoEH:
     def run(self) -> list[Solution]:
         new_population : list[Solution] = []
 
+        print(f'Started MoEH with {len(self.population.population)} individuals.')
+        
         self.initialise()
-        while((self._current_iteration < self.iterations) or (self.max_sample_nums > 0)):
+        while((self._current_iteration < self.iterations) and (self.max_sample_nums > 0)):
+            print(f'Generation {self._current_iteration} / {self.iterations}: {len(self.population.population)} individuals. Attempts remaining {self.max_sample_nums}.')
             new_population = []
             self.population.parent_selection(self.population_size)
             for index in range(len(self.population.population)):
@@ -251,9 +253,9 @@ class MoEH_Method(Method):
         try:
             return self.moeh_instance.run()
         except Exception as e:
-            # import traceback
+            import traceback
             print("Some error occured, best solution till now V")
-            # print(traceback.print_exc(), e, "-----------", sep="\n")
+            print(traceback.print_exc(), e, "-----------", sep="\n")
             return self.moeh_instance.population.get_best()
     
     def to_dict(self):

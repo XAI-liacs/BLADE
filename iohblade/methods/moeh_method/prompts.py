@@ -42,7 +42,7 @@ class MoEH_Prompts:
 
     @classmethod
     def get_prompt_e2(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[Solution]
+        cls, example_prompt, format_prompt, indivs: list[Solution]
     ) -> str:
         prompt_indiv = "\n".join(
             list(
@@ -69,8 +69,7 @@ Has objective Value {item[1].fitness}.
             + f"Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have a objective value lower than both algorithms.\n"
             f"Firstly, list the common ideas in the No.{1} algorithm that may give good performances. Secondly, based on the common idea, describe the design idea based on the No.{len(indivs)} algorithm and main steps of your algorithm in one sentence. \
 The description must be inside a brace. Thirdly, reply with a response adhering to following contract. Make sure only the final code is in code block. \
-'"
-            + task_prompt
+"
             + example_prompt
             + format_prompt
         )
@@ -78,7 +77,7 @@ The description must be inside a brace. Thirdly, reply with a response adhering 
 
     @classmethod
     def get_prompt_m1(
-        cls, task_prompt, example_prompt, format_prompt, indiv: Solution
+        cls, example_prompt, format_prompt, indiv: Solution
     ) -> str:
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
@@ -92,12 +91,12 @@ Code:\n\
 Please create a new algorithm that is a modified version of the provided algorithm. Attempt to introduce more novel mechanisms and new equations or programme segments.\n"
             "Respond in adherance to following contract:"
         )
-        prompt_content += "\n".join([task_prompt, example_prompt, format_prompt])
+        prompt_content += "\n".join([example_prompt, format_prompt])
         return prompt_content
 
     @classmethod
     def get_prompt_m2(
-        cls, task_prompt: str, example_prompt: str, format_prompt: str, indiv: Solution
+        cls, example_prompt: str, format_prompt: str, indiv: Solution
     ) -> str:
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
@@ -111,5 +110,5 @@ Code:\n\
 Please identify the main algorithm parameters and help me in creating a new algorithm that has different parameter settings to equations compared to the provided algorithm. \n"
             "Respond in adherance to following contract:"
         )
-        prompt_content += "\n".join([task_prompt, example_prompt, format_prompt])
+        prompt_content += "\n".join([example_prompt, format_prompt])
         return prompt_content

@@ -26,9 +26,8 @@ class Population:
     def population(self):
         return self._population
 
-    def parent_selection(self, d: int, test: bool=False) -> list[Solution]:
-        N = min(self.size, len(self._population))
-        print(f'Parent Selection size: {N}.')
+    def _get_delta_domination_matrix(self) -> np.ndarray:
+        N = len(self._population)
         S = np.zeros((N, N), dtype=float)
 
         for i in range(N):
@@ -44,38 +43,42 @@ class Population:
                         S[i, j] = 0
                     elif self._population[i].fitness > self._population[j].fitness and self.minimisation:
                         S[i, j] = 0
+        return S
 
-        v = np.sum(S, axis=0)
+
+    def parent_selection(self, d: int, test: bool=False) -> list[Solution]:
+        print(f'Parent Selection size: {len(self._population)}.')
+        S = self._get_delta_domination_matrix()
         if test:
-            print(f"S: {S}")
+            print(f"\tS pre column sum: \n{S}")
+        if S.shape == (0, 0):
+            if test:
+                print('\tEarly exit, population empty.')
+            return []
+        
+        v = np.sum(S, axis=0)
+
+        if test:
+            print(f"\tS after column sum: {S}")
+        
         v = v - np.max(v)
+
         if test:
             print(f'v: {v}')
         pdf = np.exp(v)
         pdf = pdf / pdf.sum()
         if test:
-            print(f'Softmax: {pdf}')
-        idx = np.random.choice(N, size=d, replace=False, p=pdf)
-        return [self._population[i] for i in idx]
+            print(f'\tSoftmax: {pdf}')
+        idx = np.random.choice(range(len(self._population)), size=d, replace=False, p=pdf)
+        population = [self._population[i] for i in idx]
+        self._population = population
+        return population
     
     def population_management(self, test: bool = False) -> list[Solution]:
         # if len(self._population):
         #     return []
-        S = len(self._population)
-        print(f'Population Management size: {S}')
-        M = np.zeros((S, S), dtype=float)
-        for i in range(S):
-            for j in range(S):
-                if i != j:
-                    M[i][j] = -calc_syntax_match(
-                        self._population[i].code,
-                        self._population[j].code,
-                        'python'
-                    )
-                if self._population[i].fitness < self._population[j].fitness and not self.minimisation:
-                    M[i][j] = 0
-                elif self._population[i].fitness > self._population[j].fitness and self.minimisation:
-                    M[i][j] = 0
+        M = self._get_delta_domination_matrix()
+
         if test:
             print('Selection Matrix:')
             print(M)
