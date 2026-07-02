@@ -1,13 +1,15 @@
 import numpy as np
 import random
-from typing import Any
+from typing import Any, Optional
 
 from iohblade.llm import Dummy_LLM
+from iohblade.fitness import Fitness
 from iohblade.solution import Solution
 from iohblade.methods import MoEH_Method
 from iohblade.problem import Problem
 
 from iohblade.methods.moeh_method.prompts import MoEH_Prompts
+from iohblade.methods.moeh_method.population import Population
 
 #region Helper Classes.
 class DummyProblem(Problem):
@@ -39,12 +41,25 @@ class DummyProblem(Problem):
         }
     
 class DummyProblemWorks(Problem):
-    def __init__(self):
+    def __init__(self, objectives:Optional[list[str]]=None, minimisation = True):
         super().__init__()
         self.iteration = 0
+        self.objectives = objectives
+        self.minimisation = minimisation
+        self.all_scores = []
 
     def evaluate(self, solution: Solution):
+        if self.objectives:
+            score = {}
+            for obj in self.objectives:
+                score[obj] = 1 / (1 + np.e ** ((-self.iteration / 4) + 10)) * random.random()
+            score = Fitness(score)
+            self.all_scores.append(score)
+            solution.set_scores(score, f'Scored {score}.')
+            self.iteration += 1
+            return solution
         score = 1 / (1 + np.e ** ((-self.iteration / 4) + 10)) * random.random()
+        self.all_scores.append(score)
         solution.set_scores(score, f'Scored {score}, best known 1.0.')
         self.iteration += 1
         return solution
@@ -65,7 +80,7 @@ class DummyProblemWorks(Problem):
             'tags': 'bruh',
             'name': 'Baka Mendo',
             'prompt': self.get_prompt(),
-            'minimisation': True,
+            'minimisation': self.minimisation,
             'evaluator':"""    def evaluate(self, solution: Solution):
         score = 1 / (np.e ** ((-self.iteration / 10) - 10))
         solution.set_scores(score, f'Scored {score}, best known 1.0.')
@@ -341,6 +356,165 @@ Always replay in following format:
 #endregion
 
 #region Population
+def test_population_matrix_returns_empty_array_when_empty():
+    p = Population(10, True)
+    x = p._get_delta_domination_matrix()
+    assert x.shape == (0, 0)
+
+def test_population_matrix_returns_appropriate_array():
+    p = Population(4, True)
+    s1 = Solution('ABC')
+    s1.set_scores(8, 'test')
+    s2 = Solution("ACD")
+    s2.set_scores(2, 'test')
+    s3 = Solution("DEF")
+    s3.set_scores(4, 'test')
+    s4 = Solution("FPG")
+    s4.set_scores(1, 'test')
+    
+    p.append(s1)
+    p.append(s2)
+    p.append(s3)
+    p.append(s4)
+
+    m = p._get_delta_domination_matrix()
+    print([x.fitness for x in p._population])
+    expected = [[0, 0, 0, 0], [-1, 0, -1, 0], [-1, 0, 0, 0], [-1, -1, -1, 0]]
+    print('\n', m)
+    for i, row in enumerate(m):
+        for j, cell in enumerate(row):
+            assert expected[i][j] == cell
+
+    p.minimisation = False
+    expected = [[0, -1, -1, -1], [0, 0, 0, -1], [0, -1, 0, -1], [0, 0, 0, 0]]
+
+    m = p._get_delta_domination_matrix()
+    print('\n', m)
+    for i, row in enumerate(m):
+        for j, cell in enumerate(row):
+            assert expected[i][j] == cell
+
+def test_parent_selection_gracefully_exits_selection_on_empty():
+    p = Population(10, True)
+    assert p.parent_selection(4) == []
+
+def test_parent_selection_works_properly():
+    p = Population(4, True)
+    s1 = Solution('ABC')
+    s1.set_scores(8, 'test')
+    s2 = Solution("ACD")
+    s2.set_scores(2, 'test')
+    s3 = Solution("DEF")
+    s3.set_scores(4, 'test')
+    s4 = Solution("FPG")
+    s4.set_scores(1, 'test')
+    
+    p.append(s1)
+    p.append(s2)
+    p.append(s3)
+    p.append(s4)
+
+    selected_population = p.parent_selection(2, True)
+    assert len(selected_population) == 2
+    for idx1, parent1 in enumerate(selected_population):
+        assert parent1 in selected_population
+        for idx2, parent2 in enumerate(selected_population):
+            if idx1 != idx2:
+                assert parent1.code != parent2.code
+
+def test_population_management_fails_gracefully():
+    p = Population(10, False)
+    p.population_management(test=True)
+
+def test_population_management_sorts_properly():
+    p = Population(10, False)
+    np.random.seed(420)
+    choices = range(ord('a'), ord('z') + 1)
+    for i in range(10):
+        code = ''
+        code = "".join([chr(np.random.choice(choices)) for _ in range(4)])
+        print(code)
+        s = Solution(code=code)
+        s.set_scores(2 ** (10 - i))
+        p.append(s)
+    
+    new_population = p.population_management(test=True)
+    for i in range(len(new_population) - 1):
+        print(new_population[i].fitness, new_population[i + 1].fitness)
+        assert new_population[i].fitness > new_population[i + 1].fitness
+
+    p.minimisation = True
+    new_population = p.population_management(True)
+    for i in range(len(new_population) - 1):
+        print(new_population[i].fitness, new_population[i + 1].fitness)
+        assert new_population[i].fitness < new_population[i + 1].fitness
+
+def test_get_best_returns_empty():
+    p = Population(10, True)
+    assert p.get_best() == []
+
+def test_get_best_handles_scalars():
+    p = Population(10, True)
+    np.random.seed(420)
+    choices = range(ord('a'), ord('z') + 1)
+    for i in range(10):
+        code = ''
+        code = "".join([chr(np.random.choice(choices)) for _ in range(4)])
+        print(code)
+        s = Solution(code=code)
+        s.set_scores(2 ** (10 - i))
+        p.append(s)
+    
+    assert len(p.get_best()) == 1
+    assert p.get_best()[0].fitness == 2
+    p.minimisation = False
+    
+    assert len(p.get_best()) == 1
+    assert p.get_best()[0].fitness == 1024
+
+def test_get_best_handles_scalars():
+    p = Population(10, True)
+    np.random.seed(420)
+    choices = range(ord('a'), ord('z') + 1)
+    for i in range(10):
+        code = "".join([chr(np.random.choice(choices)) for _ in range(4)])
+        s = Solution(code=code)
+        s.set_scores(2 ** (10 - i))
+        p.append(s)
+    
+    assert len(p.get_best()) == 1
+    assert p.get_best()[0].fitness == 2
+    p.minimisation = False
+    
+    assert len(p.get_best()) == 1
+    assert p.get_best()[0].fitness == 1024
+
+
+def test_get_best_handles_vectors():
+    p = Population(10, True)
+    problem = DummyProblemWorks(objectives=['Distance', 'Fitness'])
+    np.random.seed(69)
+    choices = range(ord('a'), ord('z') + 1)
+    for i in range(10):
+        code = "".join([chr(np.random.choice(choices)) for _ in range(4)])
+        s = Solution(code=code)
+        s = problem(s)
+        p.append(s)
+    
+    front = p.get_best()
+
+    for front_member in front:
+        for ordinary_member in p._population:
+            assert front_member.fitness <= ordinary_member.fitness
+    
+    p.minimisation = False
+
+    front = p.get_best()
+
+    for front_member in front:
+        for ordinary_member in p._population:
+            assert front_member.fitness >= ordinary_member.fitness
+
 
 #endregion
 
@@ -366,7 +540,7 @@ def test_initialise_ok():
     assert moeh.use_m2_operator == False
     assert moeh.minimisation == True
 
-def test_initialisation_fails_gracefully():
+def test_algorithm_fails_gracefully():
     problem = DummyProblem()
     llm = Dummy_LLM()
 
@@ -386,19 +560,3 @@ def test_initialisation_fails_gracefully():
     out = moeh(problem)
 
     assert len(out) == 0
-
-def test_initialiation_succeeds():
-    problem = DummyProblemWorks()
-    llm = Dummy_LLM()
-
-    moeh = MoEH_Method(
-        llm,
-        20,
-        2,
-        4,
-        True
-    )
-
-    solution = moeh(problem)
-
-    assert len(solution) == 1

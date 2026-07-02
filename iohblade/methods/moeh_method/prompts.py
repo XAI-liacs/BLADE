@@ -76,9 +76,7 @@ The description must be inside a brace. Thirdly, reply with a response adhering 
         return prompt_content
 
     @classmethod
-    def get_prompt_m1(
-        cls, example_prompt, format_prompt, indiv: Solution
-    ) -> str:
+    def get_prompt_m1(cls, example_prompt, format_prompt, indiv: Solution) -> str:
         prompt_content = (
             "I have one algorithm with its code as follows. \n\n\
 Algorithm's description: "

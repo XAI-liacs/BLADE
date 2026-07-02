@@ -68,7 +68,7 @@ class Solution:
 
     def fitness_is_valid(self) -> bool:
         """
-            Checks validity of fitness.
+        Checks validity of fitness.
         """
         fitness_values = (
             self.fitness.to_vector()
@@ -112,7 +112,7 @@ class Solution:
         return self
 
     def set_scores(
-        self, fitness: float| Fitness, feedback="", error: Optional[Exception] = None
+        self, fitness: float | Fitness, feedback="", error: Optional[Exception] = None
     ):
         """
             Set the score of current instance of individual.

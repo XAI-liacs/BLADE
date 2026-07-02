@@ -64,6 +64,7 @@ docs = [
 ]
 methods = [
     "eoh",
+    "pymoo",
     "reevo",
     "codebleu",
     "tree-sitter-python"
