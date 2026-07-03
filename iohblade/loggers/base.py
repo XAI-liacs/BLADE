@@ -315,7 +315,7 @@ class ExperimentLogger:
 
     def _write_progress(self):
         with open(self._progress_path(), "w") as f:
-            json.dump(self.progress, f)
+            json.dump(self.progress, f, indent=4)
 
     def _load_progress(self):
         path = self._progress_path()

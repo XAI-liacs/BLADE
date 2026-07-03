@@ -25,22 +25,25 @@ if __name__ == '__main__':
     for llm in llms:
         for problem in problems:
             if isinstance(problem, AutoCorrIneq2):
-                methods.append(
-                    LLaMEA(
+                llamea = LLaMEA(
                         llm=llm,
                         budget=200,
                         n_parents=4,
                         n_offspring=4,
                         minimisation=problem.minimisation
                     )
-                )
+                llamea.name = llamea.name + llm.model
 
-                methods.append( 
-                    MCTS_Method(
+                mcts = MCTS_Method(
                         llm=llm,
                         budget=200,
                         maximisation=not problem.minimisation
                     )
+                
+                mcts.name = mcts.name + llm.model
+
+                methods.append( 
+                    mcts
                 )
 
                 minimisation_problems.append(problem)
