@@ -17,40 +17,40 @@ if __name__ == '__main__':
         Ollama_LLM('deepcoder:14b')
     ]
 
-    logger = ExperimentLogger('AutoCorrelation_DB')
+    logger = ExperimentLogger('results/AutoCorrelation_2_DB')
 
     methods = []
     minimisation_problems = []
 
+    problem_1 = [problem for problem in problems if isinstance(problem, AutoCorrIneq2)]
+
     for llm in llms:
-        for problem in problems:
-            if isinstance(problem, AutoCorrIneq2):
-                llamea = LLaMEA(
-                        llm=llm,
-                        budget=200,
-                        n_parents=4,
-                        n_offspring=4,
-                        minimisation=problem.minimisation
-                    )
-                llamea.name = llamea.name + llm.model
-
-                mcts = MCTS_Method(
-                        llm=llm,
-                        budget=200,
-                        maximisation=not problem.minimisation
-                    )
-                
-                mcts.name = mcts.name + llm.model
-
-                methods.append( 
-                    mcts
+            llamea = LLaMEA(
+                    llm=llm,
+                    budget=200,
+                    n_parents=4,
+                    n_offspring=4,
+                    minimisation=problem_1[0].minimisation,
                 )
+            llamea.name = f'{llamea.name}-{llm.model}'
 
-                minimisation_problems.append(problem)
+            mcts = MCTS_Method(
+                    llm=llm,
+                    budget=200,
+                    maximisation=not problem_1[0].minimisation
+                )
+            
+            mcts.name = f'{mcts.name}-{llm.model}'
+
+            methods.extend( 
+                [mcts, llamea]
+            )
+
+    print(f'Number of methods added: {len(methods)}.')
     
     exp = Experiment(
         methods,
-        minimisation_problems,
+        problem_1,
         2,
         200,
         show_stdout=True,
@@ -59,33 +59,31 @@ if __name__ == '__main__':
 
     exp()
 
-    maximisation_problems = []
+    logger = ExperimentLogger('results/AutoCorrelation_1_3_DB')
+    maximisation_problems = [problem for problem in problems if not isinstance(problem, AutoCorrIneq2)]
+
     for llm in llms:
-        for problem in problems:
-            if not isinstance(problem, AutoCorrIneq2):
-                methods.append(
-                    LLaMEA(
-                        llm=llm,
-                        budget=200,
-                        n_parents=4,
-                        n_offspring=4,
-                        minimisation=problem.minimisation
-                    )
-                )
+        methods.append(
+            LLaMEA(
+                llm=llm,
+                budget=200,
+                n_parents=4,
+                n_offspring=4,
+                minimisation=problem2[0].minimisation
+            )
+        )
 
-                methods.append( 
-                    MCTS_Method(
-                        llm=llm,
-                        budget=200,
-                        maximisation=not problem.minimisation
-                    )
-                )
-
-                maximisation_problems.append(problem)
+        methods.append( 
+            MCTS_Method(
+                llm=llm,
+                budget=200,
+                maximisation=not problem2[0].minimisation
+            )
+        )
     
     exp = Experiment(
         methods,
-        maximisation_problems,
+        problem2,
         2,
         200,
         show_stdout=True,
