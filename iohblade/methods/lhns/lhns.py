@@ -435,6 +435,11 @@ class LHNS_Method(Method):
         Returns:
             Solution: The best solution found.
         """
+
+        # Get optimisation direction/ set default as maximisaiton.
+        minimisation = getattr(problem, "minimisation", False)
+        self.minimisation = minimisation
+
         self.lhns_instance = LHNS(
             problem=problem,
             llm=self.llm,

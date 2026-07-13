@@ -114,7 +114,11 @@ class ReEvo(Method):
                 )
                 continue
             # Re-Evo always minimizes. (while BLADE problems are maximization)
-            individual["obj"] = -solution.fitness
+            individual["obj"] = (
+                solution.fitness
+                if getattr(problem, "minimisation", False)
+                else -solution.fitness
+            )
 
             individual["exec_success"] = True
             population[response_id] = individual
@@ -149,6 +153,9 @@ class ReEvo(Method):
         }
         cfg = OmegaConf.create(cfg_dict)
         client = _BladeReEvoClient(self.llm)
+
+        minimisation = getattr(problem, "minimisation", False)
+
         reevo = ReEvoAlgorithm(
             cfg, root_dir=self.kwargs.get("output_path", "./"), generator_llm=client
         )
