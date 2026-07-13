@@ -30,7 +30,7 @@ dependencies = [
     "smac>=2.3.1",
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
-    "py-cpuinfo"
+    "py-cpuinfo",
 ]
 
 [project.urls]
@@ -64,7 +64,10 @@ docs = [
 ]
 methods = [
     "eoh",
+    "pymoo",
     "reevo",
+    "codebleu",
+    "tree-sitter-python"
 ]
 extraproblems = [
     "pymoosh==3.2",
@@ -93,6 +96,7 @@ eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev 
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
+codebleu = { git = "https://github.com/anantashahane/codebleu", rev="main"}
 
 [build-system]
 requires = ["hatchling"]

@@ -43,7 +43,7 @@ class Solution:
         self.description = description
         self.configspace = configspace
         self.generation = generation
-        self.fitness = float("nan")
+        self.fitness: float | Fitness = float("nan")
         self.feedback = ""
         self.error = ""
         self.parent_ids = parent_ids
@@ -65,6 +65,17 @@ class Solution:
         self.__dict__.update(state)
         if self.configspace == "":
             self.configspace = None
+
+    def fitness_is_valid(self) -> bool:
+        """
+        Checks validity of fitness.
+        """
+        fitness_values = (
+            self.fitness.to_vector()
+            if isinstance(self.fitness, Fitness)
+            else [self.fitness]
+        )
+        return all(np.isfinite(v) for v in fitness_values)
 
     def set_operator(self, operator):
         """
@@ -94,14 +105,14 @@ class Solution:
         """
         return self.metadata[key] if key in self.metadata.keys() else None
 
-    def set_scores(self, fitness, feedback="", error=""):
+    def set_scores(self, fitness: float | Fitness, feedback="", error=""):
         self.fitness = fitness
         self.feedback = feedback
         self.error = error
         return self
 
     def set_scores(
-        self, fitness: float, feedback="", error: Optional[Exception] = None
+        self, fitness: float | Fitness, feedback="", error: Optional[Exception] = None
     ):
         """
             Set the score of current instance of individual.
@@ -120,20 +131,21 @@ class Solution:
 
             error_type = type(error).__name__
             error_msg = str(error)
-            self.error = repr(error)
+            try:
+                tb = traceback.extract_tb(error.__traceback__)[-1]
 
-            tb = traceback.extract_tb(error.__traceback__)[-1]
+                if tb.filename in ("<string>", self.name):
+                    code_lines = self.code.splitlines()
+                    line_no = tb.lineno
 
-            if tb.filename in ("<string>", self.name):
-                code_lines = self.code.splitlines()
-                line_no = tb.lineno
-
-                if 1 <= line_no <= len(code_lines):
-                    code_line = code_lines[line_no - 1]
-                    self.error = (
-                        f"{error_type}: {error_msg}.\n"
-                        f"On line {line_no}: {code_line}.\n"
-                    )
+                    if line_no in range(1, len(code_lines) + 1):
+                        code_line = code_lines[line_no - 1]
+                        self.error = (
+                            f"{error_type}: {error_msg}.\n"
+                            f"\tOn line {line_no}: {code_line}.\n"
+                        )
+            except:
+                self.error = repr(error)
 
         return self
 
