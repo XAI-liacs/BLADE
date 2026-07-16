@@ -116,7 +116,7 @@ class ReEvo(Method):
                 continue
             # Re-Evo always minimizes. (while BLADE problems are maximization)
             individual["obj"] = ((-1) ** int(not minimisation)) * solution.fitness
-
+            print(individual['obj'], solution.fitness)
             individual["exec_success"] = True
             population[response_id] = individual
         return population
@@ -162,7 +162,7 @@ class ReEvo(Method):
         code, _ = reevo.evolve()
         name = first_class_name(code) or "AlgorithmName"
         sol = Solution(code=code, name=name)
-        sol.set_scores(-reevo.best_obj_overall, "", "")
+        sol.set_scores(abs(reevo.best_obj_overall), "", "")
         return sol
 
     def to_dict(self):

@@ -1,10 +1,11 @@
+import random
+
 from iohblade.llm import Dummy_LLM
 from iohblade import Problem, Solution
 from iohblade.methods import LLaMEA, LHNS_Method, MCTS_Method, EoH
 from iohblade.methods.reevo import ReEvo
 from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2
 from tests.unit.test_moeh import DummyProblemWorks
-import random
 
 
 
@@ -85,8 +86,7 @@ def test_revo_works_properly():
     llm = Dummy_LLM()
     reevo = ReEvo(llm, 5)
 
-    problem = DummyProblemWorks(minimisation=True)
-
+    problem = DummyProblemWorks(minimisation=True, failure_rate=0.6)
     soln = reevo(problem)
 
 
