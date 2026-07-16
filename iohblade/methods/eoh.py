@@ -77,7 +77,7 @@ class _BladeProblemAdapter:
         )
         solution = self.problem(solution)
         return (
-            solution.fitness if self.minimisation else -solution.fitness
+            ((-1) ** int(not self.minimisation)) * solution.fitness
         )  # EoH minimizes the fitness, so we return negative value, when maximising.
 
 

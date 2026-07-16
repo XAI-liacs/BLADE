@@ -1,10 +1,10 @@
-from operator import imod
-
 from iohblade.llm import Dummy_LLM
-from iohblade.problem import Problem
+from iohblade import Problem, Solution
 from iohblade.methods import LLaMEA, LHNS_Method, MCTS_Method, EoH
 from iohblade.methods.reevo import ReEvo
 from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2
+from tests.unit.test_moeh import DummyProblemWorks
+import random
 
 
 
@@ -58,3 +58,40 @@ def test_mcts_ahd_works_properly(monkeypatch):
     assert not mcts.mcts_instance.maximisation == ac1.minimisation
     _ = mcts(ac2)
     assert not mcts.mcts_instance.maximisation == ac2.minimisation
+
+def test_eoh_works_properly():
+
+    from iohblade.methods.eoh import _BladeProblemAdapter
+
+    dp = DummyProblemWorks()
+    bp = _BladeProblemAdapter(dp)
+
+    s = Solution('''
+def RandomOptimser():
+    return random.random()
+''')
+
+    fitness = bp.evaluate(s.code)
+    assert (fitness >= 0) and (dp.minimisation)
+
+    dp = DummyProblemWorks(minimisation=False)
+    bp = _BladeProblemAdapter(dp)
+    fitness = bp.evaluate(s.code)
+    assert (fitness <= 0) and (not dp.minimisation)
+
+
+def test_revo_works_properly():
+
+    llm = Dummy_LLM()
+    reevo = ReEvo(llm, 5)
+
+    problem = DummyProblemWorks(minimisation=True)
+
+    soln = reevo(problem)
+
+
+    assert soln.fitness == min(problem.all_scores)
+
+    problem = DummyProblemWorks(minimisation=False)
+    soln = reevo(problem)
+    assert soln.fitness == max(problem.all_scores)
