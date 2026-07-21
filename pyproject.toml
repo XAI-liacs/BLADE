@@ -84,9 +84,7 @@ trackio = [
 ]
 
 [tool.uv]
-default-groups = [
-    "methods",
-]
+default-groups = []
 
 [tool.uv.sources]
 eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev = "f0d21b2f2f62c452bac545fd7f68d3af50845321"}
