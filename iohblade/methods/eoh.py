@@ -65,6 +65,10 @@ class _BladeProblemAdapter:
         self.problem = problem
         self.prompts = _BladePrompts(problem)
 
+        # Get optimisation direction/ set default as maximisaiton.
+        minimisation = getattr(problem, "minimisation", False)
+        self.minimisation = minimisation
+
     def evaluate(self, code_string):
         solution = Solution(
             code=code_string,
@@ -73,8 +77,8 @@ class _BladeProblemAdapter:
         )
         solution = self.problem(solution)
         return (
-            -solution.fitness
-        )  # EoH minimizes the fitness, so we return negative value.
+            (-1) ** int(not self.minimisation)
+        ) * solution.fitness  # EoH minimizes the fitness, so we return negative value, when maximising.
 
 
 class _BladeInterfaceLLM:

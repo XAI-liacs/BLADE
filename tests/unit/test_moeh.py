@@ -16,14 +16,14 @@ class DummyProblem(Problem):
     def evaluate(self, solution: Solution):
         solution.set_scores(float('nan'), 'Invalid solution for invalid problem.')
         return solution
-    
+
     def __call__(self, solution: Solution, logger=None) -> Solution:
             solution = self.evaluate(solution)
             return solution
-    
+
     def test(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         dictionary = self.__dict__.copy()
         return dictionary
@@ -39,42 +39,72 @@ class DummyProblem(Problem):
         return solution''',
             'config': {}
         }
-    
+
 class DummyProblemWorks(Problem):
-    def __init__(self, objectives:Optional[list[str]]=None, minimisation = True):
+    def __init__(self, objectives:Optional[list[str]]=None, minimisation = True, failure_rate=0.0):
         super().__init__()
         self.iteration = 0
         self.objectives = objectives
         self.minimisation = minimisation
         self.all_scores = []
+        self.failure_rate = failure_rate
+        self.example_prompt = '''
+Respond in the following format:
+**Description**: A short BBoB solver.
+**Code**:
+```python
+    import numpy as np
+
+    class RandomOptimizer:
+        def __init__(self, budget=10000, seed=None):
+            self.budget = budget
+            self.rng = np.random.default_rng(seed)
+
+        def optimize(self, problem):
+            best_x = None
+            best_y = np.inf
+            for _ in range(self.budget):
+                x = self.rng.uniform(problem.lower_bounds,
+                                     problem.upper_bounds)
+                y = problem(x)
+                if y < best_y:
+                    best_y = y
+                    best_x = x.copy()
+            return best_x, best_y
+```
+        '''
 
     def evaluate(self, solution: Solution):
         if self.objectives:
             score = {}
             for obj in self.objectives:
                 score[obj] = 1 / (1 + np.e ** ((-self.iteration / 4) + 10)) * random.random()
+            if random.random() < self.failure_rate:
+                score = None
             score = Fitness(score)
             self.all_scores.append(score)
             solution.set_scores(score, f'Scored {score}.')
             self.iteration += 1
             return solution
         score = 1 / (1 + np.e ** ((-self.iteration / 4) + 10)) * random.random()
+        if random.random() < self.failure_rate:
+            score = ((-1) ** int(not self.minimisation)) * float('inf')
         self.all_scores.append(score)
         solution.set_scores(score, f'Scored {score}, best known 1.0.')
         self.iteration += 1
         return solution
-    
+
     def __call__(self, solution: Solution, logger=None) -> Solution:
             solution = self.evaluate(solution)
             return solution
-    
+
     def test(self, solution: Solution):
         return self.evaluate(solution)
-    
+
     def to_dict(self):
         dictionary = self.__dict__.copy()
         return dictionary
-    
+
     def get_config(self) -> dict[str, Any]:
         return {
             'tags': 'bruh',
@@ -91,14 +121,14 @@ class DummyProblemWorks(Problem):
 #endregion
 
 #region Prompt:
-    
+
 def test_i1_prompt():
     task_prompt = 'Write a simple black box optimiser class, that takes in a function, and optimises it. Tha class must contain __call__ method, that is in budget, and returns best result on execution.'
     example_prompt = """
 class Optimiser:
     def __init__(self, f):
         self.f = f
-    
+
     def __call__(self, budget = 5000) -> Solution:
         self.budget = budget
         self.initialise()
@@ -222,7 +252,7 @@ class Solver:
 class Optimiser:
     def __init__(self, f):
         self.f = f
-    
+
     def __call__(self, budget = 5000) -> Solution:
         self.budget = budget
         self.initialise()
@@ -315,12 +345,12 @@ class BBOBSolver:
 
         return self.best_x, self.best_f'''
     solution.description = 'A minimal Python template for optimizing a BBOB function. It accepts a function and an evaluation budget, provides a run() method, and returns the best solution found.'
-    
+
     example_prompt = """
 class Optimiser:
     def __init__(self, f):
         self.f = f
-    
+
     def __call__(self, budget = 5000) -> Solution:
         self.budget = budget
         self.initialise()
@@ -371,7 +401,7 @@ def test_population_matrix_returns_appropriate_array():
     s3.set_scores(4, 'test')
     s4 = Solution("FPG")
     s4.set_scores(1, 'test')
-    
+
     p.append(s1)
     p.append(s2)
     p.append(s3)
@@ -408,7 +438,7 @@ def test_parent_selection_works_properly():
     s3.set_scores(4, 'test')
     s4 = Solution("FPG")
     s4.set_scores(1, 'test')
-    
+
     p.append(s1)
     p.append(s2)
     p.append(s3)
@@ -437,7 +467,7 @@ def test_population_management_sorts_properly():
         s = Solution(code=code)
         s.set_scores(2 ** (10 - i))
         p.append(s)
-    
+
     new_population = p.population_management(test=True)
     for i in range(len(new_population) - 1):
         print(new_population[i].fitness, new_population[i + 1].fitness)
@@ -464,11 +494,11 @@ def test_get_best_handles_scalars():
         s = Solution(code=code)
         s.set_scores(2 ** (10 - i))
         p.append(s)
-    
+
     assert len(p.get_best()) == 1
     assert p.get_best()[0].fitness == 2
     p.minimisation = False
-    
+
     assert len(p.get_best()) == 1
     assert p.get_best()[0].fitness == 1024
 
@@ -481,11 +511,11 @@ def test_get_best_handles_scalars():
         s = Solution(code=code)
         s.set_scores(2 ** (10 - i))
         p.append(s)
-    
+
     assert len(p.get_best()) == 1
     assert p.get_best()[0].fitness == 2
     p.minimisation = False
-    
+
     assert len(p.get_best()) == 1
     assert p.get_best()[0].fitness == 1024
 
@@ -500,13 +530,13 @@ def test_get_best_handles_vectors():
         s = Solution(code=code)
         s = problem(s)
         p.append(s)
-    
+
     front = p.get_best()
 
     for front_member in front:
         for ordinary_member in p._population:
             assert front_member.fitness <= ordinary_member.fitness
-    
+
     p.minimisation = False
 
     front = p.get_best()

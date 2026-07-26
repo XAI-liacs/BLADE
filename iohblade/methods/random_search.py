@@ -25,13 +25,19 @@ class RandomSearch(Method):
         Returns:
             Solution: The best solution found.
         """
+        # Get optimisation direction/ set default as maximisaiton.
+        minimization = getattr(problem, "minimisation", False)
+        self.minimisation = minimization
+
         best_solution = None
         for i in range(self.budget):
             solution = self.llm.sample_solution(
                 [{"role": "client", "content": problem.get_prompt()}]
             )
             solution = problem(solution)
-            if best_solution is None or solution.fitness > best_solution.fitness:
+            if best_solution is None or (
+                (solution.fitness > best_solution.fitness) != self.minimisation
+            ):
                 best_solution = solution
         return best_solution
 

@@ -101,12 +101,12 @@ class MCTS:
         `e2`: Needs a parent and a reference (Elite) node.\\
         `m1 and m2`: Needs the parent node.\\
         `s1`: Needs all the parent node, i.e. trace for root node to leaf node.
-        
+
         ## Args:
             `approach: str`: Asserted to be one of the following {i1, e1, e2, m1, m2, s1}.
             `relevant_nodes: [MCTS_Node]`: A list of relevant `MCTS_Node`s, that can are in relationship with returning nodes as decribed in notes above.
             `depth: int`: Depth at which the current node is supposed to be added.
-            
+
         ## Returns:
             `MCTS_Node`: Generate with LLM, a node with the code, and re-gererated description.
 
@@ -422,7 +422,7 @@ class MCTS:
 
     def uct(self, node: MCTS_Node) -> float:
         """
-        Scores the provided node with a score, determining how likely it is to better optima on visiting current 
+        Scores the provided node with a score, determining how likely it is to better optima on visiting current
         node again.
 
         ## Args:
@@ -612,6 +612,11 @@ class MCTS_Method(Method):
         Returns:
             Solution: The best solution found.
         """
+
+        # Get optimisation direction/ set default as maximisaiton.
+        minimisation = getattr(problem, "minimisation", False)
+        self.maximisation = not minimisation
+
         self.mcts_instance = MCTS(
             self.llm,
             problem,

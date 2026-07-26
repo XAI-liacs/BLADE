@@ -90,12 +90,13 @@ class ReEvo(Method):
         self.kwargs = kwargs
 
     def _eval_population(self, reevo: Any, population: list[dict], problem: Problem):
+        minimisation = getattr(problem, "minimisation", False)
         for response_id in range(len(population)):
             individual = population[response_id]
             reevo.function_evals += 1
             if individual.get("code") is None:
                 individual["exec_success"] = False
-                individual["obj"] = float("inf")
+                individual["obj"] = ((-1) ** int(not minimisation)) * float("inf")
                 continue
             solution = Solution(
                 code=individual["code"],
@@ -108,13 +109,13 @@ class ReEvo(Method):
             if solution.error != "":
                 # If the solution has an error, we mark it as invalid.
                 individual["exec_success"] = False
-                individual["obj"] = -solution.fitness
+                individual["obj"] = float("inf")
                 population[response_id] = reevo.mark_invalid_individual(
                     individual, solution.error
                 )
                 continue
             # Re-Evo always minimizes. (while BLADE problems are maximization)
-            individual["obj"] = -solution.fitness
+            individual["obj"] = ((-1) ** int(not minimisation)) * solution.fitness
 
             individual["exec_success"] = True
             population[response_id] = individual
@@ -149,6 +150,7 @@ class ReEvo(Method):
         }
         cfg = OmegaConf.create(cfg_dict)
         client = _BladeReEvoClient(self.llm)
+
         reevo = ReEvoAlgorithm(
             cfg, root_dir=self.kwargs.get("output_path", "./"), generator_llm=client
         )
@@ -160,7 +162,7 @@ class ReEvo(Method):
         code, _ = reevo.evolve()
         name = first_class_name(code) or "AlgorithmName"
         sol = Solution(code=code, name=name)
-        sol.set_scores(-reevo.best_obj_overall, "", "")
+        sol.set_scores(abs(reevo.best_obj_overall), "", "")
         return sol
 
     def to_dict(self):

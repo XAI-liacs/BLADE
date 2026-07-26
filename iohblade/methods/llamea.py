@@ -31,6 +31,9 @@ class LLaMEA(Method):
         Returns:
             Solution: The best solution found.
         """
+        # Get optimisation direction/ set default as maximisaiton.
+        minimization = getattr(problem, "minimisation", False)
+
         self.llamea_instance = LLAMEA_Algorithm(
             f=problem,  # Ensure evaluation integrates with our framework
             llm=self.llm,
@@ -41,8 +44,10 @@ class LLaMEA(Method):
             log=None,  # We do not use the LLaMEA native logger, we use the experiment logger instead which is attached on problem level.
             budget=self.budget,
             max_workers=1,  # We do not use parallelization, as it is not supported in combination with the BLADE parrallelization.
+            minimization=minimization,
             **self.kwargs,
         )
+
         return self.llamea_instance.run()
 
     def to_dict(self):
