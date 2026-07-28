@@ -85,7 +85,8 @@ def build_problems(logger):
 
 def main():
     search_budget = 100
-    llm = Gemini_LLM(os.getenv("GEMINI_API_KEY"), "gemini-3.5-flash")
+    # llm = Gemini_LLM(os.getenv("GEMINI_API_KEY"), "gemini-3.5-flash")
+    llm = Ollama_LLM("qwen3-coder:30b")
     method = LLaMEA(
         llm,
         budget=search_budget,

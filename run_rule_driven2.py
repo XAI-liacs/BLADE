@@ -17,8 +17,8 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     api_key_openai = os.getenv("OPENAI_API_KEY")
     api_key_claude = os.getenv("CLAUDE_API_KEY")
 
-    llm = Gemini_LLM(api_key_google, "gemini-3.5-flash")
-    # llm = Ollama_LLM("qwen3-coder:30b")
+    # llm = Gemini_LLM(api_key_google, "gemini-3.5-flash")
+    llm = Ollama_LLM("qwen3-coder:30b")
     # llm = OpenAI_LLM(api_key_openai, "gpt-5-nano-2025-08-07", temperature=1.0)
 
 

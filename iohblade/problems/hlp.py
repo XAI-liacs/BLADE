@@ -13,9 +13,9 @@ from ioh import logger as ioh_logger
 from pathlib import Path
 
 
-from problem import BASE_DEPENDENCIES, Problem
-from solution import Solution
-from utils import OverBudgetException, aoc_logger, correct_aoc
+from ..problem import BASE_DEPENDENCIES, Problem
+from ..solution import Solution
+from ..utils import OverBudgetException, aoc_logger, correct_aoc
 
 # Modular CMA-ES guidelines for high-level property combinations.
 guidelines_path = Path(__file__).resolve().with_name("MOD_CMAES_GUIDELINES.md")
@@ -513,6 +513,13 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         entry = data[instance]
         code = entry["code"]
 
+        if entry.get("memory_skipped_dim_30", False):
+            print(
+                f"Skipping instance {instance} in {self.function_file}: "
+                "memory_skipped_dim_30 is true."
+            )
+            return None
+
         safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
         local_env = {}
         exec(code, safe_globals, local_env)
@@ -578,6 +585,8 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 f_new = self.get_generated_problem(
                     instance=instance, dim=dim
                 )
+                if f_new is None:
+                    continue
                 l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
                 if test or self.full_ioh_log:
                     l1 = ioh.logger.Analyzer(
@@ -631,4 +640,36 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
             "budget_factor": self.budget_factor,
+        }
+
+
+    def get_config(self):
+        """
+        * Return a dictionary of properties to log:
+            ```
+                {
+                    `tags`: list[str],
+                    `name`: str,
+                    `prompt`: str,
+                    `minimisation`: bool,
+                    `evaluator`: str,
+                    `config`: {}    Extra configuration for a problem; like HPO.
+                }
+            ```
+        """
+        return {
+            "tags": ["optimization", "continuous", "high-level-properties"],
+            "name": self.name,
+            "prompt": self.get_prompt(),
+            "minimisation": True,
+            "evaluator": "HLP",
+            "config": {
+                "dim": self.dim,
+                "budget_factor": self.budget_factor,
+                "specific_high_level_features": self.specific_high_level_features,
+                "add_info_to_prompt": self.add_info_to_prompt,
+                "add_rules_to_prompt": self.add_rules_to_prompt,
+                "full_ioh_log": self.full_ioh_log,
+                "ioh_dir": self.ioh_dir,
+            },
         }
