@@ -362,6 +362,14 @@ class Problem(ABC):
         except Exception:
             pass
 
+    def _exec_code(self, code: str, extra_globals: dict | None = None):
+        """Execute generated code in a namespace where imports are visible globally."""
+        namespace = {"__builtins__": __builtins__}
+        if extra_globals:
+            namespace.update(extra_globals)
+        exec(code, namespace, namespace)
+        return namespace
+
     def set_logger(self, logger):
         """
         Sets the logger for this problem.

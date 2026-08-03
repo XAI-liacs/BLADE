@@ -441,6 +441,7 @@ class HLP(Problem):
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
+Strictly use the Modular CMA-ES library (modcma) for the optimization algorithm.
 {extra_prompt} Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
 {extra_prompt_rules}
@@ -521,8 +522,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             return None
 
         safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
-        local_env = {}
-        exec(code, safe_globals, local_env)
+        local_env = self._exec_code(code, safe_globals)
         cls = local_env[entry["name"]]
         objective_f = cls(dim=dim).f
 
@@ -547,7 +547,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         Returns the problem description and answer format.
         """
-        return self.task_prompt + self.example_prompt + self.format_prompt
+        return self.task_prompt + self.format_prompt + self.example_prompt
 
     def evaluate(self, solution: Solution, test=False):
         """
@@ -558,8 +558,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         algorithm_name = solution.name
         algorithm_id = solution.id
         safe_globals = {"np": np, "ioh": ioh, "math": math, "itertools": itertools, "random": random}
-        local_env = {}
-        exec(code, safe_globals, local_env)
+        local_env = self._exec_code(code, safe_globals)
 
         algorithm = None
 
