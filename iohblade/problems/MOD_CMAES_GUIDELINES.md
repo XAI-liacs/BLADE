@@ -37,7 +37,7 @@ If no informed value for `sigma0` is available and finite bounds exist, consider
 
 Treat the objective as a minimisation objective unless the surrounding task explicitly defines a transformation for maximisation.
 
-## 4. Preferred high-level interface
+## 4. High-level interface
 
 Use `c_maes.fmin` for ordinary single-objective optimisation when no custom control loop is needed:
 
@@ -89,11 +89,14 @@ settings = c_maes.parameters.Settings(
     dim=10,
     modules=modules,
     sigma0=2.5,
+    budget=10000
 )
 parameters = c_maes.Parameters(settings)
 
 cma = c_maes.ModularCMAES(parameters)
 cma.run(func)
+
+xopt, fopt, evals, cma = cma.p.stats.global_best.x, cma.p.stats.global_best.y, cma.p.stats.evaluations, cma
 ```
 
 Available execution levels include:
