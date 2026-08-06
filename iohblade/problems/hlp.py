@@ -22,7 +22,6 @@ guidelines_path = Path(__file__).resolve().with_name("MOD_CMAES_GUIDELINES.md")
 MOD_CMAES_GUIDELINES = guidelines_path.read_text(encoding="utf-8")
 
 # Rulebook-derived summaries for high-level property combinations.
-# Priority is descending: earlier (higher-priority) rules override later ones when multiple match.
 
 RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
     "Separable_GlobalLocal": (
@@ -245,7 +244,8 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- If global-local contrast is low and multimodality is low: enable elitism and use PSR.\n"
         "- Otherwise fall back to generic defaults.\n"
         "- Use standard mirroring and Gaussian sampling.\n"
-        "- Introduce restarts if convergence stalls."
+        "- Introduce restarts if convergence stalls.\n"
+        "- Turning off equal weights suggested."
     ),
 
     "Multimodality_Basins": (
@@ -299,6 +299,58 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
         "- Use standard mirroring.\n"
         "- Prefer Gaussian sampling."
     ),
+
+    "NOT Basins": (
+        "Known: NOT Basins.\n"
+        "- Use standard mirroring."
+    ),
+
+    "NOT Homogeneous": (
+        "Known: NOT Homogeneous.\n"
+        "- Use standard mirroring. \n"
+        "- Use of PSR step-size adaptation suggested.\n"
+        "- Use of BIPOP restarts suggested.\n"
+        "- Use Gaussian or Sobol sampling. No Halton sampling."
+    ),
+
+    # "NOT Basins_GlobalLocal": (
+    #     "Known: NOT Basins + GlobalLocal.\n"
+    #     "- No rules known."
+    # ),
+
+    # "NOT Basins_Multimodality": (
+    #     "Known: NOT Basins + Multimodality.\n"
+    #     "- No rules known."
+    # ),
+
+    "NOT Basins_Separable": (
+        "Known: NOT Basins + Separable.\n"
+        "- Use standard mirroring. \n"
+        "- Use of PSR step-size adaptation suggested.\n"
+        "- Use of BIPOP restarts suggested.\n"
+        "- Use Gaussian or Sobol sampling. No Halton sampling."
+    ),
+
+    # "NOT Homogeneous_GlobalLocal": (
+    #     "Known: NOT Homogeneous + GlobalLocal.\n"
+    #     "- No rules known."
+    # ),
+
+    "NOT Homogeneous_Multimodality": (
+        "Known: NOT Homogeneous + Multimodality.\n"
+        "- Use standard mirroring. \n"
+        "- Use of PSR step-size adaptation suggested.\n"
+        "- Use of BIPOP restarts suggested.\n"
+        "- Use Gaussian or Sobol sampling. No Halton sampling."
+    ),
+
+    "NOT Homogeneous_Separable": (
+        "Known: NOT Homogeneous + Separable.\n"
+        "- Use standard mirroring. \n"
+        "- Use of PSR step-size adaptation suggested.\n"
+        "- Use of BIPOP restarts suggested.\n"
+        "- Use Gaussian or Sobol sampling. No Halton sampling."
+    )
 }
 
 class HLP(Problem):

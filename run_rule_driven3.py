@@ -63,7 +63,7 @@ def make_hlp_problem(
     )
 
 
-def build_problems(logger):
+def build_problems(logger, dim=30):
     """Build the baseline, feature-info, and rule-driven HLP variants."""
     problems = []
 
@@ -73,7 +73,7 @@ def build_problems(logger):
                 logger,
                 name=f"HLP-{prefix}{'-'.join(features)}",
                 features=features,
-                dim=30,
+                dim=dim,
                 budget_factor=2000,
                 eval_timeout=360,
                 add_info=add_info,
@@ -99,7 +99,7 @@ def main():
     )
 
     logger = ExperimentLogger("results/rule-driven-3_2")
-    problems = build_problems(logger)
+    problems = build_problems(logger, dim=30)
 
     experiment = Experiment(
         methods=[method],
