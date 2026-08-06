@@ -72,6 +72,7 @@ methods = [
 extraproblems = [
     "pymoosh==3.2",
     "pyGDM2==1.1.12",
+    "Learn2Design"
 ]
 apple-silicon = [
     "lmstudio>=1.5.0,<2; platform_system == 'Darwin' and platform_machine == 'arm64'",
@@ -97,6 +98,7 @@ reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
 codebleu = { git = "https://github.com/anantashahane/codebleu", rev="main"}
+Learn2Design = {git = "https://github.com/artificial-scientist-lab/Learn2Design-2026.git", rev="main"}
 
 [build-system]
 requires = ["hatchling"]
