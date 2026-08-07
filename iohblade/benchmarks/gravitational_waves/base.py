@@ -48,6 +48,7 @@ class GravitationalWaveBase(Problem):
             @dataclass
             class Genome:
                 params : list[float]
+                speed : list[float]
                 fitness: float = float('nan')
 
                 def reset_fitness(self):
@@ -69,7 +70,7 @@ class GravitationalWaveBase(Problem):
                     parent_population = []
                     for i in range(self.Lambda):
                         params = list(obj.random_params())
-                        genome = Genome(params)
+                        genome = Genome(params, [0] * len(params))
                         parent_population.append(genome)
                     self.parent_population = parent_population
 
@@ -79,8 +80,8 @@ class GravitationalWaveBase(Problem):
                         self.offspring_population[i] = individual
 
                 def mutate(self, individual: Genome, objective: Objective) -> Genome:
-                    params = self.update_params(individual.params, objective)
-                    return_individual = Genome(params)
+                    params, speed = self.update_params(individual.params, individual.speed, objective)
+                    return_individual = Genome(params, speed)
                     return return_individual
 
                 def Crossover(self):
@@ -90,29 +91,33 @@ class GravitationalWaveBase(Problem):
                     for i in range(len(population)):
                         individual = self.crossover(population[i], population[(i + 1) % len(population)])
                         offspring_population.append(individual)
+
                     self.offspring_population = offspring_population
 
 
                 def crossover(self, parent1: Genome, parent2: Genome):
                     crossover_point = random.randint(1, len(parent1.params) // 2)
                     params = parent1.params[:crossover_point] + parent2.params[crossover_point:]
-                    return Genome(params)
+                    speed = parent1.speed[:crossover_point] + parent2.speed[crossover_point:]
+                    return Genome(params, speed)
 
                 def mutationrate(self, x):
                     return 2 * self.mutation_probability * (1 / (1 + np.e ** ((x)/(self.mutation_probability))))
 
-                def update_params(self, params, obj: Objective) -> list[float]:
+                def update_params(self, params, speed, obj: Objective) -> tuple[list[float],list[float]]:
                     params = deepcopy(params)
+                    speed = deepcopy(speed)
                     if isinstance(params, Array):
                         params = params.to_list()
                     std = np.std(list(map(lambda x: x.fitness, self.parent_population)))
                     mu = np.mean(list(map(lambda x: x.fitness, self.parent_population)))
                     mutation_probability = self.mutationrate(std/mu)
+                    print(f'\t Mutation probability: {mutation_probability}, parent population standard deviation {std}.')
                     for i in range(len(params)):
                         if random.random() < mutation_probability:
-                            lo, hi = self.bounds[i]
-                            params[i] = random.triangular(lo, hi, params[i])
-                    return params
+                            speed[i] = random.uniform(speed[i], self.std)
+                            params[i] *= (np.e ** speed[i])
+                    return params, speed
 
                 def Selection(self):
                     solutions = self.parent_population + self.offspring_population
@@ -124,6 +129,7 @@ class GravitationalWaveBase(Problem):
                     for genome in population:
                         x = jnp.asarray(genome.params)
                         loss = float(obj.value(x))
+                        print(f'\t\tLoss: {loss}{"*" if loss < max(list(map(lambda x: x.fitness, self.parent_population))) else ""}')
                         genome.fitness = loss
 
 
@@ -134,19 +140,15 @@ class GravitationalWaveBase(Problem):
                     random_seed: int | None = None,
                     patience: int | None = None,
                     mutation_probability: float = 0.5,
+                    std: float = 2
                 ) -> None:
                     obj = objective
                     self.mutation_probability = mutation_probability
-
+                    self.std = std
                     self.prepare(obj, unbounded=False, random_seed=random_seed)
 
                     obj.warmup_value()
                     obj.start_logging()
-
-                    # Repeatedly draw random params from the active (bounded) space and
-                    # evaluate them until the budget is exhausted. Each `obj.value()` call
-                    # is automatically logged.
-                    self.bounds = list(zip(obj.bounds[0], obj.bounds[1]))
 
                     generation = 1
                     self.Initialise(obj)

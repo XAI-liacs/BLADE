@@ -1,54 +1,39 @@
 import textwrap
 
 from typing import Optional
-from dfbench.problems import UIFOProblem
+from dfbench.problems import VoyagerProblem
 from dfbench import Objective
 from llamea.feature_guidance import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.benchmarks.gravitational_waves.base import GravitationalWaveBase
 
 
-class UIFOProblemSolver(GravitationalWaveBase):
+class VoyagerProblemSolver(GravitationalWaveBase):
     """
     A gravitational wave detection problem based on Quasi-Universal Interferometer (UIFO).
 
     ## Params
-     * `size: int(3)`: Grid dimensions (3 = 3×3). Larger grids have more components and parameters.
      * `n_frequencies: int(50)`: Frequency points for sensitivity calculation.
-     * `topology_seed: int(42)`:	Seed for random topology generation. Set to None (with no other topology args) to generate a truly random topology. The seed is always printed to the console. Mutually exclusive with topology and centers/boundaries.
-     * `topology: str? (None)`:	Compact topology string (see below). Mutually exclusive with topology_seed.
-     * `centers: dict? (None)`:	Interior cell dict. Must be paired with boundaries. Mutually exclusive with topology_seed and topology.
-     * `boundaries: dict? (None)`: Boundary cell dict. Must be paired with centers. Mutually exclusive with topology_seed and topology.
-     * `power_penalty_fn: Callable (squashed_relu_penalty)`: Per-element penalty function fn(value, threshold).
+     * `bounds_overrides: dict? (None): Overwrite the bounds of certain properties.
      * `signal_floor: float(1e-20)`: Lower floor for detector signal magnitudes before sensitivity normalization.
      * `duration: int(15 * 60)`: Budget for the evaluation of the function; officially it is set to 4 hours, set 15 mins for testing.
     """
 
     def __init__(
         self,
-        size=3,
         n_frequencies=50,
-        topology_seed=42,
-        topology: Optional[str] = None,
-        centers: Optional[dict] = None,
-        boundaries: Optional[dict] = None,
-        power_penalty_fn=None,
+        bounds_overrides=None,
         signal_floor=1e-20,
         duration: int = 15 * 60,
     ):
         super().__init__()
-        self.name += "_UIFOProblem"
+        self.name += "_VoyagerProblem"
         self.imports = textwrap.dedent("""
             from dfbench import Objective, OptimizationAlgorithm
 
             """)
-        self.size = size
         self.n_frequencies = n_frequencies
-        self.topology_seed = topology_seed
-        self.topology = topology
-        self.centers = centers
-        self.boundaries = boundaries
-        self.power_penalty_fn = power_penalty_fn
+        self.bounds_overrides = None
         self.signal_floor = signal_floor
         self.duration = duration
         self.minimisation = True
@@ -65,30 +50,14 @@ class UIFOProblemSolver(GravitationalWaveBase):
             exec(compiled_code, ns, ns)
 
             solver = ns[name]
-            if self.power_penalty_fn is not None:
-                uifo_problem = UIFOProblem(
-                    size=self.size,
-                    n_frequencies=self.n_frequencies,
-                    topology_seed=self.topology_seed,
-                    topology=self.topology,
-                    centers=self.centers,
-                    boundaries=self.boundaries,
-                    power_penalty_fn=self.power_penalty_fn,
-                    signal_floor=self.signal_floor,
-                )
-            else:
-                uifo_problem = UIFOProblem(
-                    size=self.size,
-                    n_frequencies=self.n_frequencies,
-                    topology_seed=self.topology_seed,
-                    topology=self.topology,
-                    centers=self.centers,
-                    boundaries=self.boundaries,
-                    signal_floor=self.signal_floor,
-                )
+            voyager_problem = VoyagerProblem(
+                n_frequencies=self.n_frequencies,
+                bounds_overrides=self.bounds_overrides,
+                signal_floor=self.signal_floor,
+            )
 
             obj = Objective(
-                uifo_problem,
+                voyager_problem,
                 unbounded=True,
                 verbose=1,
                 max_time=self.duration,
@@ -116,17 +85,8 @@ class UIFOProblemSolver(GravitationalWaveBase):
 
         evaluator = inspect.getsource(self.evaluate)
         extra_config = {
-            "size": self.size,
             "n_frequencies": self.n_frequencies,
-            "topology_seed": self.topology_seed,
-            "topology": self.topology,
-            "centers": self.centers,
-            "boundaries": self.boundaries,
-            "power_penalty_fn": (
-                self.power_penalty_fn.__name__
-                if self.power_penalty_fn is not None
-                else "squashed_relu_penalty"
-            ),
+            "bounds_overrides": self.bounds_overrides,
             "signal_floor": self.signal_floor,
             "duration": self.duration,
         }
@@ -137,7 +97,7 @@ class UIFOProblemSolver(GravitationalWaveBase):
                 "frontier physics",
                 "many dimension optimization",
             ],
-            "name": "Gravitational Wave Detector Optimisation: Quasi-Universal Interferometer (UIFO)",
+            "name": "Voyager Problem",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,
             "evaluator": evaluator,
@@ -153,7 +113,7 @@ class UIFOProblemSolver(GravitationalWaveBase):
 
 
 if __name__ == "__main__":
-    uifo_ad = UIFOProblemSolver()
+    voyager_ad = VoyagerProblemSolver()
     solution = Solution(textwrap.dedent("""
         from dataclasses import dataclass
         import random
@@ -284,6 +244,6 @@ if __name__ == "__main__":
                 return obj.best_loss
         """))
     solution.name = "GeneticAlgorithm"
-    solution = uifo_ad.evaluate(solution)
-    print(uifo_ad.imports + solution.code)
+    solution = voyager_ad.evaluate(solution)
+    print(voyager_ad.imports + solution.code)
     print(solution.fitness, solution.feedback, solution.error)
