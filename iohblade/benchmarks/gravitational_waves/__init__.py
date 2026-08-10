@@ -4,8 +4,8 @@ from .voyager_tuning_problem import VoyagerTuningProblemSolver
 from .constrained_voyager_problem import ConstrainedVoyagerSolver
 
 __all__ = [
-    UIFOProblemSolver,
-    VoyagerProblemSolver,
-    VoyagerTuningProblemSolver,
-    ConstrainedVoyagerSolver,
+    'UIFOProblemSolver',
+    'VoyagerProblemSolver',
+    'VoyagerTuningProblemSolver',
+    'ConstrainedVoyagerSolver',
 ]
