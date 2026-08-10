@@ -75,10 +75,18 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
 
             solver_object = solver()
 
-            best_loss = solver_object.optimize(obj)
-            solution.set_scores(
-                best_loss, f"Got best loss of {best_loss} under {self.duration} s."
-            )
+            _ = solver_object.optimize(obj)
+            if obj.best_loss is not None:
+                solution.set_scores(
+                    obj.best_loss,
+                    f"Got best loss of {obj.best_loss} under {self.duration} s.",
+                )
+                solution.metadata["best_solution"] = obj.best_params
+            else:
+                solution.set_scores(
+                    float("inf"),
+                    f"Got best loss of {float('inf')} under {self.duration} s; `objective.value(params)` never ran in optimisation loop.",
+                )
             # Output run history to ~/data/*
             obj.save_run_data(hyper_param_str=solution.id)
             obj.output_to_files(hyper_param_str=solution.id)
@@ -92,7 +100,11 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
         evaluator = inspect.getsource(self.evaluate)
         extra_config = {
             "n_frequencies": self.n_frequencies,
-            "power_penalty_fn": inspect.getsource(self.power_penalty_fn) if self.power_penalty_fn is not None else "default",
+            "power_penalty_fn": (
+                inspect.getsource(self.power_penalty_fn)
+                if self.power_penalty_fn is not None
+                else "default"
+            ),
             "bounds_overrides": self.bounds_overrides,
             "signal_floor": self.signal_floor,
             "duration": self.duration,

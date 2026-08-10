@@ -7,5 +7,5 @@ __all__ = [
     UIFOProblemSolver,
     VoyagerProblemSolver,
     VoyagerTuningProblemSolver,
-    ConstrainedVoyagerSolver
+    ConstrainedVoyagerSolver,
 ]

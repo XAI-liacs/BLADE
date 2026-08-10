@@ -44,9 +44,8 @@ class VoyagerProblemSolver(GravitationalWaveBase):
         ns = {}
         try:
             ns = prepare_namespace(self.imports + code, self.dependencies)
-            compiled_code = compile(
-                self.imports + code, filename="LLM_Code_" + name, mode="exec"
-            )
+            filename = "LLM_Code_" + name
+            compiled_code = compile(self.imports + code, filename=filename, mode="exec")
             exec(compiled_code, ns, ns)
 
             solver = ns[name]
@@ -69,10 +68,19 @@ class VoyagerProblemSolver(GravitationalWaveBase):
 
             solver_object = solver()
 
-            best_loss = solver_object.optimize(obj)
-            solution.set_scores(
-                best_loss, f"Got best loss of {best_loss} under {self.duration} s."
-            )
+            _ = solver_object.optimize(obj)
+            if obj.best_loss is not None:
+                solution.set_scores(
+                    obj.best_loss,
+                    f"Got best loss of {obj.best_loss} under {self.duration} s.",
+                )
+                solution.metadata["best_solution"] = obj.best_params
+
+            else:
+                solution.set_scores(
+                    float("inf"),
+                    f"Got best loss of {float('inf')} under {self.duration} s; `objective.value(params)` never ran in optimisation loop.",
+                )
             # Output run history to ~/data/*
             obj.save_run_data(hyper_param_str=solution.id)
             obj.output_to_files(hyper_param_str=solution.id)
