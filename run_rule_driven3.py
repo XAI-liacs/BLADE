@@ -37,9 +37,9 @@ PROMPT_VARIANTS = [
 ]
 
 MUTATION_PROMPTS = [
-    "Refine and simplify the strategy of the selected solution to improve it.",
+    "Refine and simplify the strategy of the selected solution to improve it, but preserve its strongest ideas. Seek a meaningful performance improvement.",
     "Generate a new algorithm that is different from the algorithms you have tried before.",
-    "Stick to using Modular CMA-ES with modcma library and try to improve the selected solution by changing its parameters.",
+    "Stick to the verified modcma.c_maes API and improve the selected solution through novel combinations of supported parameters, modules, restart behavior, or multi-stage strategies. Do not invent API features.",
 ]
 
 def make_hlp_problem(
@@ -91,7 +91,7 @@ def build_problems(logger, dim=30, debug=False):
 
 def main():
     search_budget = 24
-    debug = False
+    debug = True
     # llm = Gemini_LLM(os.getenv("GEMINI_API_KEY"), "gemini-3.5-flash")
     llm = Ollama_LLM("qwen3-coder:30b")
     method = LLaMEA(
@@ -104,7 +104,7 @@ def main():
         elitism=False,
     )
 
-    logger = ExperimentLogger("results/rule-driven-3_5_all_small")
+    logger = ExperimentLogger("results/rule-driven-3_6_all_small")
     problems = build_problems(logger, dim=30, debug=debug)
 
     experiment = Experiment(
