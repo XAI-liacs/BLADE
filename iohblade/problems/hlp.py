@@ -482,13 +482,13 @@ class HLP(Problem):
 
         extra_prompt_rules = ""
         if self.add_rules_to_prompt:
-            extra_prompt_rules += "\n\nWhen writing the optimization algorithm, please consider the following rules derived from known relationships between high-level problem properties and a modular CMA-ES optimization strategy:\n"
+            extra_prompt_rules += "\n\nWhen writing the optimization algorithm, consider the following rules derived from known relationships between high-level problem properties and a modular CMA-ES optimization strategy:\n"
             key = "_".join(specific_high_level_features)
             if dim < 10:
                 rules = RULES_BY_HIGHLEVEL_PROPERTIES_5D.get(key, "No specific rules available for this combination of high-level features.")
             else:
                 rules = RULES_BY_HIGHLEVEL_PROPERTIES_30D.get(key, "No specific rules available for this combination of high-level features.")
-            extra_prompt_rules += rules
+            extra_prompt_rules = extra_prompt_rules + rules + "\n"
 
         self.task_prompt = f"""
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.

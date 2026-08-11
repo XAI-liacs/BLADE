@@ -1,5 +1,12 @@
 import os
 
+# Limit native math-library threading before importing iohblade/NumPy/SciPy.
+# To avoid the errors that disrupt the experiment when running multiple jobs in parallel.
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, OpenAI_LLM, Ollama_LLM
 from iohblade.loggers import ExperimentLogger
@@ -23,9 +30,6 @@ for not_feature in NOT_FEATURES:
         FEATURE_COMBINATIONS.append([not_feature, rest_feature])
     FEATURE_COMBINATIONS.append([not_feature])
 
-# FOR TEST
-FEATURE_COMBINATIONS = [["Separable", "Multimodality"]]
-
 PROMPT_VARIANTS = [
     ("", False, False),
     ("info-", True, False),
@@ -47,7 +51,7 @@ def make_hlp_problem(
     eval_timeout,
     add_info=False,
     add_rules=False,
-    full_ioh_log=False,
+    debug=False,
 ):
     """Create an HLP problem with the settings shared by all variants."""
     return HLP(
@@ -57,13 +61,13 @@ def make_hlp_problem(
         name=name,
         add_info_to_prompt=add_info,
         add_rules_to_prompt=add_rules,
-        full_ioh_log=full_ioh_log,
+        full_ioh_log=debug,
         specific_high_level_features=features,
         ioh_dir=f"{logger.dirname}/ioh",
     )
 
 
-def build_problems(logger, dim=30):
+def build_problems(logger, dim=30, debug=False):
     """Build the baseline, feature-info, and rule-driven HLP variants."""
     problems = []
 
@@ -74,10 +78,11 @@ def build_problems(logger, dim=30):
                 name=f"HLP-{prefix}{'-'.join(features)}",
                 features=features,
                 dim=dim,
-                budget_factor=2000,
+                budget_factor=200,
                 eval_timeout=360,
                 add_info=add_info,
                 add_rules=add_rules,
+                debug=debug,
             )
             problems.append(problem)
 
@@ -86,6 +91,7 @@ def build_problems(logger, dim=30):
 
 def main():
     search_budget = 24
+    debug = False
     # llm = Gemini_LLM(os.getenv("GEMINI_API_KEY"), "gemini-3.5-flash")
     llm = Ollama_LLM("qwen3-coder:30b")
     method = LLaMEA(
@@ -98,8 +104,8 @@ def main():
         elitism=False,
     )
 
-    logger = ExperimentLogger("results/rule-driven-3_2")
-    problems = build_problems(logger, dim=30)
+    logger = ExperimentLogger("results/rule-driven-3_5_all_small")
+    problems = build_problems(logger, dim=30, debug=debug)
 
     experiment = Experiment(
         methods=[method],
