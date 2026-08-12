@@ -39,7 +39,6 @@ PROMPT_VARIANTS = [
 MUTATION_PROMPTS = [
     "Refine and simplify the strategy of the selected solution to improve it, but preserve its strongest ideas. Seek a meaningful performance improvement.",
     "Generate a new algorithm that is different from the algorithms you have tried before.",
-    "Stick to the verified modcma.c_maes API and improve the selected solution through novel combinations of supported parameters, modules, restart behavior, or multi-stage strategies. Do not invent API features.",
 ]
 
 def make_hlp_problem(
