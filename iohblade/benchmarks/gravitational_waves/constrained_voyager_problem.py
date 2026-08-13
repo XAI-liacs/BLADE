@@ -31,7 +31,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
         duration: int = 15 * 60,
     ):
         super().__init__()
-        self.name += "_ConstrainedVoyagerProblem"
+        self.name += f"_ConstrainedVoyagerProblem_{duration}s"
         self.imports = textwrap.dedent("""
             from dfbench import Objective, OptimizationAlgorithm
 
@@ -67,7 +67,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
                 unbounded=True,
                 verbose=1,
                 max_time=self.duration,
-                print_every=10,  # Adapt this to your needs (per n evaluations)
+                print_every=100,  # Adapt this to your needs (per n evaluations)
                 save_params_history=True,
                 save_to_file_every=100,
                 display_mode="log",  # Use "live" for a live display on an interactive terminal

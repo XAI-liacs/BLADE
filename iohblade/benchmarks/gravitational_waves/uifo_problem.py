@@ -37,7 +37,7 @@ class UIFOProblemSolver(GravitationalWaveBase):
         duration: int = 15 * 60,
     ):
         super().__init__()
-        self.name += "_UIFOProblem"
+        self.name += f"_UIFOProblem_{duration}s"
         self.imports = textwrap.dedent("""
             from dfbench import Objective, OptimizationAlgorithm
 
