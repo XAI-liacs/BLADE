@@ -3,7 +3,7 @@ import textwrap
 from typing import Optional
 from dfbench.problems import UIFOProblem
 from dfbench import Objective
-from llamea.feature_guidance import Solution
+from iohblade.solution import Solution
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.benchmarks.gravitational_waves.base import GravitationalWaveBase
 

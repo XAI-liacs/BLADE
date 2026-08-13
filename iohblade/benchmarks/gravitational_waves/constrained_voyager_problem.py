@@ -1,7 +1,7 @@
 import textwrap
 
 from dfbench import Objective
-from llamea.feature_guidance import Solution
+from iohblade.solution import Solution
 from dfbench.problems import ConstrainedVoyagerProblem
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.benchmarks.gravitational_waves.base import GravitationalWaveBase

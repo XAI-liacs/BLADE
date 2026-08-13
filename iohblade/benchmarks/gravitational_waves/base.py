@@ -7,11 +7,7 @@ class GravitationalWaveBase(Problem):
         super().__init__(
             name="GravitationalWave",
             dependencies=[
-                "Learn2Design-2026 git+https://github.com/artificial-scientist-lab/Learn2Design-2026.git@main",
-                "scipy",
-                "jax",
-                "jaxlib",
-                "jaxtyping",
+                "git+https://github.com/artificial-scientist-lab/Learn2Design-2026.git@main",
             ],
         )
 
@@ -53,7 +49,7 @@ class GravitationalWaveBase(Problem):
                 def optimize(
                     self,
                     objective: Objective,
-                    init_params: Float[Array, "..."] | None = None,
+                    init_params: list[[float] | None = None,
                     random_seed: int | None = None,
                     patience: int | None = None,
                     **kwargs,
@@ -111,7 +107,7 @@ class GravitationalWaveBase(Problem):
         """)
 
         self.format_prompt = textwrap.dedent("""
-            Do not import `OptimizationAlgorithm`, it will be provided in the solution harness.
+            Do not import or define `OptimizationAlgorithm` or `Objective`, only write the algorithm with an `optimize` function, it will be provided in the solution harness.
             Always respond in the following format:
 
             # Description:
