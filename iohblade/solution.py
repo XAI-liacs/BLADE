@@ -134,7 +134,7 @@ class Solution:
             try:
                 tb = traceback.extract_tb(error.__traceback__)[-1]
 
-                if ("<string>", self.name) in tb.filename:
+                if any(tb.filename in ["<string>", self.name]):
                     code_lines = self.code.splitlines()
                     line_no = tb.lineno
 
