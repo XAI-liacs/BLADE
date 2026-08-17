@@ -69,7 +69,7 @@ class GravitationalWaveBase(Problem):
                 def optimize(
                     self,
                     objective: Objective,
-                    init_params: list[[float] | None = None,
+                    init_params: list[[float]] | None = None,
                     random_seed: int | None = None,
                     patience: int | None = None,
                     **kwargs,
