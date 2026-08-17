@@ -6,21 +6,29 @@ from iohblade.solution import Solution
 class OptimizationAlgorithmFixer(ast.NodeTransformer):
     """LLMs are not following instructions properly; implemented AST fixed to find most common mistakes and fix them:
         1) Unvalid or no Class inheritance of OptimizationAlgorithm.
-        2) ...
+        2) Overloading of non-abstract function `prepare`.
     """
     def __init__(self, class_name="name"):
         self.class_name = class_name
         self.found = False
 
     def visit_ClassDef(self, node):
+        if node.name == 'Objective' or node.name == 'OptimizationAlgorithm':
+            return None
         if node.name == self.class_name:
             self.found = True
 
             node.bases = [
                 ast.Name(id="OptimizationAlgorithm", ctx=ast.Load())
             ]
-
         return self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+        if node.name == 'prepare':
+            self.prepare_found = True
+            return None
+        return self.generic_visit(node)
+
 
 class GravitationalWaveBase(Problem):
     def __init__(self):
@@ -143,7 +151,7 @@ class GravitationalWaveBase(Problem):
             ```
             """)
 
-    def fix_code(self, individual: Solution) -> Solution:
+    def fix_code(self, individual: Solution) -> tuple(Solution, str):
         """Fix commonly found errors in LLM written code."""
         name = individual.name or '<String>'
         code = individual.code or ""
@@ -156,11 +164,14 @@ class GravitationalWaveBase(Problem):
 
             if not fixer.found:
                 raise ValueError(f"Class {name} was not found")
+
+            if fixer.prepare_found:
+                raise ValueError("Non-abstract function `prepare` was overloaded.")
         except Exception as e:
             individual.set_scores(
                 float('inf'),
                 e
             )
-            return individual
+            return individual, e.__repr__()
         individual.code = ast.unparse(tree)
         return individual
