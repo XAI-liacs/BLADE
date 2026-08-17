@@ -155,7 +155,7 @@ class GravitationalWaveBase(Problem):
             ast.fix_missing_locations(tree)
 
             if not fixer.found:
-                raise ValueError("Class 'name' was not found")
+                raise ValueError(f"Class {name} was not found")
         except Exception as e:
             individual.set_scores(
                 float('inf'),
