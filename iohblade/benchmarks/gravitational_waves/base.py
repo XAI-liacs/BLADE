@@ -1,6 +1,26 @@
+import ast
 import textwrap
 from iohblade.problem import Problem
+from iohblade.solution import Solution
 
+class OptimizationAlgorithmFixer(ast.NodeTransformer):
+    """LLMs are not following instructions properly; implemented AST fixed to find most common mistakes and fix them:
+        1) Unvalid or no Class inheritance of OptimizationAlgorithm.
+        2) ...
+    """
+    def __init__(self, class_name="name"):
+        self.class_name = class_name
+        self.found = False
+
+    def visit_ClassDef(self, node):
+        if node.name == self.class_name:
+            self.found = True
+
+            node.bases = [
+                ast.Name(id="OptimizationAlgorithm", ctx=ast.Load())
+            ]
+
+        return self.generic_visit(node)
 
 class GravitationalWaveBase(Problem):
     def __init__(self):
@@ -30,9 +50,9 @@ class GravitationalWaveBase(Problem):
             * objective.warmup_value() → free JIT warmup
             * objective.start_logging() → starts the timed/evaluation budget
             * objective.budget_exceeded → budget termination condition
-            * objective.best_loss → best loss found
-            * objective.evals_since_improvement
-            * objective.n_params
+            * objective.best_loss → best (least) loss found
+            * objective.evals_since_improvement -> Number of evaluations since last improvement.
+            * objective.n_params -> Number of parameters to optimise ( = len(objective.values(params))).
 
             The benchmark has a hard computational budget and rewards the best feasible solution found. Objective evaluations are expensive,
             so avoid redundant evaluations and exploit batching/vectorization where possible.
@@ -83,6 +103,11 @@ class GravitationalWaveBase(Problem):
 
                 algorithm_str = "MyAlgorithm"
 
+                def __init__(self):
+                    super()
+                    ...
+
+
                 def optimize(
                     self,
                     objective: Objective,
@@ -117,3 +142,25 @@ class GravitationalWaveBase(Problem):
                 <code>
             ```
             """)
+
+    def fix_code(self, individual: Solution) -> Solution:
+        """Fix commonly found errors in LLM written code."""
+        name = individual.name or '<String>'
+        code = individual.code or ""
+        try:
+            tree = ast.parse(code)
+
+            fixer = OptimizationAlgorithmFixer(name)
+            tree = fixer.visit(tree)
+            ast.fix_missing_locations(tree)
+
+            if not fixer.found:
+                raise ValueError("Class 'name' was not found")
+        except Exception as e:
+            individual.set_scores(
+                float('inf'),
+                e
+            )
+            return individual
+        individual.code = ast.unparse(tree)
+        return individual

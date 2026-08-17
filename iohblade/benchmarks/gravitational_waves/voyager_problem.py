@@ -39,6 +39,10 @@ class VoyagerProblemSolver(GravitationalWaveBase):
         self.minimisation = True
 
     def evaluate(self, solution: Solution):
+        solution = self.fix_code(solution)
+        if solution.feedback:
+            return solution
+
         code = solution.code
         name = solution.name
         ns = {}
