@@ -494,13 +494,15 @@ class HLP(Problem):
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 Strictly use the Modular CMA-ES library (modcma) for the optimization algorithm.
-{extra_prompt} Your task is to write the optimization algorithm in Python code. 
+Your task is to write the optimization algorithm in Python code. 
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
-{extra_prompt_rules}
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
 The func() can only be called as many times as the budget allows, not more. 
 """
         self.example_prompt = f"""
+{extra_prompt}
+{extra_prompt_rules}
+        
 An example of the required algorithm structure using the Modular CMA-ES
 library is shown below:
 

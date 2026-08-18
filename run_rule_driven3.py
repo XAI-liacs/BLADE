@@ -30,6 +30,8 @@ for not_feature in NOT_FEATURES:
         FEATURE_COMBINATIONS.append([not_feature, rest_feature])
     FEATURE_COMBINATIONS.append([not_feature])
 
+FEATURE_COMBINATIONS = [["Multimodality"], ["NOT Homogeneous", "Separable"], ["NOT Basins"], ["Homogeneous"], ["GlobalLocal", "Basins"]]
+
 PROMPT_VARIANTS = [
     ("", False, False),
     ("info-", True, False),
@@ -89,7 +91,7 @@ def build_problems(logger, dim=30, debug=False):
 
 
 def main():
-    search_budget = 24
+    search_budget = 200
     debug = True
     # llm = Gemini_LLM(os.getenv("GEMINI_API_KEY"), "gemini-3.5-flash")
     llm = Ollama_LLM("qwen3-coder:30b")
@@ -103,13 +105,13 @@ def main():
         elitism=False,
     )
 
-    logger = ExperimentLogger("results/rule-driven-3_6_all_small")
+    logger = ExperimentLogger("results/rule-driven-qwen-5seed-initRules")
     problems = build_problems(logger, dim=30, debug=debug)
 
     experiment = Experiment(
         methods=[method],
         problems=problems,
-        seeds=[1, 2],
+        seeds=[1, 2, 3, 4, 5],
         show_stdout=False,
         log_stdout=True,
         exp_logger=logger,
