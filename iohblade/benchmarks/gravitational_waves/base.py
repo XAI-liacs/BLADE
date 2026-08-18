@@ -12,6 +12,7 @@ class OptimizationAlgorithmFixer(ast.NodeTransformer):
     def __init__(self, class_name="name"):
         self.class_name = class_name
         self.found = False
+        self.prepare_found = False
 
     def visit_ClassDef(self, node):
         if node.name == 'Objective' or node.name == 'OptimizationAlgorithm':
