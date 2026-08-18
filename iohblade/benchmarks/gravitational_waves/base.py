@@ -16,6 +16,8 @@ class OptimizationAlgorithmFixer(ast.NodeTransformer):
     def visit_ClassDef(self, node):
         if node.name == 'Objective' or node.name == 'OptimizationAlgorithm':
             return None
+        else:
+            self.class_name = node.name # Update class name.
         if node.name == self.class_name:
             self.found = True
 
@@ -175,4 +177,5 @@ class GravitationalWaveBase(Problem):
             )
             return individual, e
         individual.code = ast.unparse(tree)
+        individual.name = fixer.class_name
         return individual, None
