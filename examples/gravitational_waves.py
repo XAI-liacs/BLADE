@@ -39,7 +39,7 @@ if __name__ == '__main__':
             200,
             show_stdout=True,
             exp_logger=logger,
-            n_jobs=8
+            n_jobs=1
         )
 
     exp()

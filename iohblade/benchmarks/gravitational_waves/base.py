@@ -1,5 +1,6 @@
 import ast
 import textwrap
+from typing import Optional
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -23,7 +24,7 @@ class OptimizationAlgorithmFixer(ast.NodeTransformer):
             ]
         return self.generic_visit(node)
 
-    def visit_FunctionDef(self, node: ast.FunctionDef) -> Any:
+    def visit_FunctionDef(self, node: ast.FunctionDef):
         if node.name == 'prepare':
             self.prepare_found = True
             return None
@@ -151,7 +152,7 @@ class GravitationalWaveBase(Problem):
             ```
             """)
 
-    def fix_code(self, individual: Solution) -> tuple(Solution, str):
+    def fix_code(self, individual: Solution) -> tuple[Solution, Optional[Exception]]:
         """Fix commonly found errors in LLM written code."""
         name = individual.name or '<String>'
         code = individual.code or ""
@@ -172,6 +173,6 @@ class GravitationalWaveBase(Problem):
                 float('inf'),
                 e
             )
-            return individual, e.__repr__()
+            return individual, e
         individual.code = ast.unparse(tree)
-        return individual
+        return individual, None

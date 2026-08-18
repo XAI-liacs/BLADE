@@ -67,7 +67,7 @@ class LLaMEA(Method):
         config = self.kwargs.copy()
         config["budget"] = self.budget
         return {
-            "name": self.name,
+            "name": "LLaMEA",
             "source": "https://github.com/XAI-liacs/LLaMEA",
             "config": config,
         }

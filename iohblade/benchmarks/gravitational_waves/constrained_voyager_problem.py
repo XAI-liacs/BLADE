@@ -44,8 +44,8 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
         self.minimisation = True
 
     def evaluate(self, solution: Solution):
-        solution = self.fix_code(solution)
-        if solution.feedback:
+        solution, error = self.fix_code(solution)
+        if error is not None:
             return solution
 
         code = solution.code
