@@ -71,10 +71,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
                 unbounded=True,
                 verbose=1,
                 max_time=self.duration,
-                print_every=100,  # Adapt this to your needs (per n evaluations)
-                save_params_history=True,
-                save_to_file_every=100,
-                display_mode="log",  # Use "live" for a live display on an interactive terminal
+                print_every=50,  # Adapt this to your needs (per n evaluations)
             )
 
             solver_object = solver()
@@ -91,9 +88,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
                     float("inf"),
                     f"Got best loss of {float('inf')} under {self.duration} s; `objective.value(params)` never ran in optimisation loop.",
                 )
-            # Output run history to ~/data/*
-            obj.save_run_data(hyper_param_str=solution.id)
-            obj.output_to_files(hyper_param_str=solution.id)
+
         except Exception as e:
             solution.set_scores(float("inf"), f"Got error {e}.", e)
         return solution

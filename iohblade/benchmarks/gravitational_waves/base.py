@@ -125,7 +125,7 @@ class GravitationalWaveBase(Problem):
                     patience=None,
                     **kwargs,
                 ) -> float:
-                    self.prepare(objective, unbounded=False, random_seed=random_seed)
+                    self.prepare(objective, unbounded=False, random_seed=random_seed) #Do not overload this function.
 
                     objective.warmup_value()
                     objective.start_logging()
