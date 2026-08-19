@@ -35,11 +35,13 @@ class OptimizationAlgorithmFixer(ast.NodeTransformer):
 
 
 class GravitationalWaveBase(Problem):
-    def __init__(self):
+    def __init__(self, cuda_version=13):
+        jax_handler = f"jax[cuda{cuda_version}]"
         super().__init__(
             name="GravitationalWave",
             dependencies=[
                 "git+https://github.com/artificial-scientist-lab/Learn2Design-2026.git@main",
+                # jax_handler
             ],
         )
 

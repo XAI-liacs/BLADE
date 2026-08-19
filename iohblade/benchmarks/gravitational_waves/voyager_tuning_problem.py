@@ -33,7 +33,7 @@ class VoyagerTuningProblemSolver(GravitationalWaveBase):
 
             """)
         self.n_frequencies = n_frequencies
-        self.bounds_overrides = None
+        self.bounds_overrides = bounds_overrides
         self.signal_floor = signal_floor
         self.duration = duration
         self.minimisation = True
@@ -74,7 +74,7 @@ class VoyagerTuningProblemSolver(GravitationalWaveBase):
             if obj.best_loss is not None:
                 solution.set_scores(
                     obj.best_loss,
-                    f"Got best loss of {obj.best_loss} under {self.duration} s.",
+                    f"Got best loss of {obj.best_loss} in {obj.eval_count} evaluations; under {self.duration} s."
                 )
                 solution.metadata["best_solution"] = obj.best_params
 
