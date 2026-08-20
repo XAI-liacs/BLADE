@@ -20,6 +20,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
      * `bounds_overrides: dict? (None): Overwrite the bounds of certain properties.
      * `signal_floor: float(1e-20)`: Lower floor for detector signal magnitudes before sensitivity normalization.
      * `duration: int(15 * 60)`: Budget for the evaluation of the function; officially it is set to 4 hours, set 15 mins for testing.
+     * `cuda_version: int default(13)`: The nfbench library comes in 2 flavours, 12 or 13, depending on which CUDA is supported on you computer, pick accordingly.
     """
 
     def __init__(
@@ -29,8 +30,9 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
         bounds_overrides=None,
         signal_floor=1e-20,
         duration: int = 15 * 60,
+        cuda_version=13
     ):
-        super().__init__()
+        super().__init__(cuda_version=cuda_version)
         self.name += f"_ConstrainedVoyagerProblem_{duration}s"
         self.imports = textwrap.dedent("""
             from dfbench import Objective, OptimizationAlgorithm
@@ -90,7 +92,7 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
                 )
 
         except Exception as e:
-            solution.set_scores(float("inf"), f"Got error {e}.", e)
+            solution.set_scores(float("inf"), f"Got error: {e}.", e)
         return solution
 
     def get_config(self):
