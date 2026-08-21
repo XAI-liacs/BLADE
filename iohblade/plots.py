@@ -180,8 +180,8 @@ def plot_speedup(
     """
 
     methods, problems = logger.get_methods_problems()
-    if method_fast not in methods or method_slow not in methods:
-        raise ValueError("Both methods must exist in the logger.")
+    # if method_fast not in methods or method_slow not in methods:
+    #     raise ValueError("Both methods must exist in the logger.")
 
     fig, axes = plt.subplots(
         figsize=(8, 4 * len(problems)), nrows=len(problems), ncols=1
@@ -297,8 +297,8 @@ def compare_auc(
     """
 
     methods, problems = logger.get_methods_problems()
-    if method_a not in methods or method_b not in methods:
-        raise ValueError("Both methods must exist in the logger.")
+    # if method_a not in methods or method_b not in methods:
+    #     raise ValueError("Both methods must exist in the logger.")
 
     results = []
 
