@@ -1,2 +1,0 @@
-from iohblade.benchmarks.gravitation_waves import UIFOProblemSolver
-
