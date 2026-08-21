@@ -142,7 +142,7 @@ class Experiment(ABC):
         # set up problem envs
         for problem in self.problems:
             problem._ensure_env()
-        with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+        if self.n_jobs == 1:        ## Temporary fix for jax threadpool leakage issue.
             for problem in self.problems:
                 for method in self.methods:
                     for seed in self.seeds:
@@ -151,38 +151,59 @@ class Experiment(ABC):
                             self.exp_logger, "is_run_pending"
                         ) and not self.exp_logger.is_run_pending(method, problem, seed):
                             continue
-
                         m_copy = copy.deepcopy(method)
                         p_copy = copy.deepcopy(problem)
                         logger = self.exp_logger.open_run(
                             m_copy, p_copy, self.budget, seed
                         )
 
-                        future = executor.submit(
-                            self._run_single,
-                            m_copy,
-                            p_copy,
-                            logger,
-                            seed,
-                        )
-                        tasks[future] = (m_copy, p_copy, logger, seed)
+                        self._run_single(m_copy, p_copy, logger, seed)
+                        if not self.show_stdout:
+                            self._refresh_console()
+                        else:
+                            self._print_run_overview()
+        else:
+            with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
+                for problem in self.problems:
+                    for method in self.methods:
+                        for seed in self.seeds:
+                            np.random.seed(seed)
+                            if hasattr(
+                                self.exp_logger, "is_run_pending"
+                            ) and not self.exp_logger.is_run_pending(method, problem, seed):
+                                continue
 
-            for fut in as_completed(tasks):
-                method, problem, logger, seed = tasks[fut]
-                solution = fut.result()
-                self.exp_logger.add_run(
-                    method,
-                    problem,
-                    method.llm,
-                    solution,
-                    log_dir=logger.dirname,
-                    seed=seed,
-                )
+                            m_copy = copy.deepcopy(method)
+                            p_copy = copy.deepcopy(problem)
+                            logger = self.exp_logger.open_run(
+                                m_copy, p_copy, self.budget, seed
+                            )
 
-                if not self.show_stdout:
-                    self._refresh_console()
-                else:
-                    self._print_run_overview()
+                            future = executor.submit(
+                                self._run_single,
+                                m_copy,
+                                p_copy,
+                                logger,
+                                seed,
+                            )
+                            tasks[future] = (m_copy, p_copy, logger, seed)
+
+                for fut in as_completed(tasks):
+                    method, problem, logger, seed = tasks[fut]
+                    solution = fut.result()
+                    self.exp_logger.add_run(
+                        method,
+                        problem,
+                        method.llm,
+                        solution,
+                        log_dir=logger.dirname,
+                        seed=seed,
+                    )
+
+                    if not self.show_stdout:
+                        self._refresh_console()
+                    else:
+                        self._print_run_overview()
         for problem in self.problems:
             problem.cleanup()
         return
