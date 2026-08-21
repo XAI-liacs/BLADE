@@ -240,7 +240,7 @@ class Problem(ABC):
         if self.logger != None:
             if self.logger.budget_exhausted():
                 solution.set_scores(
-                    -np.inf,
+                    float('nan'),
                     feedback="Budget is exhausted.",
                     error="Budget is exhausted.",
                 )

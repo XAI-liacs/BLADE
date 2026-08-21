@@ -146,7 +146,8 @@ class Solution:
                         )
             except:
                 self.error = f"{error_type}: {error_msg}."
-
+                if not self.feedback:
+                    self.feedback = f"{error_type}: {error_msg}."
         return self
 
     def get_summary(self):
