@@ -452,9 +452,9 @@ def plot_experiment_CEG(
                 if method == "ES":
                     method_title = "LLaMEA"
                 elif method == "ES-guided":
-                    method_title = "LLaMEA-SAGE"
+                    method_title = "LLaMEA-CFG"
                 elif method == "ES-guided-new":
-                    method_title = "LLaMEA-SAGE"
+                    method_title = "LLaMEA-CFG"
                 ax.set_title(f"{method_title} run:{seed}")
                 if seed_i > 0:
                     ax.set_ylabel(None)

@@ -1,9 +1,9 @@
-<h1 align="center">LLaMEA-SAGE: Guiding Automated Algorithm Design with
+<h1 align="center">LLaMEA-CFG: Guiding Automated Algorithm Design with
 Structural Feedback from Explainable AI</h1>
 
 
 ## Introduction
-This is the reproducability repository for the paper "LLaMEA-SAGE: Guiding Automated Algorithm Design with Structural Feedback from Explainable AI".
+This is the reproducability repository for the paper "LLaMEA-CFG: Guiding Automated Algorithm Design with Structural Feedback from Explainable AI".
 
 
 
@@ -44,14 +44,14 @@ make sure you have `uv` installed.
     ```bash
     uv run python run_archive_guided.py
     ```
-    This will run Experiment 1 (LLaMEA and LLaMEA-SAGE on SBOX-COST).
+    This will run Experiment 1 (LLaMEA and LLaMEA-CFG on SBOX-COST).
 
     ```bash
     uv run python run_archive_guided-2.py
     uv run python run_archive_guided-2-1.py
     uv run python run_archive_guided-2-2.py
     ```
-    This will run Experiment 2 (LLaMEA and LLaMEA-SAGE on MA-BBOB), baselines and the abblation using Gemini respectively.
+    This will run Experiment 2 (LLaMEA and LLaMEA-CFG on MA-BBOB), baselines and the abblation using Gemini respectively.
 
 3. Produce paper artifacts.
 

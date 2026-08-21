@@ -29,7 +29,7 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     ]
 
     LLaMEA_1 = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True)
-    LLaMEA_2 = LLaMEA(llm, budget=budget, name="LLaMEA-SAGE", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
+    LLaMEA_2 = LLaMEA(llm, budget=budget, name="LLaMEA-CFG", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=16, elitism=True, feature_guided_mutation=True, parent_selection="tournament", tournament_size=2)
     
     
     methods = [LLaMEA_1, LLaMEA_2]
