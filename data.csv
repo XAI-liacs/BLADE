@@ -1,0 +1,101 @@
+,id,fitness,name,description,configspace,generation,feedback,error,parent_ids,operator,metadata,task_prompt,method_name,problem_name,seed,_id,cummax_fitness,eval
+0,18084962-51ed-4376-8b09-caa9e3c69568,5.955078389147237,AutoCorrCandidate,"Generates a nearly-optimal non-negative function by leveraging a piecewise-constant structure with optimized heights over a central region, tapering to zero at the edges to reduce autocorrelation.",,0,"C1 ratio = 5.95508, best known = 1.5053",,[],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,0,5.955078389147237,1
+1,43b5aacb-4de5-45a9-b846-f2331c03b92f,2.108060230292329,AutoCorrCandidate,"Refines the piecewise-constant function by optimizing the heights of the central, tapering, and edge regions to minimize autocorrelation.",,1,"C1 ratio = 2.10806, best known = 1.5053",,['18084962-51ed-4376-8b09-caa9e3c69568'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,1,5.955078389147237,2
+2,f053dcc7-b434-43ac-a0d0-0167c7569ed2,2.244990298343852,AutoCorrCandidate,"Optimizes a piecewise-constant function with central flat, tapered, and constant-height edge regions, incorporating a dynamically adjusted sigmoid taper and refined parameter bounds to further minimize autocorrelation.",,2,"C1 ratio = 2.24499, best known = 1.5053",,['43b5aacb-4de5-45a9-b846-f2331c03b92f'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,2,5.955078389147237,3
+3,dc80fb23-aa09-4b26-9a7a-1c0f535b08a9,2.14625421730855,AutoCorrCandidate,"Optimizes a piecewise-constant function with a central flat region, cosine tapers, and optimized edge values using a more robust optimizer and a refined parameterization, adding a small constant offset to avoid zero values, and using a larger number of iterations.",,3,"C1 ratio = 2.14625, best known = 1.5053",,['43b5aacb-4de5-45a9-b846-f2331c03b92f'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,3,5.955078389147237,4
+4,7e44f5a8-b458-4b51-9e44-87cbd6e3307f,0.0,AutoCorrCandidate,Optimizes a piecewise-constant function with an added Gaussian component and refined tapering to minimize autocorrelation.,,4,calc-error Integral ∫f must be > 0 for C1,calc-failed,['43b5aacb-4de5-45a9-b846-f2331c03b92f'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,4,5.955078389147237,5
+5,d236ef84-7086-4204-882b-7151cddc3692,2.072361474351445,AutoCorrCandidate,"Optimizes a piecewise-quadratic function with a central flat region, tapering quadratic sections, and constant edges to minimize autocorrelation.",,5,"C1 ratio = 2.07236, best known = 1.5053",,['43b5aacb-4de5-45a9-b846-f2331c03b92f'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,5,5.955078389147237,6
+6,617268ca-e233-47c4-9a64-e6889dc5560b,2.000000000000122,AutoCorrCandidate,"Optimizes a piecewise-cubic function with smooth transitions between regions by directly controlling the function values at key points, aiming for a flatter autocorrelation peak.",,6,"C1 ratio = 2, best known = 1.5053",,['d236ef84-7086-4204-882b-7151cddc3692'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,6,5.955078389147237,7
+7,01594200-c881-458f-b751-38ebd030cf6c,10.0,AutoCorrCandidate,"Optimizes a raised cosine function with adjustable parameters for a flatter autocorrelation peak, simplifying the parameter space for faster convergence.",,7,"C1 ratio = 10, best known = 1.5053",,['617268ca-e233-47c4-9a64-e6889dc5560b'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,7,10.0,8
+8,06529ca8-7515-41b3-bfca-120341bfc009,2.000000000000957,AutoCorrCandidate,Optimize a piecewise-quadratic function with a central flat region and parabolic tapers to minimize autocorrelation peak relative to integrated function square.,,8,"C1 ratio = 2, best known = 1.5053",,['617268ca-e233-47c4-9a64-e6889dc5560b'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,8,10.0,9
+9,f2400a0c-cca8-4bb5-9498-b669eb35e167,0.0,AutoCorrCandidate,Optimizes a piecewise-linear function with a central flat region and linearly decaying edges to minimize the autocorrelation peak relative to the integral squared.,,9,"exec-error could not broadcast input array from shape (240,) into shape (120,)",exec-failed,['617268ca-e233-47c4-9a64-e6889dc5560b'],,{},"
+
+Write a python class with function `__call__`, that returns a list of floats f of length N.
+- Where N is number of bins over [-1/4, 1/4] with discretization of dx = 0.5 / N.
+- Auto-convolution of `g = dx * conv(f, f, mode=""full"")`, where g lies in range [-1/2, 1/2].
+- Optimise for objective of minimize  max_t (f*f)(t) / (∫ f)^2, where all entries in the list f must be greater than or equal to 0 and do not normalise the f, scaling does not change the score.
+- Symmetry or piecewise-constant structure is allowed if helpful.
+- Set N = 600 as default.
+
+",LLaMEA,auto_corr_ineq_1,0,9,10.0,10
