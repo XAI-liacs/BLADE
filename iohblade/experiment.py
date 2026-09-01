@@ -156,7 +156,6 @@ class Experiment(ABC):
                         logger = self.exp_logger.open_run(
                             m_copy, p_copy, self.budget, seed
                         )
-
                         self._run_single(m_copy, p_copy, logger, seed)
                         if not self.show_stdout:
                             self._refresh_console()

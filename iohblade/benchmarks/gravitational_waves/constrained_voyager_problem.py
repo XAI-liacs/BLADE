@@ -53,6 +53,22 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
         code = solution.code
         name = solution.name
         ns = {}
+        
+        voyager_problem = ConstrainedVoyagerProblem(
+            n_frequencies=self.n_frequencies,
+            power_penalty_fn=self.power_penalty_fn,
+            bounds_overrides=self.bounds_overrides,
+            signal_floor=self.signal_floor,
+        )
+        
+        obj = Objective(
+            voyager_problem,
+            unbounded=True,
+            verbose=1,
+            max_time=self.duration,
+            print_every=50,  # Adapt this to your needs (per n evaluations)
+        )
+
         try:
             ns = prepare_namespace(self.imports + code, self.dependencies)
             compiled_code = compile(
@@ -61,27 +77,14 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
             exec(compiled_code, ns, ns)
 
             solver = ns[name]
-            voyager_problem = ConstrainedVoyagerProblem(
-                n_frequencies=self.n_frequencies,
-                power_penalty_fn=self.power_penalty_fn,
-                bounds_overrides=self.bounds_overrides,
-                signal_floor=self.signal_floor,
-            )
 
-            obj = Objective(
-                voyager_problem,
-                unbounded=True,
-                verbose=1,
-                max_time=self.duration,
-                print_every=50,  # Adapt this to your needs (per n evaluations)
-            )
 
             solver_object = solver()
 
             _ = solver_object.optimize(obj)
             if obj.best_loss is not None:
                 solution.set_scores(
-                    obj.best_loss,
+                    float(obj.best_loss),
                     f"Got best loss of {obj.best_loss} in {obj.eval_count} evaluations; under {self.duration} s.",
                 )
                 solution.metadata["best_solution"] = obj.best_params
@@ -90,9 +93,10 @@ class ConstrainedVoyagerSolver(GravitationalWaveBase):
                     float("inf"),
                     f"Got best loss of {float('inf')} under {self.duration} s; `objective.value(params)` never ran in optimisation loop.",
                 )
-
+            del obj
         except Exception as e:
             solution.set_scores(float("inf"), f"Got error: {e}.", e)
+            del obj
         return solution
 
     def get_config(self):
