@@ -29,7 +29,7 @@ class SlowProblem(Problem):
 
     def to_dict(self):
         return {}
-    
+
     def get_config(self) -> dict[str, Any]:
         return {}
 

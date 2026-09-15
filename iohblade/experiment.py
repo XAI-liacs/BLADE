@@ -1,3 +1,4 @@
+import hashlib
 import os
 import contextlib
 import copy
@@ -6,6 +7,7 @@ import sys
 import json
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import uuid
 
 import numpy as np
 from tqdm import tqdm
@@ -54,6 +56,7 @@ class Experiment(ABC):
             exp_logger (ExperimentLogger, optiona): The logger object, can be a standard file logger or a WandB or MLFlow logger.
             n_jobs (int): Number of runs to execute in parallel.
         """
+        self.id = uuid.uuid4().hex
         self.methods = methods
         self.problems = problems
         self.runs = runs
@@ -126,6 +129,7 @@ class Experiment(ABC):
         total_runs = len(self.problems) * len(self.methods) * len(self.seeds)
         if hasattr(self.exp_logger, "start_progress"):
             self.exp_logger.start_progress(
+                self.id,
                 total_runs,
                 methods=self.methods,
                 problems=self.problems,
@@ -229,6 +233,15 @@ class Experiment(ABC):
         )
         return result
 
+    def _get_hash(self, config: dict) -> str:
+        "Provides a identifier for a problem desciptor. Helps declutter BLADE_db."
+        json_data = json.dumps(
+            config,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(json_data).hexdigest()[:16]
+
     def _log_data(self, method, problem, logger) -> bool:
         root = logger.get_log_dir()
         success = True
@@ -241,6 +254,7 @@ class Experiment(ABC):
         # problem
         problem_path = os.path.join(root, "problem.json")
         problem_config = problem.get_config()
+        problem_config["id"] = self._get_hash(problem_config)
         problem_success = self._export_config_data(problem_config, problem_path)
         success = problem_success and success
 

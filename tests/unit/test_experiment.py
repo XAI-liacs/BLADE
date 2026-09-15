@@ -59,14 +59,14 @@ def test_ma_bbob_experiment_init(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -104,7 +104,7 @@ def test_experiment_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -120,14 +120,14 @@ def test_experiment_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
     class DummyLLM(LLM):
         def _query(self, session_messages):
             return "response"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -153,7 +153,7 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -174,11 +174,11 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
             return None
         def get_config(self) -> dict[str, Any]:
             return {}
-        
+
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -207,14 +207,14 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
-        
+
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -243,14 +243,14 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
-        
+
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -267,6 +267,7 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
     exp()
     path = os.path.join(cleanup_tmp_dir, 'exp_eval', 'run-m-p-0')
     print(path)
+
     assert os.path.exists(os.path.join(path, 'method.json'))
     assert os.path.exists(os.path.join(path, 'llm.json'))
     assert os.path.exists(os.path.join(path, 'problem.json'))
