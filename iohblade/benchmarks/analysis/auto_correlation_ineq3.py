@@ -71,7 +71,7 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
     def get_config(self) -> dict[str, Any]:
         return {
             "tags": ["trends", "analysis", "time-series"],
-            "name": "Auto-Correlation 1",
+            "name": "Auto-Correlation 3",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,
             "evaluator": inspect.getsource(self.evaluate),

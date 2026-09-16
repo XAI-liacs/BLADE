@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class PrimaryCategories(Enum):
+class PrimaryCategories(str, Enum):
     BBO = "black box optimisation"
     CO = "combinatorial optimisation"
     ML = "machine learning"
@@ -11,7 +11,7 @@ class PrimaryCategories(Enum):
     OTHER = "other"
 
 
-class Benchmark(Enum):
+class Benchmark(str, Enum):
     PHOTONICS = "Photonics"
     AUTOML = "AutoML"
     KERNEL_TUNER = "KernelTuner"
@@ -42,9 +42,11 @@ class Benchmark(Enum):
     HEXAGONAL_PACKING = "HexagonalPacking"
     RECTANGLE_PACKING = "RectanglePacking"
     SPHERICAL_CODE = "SphericalCode"
+    ANALYSIS = "Analysis"
+    TRENDS = "Trends"
 
 
-class NoiseType(Enum):
+class NoiseType(str, Enum):
     NOISELESS = "noiseless"
     NOISY = "noisy"
 

@@ -6,6 +6,7 @@ from typing import Any
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
+from iohblade.tags import Benchmark, PrimaryCategories, StructureTag
 
 
 class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
@@ -87,7 +88,12 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
 
     def get_config(self) -> dict[str, Any]:
         return {
-            "tags": ["trends", "analysis", "time-series"],
+            "tags": [
+                PrimaryCategories.BBO.name,
+                Benchmark.ANALYSIS.name,
+                Benchmark.TRENDS.name,
+                StructureTag.TIME_SERIES.name,
+            ],
             "name": "Auto-Correlation 1",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,

@@ -235,6 +235,8 @@ class Experiment(ABC):
 
     def _get_hash(self, config: dict) -> str:
         "Provides a identifier for a problem desciptor. Helps declutter BLADE_db."
+        stringified_tags = [tag.name for tag in getattr(config, "tags", [])]
+        config["tags"] = stringified_tags
         json_data = json.dumps(
             config,
             sort_keys=True,
