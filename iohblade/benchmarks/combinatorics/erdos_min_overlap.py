@@ -67,7 +67,7 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
         if best_solution is not None:
             best_known_initialiser = """
     def __init__(self, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
+        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then
         optimised for better results.
 """
         self.example_prompt = textwrap.dedent(f"""

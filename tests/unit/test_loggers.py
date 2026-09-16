@@ -3,6 +3,7 @@ import math
 import os
 import shutil
 from typing import Any
+import uuid
 
 import pytest
 
@@ -37,7 +38,7 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -53,17 +54,17 @@ def test_experiment_logger_add_run(cleanup_tmp_dir):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
     class DummyLLM(LLM):
         def _query(self, s):
             return "res"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
-        
+
 
     method = DummyMethod(None, 100, name="dummy_method")
     problem = DummyProblem()
@@ -212,7 +213,7 @@ def test_start_progress_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -228,7 +229,7 @@ def test_start_progress_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -236,11 +237,11 @@ def test_start_progress_and_restart(tmp_path):
     p = DummyProblem(name="p")
     logger_dir = tmp_path / "exp"
     logger = ExperimentLogger(name=str(logger_dir))
-    logger.start_progress(1, methods=[m], problems=[p], seeds=[0], budget=1)
+    logger.start_progress(uuid.uuid4().hex, 1, methods=[m], problems=[p], seeds=[0], budget=1)
 
     # Restart with same config should succeed
     logger2 = ExperimentLogger(name=str(logger_dir))
-    logger2.start_progress(1, methods=[m], problems=[p], seeds=[0], budget=1)
+    logger2.start_progress(uuid.uuid4().hex, 1, methods=[m], problems=[p], seeds=[0], budget=1)
     assert logger2.is_run_pending(m, p, 0)
 
 
@@ -251,7 +252,7 @@ def test_start_progress_mismatch(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -267,7 +268,7 @@ def test_start_progress_mismatch(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -276,11 +277,11 @@ def test_start_progress_mismatch(tmp_path):
     p = DummyProblem(name="p")
     logger_dir = tmp_path / "exp"
     logger = ExperimentLogger(name=str(logger_dir))
-    logger.start_progress(1, methods=[m1], problems=[p], seeds=[0], budget=1)
+    logger.start_progress(uuid.uuid4().hex, 1, methods=[m1], problems=[p], seeds=[0], budget=1)
 
     logger2 = ExperimentLogger(name=str(logger_dir))
     with pytest.raises(ValueError):
-        logger2.start_progress(1, methods=[m2], problems=[p], seeds=[0], budget=1)
+        logger2.start_progress(uuid.uuid4().hex, 1, methods=[m2], problems=[p], seeds=[0], budget=1)
 
 
 def test_open_run_create_and_restart(tmp_path):
@@ -293,7 +294,7 @@ def test_open_run_create_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -309,7 +310,7 @@ def test_open_run_create_and_restart(tmp_path):
 
         def to_dict(self):
             return {}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 

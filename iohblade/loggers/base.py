@@ -1,5 +1,5 @@
-import json
 import os
+import json
 from datetime import datetime
 from functools import partial
 from threading import Lock
@@ -87,7 +87,7 @@ class ExperimentLogger:
         while os.path.exists(dirname):
             tempi += 1
             dirname = f"{name}-{tempi}"
-        os.mkdir(dirname)
+        os.makedirs(dirname)
         return dirname
 
     def _before_open_run(self, run_name, method, problem, budget, seed):
@@ -326,7 +326,13 @@ class ExperimentLogger:
             self.progress = {}
 
     def start_progress(
-        self, total_runs: int, methods=None, problems=None, seeds=None, budget=None
+        self,
+        id: str,
+        total_runs: int,
+        methods=None,
+        problems=None,
+        seeds=None,
+        budget=None,
     ):
         """Initialize progress tracking with experiment configuration."""
         with self._lock:
@@ -350,6 +356,7 @@ class ExperimentLogger:
                 if not existing:
                     # initialize runs for the first time
                     self.progress = {
+                        "id": id,
                         "start_time": datetime.now().isoformat(),
                         "end_time": None,
                         "current": 0,
@@ -373,6 +380,7 @@ class ExperimentLogger:
                                 )
             else:
                 self.progress = {
+                    "id": id,
                     "start_time": datetime.now().isoformat(),
                     "end_time": None,
                     "current": 0,
@@ -470,18 +478,17 @@ class RunLogger:
         Returns:
             str: The name of the created directory.
         """
-        model_name = name.split("/")[-1]
         dirname = f"run-{name}"
         dirname = os.path.join(root_dir, dirname)
         if not os.path.exists(root_dir):
-            os.mkdir(root_dir)
+            os.makedirs(root_dir)
 
         tempi = 0
         while os.path.exists(dirname):
             tempi += 1
             dirname = f"run-{name}-{tempi}"
             dirname = os.path.join(root_dir, dirname)
-        os.mkdir(dirname)
+        os.makedirs(dirname)
         return dirname
 
     def budget_exhausted(self):

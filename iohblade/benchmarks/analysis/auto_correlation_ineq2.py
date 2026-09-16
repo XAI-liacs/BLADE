@@ -1,7 +1,7 @@
 import numpy as np
 
 from typing import Any
-
+from iohblade.tags import PrimaryCategories, Benchmark, StructureTag
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 import inspect
@@ -77,7 +77,12 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
 
     def get_config(self) -> dict[str, Any]:
         return {
-            "tags": ["trends", "analysis", "time-series"],
+            "tags": [
+                PrimaryCategories.BBO.name,
+                Benchmark.ANALYSIS.name,
+                Benchmark.TRENDS.name,
+                StructureTag.TIME_SERIES.name,
+            ],
             "name": "Auto-Correlation 2",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,
