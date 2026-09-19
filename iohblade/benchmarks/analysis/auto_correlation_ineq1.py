@@ -89,10 +89,10 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
     def get_config(self) -> dict[str, Any]:
         return {
             "tags": [
-                PrimaryCategories.BBO.name,
-                Benchmark.ANALYSIS.name,
-                Benchmark.TRENDS.name,
-                StructureTag.TIME_SERIES.name,
+                PrimaryCategories.BBO,
+                Benchmark.ANALYSIS,
+                Benchmark.TRENDS,
+                StructureTag.TIME_SERIES,
             ],
             "name": "Auto-Correlation 1",
             "prompt": self.get_prompt(),
@@ -109,6 +109,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
 if __name__ == "__main__":
     ac1 = AutoCorrIneq1()
     # print(ac1.get_prompt())
-    for key, value in ac1.get_config().items():
+    config = ac1.get_config()
+    for key, value in config.items():
         print(f"------------------------------{key}------------------------------")
         print(value)

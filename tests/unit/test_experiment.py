@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import sys
@@ -271,3 +272,15 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
     assert os.path.exists(os.path.join(path, 'method.json'))
     assert os.path.exists(os.path.join(path, 'llm.json'))
     assert os.path.exists(os.path.join(path, 'problem.json'))
+
+    ## Check ids are genenrated:
+    with open(os.path.join(path, "method.json")) as f:
+        data = json.load(f)
+        assert data.get('hash') is not None, "method.json wasn't hashed, set it's 'id' as Experiment._get_hash(method.get_config)."
+    with open(os.path.join(path, "llm.json")) as f:
+        data = json.load(f)
+        for llm_instance in data:
+            assert llm_instance.get('hash') is not None, "llm.json wasn't hashed, set it's 'id' as Experiment._get_hash(llm.get_config)."
+    with open(os.path.join(path, "problem.json")) as f:
+        data = json.load(f)
+        assert data.get('hash') is not None, "problem.json wasn't hashed, set it's 'id' as Experiment._get_hash(problem.get_config)."
