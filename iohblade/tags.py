@@ -51,12 +51,12 @@ class NoiseType(str, Enum):
     NOISY = "noisy"
 
 
-class ObjectiveType(Enum):
+class ObjectiveType(str, Enum):
     SINGLE_OBJECTIVE = "single objective"
     MULTI_OBJECTIVE = "multi objective"
 
 
-class VariableType(Enum):
+class VariableType(str, Enum):
     CONTINUOUS = "continuous"
     DISCRETE = "discrete"
     BINARY = "binary"
@@ -64,7 +64,7 @@ class VariableType(Enum):
     MIXED = "mixed"
 
 
-class StructureTag(Enum):
+class StructureTag(str, Enum):
     GRAPH = "graph"
     ROUTING = "routing"
     PACKING = "packing"
@@ -76,7 +76,7 @@ class StructureTag(Enum):
     MATHS = "mathematics"
 
 
-class ComplexityTag(Enum):
+class ComplexityTag(str, Enum):
     NP_HARD = "np_hard"
     NP_COMPLETE = "np_complete"
     UNKNOWN = "unknown"
@@ -87,7 +87,7 @@ class ComplexityTag(Enum):
 # ============================================================
 
 
-class DomainTag(Enum):
+class DomainTag(str, Enum):
     OPTIMIZATION = "optimization"
     MATHEMATICS = "mathematics"
     COMPUTATIONAL_GEOMETRY = "computational_geometry"

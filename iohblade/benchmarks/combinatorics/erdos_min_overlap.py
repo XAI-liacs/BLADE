@@ -6,6 +6,7 @@ import importlib
 import textwrap
 from typing import Any
 import numpy as np
+import json
 
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -170,12 +171,12 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
 
     def get_config(self) -> builtins.dict[builtins.str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
             NoiseType,
             ObjectiveType,
-            VariableType,
+            PrimaryCategories,
             StructureTag,
+            VariableType,
         )
 
         tags: list[Any] = [PrimaryCategories.CO]
@@ -185,7 +186,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
         tags.append(VariableType.DISCRETE)
         tags.append(StructureTag.GEOMETRIC)
         config = {
-            "tags": tags,
+            "tags": tags[:],
             "name": "Erdös Minimum Overlap",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,
@@ -204,3 +205,4 @@ if __name__ == "__main__":
     for key, value in eop.get_config().items():
         print(f"------------------------------{key}------------------------------")
         print(value)
+    print(json.dumps(eop.get_config()))

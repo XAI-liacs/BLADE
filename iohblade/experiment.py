@@ -234,15 +234,13 @@ class Experiment(ABC):
         return result
 
     def _get_hash(self, config: dict) -> str:
-        "Provides a identifier for a problem desciptor. Helps declutter BLADE_db."
-        stringified_tags = [tag.name for tag in getattr(config, "tags", [])]
-        config["tags"] = stringified_tags
+        "Provides a identifier for a problem/method/llm desciptor. Helps declutter BLADE_db."
         json_data = json.dumps(
             config,
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
-        return hashlib.sha256(json_data).hexdigest()[:16]
+        return hashlib.sha256(json_data).hexdigest()
 
     def _log_data(self, method, problem, logger) -> bool:
         root = logger.get_log_dir()
@@ -250,19 +248,22 @@ class Experiment(ABC):
         # method
         method_path = os.path.join(root, "method.json")
         method_config = method.get_config()
+        method_config["hash"] = self._get_hash(method_config)
         method_success = self._export_config_data(method_config, method_path)
         success = method_success and success
 
         # problem
         problem_path = os.path.join(root, "problem.json")
         problem_config = problem.get_config()
-        problem_config["id"] = self._get_hash(problem_config)
+        problem_config["hash"] = self._get_hash(problem_config)
         problem_success = self._export_config_data(problem_config, problem_path)
         success = problem_success and success
 
         # llm
         llm_path = os.path.join(root, "llm.json")
         llm_config = method.llm.get_config()
+        for llm in llm_config:
+            llm["hash"] = self._get_hash(llm)
         llm_success = self._export_config_data(llm_config, llm_path)
         success = llm_success and success
 

@@ -78,10 +78,10 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
     def get_config(self) -> dict[str, Any]:
         return {
             "tags": [
-                PrimaryCategories.BBO.name,
-                Benchmark.ANALYSIS.name,
-                Benchmark.TRENDS.name,
-                StructureTag.TIME_SERIES.name,
+                PrimaryCategories.BBO,
+                Benchmark.ANALYSIS,
+                Benchmark.TRENDS,
+                StructureTag.TIME_SERIES,
             ],
             "name": "Auto-Correlation 2",
             "prompt": self.get_prompt(),
@@ -103,6 +103,17 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
 
 if __name__ == "__main__":
     ac2 = AutoCorrIneq2()
-    for key, value in ac2.get_config().items():
+    config = ac2.get_config()
+    for key, value in config.items():
         print(f"------------------------------{key}------------------------------")
         print(value)
+    import json, hashlib
+
+    json_data = json.dumps(
+        config,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    config["hash"] = hashlib.sha256(json_data).hexdigest()
+    with open("problem.json", "w+") as f:
+        f.write(json.dumps(config, indent=4))
