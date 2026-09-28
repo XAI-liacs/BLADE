@@ -21,6 +21,37 @@ from ..utils import OverBudgetException, aoc_logger, correct_aoc
 guidelines_path = Path(__file__).resolve().with_name("MOD_CMAES_GUIDELINES.md")
 MOD_CMAES_GUIDELINES = guidelines_path.read_text(encoding="utf-8")
 
+# Closed-vocabulary mapping to the exact modcma==1.2.0 API. Included in every
+# generated prompt (not only alongside the rules) so the model cannot confuse
+# plausible-sounding but non-existent attributes/enum members with real ones,
+# regardless of whether problem-specific rules are present elsewhere.
+MOD_CMAES_RULES_GLOSSARY = (
+    "When configuring `modcma.c_maes.parameters.Modules()`, use *exactly* the attribute/enum "
+    "names below - modcma==1.2.0 has no other names. This applies whether or not "
+    "problem-specific rules are given elsewhere in this prompt:\n"
+    "- 'PSR' / 'CSA' step-size -> `modules.ssa = c_maes.options.StepSizeAdaptation.PSR` / `.CSA` "
+    "(other valid values: LPXNES, MSR, MXNES, SA, SR, TPA, XNES).\n"
+    "- 'mirrored=MIRRORED' / 'no mirroring' / 'mirrored pairwise' -> "
+    "`modules.mirrored = c_maes.options.Mirror.MIRRORED` / `.NONE` / `.PAIRWISE`. There is no `Mirror.STANDARD`.\n"
+    "- 'BIPOP' / 'IPOP' / 'no-restart' -> `modules.restart_strategy = c_maes.options.RestartStrategy.BIPOP` / "
+    "`.IPOP` / `.NONE` (other valid values: RESTART, STOP).\n"
+    "- 'elitist enabled/disabled' -> `modules.elitist = True` / `False` (a plain bool, not an enum).\n"
+    "- 'default' / 'equal' weights -> `modules.weights = c_maes.options.RecombinationWeights.DEFAULT` / `.EQUAL` "
+    "(third option: EXPONENTIAL). There is no LINEAR or HALF_LAMBDA weights value: 'half-lambda' means setting "
+    "`mu0 = lambda0 // 2` in `c_maes.parameters.Settings(...)`, not a weights choice.\n"
+    "- 'sampler=SOBOL' / 'sample_transformation=GAUSSIAN' are two *independent* fields: "
+    "`modules.sampler` only accepts `c_maes.options.BaseSampler.SOBOL` / `.HALTON` / `.UNIFORM` (no GAUSSIAN); "
+    "`modules.sample_transformation` accepts `c_maes.options.SampleTranformerType.GAUSSIAN` (plus CAUCHY, "
+    "DOUBLE_WEIBULL, LAPLACE, LOGISTIC, SCALED_UNIFORM, NONE).\n"
+    "Do not invent other `Modules` fields or enum members - for example `population_size`, `adaptive_popsize`, "
+    "`lambda_`, `local_search`, `funnel_detection`, `popsize_strategy`, `covariance_update_strategy`, "
+    "`elitism_detection`, `RestartStrategy.HYBRID`/`.DYNAMIC`, and `RecombinationWeights.LINEAR` do not exist. "
+    "The complete set of writable `Modules` fields is: active, bound_correction, center_placement, elitist, "
+    "matrix_adaptation, mirrored, orthogonal, repelling_restart, restart_strategy, sample_sigma, "
+    "sample_transformation, sampler, sequential_selection, ssa, threshold_convergence, weights. Population size "
+    "(`lambda0`) and parent count (`mu0`) belong to `Settings(...)`, not `Modules`.\n"
+)
+
 # Rulebook-derived summaries for high-level property combinations.
 
 RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
@@ -28,8 +59,8 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Known: Separable + GlobalLocal contrast.\n"
         "- If also Many Basins (med/high) AND GlobalLocal is high: disable elitist; use BIPOP restart; PSR step-size.\n"
         "- If additionally Highly Multimodal: treat as 'Separable & Highly Multimodal': disable elitist; use PSR or CSA; "
-        "standard mirroring; IPOP or BIPOP; default or half-lambda weights.\n"
-        "- If instead Separable & Unimodal: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "mirrored=MIRRORED; IPOP or BIPOP; default or half-lambda weights.\n"
+        "- If instead Separable & Unimodal: enable elitist; CSA or PSR; mirrored=NONE|MIRRORED; default/half-lambda; "
         "avoid equal weights and mirrored pairwise sampling.\n"
         "Notes: if multiple apply, prefer the 'many basins + high global-local' recommendation first."
     ),
@@ -37,37 +68,37 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
     "Separable_Multimodality": (
         "Known: Separable + Multimodality (assume high).\n"
         "- Use the general 'Separable & Highly Multimodal' rule: elitist disabled; PSR or CSA step-size; "
-        "standard mirroring; IPOP or BIPOP restart; default or half-lambda weights.\n"
+        "mirrored=MIRRORED; IPOP or BIPOP restart; default or half-lambda weights.\n"
         "- Avoid: elitist (enabled).\n"
         "- If global structure is known to be Strong + separable + highly multimodal: prefer BIPOP + PSR + "
-        "standard mirroring + default/half-lambda with elitist disabled.\n"
+        "mirrored=MIRRORED + default/half-lambda with elitist disabled.\n"
         "- If global structure is Weak/None and highly multimodal: elitist disabled; BIPOP or IPOP; CSA or PSR; "
-        "standard mirroring; default/half-lambda; avoid no-restart."
+        "mirrored=MIRRORED; default/half-lambda; avoid no-restart."
     ),
 
     "Separable_Basins": (
         "Known: Separable + Basins (assume med/high basin-related difficulty signal).\n"
         "- If also GlobalLocal contrast is high: disable elitist; use BIPOP restart; PSR step-size.\n"
-        "- If additionally Highly Multimodal: disable elitist; PSR or CSA; standard mirroring; IPOP or BIPOP; "
+        "- If additionally Highly Multimodal: disable elitist; PSR or CSA; mirrored=MIRRORED; IPOP or BIPOP; "
         "default/half-lambda.\n"
-        "- If instead Unimodal separable: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "- If instead Unimodal separable: enable elitist; CSA or PSR; mirrored=NONE|MIRRORED; default/half-lambda; "
         "avoid equal weights and mirrored pairwise sampling."
     ),
 
     "Separable_Homogeneous": (
         "Known: Separable + Homogeneous.\n"
         "- If Funnel-like AND Homogeneous: enable elitist; default or half-lambda weights; avoid equal weights.\n"
-        "- If also Unimodal separable: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "- If also Unimodal separable: enable elitist; CSA or PSR; mirrored=NONE|MIRRORED; default/half-lambda; "
         "avoid equal weights and mirrored pairwise sampling.\n"
         "- If instead Highly Multimodal (despite homogeneity): prefer the 'Separable & Highly Multimodal' package "
-        "(elitist disabled; restarts; standard mirroring; PSR/CSA; default/half-lambda)."
+        "(elitist disabled; restarts; mirrored=MIRRORED; PSR/CSA; default/half-lambda)."
     ),
 
     "Separable": (
         "Known: Separable (other properties unknown).\n"
-        "- If Unimodal: enable elitist; CSA or PSR; no or standard mirroring; default/half-lambda; "
+        "- If Unimodal: enable elitist; CSA or PSR; mirrored=NONE|MIRRORED; default/half-lambda; "
         "avoid equal weights and mirrored pairwise sampling.\n"
-        "- If Highly Multimodal: disable elitist; PSR or CSA; standard mirroring; IPOP or BIPOP restart; "
+        "- If Highly Multimodal: disable elitist; PSR or CSA; mirrored=MIRRORED; IPOP or BIPOP restart; "
         "default/half-lambda.\n"
         "- If Ill-conditioned / high scaling is also present: prefer CSA; default/half-lambda; elitist on; "
         "avoid equal weights.\n"
@@ -79,8 +110,8 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Known: GlobalLocal contrast + Multimodality (assume high).\n"
         "- If Many Basins (med/high) AND GlobalLocal is high: disable elitist; BIPOP restart; PSR step-size.\n"
         "- If global structure is Weak/None (highly multimodal): disable elitist; BIPOP or IPOP; CSA or PSR; "
-        "standard mirroring; default/half-lambda; avoid no-restart.\n"
-        "- If global structure is Strong AND separability is high: disable elitist; BIPOP; PSR; standard mirroring; "
+        "mirrored=MIRRORED; default/half-lambda; avoid no-restart.\n"
+        "- If global structure is Strong AND separability is high: disable elitist; BIPOP; PSR; mirrored=MIRRORED; "
         "default/half-lambda."
     ),
 
@@ -88,7 +119,7 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Known: GlobalLocal contrast + Basins (assume basins med/high).\n"
         "- Direct hit: (Basins med/high AND GlobalLocal high) => disable elitist; use BIPOP restart; PSR step-size.\n"
         "- If additionally Highly Multimodal with weak/irregular structure: also enforce restarts (BIPOP/IPOP), "
-        "standard mirroring, default/half-lambda, and keep elitist disabled."
+        "mirrored=MIRRORED, default/half-lambda, and keep elitist disabled."
     ),
 
     "GlobalLocal_Homogeneous": (
@@ -96,7 +127,7 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "- If Funnel-like & Homogeneous: enable elitist; default/half-lambda; avoid equal weights.\n"
         "- If also Many Basins and GlobalLocal is high: disable elitist; BIPOP restart; PSR step-size "
         "(this can override the funnel-like preference when both match).\n"
-        "- If Highly Multimodal and structure weak/none: disable elitist; BIPOP/IPOP; CSA/PSR; standard mirroring; "
+        "- If Highly Multimodal and structure weak/none: disable elitist; BIPOP/IPOP; CSA/PSR; mirrored=MIRRORED; "
         "default/half-lambda."
     ),
 
@@ -112,26 +143,26 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
         "Known: Multimodality (assume high) + Basins (assume med/high).\n"
         "- If also GlobalLocal high: disable elitist; BIPOP restart; PSR step-size (highest priority among these).\n"
         "- Otherwise treat as highly multimodal with potentially irregular structure: disable elitist; "
-        "BIPOP or IPOP; CSA or PSR; standard mirroring; default/half-lambda; avoid no-restart."
+        "BIPOP or IPOP; CSA or PSR; mirrored=MIRRORED; default/half-lambda; avoid no-restart."
     ),
 
     "Multimodality_Homogeneous": (
         "Known: Multimodality (assume high) + Homogeneous.\n"
         "- If Funnel-like: enable elitist; default/half-lambda; avoid equal weights.\n"
         "- If structure is Weak/None (highly multimodal): disable elitist; BIPOP or IPOP; CSA or PSR; "
-        "standard mirroring; default/half-lambda; avoid no-restart.\n"
+        "mirrored=MIRRORED; default/half-lambda; avoid no-restart.\n"
         "Practical: if you don’t know funnel-ness/structure, start with the multimodal package (restarts + "
-        "standard mirroring + default/half-lambda + PSR/CSA, elitist off)."
+        "mirrored=MIRRORED + default/half-lambda + PSR/CSA, elitist off)."
     ),
 
     "Multimodality": (
         "Known: Multimodality (assume high).\n"
         "- If global structure is Weak/None OR irregular: disable elitist; BIPOP or IPOP restart; CSA or PSR; "
-        "standard mirroring; default/half-lambda; avoid no-restart.\n"
-        "- If global structure is Strong and separable: disable elitist; BIPOP; PSR; standard mirroring; "
+        "mirrored=MIRRORED; default/half-lambda; avoid no-restart.\n"
+        "- If global structure is Strong and separable: disable elitist; BIPOP; PSR; mirrored=MIRRORED; "
         "default/half-lambda.\n"
         "- If separable but structure unknown: apply 'Separable & Highly Multimodal' package (elitist off; restarts; "
-        "standard mirroring; PSR/CSA; default/half-lambda)."
+        "mirrored=MIRRORED; PSR/CSA; default/half-lambda)."
     ),
 
     "Basins_Homogeneous": (
@@ -161,156 +192,162 @@ RULES_BY_HIGHLEVEL_PROPERTIES_5D = {
 RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
     "Separable_GlobalLocal": (
         "Known: Separable + GlobalLocal.\n"
-        "- Prefer elitist selection enabled.\n"
-        "- Use PSR step-size adaptation as default; switch to CSA only if strong scaling issues are known.\n"
-        "- Use standard mirroring.\n"
-        "- Use BIPOP restart strategy.\n"
-        "- Use default or half-lambda weights.\n"
-        "- Use Gaussian or Sobol sampling.\n"
-        "- Avoid equal weights, no mirroring, Halton sampling, and disabling elitism."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- If parent count is explicitly controlled, use mu0 = lambda0 // 2 rather than a non-existent half-lambda weights enum.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Do not infer elitism or BIPOP restarts from these two properties alone."
     ),
 
     "Separable_Multimodality": (
         "Known: Separable + Multimodal.\n"
-        "- If the global structure is strong: enable elitism and consider equal weights.\n"
-        "- Otherwise: disable elitism.\n"
+        "- Treat multimodality as the dominant signal.\n"
+        "- Disable elitist selection by default.\n"
         "- Use BIPOP restarts.\n"
-        "- Use PSR by default; switch to CSA only if scaling is clearly problematic.\n"
-        "- Use standard mirroring.\n"
-        "- Prefer Gaussian or Sobol sampling.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT; do not use equal weights based on these two properties alone.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
         "- Avoid no-restart strategies and no mirroring."
     ),
 
     "Separable_Basins": (
         "Known: Separable + Basins.\n"
-        "- Basins are not decisive at 30D; follow separable defaults.\n"
-        "- Enable elitism unless clear multimodality is observed.\n"
+        "- Basin-size homogeneity adds little decisive guidance beyond separability.\n"
         "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring and BIPOP restarts.\n"
-        "- Prefer default or half-lambda weights.\n"
-        "- Use Gaussian or Sobol sampling."
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- If parent count is explicitly controlled, use mu0 = lambda0 // 2 rather than a non-existent half-lambda weights enum.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Do not infer elitism or BIPOP restarts from these two properties alone."
     ),
 
     "Separable_Homogeneous": (
         "Known: Separable + Homogeneous.\n"
-        "- Enable elitist selection.\n"
-        "- Use PSR step-size adaptation; CSA only if scaling is clearly high.\n"
-        "- Use standard mirroring.\n"
-        "- Use BIPOP restarts.\n"
-        "- Prefer default or half-lambda weights.\n"
-        "- Homogeneity mainly supports keeping elitism enabled."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- If parent count is explicitly controlled, use mu0 = lambda0 // 2 rather than a non-existent half-lambda weights enum.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Homogeneity does not by itself justify elitism, and these two properties do not by themselves justify BIPOP restarts."
     ),
 
     "Separable": (
         "Known: Separable.\n"
-        "- Default to elitist selection enabled.\n"
-        "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring.\n"
-        "- Use BIPOP restarts.\n"
-        "- Prefer default or half-lambda weights.\n"
-        "- Switch to CSA only if scaling is high.\n"
-        "- If strong multimodality is later detected, consider disabling elitism."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- If parent count is explicitly controlled, use mu0 = lambda0 // 2 rather than a non-existent half-lambda weights enum.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Separability alone does not determine elitism or restart strategy."
     ),
 
     "GlobalLocal_Multimodality": (
         "Known: GlobalLocal contrast + Multimodal.\n"
         "- Treat primarily as a multimodal problem.\n"
-        "- Disable elitist selection unless funnel-like structure is evident.\n"
+        "- Disable elitist selection by default.\n"
         "- Use BIPOP restarts.\n"
-        "- Use PSR step-size adaptation; CSA only if scaling is high.\n"
-        "- Use standard mirroring.\n"
-        "- Prefer Gaussian or Sobol sampling."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN."
     ),
 
     "GlobalLocal_Basins": (
         "Known: GlobalLocal contrast + Basins.\n"
-        "- Basins are not decisive at 30D; focus on global-local contrast only if it is low.\n"
-        "- If global-local contrast is low and multimodality is low: enable elitism and use PSR.\n"
-        "- Otherwise use default settings: PSR, standard mirroring, Gaussian sampling.\n"
-        "- Use restarts if stagnation is observed."
+        "- Basin-size homogeneity adds little decisive guidance here.\n"
+        "- Use PSR step-size adaptation.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Do not infer elitism or a restart strategy from these two properties alone; introduce restarts if stagnation is observed."
     ),
 
     "GlobalLocal_Homogeneous": (
         "Known: GlobalLocal contrast + Homogeneous.\n"
-        "- Homogeneity supports elitism as a safe default.\n"
         "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring.\n"
-        "- Prefer Gaussian or Sobol sampling.\n"
-        "- Only change strategy if strong multimodality or scaling issues are observed."
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Homogeneity does not by itself make elitism a safe default.\n"
+        "- Do not infer a restart strategy from these two properties alone."
     ),
 
     "GlobalLocal": (
         "Known: GlobalLocal contrast.\n"
-        "- If global-local contrast is low and multimodality is low: enable elitism and use PSR.\n"
-        "- Otherwise fall back to generic defaults.\n"
-        "- Use standard mirroring and Gaussian sampling.\n"
-        "- Introduce restarts if convergence stalls.\n"
-        "- Turning off equal weights suggested."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT rather than equal weights.\n"
+        "- Global-local contrast alone does not determine elitism or restart strategy; introduce restarts if convergence stalls."
     ),
 
     "Multimodality_Basins": (
         "Known: Multimodal + Basins.\n"
-        "- Treat as a multimodal problem; basins do not add decisive guidance at 30D.\n"
-        "- Disable elitism unless a clear funnel structure is known.\n"
+        "- Treat as a multimodal problem; basin-size homogeneity adds little decisive extra guidance.\n"
+        "- Disable elitist selection by default.\n"
         "- Use BIPOP restarts.\n"
         "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring.\n"
-        "- Prefer Gaussian or Sobol sampling."
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN."
     ),
 
     "Multimodality_Homogeneous": (
         "Known: Multimodal + Homogeneous.\n"
-        "- Disable elitism by default.\n"
-        "- Homogeneity can justify enabling elitism later if convergence is stable.\n"
+        "- Treat multimodality as the dominant signal.\n"
+        "- Disable elitist selection by default; homogeneity alone is not sufficient reason to enable it.\n"
         "- Use BIPOP restarts.\n"
-        "- Use PSR step-size adaptation; CSA only if scaling is high.\n"
-        "- Use standard mirroring."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN."
     ),
 
     "Multimodality": (
         "Known: Multimodal.\n"
         "- Disable elitist selection by default.\n"
         "- Use BIPOP restarts.\n"
-        "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring.\n"
-        "- Switch to CSA only if scaling is high.\n"
-        "- Enable elitism only if strong funnel-like structure is observed."
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN."
     ),
 
     "Basins_Homogeneous": (
         "Known: Basins + Homogeneous.\n"
-        "- These features are weakly informative at 30D.\n"
-        "- Use default CMA-ES configuration: PSR, standard mirroring, Gaussian sampling.\n"
-        "- Enable elitism cautiously if convergence appears stable."
+        "- These features are weakly informative for module selection.\n"
+        "- Use PSR step-size adaptation.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Do not infer elitism or restart strategy from these two properties alone."
     ),
 
     "Basins": (
         "Known: Basins.\n"
-        "- Basins alone do not drive decisions at 30D.\n"
-        "- Use default settings: PSR, standard mirroring, Gaussian sampling.\n"
-        "- Introduce restarts if stagnation occurs."
+        "- Basin-size homogeneity alone does not drive module decisions.\n"
+        "- Use PSR step-size adaptation.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Introduce restarts if stagnation is observed."
     ),
 
     "Homogeneous": (
         "Known: Homogeneous.\n"
-        "- Homogeneity mainly acts as a stabilizing signal.\n"
-        "- Enable elitist selection as a safe default.\n"
-        "- Use PSR step-size adaptation.\n"
-        "- Use standard mirroring.\n"
-        "- Prefer Gaussian sampling."
+        "- Homogeneity is a weak stabilizing descriptor but does not imply unimodality or justify elitism by itself.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN.\n"
+        "- Do not infer elitism or restart strategy from homogeneity alone."
     ),
 
     "NOT Basins": (
         "Known: NOT Basins.\n"
-        "- Use standard mirroring."
+        "- Unequal basin sizes alone provide little decisive module guidance.\n"
+        "- Use mirrored=MIRRORED."
     ),
 
     "NOT Homogeneous": (
         "Known: NOT Homogeneous.\n"
-        "- Use standard mirroring. \n"
-        "- Use of PSR step-size adaptation suggested.\n"
-        "- Use of BIPOP restarts suggested.\n"
-        "- Use Gaussian or Sobol sampling. No Halton sampling."
+        "- Use mirrored=MIRRORED.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN. No Halton sampling.\n"
+        "- Non-homogeneity alone does not determine elitism or require BIPOP; introduce restarts if regime-dependent convergence or stagnation is observed."
     ),
 
     # "NOT Basins_GlobalLocal": (
@@ -325,10 +362,11 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
 
     "NOT Basins_Separable": (
         "Known: NOT Basins + Separable.\n"
-        "- Use standard mirroring. \n"
-        "- Use of PSR step-size adaptation suggested.\n"
-        "- Use of BIPOP restarts suggested.\n"
-        "- Use Gaussian or Sobol sampling. No Halton sampling."
+        "- Use mirrored=MIRRORED.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN. No Halton sampling.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- Do not infer elitism or BIPOP restarts from these two properties alone."
     ),
 
     # "NOT Homogeneous_GlobalLocal": (
@@ -338,20 +376,35 @@ RULES_BY_HIGHLEVEL_PROPERTIES_30D = {
 
     "NOT Homogeneous_Multimodality": (
         "Known: NOT Homogeneous + Multimodality.\n"
-        "- Use standard mirroring. \n"
-        "- Use of PSR step-size adaptation suggested.\n"
-        "- Use of BIPOP restarts suggested.\n"
-        "- Use Gaussian or Sobol sampling. No Halton sampling."
+        "- Treat multimodality as the dominant signal.\n"
+        "- Disable elitist selection by default.\n"
+        "- Use BIPOP restarts.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Use mirrored=MIRRORED.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN. No Halton sampling."
     ),
 
     "NOT Homogeneous_Separable": (
         "Known: NOT Homogeneous + Separable.\n"
-        "- Use standard mirroring. \n"
-        "- Use of PSR step-size adaptation suggested.\n"
-        "- Use of BIPOP restarts suggested.\n"
-        "- Use Gaussian or Sobol sampling. No Halton sampling."
+        "- Use mirrored=MIRRORED.\n"
+        "- Use PSR step-size adaptation as the default.\n"
+        "- Prefer sampler=SOBOL, sample_transformation=GAUSSIAN. No Halton sampling.\n"
+        "- Prefer modules.weights=RecombinationWeights.DEFAULT.\n"
+        "- Do not infer elitism or BIPOP restarts from these two properties alone."
     )
 }
+
+FEATURE_DESCRIPTIONS = {
+    "Basins": "The functions to optimize have basin size homogeneity, meaning the size relation (largest to smallest) of all basins of attraction should be homogeneous.",
+    "Separable": "The functions to optimize are separable, meaning independent functions per dimension. Meaning, a problem may be partitioned into subproblems which are then of lower dimensionality and should be considerably easier to solve.",
+    "GlobalLocal": "The functions should have a global local minima contrast, which refers to the difference between global and local peaks in comparison to the average fitness level of a problem. It thus determines if very good peaks are easily recognized as such.",
+    "Multimodality": "The functions are multimodal, Multimodality refers to the number of local minima of a problem.",
+    "Structure": "The functions have a clear global structure. Global structure is what remains after deleting all non-optimal points.",
+    "Homogeneous": "The functions have a homogeneous search space. Which refers to a search space without phase transitions. Its overall appearance is similar in different search space areas.",
+    "NOT Homogeneous": "The functions have a non-homogeneous search space. Which refers to a search space with phase transitions. Its overall appearance is different in different search space areas.",
+    "NOT Basins": "The functions do not have basin size homogeneity. Which refers to a search space where the size relation (largest to smallest) of all basins of attraction is not homogeneous.",
+}
+
 
 class HLP(Problem):
     """
@@ -429,17 +482,6 @@ class HLP(Problem):
             "gpt-5-nano-ELA-Multimodality_Homogeneous.jsonl"
         ]
 
-        self.feature_descriptions = {
-            "Basins": "The functions to optimize have basin size homogeneity, meaning the size relation (largest to smallest) of all basins of attraction should be homogeneous.",
-            "Separable": "The functions to optimize are separable, meaning independent functions per dimension. Meaning, a problem may be partitioned into subproblems which are then of lower dimensionality and should be considerably easier to solve.",
-            "GlobalLocal": "The functions should have a global local minima contrast, which refers to the difference between global and local peaks in comparison to the average fitness level of a problem. It thus determines if very good peaks are easily recognized as such.",
-            "Multimodality": "The functions are multimodal, Multimodality refers to the number of local minima of a problem.",
-            "Structure": "The functions have a clear global structure. Global structure is what remains after deleting all non-optimal points.",
-            "Homogeneous": "The functions have a homogeneous search space. Which refers to a search space without phase transitions. Its overall appearance is similar in different search space areas.",
-            "NOT Homogeneous": "The functions have a non-homogeneous search space. Which refers to a search space with phase transitions. Its overall appearance is different in different search space areas.",
-            "NOT Basins": "The functions do not have basin size homogeneity. Which refers to a search space where the size relation (largest to smallest) of all basins of attraction is not homogeneous.",
-        }
-
         self.add_info_to_prompt = add_info_to_prompt
         self.add_rules_to_prompt = add_rules_to_prompt
 
@@ -476,7 +518,7 @@ class HLP(Problem):
         if self.add_info_to_prompt:
             extra_prompt += ", characterized by the following high-level features: "
             for feature in specific_high_level_features:
-                description = self.feature_descriptions.get(feature, "No description available.")
+                description = FEATURE_DESCRIPTIONS.get(feature, "No description available.")
                 extra_prompt += f"\n- {feature}: {description}"
         extra_prompt += "."
 
@@ -494,15 +536,24 @@ class HLP(Problem):
 You are a Python expert working on a new optimization algorithm. You can use numpy v2 and some other standard libraries.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
 Strictly use the Modular CMA-ES library (modcma) for the optimization algorithm.
-Your task is to write the optimization algorithm in Python code. 
+Your task is to write the optimization algorithm in Python code.
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
-The func() can only be called as many times as the budget allows, not more. 
+The func() can only be called as many times as the budget allows, not more.
+
+Follow these guidelines whenever you configure the Modular CMA-ES library - for every
+algorithm you write or refine, not only the first one:
+
+<mod_cmaes_guidelines>
+{MOD_CMAES_GUIDELINES}
+</mod_cmaes_guidelines>
+
+{MOD_CMAES_RULES_GLOSSARY}
 """
         self.example_prompt = f"""
 {extra_prompt}
 {extra_prompt_rules}
-        
+
 An example of the required algorithm structure using the Modular CMA-ES
 library is shown below:
 
@@ -538,18 +589,12 @@ The example demonstrates the required class interface and basic Modular
 CMA-ES usage. Do not copy its configuration blindly. Choose the Modular
 CMA-ES modules according to the task information and rules supplied above.
 
-Follow these guidelines when generating the optimization algorithm:
-
-<mod_cmaes_guidelines>
-{MOD_CMAES_GUIDELINES}
-</mod_cmaes_guidelines>
-
 Return the answer using the output format specified above.
 """
         self.format_prompt = """
 Give an excellent and novel heuristic algorithm to solve this task and also give it a one-line description, describing the main idea. Give the response in the format:
 # Description: <short-description>
-# Code: 
+# Code:
 ```python
 <code>
 ```

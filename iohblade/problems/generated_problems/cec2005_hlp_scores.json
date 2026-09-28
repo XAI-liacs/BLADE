@@ -1,0 +1,227 @@
+{
+  "1": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 0.0,
+    "separable": true,
+    "separable_noncompliance": 0.0,
+    "source": "documentation (Basins corrected per user: single-basin unimodal functions have no multiple basins to be homogeneous/heterogeneous about, so Basins=0 rather than trivially-True)"
+  },
+  "2": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 0.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation (Basins corrected per user: single-basin unimodal functions have no multiple basins to be homogeneous/heterogeneous about, so Basins=0 rather than trivially-True)"
+  },
+  "3": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 0.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation (Basins corrected per user: single-basin unimodal functions have no multiple basins to be homogeneous/heterogeneous about, so Basins=0 rather than trivially-True)"
+  },
+  "4": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 0.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation (Basins corrected per user: single-basin unimodal functions have no multiple basins to be homogeneous/heterogeneous about, so Basins=0 rather than trivially-True)"
+  },
+  "5": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 0.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Basins corrected per user: single-basin unimodal functions have no multiple basins to be homogeneous/heterogeneous about, so Basins=0 rather than trivially-True; Homogeneous=0 unchanged, boundary-optimum special case)"
+  },
+  "6": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Basins corrected to 0 per user, confident; Homogeneous left at 1 -- user was unsure, unresolved pending a real measurement)"
+  },
+  "7": {
+    "score_Basins": 1.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Basins/Homogeneous corrected to 1/1 per user's 2D visualization)"
+  },
+  "8": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 1.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Homogeneous=1 confirmed by user)"
+  },
+  "9": {
+    "score_Basins": 0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0,
+    "score_Multimodality": 1.0,
+    "separable": true,
+    "separable_noncompliance": 0.0,
+    "source": "documentation+judgment (separable corrected: opfunu's F92005.separable=False contradicts its own evaluate(), which only shifts -- no rotation matrix -- and rastrigin_func is a plain per-coordinate sum)"
+  },
+  "10": {
+    "score_Basins": 1.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment"
+  },
+  "11": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment"
+  },
+  "12": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Basins/Homogeneous corrected to 0/0 per user's 2D visualization)"
+  },
+  "13": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment"
+  },
+  "14": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 1.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (Basins corrected to 0 per user's 2D visualization; Homogeneous=1 confirmed by user)"
+  },
+  "15": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization -- unlike the blanket True I'd assumed for all composition functions, only F19 (explicitly named for a narrow-basin global optimum) shows a real global-local contrast)"
+  },
+  "16": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "17": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "18": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "19": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization; initially misread as the row with GlobalLocal=1, corrected -- that was actually F20)"
+  },
+  "20": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 1.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal=1 confirmed by user's 2D visualization -- Global Optimum on the Bounds, a distinct special case)"
+  },
+  "21": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "22": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "23": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "24": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  },
+  "25": {
+    "score_Basins": 0.0,
+    "score_GlobalLocal": 0.0,
+    "score_Homogeneous": 0.0,
+    "score_Multimodality": 1.0,
+    "separable": false,
+    "separable_noncompliance": 100.0,
+    "source": "documentation+judgment (GlobalLocal corrected to 0 per user's 2D visualization)"
+  }
+}
