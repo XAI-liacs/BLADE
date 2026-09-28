@@ -223,6 +223,9 @@ class Experiment(ABC):
                 with contextlib.redirect_stderr(None):
                     problem._ensure_env()
                     result = method(problem)
+        # If the problem keeps a separate test set (e.g. AutoML), score the result on it.
+        if hasattr(problem, "final_evaluation"):
+            result = problem.final_evaluation(result)
         if hasattr(logger, "finish_run"):
             logger.finish_run(result)
         success = self._log_data(method, problem, logger)

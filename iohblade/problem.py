@@ -200,6 +200,8 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
+        # If True, evaluations can also use the packages installed where BLADE runs.
+        self.use_system_site_packages = False
         # Combine the base dependencies with any problem specific ones
         self.dependencies = BASE_DEPENDENCIES.copy()
         if dependencies:
@@ -350,7 +352,10 @@ class Problem(ABC):
 
         env_dir = tempfile.mkdtemp(prefix="blade_env_")
         self._env_path = Path(env_dir)
-        virtualenv.cli_run([env_dir])
+        if getattr(self, "use_system_site_packages", False):
+            virtualenv.cli_run(["--system-site-packages", env_dir])
+        else:
+            virtualenv.cli_run([env_dir])
         self._python_bin = (
             self._env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
         )
