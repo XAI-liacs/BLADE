@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+import textwrap
 import traceback
 from types import SimpleNamespace
 from typing import Any
@@ -17,6 +19,61 @@ try:
 except Exception:  # pragma: no cover - optional dependency
     ReEvoAlgorithm = None
     BaseClient = object  # type: ignore
+
+
+_CODE_BLOCK_RE = re.compile(
+    r"^\s*```(?:python)?\s*\n(.*?)\n\s*```",
+    re.DOTALL | re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _normalize_code_snippet(text: str) -> str:
+    """Take the code out of a prompt or response and remove its extra indentation."""
+    if not text:
+        return ""
+    normalized = textwrap.dedent(text).strip()
+    match = _CODE_BLOCK_RE.search(normalized)
+    code = match.group(1) if match else normalized
+    return textwrap.dedent(code).strip()
+
+
+def _seed_payload(problem: Problem) -> tuple[str, str]:
+    """Return the seed code inside a python code block, and its class name."""
+    seed_code = _normalize_code_snippet(getattr(problem, "example_prompt", ""))
+    if not seed_code:
+        raise ValueError(
+            "ReEvo requires an executable example_prompt to initialize its seed "
+            "individual, but none could be extracted."
+        )
+    # Stop early if the example code in the prompt is not valid Python.
+    compile(seed_code, "<reevo-seed>", "exec")
+    class_name = first_class_name(seed_code) or "AlgorithmName"
+    return f"```python\n{seed_code}\n```", class_name
+
+
+def _func_signature(problem: Problem) -> str:
+    func_name = getattr(problem, "func_name", "__call__")
+    func_inputs = list(getattr(problem, "func_inputs", []) or [])
+    if func_inputs:
+        return f"{func_name}(self, {', '.join(func_inputs)})"
+    return f"{func_name}(self)"
+
+
+def _func_desc(problem: Problem, class_name: str) -> str:
+    init_inputs = ", ".join(getattr(problem, "init_inputs", []) or [])
+    call_inputs = ", ".join(getattr(problem, "func_inputs", []) or [])
+    parts = [
+        f"Implement a single Python class called `{class_name}`.",
+    ]
+    if init_inputs:
+        parts.append(
+            f"The constructor signature should be `__init__(self, {init_inputs})`."
+        )
+    if call_inputs:
+        parts.append(
+            f"The main inference signature should be `{getattr(problem, 'func_name', '__call__')}(self, {call_inputs})`."
+        )
+    return " ".join(parts)
 
 
 class _BladeReEvoClient(BaseClient):
@@ -94,10 +151,12 @@ class ReEvo(Method):
         for response_id in range(len(population)):
             individual = population[response_id]
             reevo.function_evals += 1
-            if individual.get("code") is None:
+            raw_code = individual.get("code")
+            if raw_code is None:
                 individual["exec_success"] = False
                 individual["obj"] = ((-1) ** int(not minimisation)) * float("inf")
                 continue
+            individual["code"] = _normalize_code_snippet(raw_code)
             solution = Solution(
                 code=individual["code"],
                 name=first_class_name(individual["code"]) or "AlgorithmName",
@@ -129,6 +188,7 @@ class ReEvo(Method):
 
         from omegaconf import OmegaConf
 
+        seed_func, seed_class_name = _seed_payload(problem)
         cfg_dict = {
             "max_fe": self.budget,
             "pop_size": self.kwargs.get("pop_size", 10),
@@ -139,12 +199,12 @@ class ReEvo(Method):
                 "problem_name": problem.name,
                 "description": problem.task_prompt,
                 "problem_size": getattr(problem, "dim", 1),
-                "func_name": "AlgorithmName",
-                "seed_func": problem.example_prompt,
-                "func_signature": f"{problem.func_name}(self)",
+                "func_name": seed_class_name,
+                "seed_func": seed_func,
+                "func_signature": _func_signature(problem),
                 "obj_type": "max",
                 "problem_type": "blade",
-                "func_desc": "",
+                "func_desc": _func_desc(problem, seed_class_name),
                 "external_knowledge": "",
             },
         }
@@ -160,6 +220,7 @@ class ReEvo(Method):
         )
         reevo.init_population()
         code, _ = reevo.evolve()
+        code = _normalize_code_snippet(code)
         name = first_class_name(code) or "AlgorithmName"
         sol = Solution(code=code, name=name)
         sol.set_scores(abs(reevo.best_obj_overall), "", "")
