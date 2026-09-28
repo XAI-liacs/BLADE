@@ -65,6 +65,16 @@ class Solution:
         self.__dict__.update(state)
         if self.configspace == "":
             self.configspace = None
+        elif isinstance(self.configspace, dict):
+            # to_dict() stores the configspace serialised, restore it
+            try:
+                from ConfigSpace import ConfigurationSpace
+
+                self.configspace = ConfigurationSpace.from_serialized_dict(
+                    self.configspace
+                )
+            except Exception:
+                pass  # keep the dict, to_dict() passes it on as is
 
     def fitness_is_valid(self) -> bool:
         """
@@ -207,7 +217,8 @@ class Solution:
         """
         try:
             cs = self.configspace
-            cs = cs.to_serialized_dict()
+            if not isinstance(cs, dict):
+                cs = cs.to_serialized_dict()
         except Exception:
             cs = ""
         fitness_value = (
@@ -243,8 +254,9 @@ class Solution:
 
         if isinstance(configspace, dict):  # Deserialize if necessary
             try:
-                configspace = ConfigSpace()  # Replace with actual class
-                configspace.from_serialized_dict(data["configspace"])
+                from ConfigSpace import ConfigurationSpace
+
+                configspace = ConfigurationSpace.from_serialized_dict(configspace)
             except Exception as e:
                 print(f"Warning: Failed to deserialize configspace - {e}")
                 configspace = None

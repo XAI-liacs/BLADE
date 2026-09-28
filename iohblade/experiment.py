@@ -239,6 +239,7 @@ class Experiment(ABC):
             config,
             sort_keys=True,
             separators=(",", ":"),
+            default=str,
         ).encode("utf-8")
         return hashlib.sha256(json_data).hexdigest()
 
@@ -282,7 +283,7 @@ class Experiment(ABC):
         """
         try:
             with open(location, "w") as f:
-                data = json.dumps(config, indent=4)
+                data = json.dumps(config, indent=4, default=str)
                 f.write(data)
         except Exception as e:
             print(f"Error logging configuration {config} into file {location}: {e}.")

@@ -80,9 +80,9 @@ def evaluate_in_subprocess(problem, conn, solution):
         )
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
-        if not os.path.exists(problem_pickle):
-            with open(problem_pickle, "wb") as f:
-                cloudpickle.dump(problem_copy, f)
+        # Always write the problem, its state can change between evaluations.
+        with open(problem_pickle, "wb") as f:
+            cloudpickle.dump(problem_copy, f)
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
@@ -265,16 +265,25 @@ class Problem(ABC):
                 target=evaluate_in_subprocess, args=(self, child_conn, solution)
             )
             process.start()
-            process.join(
+            child_conn.close()  # Only the child writes to the pipe.
+            # Read before joining, otherwise the child blocks in send() when the
+            # result is larger than the pipe buffer.
+            received = False
+            if parent_conn.poll(
                 timeout=self.eval_timeout + 60
-            )  # We allow 1 minute for setting up the environment.
-
-            if process.is_alive():
+            ):  # We allow 1 minute for setting up the environment.
+                try:
+                    result = parent_conn.recv()
+                    received = True
+                except EOFError:
+                    pass
+            elif process.is_alive():
                 raise TimeoutException(
                     f"Evaluation timed out after {self.eval_timeout} seconds."
                 )
-            if parent_conn.poll():
-                result = parent_conn.recv()
+            process.join(timeout=60)
+
+            if received:
                 if isinstance(result, dict):
                     stdout = result.get("stdout", "")
                     stderr = result.get("stderr", "")
@@ -348,12 +357,17 @@ class Problem(ABC):
 
         deps = getattr(self, "dependencies", [])
         if deps:
-            subprocess.run(
-                [str(self._python_bin), "-m", "pip", "install", *deps],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            try:
+                subprocess.run(
+                    [str(self._python_bin), "-m", "pip", "install", *deps],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"Failed to install the dependencies {deps}:\n{e.stderr or e.stdout}"
+                ) from e
 
     def cleanup(self):
         try:
