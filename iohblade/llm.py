@@ -372,7 +372,7 @@ class LLM(ABC):
         """
         try:
             return re.findall(
-                "class\\s*(\\w*)(?:\\(\\w*\\))?\\:",
+                "class\\s*(\\w*)(?:\\([^)]*\\))?\\:",
                 code,
                 re.IGNORECASE,
             )[0]
