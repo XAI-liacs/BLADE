@@ -305,6 +305,29 @@ def compare_auc(
     return pd.DataFrame(results)
 
 
+def _distance_to_optimum(y_best, raw_y_best, optimum_y):
+    """Distance of the best-so-far objective value to the global optimum.
+
+    BBOB problems apply the optimum shift (and, for some functions, a boundary
+    penalty) as an objective transformation, so raw_y_best already is the
+    precision and is used as-is. Wrapped problems (ioh.wrap_problem) have no
+    transformation (y_best == raw_y_best) and report the plain objective value,
+    so the known optimum has to be subtracted explicitly. Falls back to
+    raw_y_best when no optimum is known (ioh then sets optimum_y to -inf).
+
+    Args:
+        y_best: Best-so-far (transformed) objective value.
+        raw_y_best: Best-so-far raw objective value as reported by ioh.
+        optimum_y: Objective value of the global optimum.
+
+    Returns:
+        float: The distance to the optimum (negative if the optimum is beaten).
+    """
+    if y_best == raw_y_best and np.isfinite(optimum_y):
+        return y_best - optimum_y
+    return raw_y_best
+
+
 def correct_aoc(ioh_function, logger, budget):
     """Correct aoc values in case a run stopped before the budget was exhausted
 
@@ -316,12 +339,13 @@ def correct_aoc(ioh_function, logger, budget):
     Returns:
         float: The normalized aoc of the run, corrected for stopped runs
     """
+    y_gap = _distance_to_optimum(
+        ioh_function.state.current_best.y,
+        ioh_function.state.current_best_internal.y,
+        ioh_function.optimum.y,
+    )
     fraction = (
-        logger.transform(
-            np.clip(
-                ioh_function.state.current_best_internal.y, logger.lower, logger.upper
-            )
-        )
+        logger.transform(np.clip(y_gap, logger.lower, logger.upper))
         - logger.transform(logger.lower)
     ) / (logger.transform(logger.upper) - logger.transform(logger.lower))
     aoc = (
@@ -368,9 +392,12 @@ class aoc_logger(logger.AbstractLogger):
             raise OverBudgetException
         if log_info.evaluations == self.budget:
             return
-        if self.stop_on_threshold and abs(log_info.raw_y_best) < self.lower:
+        y_gap = _distance_to_optimum(
+            log_info.y_best, log_info.raw_y_best, log_info.objective.y
+        )
+        if self.stop_on_threshold and y_gap < self.lower:
             raise ThresholdReachedException
-        y_value = np.clip(log_info.raw_y_best, self.lower, self.upper)
+        y_value = np.clip(y_gap, self.lower, self.upper)
         self.aoc += (self.transform(y_value) - self.transform(self.lower)) / (
             self.transform(self.upper) - self.transform(self.lower)
         )

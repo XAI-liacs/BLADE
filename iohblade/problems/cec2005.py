@@ -361,7 +361,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         # Small test run to catch code errors
         try:
-            l2_temp = aoc_logger(100, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+            l2_temp = aoc_logger(100, upper=1e4, triggers=[ioh_logger.trigger.ALWAYS])
             problem = self.get_generated_problem(self.training_instances[0])
             problem.attach_logger(l2_temp)
             algorithm = local_env[algorithm_name](budget=100, dim=self.DIM)
@@ -375,7 +375,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         budget = self.budget_factor * self.DIM
         for instance in instances:
             f_new = self.get_generated_problem(instance)
-            l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+            l2 = aoc_logger(budget, upper=1e4, triggers=[ioh_logger.trigger.ALWAYS])
             if test or self.full_ioh_log:
                 l1 = ioh.logger.Analyzer(
                     root=self.ioh_dir,
