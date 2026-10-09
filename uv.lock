@@ -2083,7 +2083,7 @@ wheels = [
 
 [[package]]
 name = "iohblade"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -2167,7 +2167,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", git = "https://github.com/XAI-liacs/LLaMEA.git?rev=9dda36767e48dce5c95991e0580b3c96fe61095c" },
+    { name = "llamea", specifier = ">=1.4.0,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2882,8 +2882,8 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.3.0"
-source = { git = "https://github.com/XAI-liacs/LLaMEA.git?rev=9dda36767e48dce5c95991e0580b3c96fe61095c#9dda36767e48dce5c95991e0580b3c96fe61095c" }
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "configspace" },
     { name = "google-genai" },
@@ -2897,6 +2897,10 @@ dependencies = [
     { name = "pymoo" },
     { name = "tqdm" },
     { name = "xgboost" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/37/d5/38f87fe05bb7968d77136b8aef6f564bcf5431b7e48402721242e685adbf/llamea-1.4.0.tar.gz", hash = "sha256:4c3ef45f933b6e075baeb5fad31c1a8bd9ad9505a75a89910626837cda97aa1c", size = 8367964, upload-time = "2026-10-08T08:34:15.49Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/52/01/33514899fdf5cdb86d6def4c807e20cb096ab78014510db77fbe225581c0/llamea-1.4.0-py3-none-any.whl", hash = "sha256:b3139c9ad32e0736a9fc828b73a092f427fb74b227c2395ceb5f9e645ca0b6ee", size = 50402, upload-time = "2026-10-08T08:34:14.267Z" },
 ]
 
 [[package]]

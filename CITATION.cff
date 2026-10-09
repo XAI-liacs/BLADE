@@ -10,7 +10,7 @@ authors:
   - family-names: Bäck
     given-names: Thomas
 title: "BLADE"
-version: "0.2.1"
+version: "1.1.0"
 doi: 10.1145/3712255.3734347
 url: https://doi.org/10.1145/3712255.3734347
 preferred-citation:
