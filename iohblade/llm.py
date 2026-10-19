@@ -575,6 +575,7 @@ class OpenAI_LLM(LLM):
                     model=self.model,
                     messages=session_messages,
                     temperature=temperature,
+                    reasoning_effort="none",
                     **kwargs,
                 )
                 return response.choices[0].message.content
@@ -803,6 +804,7 @@ class Ollama_LLM(LLM):
                 response = self.client.chat(
                     model=self.model,
                     messages=[{"role": "user", "content": big_message}],
+                    think=False,
                     options=kwargs,
                 )
                 return response["message"]["content"]
