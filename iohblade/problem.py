@@ -9,8 +9,8 @@ import traceback
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Optional
 
-from typing import Optional, Any
 import cloudpickle
 import numpy as np
 
@@ -69,15 +69,20 @@ def simplify_subprocess_error(stderr: str, solution=None):
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
     proc = None
+    temp_files = []
     try:
         env_path = problem._env_path
         python_bin = problem._python_bin
 
-        problem_pickle = env_path / "problem.pkl"
-        solution_pickle = env_path / f"solution_{uuid.uuid4().hex}.pkl"
-        result_pickle = (
-            Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
-        )
+        # Unique names per evaluation: runs executed in parallel (n_jobs > 1)
+        # share env_path, and fixed names let one evaluation read another's
+        # half-written problem or run another's script.
+        token = uuid.uuid4().hex
+        problem_pickle = env_path / f"problem_{token}.pkl"
+        solution_pickle = env_path / f"solution_{token}.pkl"
+        result_pickle = Path(tempfile.gettempdir()) / f"blade_result_{token}.pkl"
+        script_path = env_path / f"{token}_run_eval.py"
+        temp_files = [problem_pickle, solution_pickle, result_pickle, script_path]
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
         # Always write the problem, its state can change between evaluations.
@@ -86,7 +91,6 @@ def evaluate_in_subprocess(problem, conn, solution):
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
-        script_path = env_path / "run_eval.py"
         imports_block = getattr(problem, "imports", "")
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
@@ -160,6 +164,11 @@ def evaluate_in_subprocess(problem, conn, solution):
         if proc and proc.poll() is None:
             proc.kill()
             proc.communicate()
+        for path in temp_files:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
         conn.close()
 
 

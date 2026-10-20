@@ -1,48 +1,52 @@
-"""Compare plain LLaMEA against RLM pre-screening variants on BBOB.
+"""Compare plain LLaMEA against RLM pre-screening variants.
 
-Every method gets the same LLaMEA ``budget``. The RLM settings
-(``rlm_*`` kwargs) are forwarded unchanged by ``iohblade.methods.LLaMEA``
-to ``llamea.LLaMEA``; this needs the ``llamea`` feature branch pinned in
-``pyproject.toml`` plus the ``rlm-surrogate`` dependency group:
+Each invocation runs one problem suite (separate experiments, separate
+result folders):
 
-    uv sync --group rlm-surrogate
+* ``mabbob``: MA-BBOB, instances 300-349 (not in the RLM training data).
+* ``photonics``: the Bragg-mirror photonics problem (a real-world problem
+  the RLM has never seen).
+* ``bbob``: BBOB functions 1, 3, 6, 8, 10, 13, 15, 17, 21, 23.
 
-Before a real run, confirm each checkpoint's feature settings against its
-training data (they are not stored in the checkpoint):
+Every method makes the same number of real benchmark evaluations
+(``--budget``). For ``threshold_reject``, rejected candidates use up a
+LLaMEA budget slot without being evaluated, so those variants get a larger
+LLaMEA budget (see ``threshold_llamea_budget``). The experiment-level
+budget still caps real evaluations per run at ``--budget`` for every method.
+
+The ``rlm_*`` kwargs are forwarded unchanged by ``iohblade.methods.LLaMEA``
+to ``llamea.LLaMEA``. Setup:
+
+    uv sync --group rlm-surrogate --group extraproblems
+
+Before a real run, confirm each checkpoint's feature settings (they are
+not stored in the checkpoint) and update ``CHECKPOINT_FEATURES``:
 
     uv run python examples/check-rlm-feature-config.py \\
-        --data-dir <data_pipeline output dir> --expect-mode lhs \\
-        --expect-points 200 --expect-seed 0
+        --checkpoint-dir /path/to/production_lhs200 \\
+        --expect-mode lhs --expect-points 200 --expect-seed 0
 
 Usage:
-    # Cheap pilot: Dummy LLM, budget 16, 1 run, 2 BBOB functions.
-    uv run python examples/run-rlm-screening.py --pilot \\
-        --ckpt-lhs200 /path/to/checkpoints/production_lhs200
+    # Cheap pilot: Dummy LLM, budget 16, 1 run, few instances.
+    uv run python examples/run-rlm-screening.py --suite mabbob --pilot \\
+        --ckpt-lhs200 /path/to/production_lhs200
 
     # Full matrix (needs OPENAI_API_KEY).
-    uv run python examples/run-rlm-screening.py \\
+    uv run python examples/run-rlm-screening.py --suite photonics \\
         --ckpt-lhs200 /path/to/production_lhs200 \\
         --ckpt-lhs20 /path/to/production_lhs --with-lhs20
-
-Budget accounting (see ``llamea.rlm_surrogate.screening.RLMScreeningConfig``):
-
-* ``log_only``: no change, every offspring is really evaluated.
-* ``topk_filter``: discarded candidates use no budget; every budget slot is
-  a real evaluation. LLM calls per generation grow by
-  ``overgenerate_factor``.
-* ``threshold_reject``: rejected candidates DO use a budget slot but are
-  never evaluated (and so never appear in BLADE's ``log.jsonl``). With
-  ``threshold_quantile=0.5`` a run makes roughly half as many real
-  evaluations as the baseline. Compare it at equal LLM calls, or account
-  for this when comparing at equal real evaluations.
 """
 
 import argparse
+import math
 import os
+from pathlib import Path
+from typing import Any
 
 import ioh
 
-from iohblade.benchmarks import BBOB_SBOX
+import iohblade.benchmarks.BBOB.mabbob as blade_mabbob
+from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, Photonics
 from iohblade.experiment import Experiment
 from iohblade.llm import Dummy_LLM, OpenAI_LLM
 from iohblade.loggers import ExperimentLogger
@@ -65,33 +69,140 @@ CHECKPOINT_FEATURES = {
     },
 }
 
-# BBOB functions/instances, same set as examples/run-bbob-logging.py.
-FIDS = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
-PILOT_FIDS = [1, 21]
+THRESHOLD_QUANTILE = 0.5
+BBOB_FIDS = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
+MA_BBOB_TRAIN = range(300, 350)
+MA_BBOB_TEST = range(350, 400)
+BLADE_MA_BBOB_DIR = Path(blade_mabbob.__file__).parent / "mabbob"
 
 
-def problem_instances_for_bbob(problem: BBOB_SBOX) -> list[dict]:
-    """Describes the functions ``problem`` evaluates candidates on.
+# --------------------------------------------------------------------------
+# Problem suites and the matching rlm_problem_instances
+# --------------------------------------------------------------------------
 
-    Uses the training instances only: LLaMEA never calls ``f`` on the
-    test instances during evolution.
 
-    Raises:
-        ValueError: if ``problem`` is not on the BBOB problem class. The
-            RLM rebuilds ``kind="bbob"`` instances with
-            ``ioh.get_problem(fid, iid, dim)`` (BBOB), so an SBOX-COST
-            problem would be fingerprinted as the wrong functions.
+def build_suite(suite: str, pilot: bool) -> tuple[Any, list[dict], dict]:
+    """Returns (BLADE problem, rlm_problem_instances, custom instance kinds).
+
+    The instances describe the functions the problem evaluates candidates
+    on during evolution (its training instances). Custom kinds map a
+    ``kind`` string to an ioh-style problem the RLM can fingerprint; see
+    ``install_rlm_instance_hooks``.
     """
-    if problem.problem_type != ioh.ProblemClass.BBOB:
-        raise ValueError(
-            "RLM screening instances are BBOB functions; build BBOB_SBOX with "
-            "problem_type=ioh.ProblemClass.BBOB (the default is SBOX)."
+    if suite == "bbob":
+        fids = [1, 21] if pilot else BBOB_FIDS
+        problem = BBOB_SBOX(
+            training_instances=[(f, i) for f in fids for i in range(1, 6)],
+            test_instances=[(f, i) for f in fids for i in range(5, 16)],
+            dims=[5],
+            budget_factor=2000,
+            eval_timeout=600,
+            name="BBOB",
+            # The RLM rebuilds kind="bbob" with ioh.get_problem (BBOB class);
+            # BBOB_SBOX's default SBOX class would be the wrong functions.
+            problem_type=ioh.ProblemClass.BBOB,
         )
-    return [
-        {"kind": "bbob", "dim": dim, "fid_or_idx": fid, "iid": iid}
-        for dim in problem.dims
-        for fid, iid in problem.training_instances
-    ]
+        instances = [
+            {"kind": "bbob", "dim": dim, "fid_or_idx": fid, "iid": iid}
+            for dim in problem.dims
+            for fid, iid in problem.training_instances
+        ]
+        return problem, instances, {}
+
+    if suite == "mabbob":
+        problem = MA_BBOB(
+            training_instances=range(300, 302) if pilot else MA_BBOB_TRAIN,
+            test_instances=MA_BBOB_TEST,
+            dims=[5],
+            budget_factor=2000,
+            eval_timeout=600,
+            name="MA_BBOB",
+        )
+        instances = [
+            {"kind": "ma_bbob", "dim": dim, "fid_or_idx": idx}
+            for dim in problem.dims
+            for idx in problem.training_instances
+        ]
+        return problem, instances, {}
+
+    if suite == "photonics":
+        problem = Photonics(
+            None,
+            problem_type="bragg",
+            name="Bragg",
+            budget_factor=100 if pilot else 500,
+            seeds=1 if pilot else 5,
+            eval_timeout=3600,
+        )
+        # A separate copy for fingerprinting, so the LHS probes do not
+        # touch the instance BLADE evaluates on.
+        fingerprint_problem = Photonics(None, problem_type="bragg").problem
+        dim = fingerprint_problem.meta_data.n_variables
+        kind = "photonics:bragg"
+        instances = [{"kind": kind, "dim": dim, "fid_or_idx": 0}]
+        return problem, instances, {kind: fingerprint_problem}
+
+    raise ValueError(f"Unknown suite: {suite!r}")
+
+
+def install_rlm_instance_hooks(custom_kinds: dict[str, Any]) -> None:
+    """Lets LLaMEA's RLM screener describe the problems used here.
+
+    LLaMEA's ``ProblemInstance`` only knows ``bbob`` and ``ma_bbob``, so:
+
+    * MA-BBOB: LLaMEA looks for its MA-BBOB tables outside the installed
+      package. BLADE ships byte-identical copies, so point it at those.
+    * Other kinds (e.g. photonics): build the problem text with LLaMEA's
+      own ``lhs_fingerprint``/``lhs_summary_stats`` on the given problem,
+      in the same format as the BBOB/MA-BBOB training text.
+
+    Experiment runs use threads, so patching once here covers every run.
+    """
+    import llamea.rlm_surrogate.problem_instances as pi
+    import llamea.rlm_surrogate.screening as screening
+
+    if not (pi.MA_BBOB_DATA_DIR / "weights.csv").exists():
+        pi.MA_BBOB_DATA_DIR = BLADE_MA_BBOB_DIR
+
+    if not custom_kinds:
+        return
+    original = pi.compute_problem_feature_text
+
+    def feature_text(instance, *, n_points=20, seed=0, mode="lhs"):
+        problem = custom_kinds.get(instance.kind)
+        if problem is None:
+            return original(instance, n_points=n_points, seed=seed, mode=mode)
+        if mode == "lhs":
+            return pi.lhs_fingerprint(problem, instance.dim, n_points, seed)
+        if mode == "lhs_stats":
+            return pi.lhs_summary_stats(problem, instance.dim, n_points, seed)
+        raise ValueError(
+            f"feature_mode={mode!r} needs static BBOB/MA-BBOB metadata, "
+            f"which {instance.kind!r} does not have."
+        )
+
+    screening.compute_problem_feature_text = feature_text
+
+
+# --------------------------------------------------------------------------
+# Methods
+# --------------------------------------------------------------------------
+
+
+def threshold_llamea_budget(
+    real_evals: int, n_parents: int, n_offspring: int, quantile: float
+) -> int:
+    """LLaMEA budget giving ``threshold_reject`` ``real_evals`` real evals.
+
+    The initial population is always evaluated. Each later generation uses
+    ``n_offspring`` budget slots but only evaluates the candidates at or
+    above the ``quantile`` of the batch's predictions:
+    ``n_offspring - ceil(quantile * (n_offspring - 1))`` of them (with
+    ``np.quantile``'s linear interpolation and no tied predictions).
+    """
+    kept = n_offspring - math.ceil(quantile * (n_offspring - 1))
+    generations = math.ceil(max(real_evals - n_parents, 0) / kept)
+    return n_parents + generations * n_offspring
 
 
 def build_methods(
@@ -105,10 +216,10 @@ def build_methods(
 ) -> list[LLaMEA]:
     """Baseline plus, per checkpoint, the log-only/top-k/threshold variants."""
 
-    def variant(name, **kwargs):
+    def variant(name, llamea_budget=budget, **kwargs):
         return LLaMEA(
             llm,
-            budget=budget,
+            budget=llamea_budget,
             name=name,
             n_parents=n_parents,
             n_offspring=n_offspring,
@@ -124,10 +235,12 @@ def build_methods(
             **CHECKPOINT_FEATURES[tag],
             **rlm_extra,
         }
+        q = int(THRESHOLD_QUANTILE * 100)
         methods += [
             # Control: scores every offspring, never filters.
             variant(f"log-only-{tag}", rlm_screening="log_only", **rlm),
-            # Keep predicted-best 50% / 25% of an over-generated pool.
+            # Keep the predicted-best 50% / 25% of an over-generated pool.
+            # Discarded candidates use no budget, so budgets stay equal.
             variant(
                 f"topk-{tag}-k50",
                 rlm_screening="topk_filter",
@@ -140,11 +253,15 @@ def build_methods(
                 rlm_overgenerate_factor=4.0,
                 **rlm,
             ),
-            # Reject the predicted-worse half of each offspring batch.
+            # Reject the predicted-worse part of each offspring batch. The
+            # larger LLaMEA budget keeps real evaluations equal to the rest.
             variant(
-                f"threshold-{tag}-q50",
+                f"threshold-{tag}-q{q}",
+                llamea_budget=threshold_llamea_budget(
+                    budget, n_parents, n_offspring, THRESHOLD_QUANTILE
+                ),
                 rlm_screening="threshold_reject",
-                rlm_threshold_quantile=0.5,
+                rlm_threshold_quantile=THRESHOLD_QUANTILE,
                 **rlm,
             ),
         ]
@@ -153,6 +270,7 @@ def build_methods(
 
 def main():
     p = argparse.ArgumentParser(description="LLaMEA vs. RLM pre-screening.")
+    p.add_argument("--suite", required=True, choices=["mabbob", "photonics", "bbob"])
     p.add_argument("--pilot", action="store_true", help="Dummy LLM, tiny run.")
     p.add_argument("--ckpt-lhs200", default=os.getenv("RLM_CKPT_LHS200"))
     p.add_argument("--ckpt-lhs20", default=os.getenv("RLM_CKPT_LHS20"))
@@ -162,7 +280,7 @@ def main():
         help="Also run the lhs20-checkpoint mirrors of every RLM variant.",
     )
     p.add_argument("--model", default="gpt-4.1-2025-04-14")
-    p.add_argument("--budget", type=int, default=None)
+    p.add_argument("--budget", type=int, default=None, help="Real evals/run.")
     p.add_argument("--runs", type=int, default=None)
     p.add_argument("--n-jobs", type=int, default=4)
     p.add_argument("--results-dir", default=None)
@@ -192,7 +310,7 @@ def main():
         budget, runs = args.budget or 16, args.runs or 1
         # Small population so the pilot spans several generations.
         n_parents, n_offspring = 2, 4
-        fids, results_dir = PILOT_FIDS, "results/rlm-screening-pilot"
+        results_dir = f"results/rlm-screening-{args.suite}-pilot"
     else:
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
@@ -200,23 +318,11 @@ def main():
         llm = OpenAI_LLM(api_key, args.model)
         budget, runs = args.budget or 100, args.runs or 5
         n_parents, n_offspring = 4, 12
-        fids, results_dir = FIDS, "results/rlm-screening"
+        results_dir = f"results/rlm-screening-{args.suite}"
     results_dir = args.results_dir or results_dir
 
-    os.makedirs(os.path.dirname(results_dir) or ".", exist_ok=True)
-    logger = ExperimentLogger(results_dir)
-    problem = BBOB_SBOX(
-        training_instances=[(f, i) for f in fids for i in range(1, 6)],
-        test_instances=[(f, i) for f in fids for i in range(5, 16)],
-        dims=[5],
-        budget_factor=2000,
-        eval_timeout=600,
-        name="BBOB",
-        problem_type=ioh.ProblemClass.BBOB,
-    )
-    # One list, shared by every RLM variant, so they all describe the same
-    # benchmark functions.
-    instances = problem_instances_for_bbob(problem)
+    problem, instances, custom_kinds = build_suite(args.suite, args.pilot)
+    install_rlm_instance_hooks(custom_kinds)
 
     rlm_extra = {}
     if args.rlm_device:
@@ -224,15 +330,18 @@ def main():
     if args.rlm_num_samples:
         rlm_extra["rlm_num_samples_point_pred"] = args.rlm_num_samples
 
+    # One instance list, shared by every RLM variant on this suite.
     methods = build_methods(
         llm, budget, n_parents, n_offspring, checkpoints, instances, rlm_extra
     )
+    os.makedirs(os.path.dirname(results_dir) or ".", exist_ok=True)
     experiment = Experiment(
         methods=methods,
         problems=[problem],
         runs=runs,
+        # Caps real evaluations per run, also for the threshold variants.
         budget=budget,
-        exp_logger=logger,
+        exp_logger=ExperimentLogger(results_dir),
         n_jobs=min(len(methods), args.n_jobs),
         show_stdout=args.pilot,
     )

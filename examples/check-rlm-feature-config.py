@@ -31,12 +31,20 @@ import re
 import sys
 from pathlib import Path
 
+import llamea.rlm_surrogate.problem_instances as pi
 from llamea.rlm_surrogate.problem_instances import (
     ProblemInstance,
     compute_problem_feature_text,
 )
 
+import iohblade.benchmarks.BBOB.mabbob as blade_mabbob
+
 PROBLEM_SEP = "\n\n# Problem\n"
+
+# The installed llamea package lacks its MA-BBOB tables; BLADE ships
+# byte-identical copies.
+if not (pi.MA_BBOB_DATA_DIR / "weights.csv").exists():
+    pi.MA_BBOB_DATA_DIR = Path(blade_mabbob.__file__).parent / "mabbob"
 HEADER_RE = re.compile(r"(LHS|STATS)\[(\d+)pts,dim=(\d+)\]")
 
 

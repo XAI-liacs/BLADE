@@ -1,8 +1,9 @@
 import json
-import uuid
 import traceback
-import numpy as np
+import uuid
 from typing import Optional
+
+import numpy as np
 
 from .fitness import Fitness
 
@@ -49,6 +50,7 @@ class Solution:
         self.parent_ids = parent_ids
         self.metadata = {}  # Dictionary to store additional metadata
         self.operator = operator
+        self.operator_id = None  # Operator.id, set by set_operator()
         self.task_prompt = task_prompt
 
     def __getstate__(self):
@@ -58,9 +60,10 @@ class Solution:
         # Reconstruct Fitness from the serialised dict produced by __getstate__
         # (which calls to_dict()). Without this, fitness stays a plain dict after
         # every pickle round-trip, breaking Pareto comparisons in search methods.
+        state = dict(state)  # don't mutate the incoming state
+        state.setdefault("operator_id", None)  # older pickles lack this field
         fitness_data = state.get("fitness")
         if isinstance(fitness_data, dict):
-            state = dict(state)  # don't mutate the incoming state
             state["fitness"] = Fitness.from_dict(fitness_data)
         self.__dict__.update(state)
         if self.configspace == "":
@@ -92,9 +95,18 @@ class Solution:
         Sets the operator name that generated this individual.
 
         Args:
-            operator (str): The name of the operator (for logging purposes).
+            operator (str | tuple): The name of the operator, or, as passed
+                by LLaMEA >= 1.4, a tuple ``(Operator, *parent_ids)``. The
+                tuple is stored as text plus ``operator_id`` so the solution
+                stays picklable without LLaMEA installed (the evaluation
+                subprocess does not have it).
         """
-        self.operator = operator
+        if isinstance(operator, tuple) and operator:
+            op, parents = operator[0], operator[1:]
+            self.operator = f"Operator: {op}, with parents: {parents}."
+            self.operator_id = getattr(op, "id", None)
+        else:
+            self.operator = operator
 
     def add_metadata(self, key, value):
         """
@@ -188,6 +200,7 @@ class Solution:
         new_solution.feedback = self.feedback
         new_solution.error = self.error
         new_solution.metadata = self.metadata.copy()  # Copy the metadata as well
+        new_solution.operator_id = self.operator_id
         return new_solution
 
     def empty_copy(self):
@@ -238,6 +251,7 @@ class Solution:
             "error": self.error,
             "parent_ids": self.parent_ids,
             "operator": self.operator,
+            "operator_id": self.operator_id,
             "metadata": self.metadata,
             "task_prompt": self.task_prompt,
         }
@@ -277,6 +291,7 @@ class Solution:
         self.error = data.get("error")
         self.parent_ids = data.get("parent_ids", [])
         self.operator = data.get("operator")
+        self.operator_id = data.get("operator_id")
         self.metadata = data.get("metadata", {})
 
     def to_json(self):

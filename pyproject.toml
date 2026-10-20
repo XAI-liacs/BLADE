@@ -16,9 +16,8 @@ dependencies = [
     "google-genai>=1,<2",
     "joblib>=1.4.2,<2",
     "tokencost>=0.1.26,<0.2",
-    # Feature branch: RLM pre-screening (see [tool.uv.sources]). Its pyproject
-    # still says 1.2.0, so the >=1.4.0 floor is dropped here.
-    "llamea",
+    # Installed from the RLM pre-screening feature branch, see [tool.uv.sources].
+    "llamea>=1.4.0,<2",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
     "xmltodict>=0.14.2,<0.15",
@@ -110,7 +109,7 @@ eoh = { git = "https://github.com/nikivanstein/EoH", subdirectory = "eoh" , rev 
 reevo = { git = "https://github.com/nikivanstein/reevo.git", rev = "main" }
 kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = "ad41cfe99aec44c99ae79b4ececcc7227eb20db2" }
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
-llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "7086d7949bd52bd54fa65c90f7b9faca4cd0b6f3" } # branch claude/llamea-rlm-surrogate-20but4
+llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "c35f11c246c08fd9f31cedb9c6362dd379af3000" } # branch claude/llamea-rlm-surrogate-20but4
 # The PyPI "regress-lm" is an unrelated empty placeholder; use the real one.
 regress-lm = { git = "https://github.com/google-deepmind/regress-lm.git" }
 codebleu = { git = "https://github.com/anantashahane/codebleu", rev="main"}
