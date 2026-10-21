@@ -176,13 +176,16 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
+        def __init__(self, name, base_url):
+            super().__init__("", name, base_url)
+
         def _query(self, s):
             return "res"
 
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
-    llm = DummyLLM("", "")
+    llm = DummyLLM("llm:dummy/mad", "")
     method = DummyMethod(llm, 1, name="m")
     problem = DummyProblem(name="p")
     exp = Experiment(
@@ -192,7 +195,7 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
         exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "exp")),
     )
     exp()
-    run_dir = os.path.join(exp.exp_logger.dirname, "run-m-p-0")
+    run_dir = os.path.join(exp.exp_logger.dirname, "run-m-llm-dummy-mad-p-0")
     with open(os.path.join(run_dir, "stdout.log")) as f:
         assert "out" in f.read()
     with open(os.path.join(run_dir, "stderr.log")) as f:
@@ -212,13 +215,16 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
+        def __init__(self, name, base_url):
+            super().__init__("", name, base_url)
+
         def _query(self, s):
             return "res"
 
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
-    llm = DummyLLM("", "")
+    llm = DummyLLM("l", "")
     method = EvalMethod(llm, 1, name="m")
     problem = EvalProblem(name="p")
     exp = Experiment(
@@ -229,7 +235,7 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
         exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "exp_eval")),
     )
     exp()
-    run_dir = os.path.join(exp.exp_logger.dirname, "run-m-p-0")
+    run_dir = os.path.join(exp.exp_logger.dirname, "run-m-l-p-0")
     with open(os.path.join(run_dir, "stdout.log")) as f:
         assert "eval out" in f.read()
     with open(os.path.join(run_dir, "stderr.log")) as f:
@@ -248,13 +254,16 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
             return {}
 
     class DummyLLM(LLM):
+        def __init__(self, name, base_url):
+            super().__init__("", name, base_url)
+
         def _query(self, s):
             return "res"
 
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
-    llm = DummyLLM("", "")
+    llm = DummyLLM("l", "")
     method = EvalMethod(llm, 1, name="m")
     problem = EvalProblem(name="p")
     exp = Experiment(
@@ -265,8 +274,7 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
         exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "exp_eval")),
     )
     exp()
-    path = os.path.join(cleanup_tmp_dir, 'exp_eval', 'run-m-p-0')
-    print(path)
+    path = os.path.join(cleanup_tmp_dir, 'exp_eval', 'run-m-l-p-0')
 
     assert os.path.exists(os.path.join(path, 'method.json'))
     assert os.path.exists(os.path.join(path, 'llm.json'))
