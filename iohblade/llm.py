@@ -117,8 +117,8 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
                 line
                 for line in output.splitlines()
                 if (
-                    "VGA compatible controller" in line
-                    or "3D controller" in line
+                    # "VGA compatible controller" in line //Not the best predictor of LLM GPU.
+                    "3D controller" in line
                     or "Display controller" in line
                 )
             ]
