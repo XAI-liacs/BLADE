@@ -1,6 +1,6 @@
 [project]
 name = "iohblade"
-version = "1.1.0"
+version = "1.1.1"
 description = "Benchmarking Llm Assisted Design and Evolution of algorithms."
 authors = [{ name = "Niki van Stein", email = "n.van.stein@liacs.leidenuniv.nl" }]
 requires-python = ">=3.11, <4"
@@ -16,7 +16,7 @@ dependencies = [
     "google-genai>=1,<2",
     "joblib>=1.4.2,<2",
     "tokencost>=0.1.26,<0.2",
-    "llamea>=1.4.0,<2",
+    "llamea>=1.4.1,<2",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
     "xmltodict>=0.14.2,<0.15",
