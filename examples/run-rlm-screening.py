@@ -41,6 +41,9 @@ Usage:
 import argparse
 import math
 import os
+import sys
+import time
+import traceback
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +55,7 @@ from iohblade.experiment import Experiment
 from iohblade.llm import Claude_LLM, Dummy_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA
+from iohblade.solution import Solution
 
 # Feature settings each checkpoint was trained with. Confirm with
 # examples/check-rlm-feature-config.py before trusting any result: a wrong
@@ -182,6 +186,69 @@ def install_rlm_instance_hooks(custom_kinds: dict[str, Any]) -> None:
         )
 
     screening.compute_problem_feature_text = feature_text
+
+
+def check_rlm_screeners(
+    checkpoints: dict[str, str], instances: list[dict], rlm_extra: dict
+) -> None:
+    """Loads each RLM screener once and scores one test candidate.
+
+    LLaMEA builds its screener inside every run, so a screener that cannot
+    load only shows up as failed runs, after LLM budget has been spent.
+    This runs the same setup once, before any run starts, and exits with
+    the error if it fails. Call it after ``install_rlm_instance_hooks``.
+    """
+    import numpy as np
+    from llamea.rlm_surrogate.problem_instances import ProblemInstance
+    from llamea.rlm_surrogate.screening import RLMScreener, RLMScreeningConfig
+
+    test_candidate = Solution(
+        code=(
+            "import numpy as np\n\n"
+            "class RandomSearch:\n"
+            "    def __init__(self, budget=10000, dim=10):\n"
+            "        self.budget = budget\n"
+        ),
+        name="RandomSearch",
+        description="Random search, used to test the RLM screener.",
+    )
+    problem_instances = [ProblemInstance(**inst) for inst in instances]
+    for tag, ckpt in checkpoints.items():
+        features = CHECKPOINT_FEATURES[tag]
+        config = RLMScreeningConfig(
+            checkpoint_dir=ckpt,
+            strategy="log_only",
+            feature_mode=features["rlm_feature_mode"],
+            n_lhs_points=features["rlm_n_lhs_points"],
+            lhs_seed=features["rlm_lhs_seed"],
+            device=rlm_extra.get("rlm_device"),
+            num_samples_point_pred=rlm_extra.get("rlm_num_samples_point_pred"),
+        )
+        start = time.time()
+        try:
+            screener = RLMScreener(config, problem_instances)
+            (score,) = screener.score([test_candidate])
+            if not np.isfinite(score):
+                raise ValueError(f"test candidate scored {score}")
+        except Exception as e:
+            traceback.print_exc()
+            sys.exit(
+                f"RLM screener check failed for {tag} ({ckpt}): "
+                f"{type(e).__name__}: {e}. No runs were started."
+            )
+        print(
+            f"RLM screener {tag}: OK ({len(problem_instances)} instances, "
+            f"test score {score:.4g}, {time.time() - start:.0f}s)",
+            flush=True,
+        )
+        del screener
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except ImportError:
+            pass
 
 
 # --------------------------------------------------------------------------
@@ -340,6 +407,9 @@ def main():
         rlm_extra["rlm_device"] = args.rlm_device
     if args.rlm_num_samples:
         rlm_extra["rlm_num_samples_point_pred"] = args.rlm_num_samples
+
+    # Fail now, with the real error, rather than in every screening run.
+    check_rlm_screeners(checkpoints, instances, rlm_extra)
 
     # One instance list, shared by every RLM variant on this suite.
     methods = build_methods(
