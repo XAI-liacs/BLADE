@@ -181,6 +181,7 @@ BBOB*.zip
 /setup/
 .vscode/
 _site/
+ignore/
 
 # Apple File System
 .DS_Store
