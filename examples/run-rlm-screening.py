@@ -279,10 +279,10 @@ def main():
         action="store_true",
         help="Also run the lhs20-checkpoint mirrors of every RLM variant.",
     )
-    p.add_argument("--model", default="claude-opus-5-5", help="Claude model ID.")
+    p.add_argument("--model", default="claude-haiku-5-5", help="Claude model ID.")
     p.add_argument(
         "--effort",
-        default="high",
+        default="medium",
         choices=["low", "medium", "high", "xhigh", "max"],
         help="Claude effort level (thinking depth and token spend).",
     )
@@ -319,7 +319,7 @@ def main():
         results_dir = f"results/rlm-screening-{args.suite}-pilot"
     else:
         llm = Claude_LLM(
-            os.getenv("ANTHROPIC_API_KEY"),  # None: SDK resolves credentials
+            os.getenv("CLAUDE_API_KEY"),  # None: SDK resolves credentials
             args.model,
             max_tokens=16000,  # thinking + the generated algorithm
             effort=args.effort,
