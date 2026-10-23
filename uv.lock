@@ -8,9 +8,6 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 
-[manifest]
-overrides = [{ name = "anthropic", specifier = ">=2.1.0,<3" }]
-
 [[package]]
 name = "about-time"
 version = "4.2.1"
@@ -2251,7 +2248,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", specifier = ">=1.4.1,<2" },
+    { name = "llamea", specifier = ">=1.4.2,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2966,7 +2963,7 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.4.1"
+version = "1.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anthropic" },
@@ -2983,9 +2980,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "xgboost" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/aa/b5/be456d3789d96fb6f0248a88c1d86e022dfc4677d474f6a0da40bf40ea3b/llamea-1.4.1.tar.gz", hash = "sha256:899de67d78a7741f761d0fc3f5fb37a2e650013052c8c860c49e015990305f9c", size = 8370543, upload-time = "2026-10-22T09:24:19.756Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/64/15/4d091ff3b79c41ef8585458950cb13567fd072aa053600487b89814dfd8c/llamea-1.4.2.tar.gz", hash = "sha256:0d3a41009d190901d85e6bc87f112f94b03cf5365c787f4627e8e102d305644f", size = 8372736, upload-time = "2026-10-23T07:53:09.622Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/15/97ce2f09950623b091b64babb0284e9db9498731913a64b3647425dbb6e6/llamea-1.4.1-py3-none-any.whl", hash = "sha256:46783a33b3aeaa4bcdb388fbbbd93a3bd27e20014ed975b1bb76c9cc017f5168", size = 51093, upload-time = "2026-10-22T09:24:18.266Z" },
+    { url = "https://files.pythonhosted.org/packages/60/78/fa0ac1dd2e2434c6f2a82edbe9fb3fbd2cddb7ee705f2e5451df08f28ba6/llamea-1.4.2-py3-none-any.whl", hash = "sha256:00ae02d67282e3550dda3c45a02352a7f9463e3ac584c5336e408e23b1b0c0eb", size = 51671, upload-time = "2026-10-23T07:53:07.635Z" },
 ]
 
 [[package]]
