@@ -110,7 +110,11 @@ class ExperimentLogger:
         Opens (starts) a new run for logging.
         Typically call this right before your run, so that the RunLogger can log step data.
         """
-        run_name = f"{method.name}-{problem.name}-{seed}"
+        llm = getattr(method, "llm", None)
+        llm_name = getattr(llm, "model", "llm-unknown")
+        llm_name = llm_name.replace("/", "-").replace(":", "-")
+
+        run_name = f"{method.name}-{llm_name}-{problem.name}-{seed}"
 
         self._before_open_run(run_name, method, problem, budget, seed)
 

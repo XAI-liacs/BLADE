@@ -1,5 +1,37 @@
 # Changelog
 
+## v1.1.1 (2026-10-22)
+
+Changes since [v1.1.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.0).
+
+### Major changes
+
+- **LLaMEA 1.4.1**. BLADE now depends on `llamea>=1.4.1`.
+
+### Minor changes
+
+- Run names include the LLM model name
+  (`{method}-{llm}-{problem}-{seed}`), so runs of the same method and problem
+  with different LLMs no longer share a name (#175). `/` and `:` in model
+  names are replaced by `-`.
+- GPU detection for the LLM hardware info ignores "VGA compatible controller"
+  devices, which are often integrated graphics rather than the GPU running the
+  LLM (#175).
+- `Solution` has a new `operator_id` field, kept through `copy()`,
+  `to_dict()`/`from_dict()` and pickling (#174).
+- Dependency updates: aiohttp 3.14.4 (#173).
+
+### Bug fixes
+
+- Every LLaMEA (>= 1.4) offspring was scored as an error: the `Operator`
+  object stored on the solution could not be unpickled in the evaluation
+  subprocess, where LLaMEA is not installed. The operator is now stored as
+  text plus `operator_id` (#174).
+- Parallel runs (`n_jobs > 1`) that share an evaluation environment could read
+  each other's half-written problem pickle or run each other's evaluation
+  script, so a solution could be scored with the wrong code. Each evaluation
+  now uses unique file names and removes them afterwards (#174).
+
 ## v1.1.0 (2026-10-08)
 
 Changes since [v1.0.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.0.0).

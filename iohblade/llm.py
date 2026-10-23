@@ -7,6 +7,7 @@ import logging
 import re
 import time
 import random
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -117,8 +118,8 @@ def _get_gpu_info() -> tuple[Optional[str], Optional[int]]:
                 line
                 for line in output.splitlines()
                 if (
-                    "VGA compatible controller" in line
-                    or "3D controller" in line
+                    # "VGA compatible controller" in line //Not the best predictor of LLM GPU.
+                    "3D controller" in line
                     or "Display controller" in line
                 )
             ]
@@ -829,10 +830,10 @@ class Claude_LLM(LLM):
     def __init__(
         self,
         api_key,
-        model="claude-3-haiku-20240307",
+        model="claude-opus-5-5",
         base_url=None,
-        max_tokens=12000,
-        temperature=0.8,
+        max_tokens=16000,
+        temperature=None,
         effort=None,
         fallbacks=None,
         **kwargs,
@@ -841,14 +842,15 @@ class Claude_LLM(LLM):
 
         Args:
             api_key (str | None): Anthropic API key. ``None`` lets the SDK
-                resolve credentials (``ANTHROPIC_API_KEY`` etc.).
+                resolve credentials (``ANTHROPIC_API_KEY``, an ``ant auth
+                login`` profile, ...).
             model (str): Claude model ID.
             base_url (str, optional): Alternative API base URL.
             max_tokens (int): Output token cap per response (thinking
                 included).
-            temperature (float | None): Sampling temperature. Pass ``None``
-                to leave it out; newer models (e.g. ``claude-opus-5-5``)
-                reject the field.
+            temperature (float | None): Deprecated and ignored. The Claude
+                API (version 2026-10-21) no longer accepts sampling
+                parameters; requests use the API's default sampling.
             effort (str | None): ``output_config.effort`` (``"low"`` to
                 ``"max"``); ``None`` uses the model's default.
             fallbacks (str | list | None): Server-side refusal fallbacks,
@@ -856,6 +858,13 @@ class Claude_LLM(LLM):
         """
 
         super().__init__(api_key, model, base_url, **kwargs)
+        if temperature is not None:
+            warnings.warn(
+                "Claude_LLM ignores temperature: the Claude API no longer "
+                "accepts sampling parameters.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.temperature = temperature
         self.effort = effort
         self.fallbacks = fallbacks
@@ -877,8 +886,6 @@ class Claude_LLM(LLM):
                     "model": self.model,
                     "messages": session_messages,
                 }
-                if self.temperature is not None:
-                    request["temperature"] = self.temperature
                 if self.effort is not None:
                     request["output_config"] = {"effort": self.effort}
                 if self.fallbacks is not None:
@@ -949,6 +956,8 @@ class Claude_LLM(LLM):
         return state
 
     def __setstate__(self, state):
+        state.setdefault("effort", None)  # older pickles lack these
+        state.setdefault("fallbacks", None)
         self.__dict__.update(state)
         self.client = anthropic.Anthropic(**self._client_kwargs)
 
@@ -964,11 +973,13 @@ class Claude_LLM(LLM):
         return new
 
     def get_config(self) -> list[dict[str, Any]]:
-        llm_config = self._client_kwargs.copy()
-        llm_config["temperature"] = self.temperature
-        llm_config.pop("api_key")
+        # Never include the API key: configs are written to experiment logs.
+        llm_config = {k: v for k, v in self._client_kwargs.items() if k != "api_key"}
+        llm_config["max_tokens"] = self.max_tokens
+        llm_config["effort"] = self.effort
+        llm_config["fallbacks"] = self.fallbacks
 
-        config = {"model": self.model, "config": self._client_kwargs}
+        config = {"model": self.model, "config": llm_config}
         return [config]
 
 

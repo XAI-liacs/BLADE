@@ -322,7 +322,6 @@ def main():
             os.getenv("ANTHROPIC_API_KEY"),  # None: SDK resolves credentials
             args.model,
             max_tokens=16000,  # thinking + the generated algorithm
-            temperature=None,  # current Claude models reject temperature
             effort=args.effort,
             # On a safety refusal, re-run the request on Anthropic's
             # recommended fallback model instead of losing the offspring.
