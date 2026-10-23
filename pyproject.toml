@@ -10,7 +10,7 @@ dependencies = [
     "numpy>=2,<3",
     "pandas>=2.2.3,<3",
     "openai>=1.99.1,<2",
-    "anthropic>=0.57,<1",
+    "anthropic>=2.1.0,<3",
     "ollama>=0.5.3,<1",
     "jsonlines>=4.0.0,<5",
     "google-genai>=1,<2",
@@ -89,6 +89,12 @@ trackio = [
 [tool.uv]
 default-groups = [
     "methods",
+]
+# TEMPORARY: llamea 1.4.1 pins anthropic<1, which blocks anthropic 2.x.
+# Remove this override (and raise the llamea floor) once a llamea release
+# allows anthropic 2.x. Until then the package is not pip-installable.
+override-dependencies = [
+    "anthropic>=2.1.0,<3",
 ]
 
 [tool.uv.sources]
