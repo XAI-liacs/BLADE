@@ -55,7 +55,7 @@ class Photonics(Problem):
                 "pyGDM2==1.1.12",
             ]
         if imports is None:
-            imports = "import numpy as np\nimport ioh\n"
+            imports = "import numpy as np\nimport ioh\nimport math\n"
 
         if problem_type not in ["bragg", "ellipsometry", "photovoltaic"]:
             raise Exception(
