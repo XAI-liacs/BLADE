@@ -3,6 +3,7 @@ import copy
 import types
 import datetime as _dt
 import pickle
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -736,3 +737,81 @@ def test_lms_getstate_setstate_reloads_llm(fake_lms_llm):
     assert restored.model == llm.model
     assert restored.config == llm.config
     assert hasattr(restored, "llm")
+
+def _claude_response(blocks, stop_reason="end_turn"):
+    resp = MagicMock()
+    resp.content = blocks
+    resp.stop_reason = stop_reason
+    return resp
+
+
+def _block(kind, **fields):
+    return SimpleNamespace(type=kind, **fields)
+
+
+def test_claude_llm_request_without_temperature_with_effort():
+    llm = Claude_LLM(
+        api_key="fake", model="claude-opus-5-5", temperature=None, effort="high"
+    )
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response(
+            [_block("thinking", thinking=""), _block("text", text="CODE")]
+        )
+    )
+
+    assert llm._query([{"role": "user", "content": "hi"}]) == "CODE"
+    kwargs = llm.client.messages.create.call_args.kwargs
+    assert "temperature" not in kwargs
+    assert kwargs["output_config"] == {"effort": "high"}
+
+
+def test_claude_llm_default_request_unchanged():
+    llm = Claude_LLM(api_key="fake", model="claude-test")
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response([_block("text", text="X")])
+    )
+    llm._query([{"role": "user", "content": "hi"}])
+    kwargs = llm.client.messages.create.call_args.kwargs
+    assert kwargs["temperature"] == 0.8
+    assert "output_config" not in kwargs
+
+
+def test_claude_llm_fallbacks_use_beta_endpoint():
+    llm = Claude_LLM(
+        api_key="fake", model="claude-opus-5-5", temperature=None, fallbacks="default"
+    )
+    llm.client.beta.messages.create = MagicMock(
+        return_value=_claude_response([_block("text", text="OK")])
+    )
+    llm.client.messages.create = MagicMock()
+
+    assert llm._query([{"role": "user", "content": "hi"}]) == "OK"
+    kwargs = llm.client.beta.messages.create.call_args.kwargs
+    assert kwargs["fallbacks"] == "default"
+    assert kwargs["betas"] == ["server-side-fallback-2026-07-01"]
+    llm.client.messages.create.assert_not_called()
+
+
+def test_claude_llm_refusal_returns_no_text():
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5", temperature=None)
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response(
+            [_block("text", text="partial")], stop_reason="refusal"
+        )
+    )
+    assert llm._query([{"role": "user", "content": "hi"}]) == ""
+
+
+def test_claude_llm_bad_request_is_not_retried(monkeypatch):
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx.Response(400, request=request)
+    error = llm_mod.anthropic.BadRequestError("bad", response=response, body=None)
+    llm.client.messages.create = MagicMock(side_effect=error)
+
+    with pytest.raises(llm_mod.anthropic.BadRequestError):
+        llm._query([{"role": "user", "content": "hi"}])
+    assert llm.client.messages.create.call_count == 1
+    slept.assert_not_called()

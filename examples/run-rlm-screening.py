@@ -31,7 +31,8 @@ Usage:
     uv run python examples/run-rlm-screening.py --suite mabbob --pilot \\
         --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/
 
-    # Full matrix (needs OPENAI_API_KEY).
+    # Full matrix with Claude (credentials: ANTHROPIC_API_KEY or an
+    # `ant auth login` profile).
     uv run python examples/run-rlm-screening.py --suite photonics \\
         --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/ \\
         --ckpt-lhs20 /data/neocortex/rlm/checkpoints/production_lhs20/ --with-lhs20
@@ -48,7 +49,7 @@ import ioh
 import iohblade.benchmarks.BBOB.mabbob as blade_mabbob
 from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, Photonics
 from iohblade.experiment import Experiment
-from iohblade.llm import Dummy_LLM, OpenAI_LLM
+from iohblade.llm import Claude_LLM, Dummy_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA
 
@@ -278,7 +279,13 @@ def main():
         action="store_true",
         help="Also run the lhs20-checkpoint mirrors of every RLM variant.",
     )
-    p.add_argument("--model", default="gpt-4.1-2025-04-14")
+    p.add_argument("--model", default="claude-opus-5-5", help="Claude model ID.")
+    p.add_argument(
+        "--effort",
+        default="high",
+        choices=["low", "medium", "high", "xhigh", "max"],
+        help="Claude effort level (thinking depth and token spend).",
+    )
     p.add_argument("--budget", type=int, default=None, help="Real evals/run.")
     p.add_argument("--runs", type=int, default=None)
     p.add_argument("--n-jobs", type=int, default=4)
@@ -311,10 +318,16 @@ def main():
         n_parents, n_offspring = 2, 4
         results_dir = f"results/rlm-screening-{args.suite}-pilot"
     else:
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            p.error("OPENAI_API_KEY is not set")
-        llm = OpenAI_LLM(api_key, args.model)
+        llm = Claude_LLM(
+            os.getenv("ANTHROPIC_API_KEY"),  # None: SDK resolves credentials
+            args.model,
+            max_tokens=16000,  # thinking + the generated algorithm
+            temperature=None,  # current Claude models reject temperature
+            effort=args.effort,
+            # On a safety refusal, re-run the request on Anthropic's
+            # recommended fallback model instead of losing the offspring.
+            fallbacks="default",
+        )
         budget, runs = args.budget or 100, args.runs or 5
         n_parents, n_offspring = 4, 12
         results_dir = f"results/rlm-screening-{args.suite}"

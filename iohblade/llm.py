@@ -833,12 +833,32 @@ class Claude_LLM(LLM):
         base_url=None,
         max_tokens=12000,
         temperature=0.8,
+        effort=None,
+        fallbacks=None,
         **kwargs,
     ):
-        """Initializes the LLM manager with an API key and model name."""
+        """Initializes the LLM manager with an API key and model name.
+
+        Args:
+            api_key (str | None): Anthropic API key. ``None`` lets the SDK
+                resolve credentials (``ANTHROPIC_API_KEY`` etc.).
+            model (str): Claude model ID.
+            base_url (str, optional): Alternative API base URL.
+            max_tokens (int): Output token cap per response (thinking
+                included).
+            temperature (float | None): Sampling temperature. Pass ``None``
+                to leave it out; newer models (e.g. ``claude-opus-5-5``)
+                reject the field.
+            effort (str | None): ``output_config.effort`` (``"low"`` to
+                ``"max"``); ``None`` uses the model's default.
+            fallbacks (str | list | None): Server-side refusal fallbacks,
+                e.g. ``"default"``. Sent through the beta endpoint.
+        """
 
         super().__init__(api_key, model, base_url, **kwargs)
         self.temperature = temperature
+        self.effort = effort
+        self.fallbacks = fallbacks
         self._client_kwargs = {"api_key": api_key}
         self.max_tokens = max_tokens
         if base_url:
@@ -852,25 +872,55 @@ class Claude_LLM(LLM):
         attempt = 0
         while True:
             try:
-                response = self.client.messages.create(
-                    max_tokens=self.max_tokens,
-                    model=self.model,
-                    messages=session_messages,
-                    temperature=self.temperature,
-                )
+                request = {
+                    "max_tokens": self.max_tokens,
+                    "model": self.model,
+                    "messages": session_messages,
+                }
+                if self.temperature is not None:
+                    request["temperature"] = self.temperature
+                if self.effort is not None:
+                    request["output_config"] = {"effort": self.effort}
+                if self.fallbacks is not None:
+                    fallback_beta = (
+                        "server-side-fallback-2026-07-01"
+                        if isinstance(self.fallbacks, str)
+                        else "server-side-fallback-2026-06-01"
+                    )
+                    response = self.client.beta.messages.create(
+                        betas=[fallback_beta], fallbacks=self.fallbacks, **request
+                    )
+                else:
+                    response = self.client.messages.create(**request)
 
+                if response.stop_reason == "refusal":
+                    # Declined (by the fallback chain too, if one was set):
+                    # any partial output is not a usable answer.
+                    return ""
                 content = response.content
                 if isinstance(content, list):
                     parts = []
                     for block in content:
-                        if hasattr(block, "text"):
+                        if getattr(block, "type", None) == "text":
                             parts.append(block.text)
-                        elif isinstance(block, dict) and "text" in block:
+                        elif (
+                            isinstance(block, dict)
+                            and block.get("type", "text") == "text"
+                            and "text" in block
+                        ):
                             parts.append(block["text"])
                     text_output = "".join(parts)
                 else:
                     text_output = str(content)
                 return text_output
+
+            except (
+                anthropic.BadRequestError,
+                anthropic.AuthenticationError,
+                anthropic.PermissionDeniedError,
+                anthropic.NotFoundError,
+            ):
+                raise  # retrying cannot fix these
 
             except anthropic.RateLimitError as err:
                 attempt += 1
