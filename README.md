@@ -1,9 +1,10 @@
-<h1 align="center">LLaMEA-CFG: Guiding Automated Algorithm Design with
-Structural Feedback from Explainable AI</h1>
+<h1 align="center">LLaMEA-GUIDE: Guiding Automated Algorithm
+Design with Feedback from Code Analysis</h1>
 
 
 ## Introduction
-This is the reproducability repository for the paper "LLaMEA-CFG: Guiding Automated Algorithm Design with Structural Feedback from Explainable AI".
+This is the reproducability repository for the paper "LLaMEA-GUIDE: Guiding Automated Algorithm
+Design with Feedback from Code Analysis".
 
 
 
