@@ -23,18 +23,18 @@ Before a real run, confirm each checkpoint's feature settings (they are
 not stored in the checkpoint) and update ``CHECKPOINT_FEATURES``:
 
     uv run python examples/check-rlm-feature-config.py \\
-        --checkpoint-dir /path/to/production_lhs200 \\
+        --checkpoint-dir /data/neocortex/rlm/checkpoints/production_lhs200/ \\
         --expect-mode lhs --expect-points 200 --expect-seed 0
 
 Usage:
     # Cheap pilot: Dummy LLM, budget 16, 1 run, few instances.
     uv run python examples/run-rlm-screening.py --suite mabbob --pilot \\
-        --ckpt-lhs200 /path/to/production_lhs200
+        --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/
 
     # Full matrix (needs OPENAI_API_KEY).
     uv run python examples/run-rlm-screening.py --suite photonics \\
-        --ckpt-lhs200 /path/to/production_lhs200 \\
-        --ckpt-lhs20 /path/to/production_lhs --with-lhs20
+        --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/ \\
+        --ckpt-lhs20 /data/neocortex/rlm/checkpoints/production_lhs20/ --with-lhs20
 """
 
 import argparse
@@ -70,7 +70,7 @@ CHECKPOINT_FEATURES = {
 }
 
 THRESHOLD_QUANTILE = 0.5
-BBOB_FIDS = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
+BBOB_FIDS = [1, 2, 3]
 MA_BBOB_TRAIN = range(300, 350)
 MA_BBOB_TEST = range(350, 400)
 BLADE_MA_BBOB_DIR = Path(blade_mabbob.__file__).parent / "mabbob"
@@ -99,7 +99,6 @@ def build_suite(suite: str, pilot: bool) -> tuple[Any, list[dict], dict]:
             eval_timeout=600,
             name="BBOB",
             # The RLM rebuilds kind="bbob" with ioh.get_problem (BBOB class);
-            # BBOB_SBOX's default SBOX class would be the wrong functions.
             problem_type=ioh.ProblemClass.BBOB,
         )
         instances = [
