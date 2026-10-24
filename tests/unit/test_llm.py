@@ -3,10 +3,12 @@ import copy
 import types
 import datetime as _dt
 import pickle
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import httpx
+import httpx2
 import pytest
 
 import iohblade.llm as llm_mod  # the module that defines _query
@@ -268,10 +270,11 @@ def test_openai_llm_gives_up(monkeypatch):
 
 
 def _anthropic_rate_limit(retry_after: int = 2) -> Exception:
-    response = httpx.Response(
+    # anthropic >= 1 is built on httpx2, not httpx.
+    response = httpx2.Response(
         status_code=429,
         headers={"Retry-After": str(retry_after)},
-        request=httpx.Request("POST", "http://test"),
+        request=httpx2.Request("POST", "http://test"),
     )
     return llm_mod.anthropic.RateLimitError("quota", response=response, body=None)
 
@@ -736,3 +739,98 @@ def test_lms_getstate_setstate_reloads_llm(fake_lms_llm):
     assert restored.model == llm.model
     assert restored.config == llm.config
     assert hasattr(restored, "llm")
+
+def _claude_response(blocks, stop_reason="end_turn"):
+    resp = MagicMock()
+    resp.content = blocks
+    resp.stop_reason = stop_reason
+    return resp
+
+
+def _block(kind, **fields):
+    return SimpleNamespace(type=kind, **fields)
+
+
+def test_claude_llm_never_sends_temperature():
+    # API version 2026-10-21 rejects sampling parameters on every model.
+    with pytest.warns(DeprecationWarning):
+        llm = Claude_LLM(api_key="fake", model="claude-opus-5-5", temperature=0.3)
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response([_block("text", text="X")])
+    )
+    llm._query([{"role": "user", "content": "hi"}])
+    kwargs = llm.client.messages.create.call_args.kwargs
+    assert "temperature" not in kwargs
+    assert kwargs["max_tokens"] == 16000
+    assert "output_config" not in kwargs
+
+
+def test_claude_llm_effort_and_text_blocks_only():
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5", effort="high")
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response(
+            [_block("thinking", thinking=""), _block("text", text="CODE")]
+        )
+    )
+
+    assert llm._query([{"role": "user", "content": "hi"}]) == "CODE"
+    kwargs = llm.client.messages.create.call_args.kwargs
+    assert kwargs["output_config"] == {"effort": "high"}
+
+
+def test_claude_llm_fallbacks_use_beta_endpoint():
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5", fallbacks="default")
+    llm.client.beta.messages.create = MagicMock(
+        return_value=_claude_response([_block("text", text="OK")])
+    )
+    llm.client.messages.create = MagicMock()
+
+    assert llm._query([{"role": "user", "content": "hi"}]) == "OK"
+    kwargs = llm.client.beta.messages.create.call_args.kwargs
+    assert kwargs["fallbacks"] == "default"
+    assert kwargs["betas"] == ["server-side-fallback-2026-07-01"]
+    llm.client.messages.create.assert_not_called()
+
+
+def test_claude_llm_refusal_returns_no_text():
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5")
+    llm.client.messages.create = MagicMock(
+        return_value=_claude_response(
+            [_block("text", text="partial")], stop_reason="refusal"
+        )
+    )
+    assert llm._query([{"role": "user", "content": "hi"}]) == ""
+
+
+def test_claude_llm_bad_request_is_not_retried(monkeypatch):
+    llm = Claude_LLM(api_key="fake", model="claude-opus-5-5")
+    slept = MagicMock()
+    monkeypatch.setattr(llm_mod.time, "sleep", slept)
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    response = httpx2.Response(400, request=request)
+    error = llm_mod.anthropic.BadRequestError("bad", response=response, body=None)
+    llm.client.messages.create = MagicMock(side_effect=error)
+
+    with pytest.raises(llm_mod.anthropic.BadRequestError):
+        llm._query([{"role": "user", "content": "hi"}])
+    assert llm.client.messages.create.call_count == 1
+    slept.assert_not_called()
+
+
+def test_claude_llm_get_config_omits_api_key():
+    llm = Claude_LLM(api_key="sk-secret", model="claude-opus-5-5", effort="high")
+    (config,) = llm.get_config()
+    assert config["model"] == "claude-opus-5-5"
+    assert "api_key" not in config["config"]
+    assert "sk-secret" not in repr(config)
+    assert config["config"]["effort"] == "high"
+
+
+def test_claude_llm_unpickles_state_without_new_fields(monkeypatch):
+    _patch_anthropic(monkeypatch)
+    llm = Claude_LLM(api_key="sk-test", model="claude-test")
+    state = llm.__getstate__()
+    del state["effort"], state["fallbacks"]
+    revived = Claude_LLM.__new__(Claude_LLM)
+    revived.__setstate__(state)
+    assert revived.effort is None and revived.fallbacks is None
