@@ -111,7 +111,10 @@ kernel-tuner = { git = "https://github.com/KernelTuner/kernel_tuner.git", rev = 
 autotuning_methodology = { git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git", rev = "5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" }
 llamea = { git = "https://github.com/XAI-liacs/LLaMEA.git", rev = "5bf5a28b948a52c356792c1eaf2caf4dd47cf943" } # branch claude/llamea-rlm-surrogate-20but4
 # The PyPI "regress-lm" is an unrelated empty placeholder; use the real one.
-regress-lm = { git = "https://github.com/google-deepmind/regress-lm.git" }
+# Pinned to the commit the RLM checkpoints were trained with: later commits
+# replaced the decoder (nn.TransformerDecoder -> custom attention), so their
+# model no longer loads those checkpoints' weights.
+regress-lm = { git = "https://github.com/google-deepmind/regress-lm.git", rev = "6c23ccb51ae9862d98af9faffc1286ca2149b12e" }
 codebleu = { git = "https://github.com/anantashahane/codebleu", rev="main"}
 
 [build-system]
