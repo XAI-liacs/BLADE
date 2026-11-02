@@ -174,8 +174,17 @@ def test_unit_square_packing():
 #endregion
 
 # region Photonics
-# def test_photonics():
-#     from iohblade.benchmarks.photonics.photonics import Photonics
-#     p = Photonics(None)
-#     assert check_key_words_exist_in(p.get_config())
+def test_photonics():
+    # Needs the extraproblems dependency group (PyMoosh); skipped without it.
+    import pytest
+
+    pytest.importorskip("PyMoosh")
+    from iohblade.benchmarks.photonics.photonics import Photonics
+    from iohblade.experiment import Experiment
+
+    p = Photonics(None)
+    config = p.get_config()
+    assert check_key_words_exist_in(config)
+    # Experiment._log_data hashes this config when every run finishes.
+    assert Experiment._get_hash(None, config)
 #endregion
