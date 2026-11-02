@@ -5,6 +5,7 @@ import copy
 import logging
 import sys
 import json
+import traceback
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import uuid
@@ -80,9 +81,14 @@ class Experiment(ABC):
     def _status_tokens(self):
         enc = (getattr(sys.__stdout__, "encoding", "") or "").lower()
         if "utf" in enc or "65001" in enc:  # utf-8 or Windows UTF-8 codepage
-            return {"done": "✅", "running": "🔄", "pending": "⏳"}
+            return {"done": "✅", "running": "🔄", "pending": "⏳", "failed": "❌"}
         else:
-            return {"done": "[DONE]", "running": "[RUN]", "pending": "[WAIT]"}
+            return {
+                "done": "[DONE]",
+                "running": "[RUN]",
+                "pending": "[WAIT]",
+                "failed": "[FAIL]",
+            }
 
     def _print_run_overview(self) -> None:
         """Pretty print the planned runs and their status."""
@@ -93,6 +99,8 @@ class Experiment(ABC):
         for r in runs:
             if r.get("end_time"):
                 status = tokens["done"]
+            elif r.get("error"):
+                status = tokens["failed"]
             elif r.get("start_time"):
                 status = tokens["running"]
             else:
@@ -171,17 +179,25 @@ class Experiment(ABC):
                         )
                         tasks[future] = (m_copy, p_copy, logger, seed)
 
+            failures = []
             for fut in as_completed(tasks):
                 method, problem, logger, seed = tasks[fut]
-                solution = fut.result()
-                self.exp_logger.add_run(
-                    method,
-                    problem,
-                    method.llm,
-                    solution,
-                    log_dir=logger.dirname,
-                    seed=seed,
-                )
+                error = fut.exception()
+                if error is not None:
+                    # Record the failure and keep going: raising here would
+                    # stop every other run from being recorded as finished.
+                    failures.append(
+                        self._record_failure(method, problem, logger, seed, error)
+                    )
+                else:
+                    self.exp_logger.add_run(
+                        method,
+                        problem,
+                        method.llm,
+                        fut.result(),
+                        log_dir=logger.dirname,
+                        seed=seed,
+                    )
 
                 if not self.show_stdout:
                     self._refresh_console()
@@ -189,7 +205,38 @@ class Experiment(ABC):
                     self._print_run_overview()
         for problem in self.problems:
             problem.cleanup()
+        if failures:
+            raise RuntimeError(
+                f"{len(failures)} of {len(tasks)} runs failed (the others were "
+                "recorded; rerunning retries only the failed ones):\n"
+                + "\n".join(failures)
+            )
         return
+
+    def _record_failure(self, method, problem, logger, seed, error) -> str:
+        """Writes a failed run's traceback to its log dir and marks it failed.
+
+        Returns:
+            str: One summary line for the end-of-experiment report.
+        """
+        trace = "".join(traceback.format_exception(error))
+        error_path = os.path.join(logger.dirname, "error.txt")
+        try:
+            with open(error_path, "w") as f:
+                f.write(trace)
+        except OSError:
+            error_path = "(could not write error.txt)"
+        if hasattr(self.exp_logger, "mark_run_failed"):
+            self.exp_logger.mark_run_failed(
+                method, problem, seed, f"{type(error).__name__}: {error}"
+            )
+        line = (
+            f"{method.name} / {problem.name} / seed {seed}: "
+            f"{type(error).__name__}: {error} (traceback: {error_path})"
+        )
+        # sys.__stderr__: worker threads may have redirected sys.stderr.
+        print(f"Run failed: {line}", file=sys.__stderr__, flush=True)
+        return line
 
     def _run_single(self, method, problem, logger, seed):
         np.random.seed(seed)

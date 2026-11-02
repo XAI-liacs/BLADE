@@ -74,6 +74,7 @@ class StructureTag(str, Enum):
     MATRIX = "matrix"
     SIGNAL = "signal"
     MATHS = "mathematics"
+    PHYSICS = "physics"
 
 
 class ComplexityTag(str, Enum):

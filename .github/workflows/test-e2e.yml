@@ -55,6 +55,13 @@ jobs:
       #              run test suite
       #----------------------------------------------
       - name: Test with pytest
+        # The e2e tests build an evaluation environment with smac, which
+        # compiles pyrfr from source. GCC 14+ rejects pyrfr's bundled
+        # rapidjson (-Wtemplate-body); these flags downgrade or disable that
+        # check. pip inherits them from this environment.
+        env:
+          CFLAGS: -fpermissive -Wno-template-body
+          CXXFLAGS: -fpermissive -Wno-template-body
         run: uv run pytest --cov=iohblade --cov-report=xml tests/
       #----------------------------------------------
       #             upload coverage stats
