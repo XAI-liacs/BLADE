@@ -7,6 +7,7 @@ import logging
 import re
 import time
 import random
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
@@ -829,16 +830,44 @@ class Claude_LLM(LLM):
     def __init__(
         self,
         api_key,
-        model="claude-3-haiku-20240307",
+        model="claude-opus-5-5",
         base_url=None,
-        max_tokens=12000,
-        temperature=0.8,
+        max_tokens=16000,
+        temperature=None,
+        effort=None,
+        fallbacks=None,
         **kwargs,
     ):
-        """Initializes the LLM manager with an API key and model name."""
+        """Initializes the LLM manager with an API key and model name.
+
+        Args:
+            api_key (str | None): Anthropic API key. ``None`` lets the SDK
+                resolve credentials (``ANTHROPIC_API_KEY``, an ``ant auth
+                login`` profile, ...).
+            model (str): Claude model ID.
+            base_url (str, optional): Alternative API base URL.
+            max_tokens (int): Output token cap per response (thinking
+                included).
+            temperature (float | None): Deprecated and ignored. The Claude
+                API (version 2026-10-21) no longer accepts sampling
+                parameters; requests use the API's default sampling.
+            effort (str | None): ``output_config.effort`` (``"low"`` to
+                ``"max"``); ``None`` uses the model's default.
+            fallbacks (str | list | None): Server-side refusal fallbacks,
+                e.g. ``"default"``. Sent through the beta endpoint.
+        """
 
         super().__init__(api_key, model, base_url, **kwargs)
+        if temperature is not None:
+            warnings.warn(
+                "Claude_LLM ignores temperature: the Claude API no longer "
+                "accepts sampling parameters.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         self.temperature = temperature
+        self.effort = effort
+        self.fallbacks = fallbacks
         self._client_kwargs = {"api_key": api_key}
         self.max_tokens = max_tokens
         if base_url:
@@ -852,25 +881,53 @@ class Claude_LLM(LLM):
         attempt = 0
         while True:
             try:
-                response = self.client.messages.create(
-                    max_tokens=self.max_tokens,
-                    model=self.model,
-                    messages=session_messages,
-                    temperature=self.temperature,
-                )
+                request = {
+                    "max_tokens": self.max_tokens,
+                    "model": self.model,
+                    "messages": session_messages,
+                }
+                if self.effort is not None:
+                    request["output_config"] = {"effort": self.effort}
+                if self.fallbacks is not None:
+                    fallback_beta = (
+                        "server-side-fallback-2026-07-01"
+                        if isinstance(self.fallbacks, str)
+                        else "server-side-fallback-2026-06-01"
+                    )
+                    response = self.client.beta.messages.create(
+                        betas=[fallback_beta], fallbacks=self.fallbacks, **request
+                    )
+                else:
+                    response = self.client.messages.create(**request)
 
+                if response.stop_reason == "refusal":
+                    # Declined (by the fallback chain too, if one was set):
+                    # any partial output is not a usable answer.
+                    return ""
                 content = response.content
                 if isinstance(content, list):
                     parts = []
                     for block in content:
-                        if hasattr(block, "text"):
+                        if getattr(block, "type", None) == "text":
                             parts.append(block.text)
-                        elif isinstance(block, dict) and "text" in block:
+                        elif (
+                            isinstance(block, dict)
+                            and block.get("type", "text") == "text"
+                            and "text" in block
+                        ):
                             parts.append(block["text"])
                     text_output = "".join(parts)
                 else:
                     text_output = str(content)
                 return text_output
+
+            except (
+                anthropic.BadRequestError,
+                anthropic.AuthenticationError,
+                anthropic.PermissionDeniedError,
+                anthropic.NotFoundError,
+            ):
+                raise  # retrying cannot fix these
 
             except anthropic.RateLimitError as err:
                 attempt += 1
@@ -899,6 +956,8 @@ class Claude_LLM(LLM):
         return state
 
     def __setstate__(self, state):
+        state.setdefault("effort", None)  # older pickles lack these
+        state.setdefault("fallbacks", None)
         self.__dict__.update(state)
         self.client = anthropic.Anthropic(**self._client_kwargs)
 
@@ -914,11 +973,13 @@ class Claude_LLM(LLM):
         return new
 
     def get_config(self) -> list[dict[str, Any]]:
-        llm_config = self._client_kwargs.copy()
-        llm_config["temperature"] = self.temperature
-        llm_config.pop("api_key")
+        # Never include the API key: configs are written to experiment logs.
+        llm_config = {k: v for k, v in self._client_kwargs.items() if k != "api_key"}
+        llm_config["max_tokens"] = self.max_tokens
+        llm_config["effort"] = self.effort
+        llm_config["fallbacks"] = self.fallbacks
 
-        config = {"model": self.model, "config": self._client_kwargs}
+        config = {"model": self.model, "config": llm_config}
         return [config]
 
 
