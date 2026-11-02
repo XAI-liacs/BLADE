@@ -425,6 +425,7 @@ def main():
         exp_logger=ExperimentLogger(results_dir),
         n_jobs=min(len(methods), args.n_jobs),
         show_stdout=args.pilot,
+        log_stdout=True
     )
     experiment()
 
