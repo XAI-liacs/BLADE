@@ -153,6 +153,8 @@ class ExperimentLogger:
             entry["start_time"] = datetime.now().isoformat()
             entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
             entry["end_time"] = None
+            entry.pop("error", None)  # a retry starts clean
+            entry.pop("failed_time", None)
             self._write_progress()
         return self.run_logger
 
@@ -426,6 +428,25 @@ class ExperimentLogger:
             if entry is not None:
                 entry["evaluations"] = entry.get("evaluations", 0) + 1
                 self._write_progress()
+
+    def mark_run_failed(self, method, problem, seed, error):
+        """Records that a run raised an exception.
+
+        The run keeps ``end_time = None``, so it stays pending and a rerun of
+        the experiment retries it.
+
+        Args:
+            method (Method): The method of the failed run.
+            problem (Problem): The problem of the failed run.
+            seed (int): The seed of the failed run.
+            error (str): Short description of the exception.
+        """
+        with self._lock:
+            entry = self._get_run_entry(method.name, problem.name, seed)
+            if entry is not None:
+                entry["error"] = str(error)
+                entry["failed_time"] = datetime.now().isoformat()
+            self._write_progress()
 
     def is_run_pending(self, method, problem, seed):
         entry = self._get_run_entry(method.name, problem.name, seed)

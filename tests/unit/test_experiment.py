@@ -292,3 +292,85 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
     with open(os.path.join(path, "problem.json")) as f:
         data = json.load(f)
         assert data.get('hash') is not None, "problem.json wasn't hashed, set it's 'id' as Experiment._get_hash(problem.get_config)."
+
+
+def test_failed_run_is_recorded_and_others_continue(tmp_path):
+    """A run that raises must not stop the other runs from being recorded."""
+
+    class NoEnvProblem(Problem):
+        def _ensure_env(self):
+            pass
+
+        def cleanup(self):
+            pass
+
+        def get_prompt(self):
+            return "Problem prompt"
+
+        def evaluate(self, s):
+            return s
+
+        def test(self, s):
+            return s
+
+        def to_dict(self):
+            return {}
+
+        def get_config(self) -> dict[str, Any]:
+            return {}
+
+    class OkMethod(Method):
+        def __call__(self, problem):
+            sol = Solution(name="ok")
+            sol.set_scores(1.0)
+            return sol
+
+        def to_dict(self):
+            return {}
+
+        def get_config(self) -> dict[str, Any]:
+            return {}
+
+    class BrokenMethod(OkMethod):
+        def __call__(self, problem):
+            raise ValueError("screener failed to load")
+
+    class DummyLLM(LLM):
+        def __init__(self, name):
+            super().__init__("", name)
+
+        def _query(self, s):
+            return "res"
+
+        def get_config(self) -> list[dict[str, Any]]:
+            return [{}]
+
+    llm = DummyLLM("l")
+    exp = Experiment(
+        methods=[BrokenMethod(llm, 1, name="broken"), OkMethod(llm, 1, name="ok")],
+        problems=[NoEnvProblem(name="p")],
+        runs=2,
+        n_jobs=2,
+        show_stdout=True,
+        exp_logger=ExperimentLogger(str(tmp_path / "exp")),
+    )
+    with pytest.raises(RuntimeError, match="2 of 4 runs failed"):
+        exp()
+
+    root = exp.exp_logger.dirname
+    with open(os.path.join(root, "progress.json")) as f:
+        runs = {(r["method_name"], r["seed"]): r for r in json.load(f)["runs"]}
+    for seed in (0, 1):
+        ok, broken = runs[("ok", seed)], runs[("broken", seed)]
+        assert ok["end_time"] is not None and "error" not in ok
+        # Failed runs stay pending, so a rerun retries them.
+        assert broken["end_time"] is None
+        assert "ValueError: screener failed to load" in broken["error"]
+        with open(os.path.join(root, broken["log_dir"], "error.txt")) as f:
+            trace = f.read()
+        assert "Traceback" in trace and "screener failed to load" in trace
+    with open(os.path.join(root, "experimentlog.jsonl")) as f:
+        assert len(f.readlines()) == 2  # only the successful runs
+    assert exp.exp_logger.is_run_pending(
+        BrokenMethod(llm, 1, name="broken"), NoEnvProblem(name="p"), 0
+    )
