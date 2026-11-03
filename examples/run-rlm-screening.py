@@ -36,11 +36,19 @@ Usage:
     uv run python examples/run-rlm-screening.py --suite photonics \\
         --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/ \\
         --ckpt-lhs20 /data/neocortex/rlm/checkpoints/production_lhs20/ --with-lhs20
+
+    # Open-source model through a local Ollama server (`ollama serve`,
+    # `ollama pull qwen2.5-coder:32b`), baseline and log-only arms only.
+    uv run python examples/run-rlm-screening.py --suite mabbob \\
+        --llm ollama --model qwen2.5-coder:32b \\
+        --methods baseline-no-screening log-only-lhs200 \\
+        --ckpt-lhs200 /data/neocortex/rlm/checkpoints/production_lhs200/
 """
 
 import argparse
 import math
 import os
+import re
 import sys
 import time
 import traceback
@@ -52,7 +60,7 @@ import ioh
 import iohblade.benchmarks.BBOB.mabbob as blade_mabbob
 from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, Photonics
 from iohblade.experiment import Experiment
-from iohblade.llm import Claude_LLM, Dummy_LLM
+from iohblade.llm import Claude_LLM, Dummy_LLM, Ollama_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA
 from iohblade.solution import Solution
@@ -335,6 +343,36 @@ def build_methods(
     return methods
 
 
+class OllamaLLM(Ollama_LLM):
+    """Ollama_LLM with an explicit context window.
+
+    Ollama's default context is short and it silently drops the start of a
+    longer prompt, which would cut LLaMEA's task description out of mutation
+    prompts (task + population + parent code).
+    """
+
+    def __init__(self, model, port=11434, num_ctx=16384, **kwargs):
+        super().__init__(model, port=port, **kwargs)
+        self.num_ctx = num_ctx
+
+    def _query(self, session_messages, **kwargs):
+        kwargs.setdefault("num_ctx", self.num_ctx)
+        return super()._query(session_messages, **kwargs)
+
+
+def check_ollama(llm: OllamaLLM) -> None:
+    """Exits before any run starts if the Ollama server or model is missing."""
+    try:
+        llm.client.show(llm.model)
+    except Exception as e:
+        sys.exit(
+            f"Ollama check failed for model {llm.model!r} on port {llm.port}: "
+            f"{type(e).__name__}: {e}. Is `ollama serve` running, and has the "
+            f"model been pulled (`ollama pull {llm.model}`)? No runs were started."
+        )
+    print(f"Ollama model {llm.model}: OK (num_ctx={llm.num_ctx})", flush=True)
+
+
 def main():
     p = argparse.ArgumentParser(description="LLaMEA vs. RLM pre-screening.")
     p.add_argument("--suite", required=True, choices=["mabbob", "photonics", "bbob"])
@@ -346,12 +384,37 @@ def main():
         action="store_true",
         help="Also run the lhs20-checkpoint mirrors of every RLM variant.",
     )
-    p.add_argument("--model", default="claude-haiku-5-5", help="Claude model ID.")
+    p.add_argument(
+        "--llm",
+        default="claude",
+        choices=["claude", "ollama"],
+        help="LLM provider: Claude API, or a local Ollama server.",
+    )
+    p.add_argument(
+        "--model",
+        default=None,
+        help="Model name (default: claude-haiku-5-5 for claude, "
+        "qwen2.5-coder:32b for ollama).",
+    )
     p.add_argument(
         "--effort",
         default="medium",
         choices=["low", "medium", "high", "xhigh", "max"],
-        help="Claude effort level (thinking depth and token spend).",
+        help="Claude only: effort level (thinking depth and token spend).",
+    )
+    p.add_argument("--ollama-port", type=int, default=11434)
+    p.add_argument(
+        "--ollama-num-ctx",
+        type=int,
+        default=16384,
+        help="Ollama only: context window in tokens (prompts beyond it are "
+        "silently truncated by Ollama).",
+    )
+    p.add_argument(
+        "--methods",
+        nargs="+",
+        default=None,
+        help="Run only these methods, e.g. baseline-no-screening log-only-lhs200.",
     )
     p.add_argument("--budget", type=int, default=None, help="Real evals/run.")
     p.add_argument("--runs", type=int, default=None)
@@ -384,10 +447,20 @@ def main():
         # Small population so the pilot spans several generations.
         n_parents, n_offspring = 2, 4
         results_dir = f"results/rlm-screening-{args.suite}-pilot"
+    elif args.llm == "ollama":
+        model = args.model or "qwen2.5-coder:32b"
+        llm = OllamaLLM(model, port=args.ollama_port, num_ctx=args.ollama_num_ctx)
+        check_ollama(llm)
+        budget, runs = args.budget or 100, args.runs or 5
+        n_parents, n_offspring = 4, 12
+        # Own folder per model: BLADE tracks finished runs by method, problem
+        # and seed only, so sharing a folder would skip these runs.
+        tag = re.sub(r"[^A-Za-z0-9_.-]+", "-", model)
+        results_dir = f"results/rlm-screening-{args.suite}-{tag}"
     else:
         llm = Claude_LLM(
             os.getenv("CLAUDE_API_KEY"),  # None: SDK resolves credentials
-            args.model,
+            args.model or "claude-haiku-5-5",
             max_tokens=16000,  # thinking + the generated algorithm
             effort=args.effort,
             # On a safety refusal, re-run the request on Anthropic's
@@ -408,13 +481,25 @@ def main():
     if args.rlm_num_samples:
         rlm_extra["rlm_num_samples_point_pred"] = args.rlm_num_samples
 
-    # Fail now, with the real error, rather than in every screening run.
-    check_rlm_screeners(checkpoints, instances, rlm_extra)
-
     # One instance list, shared by every RLM variant on this suite.
     methods = build_methods(
         llm, budget, n_parents, n_offspring, checkpoints, instances, rlm_extra
     )
+    if args.methods:
+        available = [m.name for m in methods]
+        unknown = sorted(set(args.methods) - set(available))
+        if unknown:
+            p.error(f"unknown --methods {unknown}; available: {available}")
+        methods = [m for m in methods if m.name in args.methods]
+
+    # Fail now, with the real error, rather than in every screening run.
+    used = {
+        tag: ckpt
+        for tag, ckpt in checkpoints.items()
+        if any(m.kwargs.get("rlm_checkpoint_dir") == ckpt for m in methods)
+    }
+    if used:
+        check_rlm_screeners(used, instances, rlm_extra)
     os.makedirs(os.path.dirname(results_dir) or ".", exist_ok=True)
     experiment = Experiment(
         methods=methods,
@@ -425,7 +510,7 @@ def main():
         exp_logger=ExperimentLogger(results_dir),
         n_jobs=min(len(methods), args.n_jobs),
         show_stdout=args.pilot,
-        log_stdout=True
+        log_stdout=True,
     )
     experiment()
 
