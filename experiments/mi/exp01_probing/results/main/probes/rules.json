@@ -1,0 +1,42 @@
+{
+  "fixed": {
+    "rule": "fixed",
+    "threshold": -0.2927972137928009,
+    "rate": 0.2
+  },
+  "per_operator": {
+    "rule": "per_operator",
+    "rate": 0.2,
+    "fallback": -0.2927972137928009,
+    "thresholds": {
+      "init": -0.29811173081398,
+      "new": -0.07373831272125211,
+      "refine": -0.32257759571075434,
+      "simplify": -0.5282588839530945
+    }
+  },
+  "risk": {
+    "rule": "risk",
+    "rate": 0.2,
+    "operators": [
+      "init",
+      "new",
+      "refine",
+      "simplify"
+    ],
+    "coef": [
+      3.0566843643824533,
+      0.26437602212721,
+      0.12038602084700303,
+      -0.01920851525570106
+    ],
+    "intercept": -0.27749230818584436,
+    "p_threshold": 0.26528996362370555
+  },
+  "running": {
+    "rule": "running",
+    "window": 24,
+    "rate": 0.2,
+    "threshold": -0.2927972137928009
+  }
+}

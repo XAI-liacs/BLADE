@@ -40,7 +40,9 @@ def screen_metrics(df: pd.DataFrame) -> dict:
     return {
         "n": len(df),
         "failure_rate": y.mean(),
-        "auroc": roc_auc_score(y, df["prescreen_score"]) if 0 < y.sum() < len(y) else np.nan,
+        "auroc": (
+            roc_auc_score(y, df["prescreen_score"]) if 0 < y.sum() < len(y) else np.nan
+        ),
         "flagged": flag.mean(),
         "failures_caught": flag[y == 1].mean(),
         "working_lost": flag[working].mean(),
@@ -57,7 +59,9 @@ def main():
     proc = data_dir(EXPERIMENT, "processed", args.tag)
     meta = pd.read_csv(proc / "meta.csv", dtype={"record_id": str, "run": str})
     meta = meta.sort_values(["run", "query_idx"])
-    cfg = json.loads((data_dir(EXPERIMENT, "raw", args.tag) / "config.json").read_text())
+    cfg = json.loads(
+        (data_dir(EXPERIMENT, "raw", args.tag) / "config.json").read_text()
+    )
     out = results_dir(EXPERIMENT, args.tag)
     print(f"probe: {cfg['probe']}")
 

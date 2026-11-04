@@ -249,6 +249,50 @@ Runtime 2.3 h, no infrastructure errors. Figures:
   only a large effect would be detectable. The claim is "no evidence of
   harm", not "equivalent".
 
+### Threshold rules (2026-11-04): `08_threshold_rules.py`
+
+The fixed threshold flags 36% in the first 12 algorithms of a run and about
+21% after algorithm 60 (target 20%). Four rules were fitted on main's
+out-of-fold scores and replayed online on the held-out shadow runs (n = 1200):
+
+| Rule | Flagged | Failures caught | Working lost | Top decile lost | Worst phase deviation |
+|---|---|---|---|---|---|
+| fixed | 25.8% | **77%** | 16.9% | **12.8%** | 16 pts |
+| one threshold per operator | 24.4% | 70% | 16.5% | 13.8% | 19 pts |
+| calibrated risk (score + operator) | 26.3% | 77% | 17.6% | 14.7% | 17 pts |
+| running quantile of the last 24 scores | 25.2% | 75% | 16.6% | 18.3% | 16 pts |
+
+**No rule beats the fixed threshold.** The drift is not miscalibration:
+early algorithms and the `new` operator really fail more often (true
+failure rate 24% in the first 12 vs 12% after 60). The probe score already
+tracks that risk.
+- Equalising the flag rate per operator or per phase moves flags from risky
+  to safe code: it catches fewer failures and loses more top algorithms.
+- No online rule can act on the first algorithms of a run, because it has
+  no history yet.
+
+The fixed threshold stays. Expect it to flag about 25% rather than 20%,
+front-loaded on the initial population. Figure:
+`results/prescreen/threshold_rules.png`.
+
+### Power analysis and pre-registration (2026-11-04, before `prescreen2`)
+
+`09_search_effect.py --tags prescreen`. On the first 12 seeds the paired
+difference in best fitness has SD 0.23. The conditions are uncorrelated
+(r = 0.06), because the runs diverge, and no alternative endpoint (top-5
+mean, area under the best-so-far curve, median working fitness) has lower
+variance. With 12 seeds only differences ≥ 0.20 AOCC are detectable (80%
+power), so the earlier "no harm" result was weak.
+
+**Registered before the 24 extra seeds (112–135, preset `prescreen2`) were
+run:**
+- Endpoint: best fitness LLaMEA can select.
+- Hypothesis: screened is non-inferior to shadow, with margin 0.10 AOCC.
+- Test: one-sided paired t-test, α = 0.05, on all 36 seeds (prescreen +
+  prescreen2). Equivalently, the lower end of the 90% CI must lie above
+  −0.10. Power 82% if the true difference is 0.
+- Secondary: two-sided paired Wilcoxon test; failure rate per condition.
+
 **Exported probes** (`04_export_probes.py` → `results/main/probes/`). Each
 probe is refit on all of main:
 - `child_failed_gen_mean_L21`, alpha 1000, pre-screen threshold −0.293 =

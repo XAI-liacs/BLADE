@@ -1,0 +1,2 @@
+n_seeds,shadow_mean,screened_mean,shadow_median,screened_median,mean_diff,ci90_low,ci90_high,margin,p_noninferiority,non_inferior,p_wilcoxon_two_sided,p_ttest_two_sided,corr_between_conditions,failure_rate_shadow,failure_rate_screened,p_failure_rate_wilcoxon,evaluations_skipped
+12,0.6349465074240286,0.6144781577165371,0.5713393898151418,0.6504264045987207,-0.020468349707491455,-0.13928994279813042,0.0983532433831475,0.1,0.12729114506169137,False,0.7333984375,0.7628278212405156,0.06250022362152408,0.14750000000000002,0.18333333333333332,0.3203125,0.2116666666666667

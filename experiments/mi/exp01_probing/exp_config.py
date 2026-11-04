@@ -91,4 +91,12 @@ PRESETS = {
         seeds=list(range(100, 112)),
         prescreen_probe="child_failed_gen_mean_L21",
     ),
+    # 24 more seeds of the same design, for the non-inferiority test on the
+    # search outcome (power analysis in 09_search_effect.py: 36 seeds give
+    # 82% power for a 0.10 AOCC margin). Analysed pooled with "prescreen".
+    "prescreen2": ProbeConfig(
+        tag="prescreen2",
+        seeds=list(range(112, 136)),
+        prescreen_probe="child_failed_gen_mean_L21",
+    ),
 }
