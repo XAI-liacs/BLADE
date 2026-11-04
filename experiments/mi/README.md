@@ -10,7 +10,7 @@ algorithms.
 | # | Folder | Question | Status |
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
-| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen validated on new seeds |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen transfers to 36 new seeds and is non-inferior at 0.10 AOCC (p = 0.041) while skipping 21% of evaluations; [report](REPORT.md) |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | step 1 done: the edit is driven by the parent code; scores are ignored, errors are used |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
@@ -186,3 +186,12 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     fitness (p = 0.73).
   - Probe directions exported to `exp01_probing/results/main/probes/` for
     experiments 2 and 5.
+- 2026-11-04 (night): experiment 1 concluded.
+  - Power analysis on 12 seeds (SD of paired difference 0.23): only ≥ 0.20
+    AOCC detectable. Pre-registered a non-inferiority test (margin 0.10,
+    36 seeds, 82% power) and ran 24 more seeds.
+  - Result: mean difference −0.037, 90% CI [−0.096, +0.023], p = 0.041:
+    non-inferior, narrowly. Probe AUROC on the new seeds 0.84.
+  - Adaptive thresholds (per operator, calibrated risk, running quantile)
+    do not beat the fixed one.
+  - Report: `REPORT.md`.

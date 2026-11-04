@@ -96,6 +96,14 @@ uv run python $S/06_incremental_value.py --tag main
 # 7. pre-screen generalisation and its effect on the search
 uv run python $S/07_prescreen_analysis.py --tag prescreen
 
+# 8. adaptive threshold rules, replayed on the held-out shadow runs
+uv run python $S/08_threshold_rules.py --eval-tag prescreen
+
+# 9. pre-registered non-inferiority test: 24 extra seeds (112-135), pooled
+SCRIPT=05_prescreen_generate.py $S/launch.sh prescreen2 12 4
+uv run python $S/02_build_dataset.py --tag prescreen2
+uv run python $S/09_search_effect.py   # pools prescreen + prescreen2
+
 # figures
 uv run jupyter lab experiments/mi/exp01_probing/notebooks/02_followup_analysis.ipynb
 ```
@@ -108,6 +116,7 @@ Presets in `exp_config.py`:
 | `pilot` | Qwen3-8B | 4 × 20 | label balance, layer selection | ~1–1.5 h |
 | `main` | Qwen3-8B | 12 × 100 | ~1200 labelled queries | 1.5 h (12 shards) |
 | `prescreen` | Qwen3-8B | 12 seeds × 2 conditions × 100 | held-out test of the failure pre-screen | ~3 h (12 shards) |
+| `prescreen2` | Qwen3-8B | 24 seeds × 2 conditions × 100 | extra seeds for the pre-registered test | 5.4 h (12 shards) |
 
 Most of the wall clock is spent evaluating the algorithms (CPU), not
 generating them (~10 s per algorithm at ~47 tok/s).
@@ -302,6 +311,57 @@ probe is refit on all of main:
 
 Each file has a unit `direction` in residual-stream space for experiments 2
 and 5.
+
+### Pre-registered result (2026-11-04): 36 seeds, `prescreen` + `prescreen2`
+
+24 more seeds (112–135), 4800 algorithms, 5.4 h, no infrastructure errors.
+Analysis exactly as registered (`09_search_effect.py`). Figures:
+`results/prescreen/search_effect.png`, `prescreen_search_pooled.png`.
+
+| | shadow | screened |
+|---|---|---|
+| Best fitness LLaMEA can select, mean (median) | 0.628 (0.583) | 0.591 (0.575) |
+| True failure rate of generated code | 16.5% | 17.1% |
+| Evaluations skipped | 0 | 20.8% |
+
+- **Primary: non-inferior.** Mean difference −0.037, 90% CI
+  [−0.096, +0.023]; one-sided test against −0.10: p = 0.041. The lower
+  bound clears the margin by only 0.004, so a loss of up to ~0.10 AOCC is
+  not excluded with more than the registered confidence.
+- Secondary: two-sided paired Wilcoxon p = 0.25 (t-test p = 0.30); failure
+  rate p = 0.82. The conditions are again nearly uncorrelated (r = 0.14).
+- The point estimate is negative (−0.037), after +0.08 in the median on the
+  first 12 seeds. The pooled best-so-far curves overlap throughout.
+
+**The probe on the 24 new seeds** (frozen, `results/prescreen2/`): AUROC
+0.84 (0.86 on the first 12), 22.9% flagged, 66% of failures caught, 14% of
+working and 7.8% of top-decile algorithms lost. Threshold rules replayed on
+the new shadow runs give the same ranking except that the running quantile
+now loses the fewest top-decile algorithms (7.1% vs 10.0% fixed), after
+losing the most on the first 12 seeds (18.3%). The differences between
+rules are within seed-to-seed noise; the fixed threshold stays.
+
+### Conclusion of experiment 1
+
+1. **H1 supported.** Parent fitness is linearly decodable from the prompt
+   (ρ ≈ 0.8, layer 15), but adds nothing beyond the metadata that contains
+   it.
+2. **H2 supported.** Child failure is decodable from the state while
+   writing the code (nested AUROC 0.85, layers 21–23). It adds +0.08 AUROC
+   over metadata + code text + output uncertainty. The over-budget signal
+   while writing is the model's own (0.78–0.88 within strata); before
+   writing it is inherited from the parent.
+3. **H3 rejected.** Whether the child improves is not decodable beyond
+   metadata.
+4. **Usable as a surrogate.** The frozen failure probe transfers to 36 new
+   seeds (AUROC 0.84–0.86) and skips ~21% of evaluations. On 36 seeds the
+   final quality is non-inferior at a 0.10 AOCC margin (p = 0.041), with a
+   point estimate of −0.04. Phase- or operator-adaptive thresholds do not
+   help, because the probe already tracks the real risk.
+
+Open: a tighter margin needs ~70+ seeds (or a variance-reducing design);
+whether the model *uses* its fitness representation is experiment 2's
+question.
 
 ### Pilot (2026-11-04): Qwen3-8B, 4 runs × 20 algorithms, 80 labelled queries
 
