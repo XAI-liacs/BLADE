@@ -205,6 +205,50 @@ The prompt-level over-budget signal was entirely inherited from the parent:
 it is at chance within strata. The state while writing still predicts new
 overspending well above the text baseline, so this part is the model's own.
 
+### Pre-screen on new seeds (2026-11-04): `prescreen`, 12 seeds × 2 conditions × 100
+
+The crash probe and its threshold were frozen from main (gen mean,
+layer 21, threshold = the 80th percentile of main's out-of-fold scores).
+Seeds 100–111 were each run twice:
+- **shadow**: LLaMEA sees every result; the flag is only logged;
+- **screened**: flagged code is shown to LLaMEA as failed, with feedback
+  saying it was rejected before evaluation.
+
+Every algorithm was still evaluated, so the true label is known for all 2400.
+Runtime 2.3 h, no infrastructure errors. Figures:
+`results/prescreen/prescreen_heldout.png`, `prescreen_search.png`.
+
+**Generalisation** (true labels, both conditions, n = 2400):
+
+| | main (out-of-fold, 20% skipped) | new seeds (frozen probe) |
+|---|---|---|
+| AUROC | 0.85 (nested) | **0.86** |
+| Evaluations flagged | 20% | 23.5% |
+| Failures caught | 60% | 69% |
+| Working algorithms lost | 11% | 14.5% |
+| Top-decile algorithms lost | 3% | 9.8% |
+| Precision of a flag | — | 48% (base rate 16.5%) |
+
+- The trade-off curve on the new seeds lies on top of main's out-of-fold
+  curve, so the probe transfers to new runs without retraining.
+- The fixed threshold flags somewhat more than planned, because the score
+  distribution shifts with the phase of the search:
+  - the initial population (35% flagged, 22% failing) and the `new` operator
+    (40% flagged, 29% failing) are risky;
+  - `simplify` is safe (10% flagged, 5% failing).
+- More top-decile algorithms were lost than on main (9.8% vs 3%).
+
+**Effect on the search** (paired by seed, n = 12):
+- Best fitness LLaMEA could select: median 0.65 screened vs 0.57 shadow,
+  Wilcoxon p = 0.73.
+- True failure rate of the generated code: 17.5% vs 14.5%, p = 0.32.
+- Acting on the screen skips 21% of evaluations in the screened runs, with
+  no measurable loss of final quality. The rejection feedback did not teach
+  the model to crash less.
+- With 12 seeds and this run-to-run spread (best fitness ranges 0.37–0.84),
+  only a large effect would be detectable. The claim is "no evidence of
+  harm", not "equivalent".
+
 **Exported probes** (`04_export_probes.py` → `results/main/probes/`). Each
 probe is refit on all of main:
 - `child_failed_gen_mean_L21`, alpha 1000, pre-screen threshold −0.293 =

@@ -10,7 +10,7 @@ algorithms.
 | # | Folder | Question | Status |
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
-| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | `main` analysed: H1, H2 supported; H3 not |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen validated on new seeds |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | planned |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
@@ -172,3 +172,17 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   decodable beyond the metadata baseline. A failure pre-screen skipping 20%
   of evaluations catches 60% of failures and loses 3% of top-decile
   algorithms.
+- 2026-11-04 (evening): experiment 1 follow-up.
+  - Nested leave-one-run-out with stacked baselines: the generated-code
+    state adds +0.08 AUROC [0.05, 0.11] for failure beyond metadata + text.
+    Prompt positions add nothing beyond metadata for any target. H3 is
+    rejected.
+  - The over-budget signal before writing is inherited from the parent
+    (chance within strata). The signal while writing is not (0.78–0.88 vs
+    0.60–0.68 for metadata + text).
+  - Frozen failure probe on 12 new seeds × 2 conditions (2400 algorithms):
+    AUROC 0.86. Flags 23.5% of evaluations and catches 69% of failures.
+    Acting on it skips 21% of evaluations with no measurable loss of best
+    fitness (p = 0.73).
+  - Probe directions exported to `exp01_probing/results/main/probes/` for
+    experiments 2 and 5.
