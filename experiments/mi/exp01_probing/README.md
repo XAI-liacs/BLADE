@@ -104,6 +104,46 @@ float16), so ~1.1 GB for `main`.
 
 ## Results
 
+### Main (2026-11-04): Qwen3-8B, 12 runs × 100 algorithms, 1200 labelled queries
+
+Budget enforced. Runtime 1.5 h on 12 shards, no infrastructure errors.
+17% of children fail; 87% of working children overspend on at least one
+instance (now truncated, not zeroed). Median fitness of working
+algorithms 0.31 (pilot: 0). Figures: `results/main/`.
+
+Shuffled-label controls stay at AUROC ≤ 0.53 and |ρ| ≤ 0.07 on every layer,
+so with n ≈ 1000 the curves can be read directly.
+
+| Target | Probe: mean over layers (best layer) | Best activation-free baseline | Verdict |
+|---|---|---|---|
+| `parent_fitness` | ρ 0.70 prompt mean (0.80, L15); last token 0.69 (0.77) | code BoW 0.66, meta 0.58 | **H1 supported.** Decodable at the decision token, above baselines from layer ~10 on |
+| `child_failed` | AUROC 0.82 gen mean (0.86, L21); last token 0.67 | uncertainty 0.71, code BoW 0.71 | **H2 supported.** The state while writing predicts the crash clearly better than the code text or the output entropy. Before writing: weak (0.67) |
+| `over_budget` | AUROC 0.88 gen mean (0.93, L9); prompt mean 0.76 | meta 0.75, code BoW 0.74 | **Strongest result.** The model's state encodes "this code overspends" far better than the code tokens. The prompt-mean signal probably partly reflects inherited parent code (to check) |
+| `improved` | AUROC 0.58 (0.62, L19) | meta 0.65 | **H3 not supported.** Activations do not beat parent fitness + operator |
+| `child_fitness` | ρ 0.60 gen mean (0.69, L15) | meta 0.71 | Below the metadata baseline (which contains parent fitness); added value still to be tested with a combined model |
+
+**Pre-screening** (child-failure probe, generated-code mean, layer 21,
+out-of-fold):
+
+| Evaluations skipped | Failures caught | Working algorithms lost | Top-decile algorithms lost |
+|---|---|---|---|
+| 10% | 38% | 4% | 1% |
+| 20% | 60% | 11% | 3% |
+| 30% | 75% | 21% | 14% |
+
+At 20% of the budget saved, 3% of the best algorithms are lost. The layer was
+picked on the same data, but with flat curves and tight controls the bias
+is small; confirm on held-out runs.
+
+**Next.**
+1. Fit meta + activations together, to test whether the activations add
+   information beyond parent fitness for `improved` and `child_fitness`.
+2. Control `over_budget` for the parent's own over-budget status.
+3. Test the pre-screen inside LLaMEA (skip evaluation when the probe score
+   exceeds a threshold) on new seeds.
+4. Use the `over_budget` direction (L9) and the `child_failed` direction
+   (L21) as targets for experiment 2 attribution and experiment 5 steering.
+
 ### Pilot (2026-11-04): Qwen3-8B, 4 runs × 20 algorithms, 80 labelled queries
 
 Figures: `results/pilot/layer_curves.png`, `prescreening.png`,

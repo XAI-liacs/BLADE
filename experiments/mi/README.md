@@ -10,7 +10,7 @@ algorithms.
 | # | Folder | Question | Status |
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
-| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pilot analysed, `main` running |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | `main` analysed: H1, H2 supported; H3 not |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | planned |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
@@ -165,3 +165,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   Decision: enforce the budget (`BudgetEnforcedMABBOB`, truncate instead
   of zero). `main` (12 × 100) started on 12 shards. Also capped idle thread
   pools in `env.sh`: this host limits a user to 2048 tasks.
+- 2026-11-04 (later): `main` finished (1200 queries, 1.5 h). Parent fitness
+  (ρ ≈ 0.7–0.8), child failure (AUROC 0.86 from the generated-code state,
+  vs 0.71 for the best text/entropy baseline) and over-budget code (AUROC
+  0.93 vs 0.75) are decodable. Improvement and child fitness are not
+  decodable beyond the metadata baseline. A failure pre-screen skipping 20%
+  of evaluations catches 60% of failures and loses 3% of top-decile
+  algorithms.
