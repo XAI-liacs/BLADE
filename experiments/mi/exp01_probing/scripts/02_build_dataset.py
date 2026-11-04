@@ -19,7 +19,16 @@ Labels:
   ``BudgetEnforcedMABBOB`` truncates the run at the budget);
 * ``improved``: the child beat its parent (failed children count as 0, a
   working child of a failed parent as 1);
-* ``delta_fitness``: ``child_fitness - parent_fitness``.
+* ``delta_fitness``: ``child_fitness - parent_fitness``;
+* ``parent_over_budget``: the parent overspent (nan without a working
+  parent). The feedback never says so, so the model can only see it in the
+  parent's code; used to control the ``over_budget`` probe.
+
+Pre-screen campaigns (``05_prescreen_generate.py``) also get ``condition``
+(``shadow``/``screened``), ``prescreen_score`` and ``prescreen_flagged``.
+The child labels there use the *true* evaluation result
+(``metadata["true_*"]``), also for algorithms LLaMEA was shown as rejected;
+``visible_failed`` is what LLaMEA saw. Parent labels use what LLaMEA saw.
 """
 
 import argparse
@@ -75,6 +84,11 @@ def seed_from_run_dir(run_dir: Path) -> int:
     return int(match.group(1)) if match else -1
 
 
+def run_condition(run_dir: Path) -> str:
+    match = re.search(r"MA_BBOB_(shadow|screened)", run_dir.name)
+    return match.group(1) if match else ""
+
+
 def build(tag: str) -> pd.DataFrame:
     raw = data_dir(EXPERIMENT, "raw", tag)
     rows, arrays = [], {k: [] for k in ("last", "prompt_mean", "gen_mean")}
@@ -100,9 +114,22 @@ def build(tag: str) -> pd.DataFrame:
             parents = [solutions.get(p) for p in rec.get("parent_ids", [])]
             parent_fits = [fitness_scalar(p["fitness"]) for p in parents if p]
             parent_fit = max(parent_fits) if parent_fits else np.nan
-            child_fit = fitness_scalar(sol["fitness"])
-            failed = bool(sol.get("error")) or np.isnan(child_fit)
+            smeta = sol.get("metadata") or {}
+            screened = "true_fitness" in smeta  # 05_prescreen_generate.py
+            visible_failed = bool(sol.get("error")) or np.isnan(
+                fitness_scalar(sol["fitness"])
+            )
+            if screened:
+                child_fit = fitness_scalar(smeta["true_fitness"])
+                failed = bool(smeta.get("true_error")) or np.isnan(child_fit)
+            else:
+                child_fit = fitness_scalar(sol["fitness"])
+                failed = visible_failed
             over_budget = (not failed) and _over_budget(sol, n_scores)
+            parent = parents[0] if parents else None
+            parent_works = parent is not None and not (
+                parent.get("error") or np.isnan(fitness_scalar(parent["fitness"]))
+            )
             has_parent = operator != "init" and bool(parent_fits)
             parent_ok = has_parent and not np.isnan(parent_fit)
             rows.append(
@@ -126,6 +153,9 @@ def build(tag: str) -> pd.DataFrame:
                         else np.nan
                     ),
                     "delta_fitness": child_fit - parent_fit if parent_ok else np.nan,
+                    "parent_over_budget": (
+                        int(_over_budget(parent, n_scores)) if parent_works else np.nan
+                    ),
                     "n_prompt_tokens": rec["n_prompt_tokens"],
                     "n_gen_tokens": rec["n_gen_tokens"],
                     "mean_entropy": rec["mean_entropy"],
@@ -133,6 +163,15 @@ def build(tag: str) -> pd.DataFrame:
                     "steered": rec.get("steering") is not None,
                 }
             )
+            if screened:
+                rows[-1].update(
+                    {
+                        "condition": run_condition(run_dir),
+                        "prescreen_score": smeta.get("prescreen_score"),
+                        "prescreen_flagged": int(bool(smeta.get("prescreen_flagged"))),
+                        "visible_failed": int(visible_failed),
+                    }
+                )
             for k in arrays:
                 arrays[k].append(arr[k])
             codes.append({"record_id": rec["record_id"], "code": sol["code"]})

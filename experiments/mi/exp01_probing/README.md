@@ -77,13 +77,37 @@ uv run python experiments/mi/exp01_probing/scripts/03_train_probes.py --tag main
 uv run jupyter lab experiments/mi/exp01_probing/notebooks/01_probe_analysis.ipynb
 ```
 
+Follow-up (after `main`):
+
+```bash
+S=experiments/mi/exp01_probing/scripts
+
+# 4. refit the chosen probes on all of main -> results/main/probes/
+uv run python $S/04_export_probes.py --tag main
+
+# 5. held-out pre-screen: seeds 100-111, shadow + screened, probe frozen
+SCRIPT=05_prescreen_generate.py $S/launch.sh prescreen 12 4
+uv run python $S/02_build_dataset.py --tag prescreen
+
+# 6. added value of the activations + over-budget confound (nested CV);
+#    BLAS threads per fold: FOLD_THREADS (default 8)
+uv run python $S/06_incremental_value.py --tag main
+
+# 7. pre-screen generalisation and its effect on the search
+uv run python $S/07_prescreen_analysis.py --tag prescreen
+
+# figures
+uv run jupyter lab experiments/mi/exp01_probing/notebooks/02_followup_analysis.ipynb
+```
+
 Presets in `exp_config.py`:
 
 | Tag | Model | Runs × budget | Purpose | Wall clock (4 GPUs) |
 |---|---|---|---|---|
 | `smoke` | Qwen2.5-0.5B | 2 × 6 | pipeline check | ~5 min |
 | `pilot` | Qwen3-8B | 4 × 20 | label balance, layer selection | ~1–1.5 h |
-| `main` | Qwen3-8B | 12 × 100 | ~1200 labelled queries | ~5–8 h (12 shards) |
+| `main` | Qwen3-8B | 12 × 100 | ~1200 labelled queries | 1.5 h (12 shards) |
+| `prescreen` | Qwen3-8B | 12 seeds × 2 conditions × 100 | held-out test of the failure pre-screen | ~3 h (12 shards) |
 
 Most of the wall clock is spent evaluating the algorithms (CPU), not
 generating them (~10 s per algorithm at ~47 tok/s).
@@ -101,6 +125,12 @@ float16), so ~1.1 GB for `main`.
   - `oof_*.csv`: out-of-fold predictions at the best layer.
   - Figures from the notebook: layer curves, pre-screening trade-off,
     PCA plot.
+  - `probes/`: the refit probes (`04_export_probes.py`): weights,
+    unit residual-stream `direction`, pre-screen `threshold`.
+  - `followup/`: nested-CV added-value scores and over-budget strata
+    (`06_incremental_value.py`).
+- `results/prescreen/`: `screen_metrics.csv`, `runs.csv`,
+  `best_so_far.csv` and figures (`07_prescreen_analysis.py`, notebook 02).
 
 ## Results
 
@@ -135,14 +165,55 @@ At 20% of the budget saved, 3% of the best algorithms are lost. The layer was
 picked on the same data, but with flat curves and tight controls the bias
 is small; confirm on held-out runs.
 
-**Next.**
-1. Fit meta + activations together, to test whether the activations add
-   information beyond parent fitness for `improved` and `child_fitness`.
-2. Control `over_budget` for the parent's own over-budget status.
-3. Test the pre-screen inside LLaMEA (skip evaluation when the probe score
-   exceeds a threshold) on new seeds.
-4. Use the `over_budget` direction (L9) and the `child_failed` direction
-   (L21) as targets for experiment 2 attribution and experiment 5 steering.
+### Follow-up on main: added value and the over-budget confound
+
+`06_incremental_value.py`. Leave-one-run-out, with the probe layer chosen
+inside each training split (no selection bias). The probe and the code
+TF-IDF enter a stacked model through inner out-of-fold predictions.
+M = metadata, now including the parent's over-budget status; T = text (code
+TF-IDF, entropy, log-prob, length); P = probe. 95% bootstrap CIs over runs.
+Figures: `results/main/incremental_value.png`, `over_budget_strata.png`.
+
+| Target | M | M+T | P (gen mean) | M+T+P | Gain from the probe over M+T |
+|---|---|---|---|---|---|
+| `child_failed` | 0.64 | 0.78 | **0.85** | 0.85 | **+0.08 [+0.05, +0.11]** |
+| `over_budget` | 0.91 | 0.93 | 0.94 | 0.96 | +0.03 [+0.01, +0.08] |
+| `improved` | 0.66 | 0.68 | 0.61 | 0.68 | 0.00 [−0.02, +0.01] |
+| `child_fitness` (ρ) | 0.77 | 0.80 | 0.68 | 0.81 | +0.01 [−0.01, +0.03] |
+
+- **Layer-selection bias is negligible.** With nested layer choice, the
+  failure probe scores 0.85 (best-layer estimate: 0.86). The inner choice
+  lands on layers 21–23 in 11 of 12 folds.
+- **Prompt positions add nothing** beyond metadata for any target: all
+  gains are ≤ 0.01, with CIs covering 0. Everything the model "knows" about
+  the outcome before writing is already in the parent's fitness and status.
+- **H3 confirmed negative.** Neither `improved` nor `child_fitness` gains
+  from the activations once metadata and text are known. Most of the
+  apparent `child_fitness` signal is parent fitness.
+
+**Over-budget confound.** Of the 780 working children whose parent overspent,
+773 (99%) overspend too. With the parent's status in M, metadata alone
+reaches 0.91, which explains most of the earlier gap to the probe. Within
+strata where that status cannot help:
+
+| Stratum | n (overspend) | last token | prompt mean | gen mean | M+T |
+|---|---|---|---|---|---|
+| parent within budget | 154 (47) | 0.47 [0.22, 0.60] | 0.47 [0.30, 0.58] | **0.78 [0.72, 0.98]** | 0.60 [0.49, 0.75] |
+| no working parent | 56 (43) | 0.41 [0.32, 0.49] | 0.48 [0.39, 0.60] | **0.88 [0.77, 0.96]** | 0.68 [0.58, 0.81] |
+
+The prompt-level over-budget signal was entirely inherited from the parent:
+it is at chance within strata. The state while writing still predicts new
+overspending well above the text baseline, so this part is the model's own.
+
+**Exported probes** (`04_export_probes.py` → `results/main/probes/`). Each
+probe is refit on all of main:
+- `child_failed_gen_mean_L21`, alpha 1000, pre-screen threshold −0.293 =
+  the 80th percentile of the out-of-fold scores;
+- `over_budget_gen_mean_L9`;
+- `parent_fitness_prompt_mean_L15`.
+
+Each file has a unit `direction` in residual-stream space for experiments 2
+and 5.
 
 ### Pilot (2026-11-04): Qwen3-8B, 4 runs × 20 algorithms, 80 labelled queries
 

@@ -47,6 +47,13 @@ class ProbeConfig:
         default_factory=lambda: ["pandas==2.2.3", "ioh==0.3.22", "configspace==1.2.1"]
     )
 
+    # In-loop pre-screen (05_prescreen_generate.py): probe exported by
+    # 04_export_probes.py from campaign ``prescreen_source``. Each seed runs
+    # twice, "shadow" (flag only) and "screened" (flagged code is shown to
+    # LLaMEA as failed); every algorithm is still evaluated.
+    prescreen_probe: str | None = None
+    prescreen_source: str = "main"
+
     def to_dict(self) -> dict:
         return asdict(self)
 
@@ -77,4 +84,11 @@ PRESETS = {
     ),
     # Main campaign: 12 runs x 100 algorithms = ~1200 labelled LLM queries.
     "main": ProbeConfig(tag="main"),
+    # Held-out test of the child-failure pre-screen: new seeds, the probe
+    # and threshold frozen from "main" (layer 21, 20% flagged).
+    "prescreen": ProbeConfig(
+        tag="prescreen",
+        seeds=list(range(100, 112)),
+        prescreen_probe="child_failed_gen_mean_L21",
+    ),
 }

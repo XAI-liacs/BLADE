@@ -93,6 +93,66 @@ class BudgetEnforcedMABBOB(MA_BBOB):
         return solution
 
 
+REJECTED = (
+    "The algorithm was rejected before evaluation: a learned check predicts "
+    "that it will crash or time out."
+)
+
+
+def _finite_or_none(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return None
+    return value if np.isfinite(value) else None
+
+
+class PreScreenedMABBOB(BudgetEnforcedMABBOB):
+    """``BudgetEnforcedMABBOB`` with a probe-based pre-screen.
+
+    The solution must carry ``metadata["prescreen_score"]`` (set by
+    ``common.prescreen.ScreenedHookedLLM``). Every solution is still
+    evaluated, so the true outcome is known for every flagged one:
+
+    * ``act=False`` (shadow): LLaMEA sees the true result; the flag is only
+      logged.
+    * ``act=True``: a solution with score above ``threshold`` is shown to
+      LLaMEA as failed (fitness ``-inf``, error/feedback ``REJECTED``).
+
+    In both cases ``metadata`` gets ``prescreen_flagged`` and the true
+    result (``true_fitness``, ``true_error``, ``true_feedback``), so the
+    log can be analysed exactly like an unscreened campaign. Evaluation
+    still costs CPU time here; the saving is measured, not realised.
+    """
+
+    def __init__(self, *args, threshold: float, act: bool, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.threshold = threshold
+        self.act = act
+
+    def __call__(self, solution: Solution, logger=None):
+        run_logger, self.logger = self.logger, None  # log once, below
+        try:
+            if run_logger is not None and run_logger.budget_exhausted():
+                self.logger = run_logger
+                return super().__call__(solution)
+            solution = super().__call__(solution)
+        finally:
+            self.logger = run_logger
+        score = solution.metadata.get("prescreen_score")
+        flagged = score is not None and score > self.threshold
+        solution.add_metadata("prescreen_flagged", bool(flagged))
+        solution.add_metadata("prescreen_act", bool(self.act))
+        solution.add_metadata("true_fitness", _finite_or_none(solution.fitness))
+        solution.add_metadata("true_error", solution.error or "")
+        solution.add_metadata("true_feedback", solution.feedback)
+        if flagged and self.act:
+            solution.set_scores(-np.inf, feedback=REJECTED, error=REJECTED)
+        if self.logger is not None:
+            self.logger.log_individual(solution)
+        return solution
+
+
 # The evaluation sandbox only has BLADE's repo root on its path; ship this
 # module inside the pickle so the subclass can be loaded there.
 import sys as _sys
