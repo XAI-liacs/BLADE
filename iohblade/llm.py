@@ -4,9 +4,11 @@ LLM modules to connect to different LLM providers. Also extracts code, name and 
 
 import copy
 import logging
-import re
-import time
 import random
+import re
+import threading
+import time
+import uuid
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
@@ -37,7 +39,7 @@ except:
     lms = object
 
 try:
-    from mlx_lm import load, generate  # Platform dependent dependency.
+    from mlx_lm import generate, load  # Platform dependent dependency.
 except:
     load = None
     generate = None
@@ -56,15 +58,14 @@ except ImportError:
     count_string_tokens = None
 
 
-from .solution import Solution
-from .utils import NoCodeException
-
-
 import platform
 import subprocess
 
 import psutil
 from cpuinfo import get_cpu_info
+
+from .solution import Solution
+from .utils import NoCodeException
 
 
 def _run(cmd):
@@ -1136,6 +1137,591 @@ class MLX_LM_LLM(LLM):
         hw_info = get_hardware_info()
         config = {"model": self.model, "config": self.config or {}, "hardware": hw_info}
         return [config]
+
+
+def _find_decoder_layers(model) -> list:
+    """Returns the list of transformer blocks of a HuggingFace causal LM.
+
+    Covers the common layouts (Llama/Qwen/Gemma/Mistral: ``model.model.layers``,
+    GPT-2/GPT-J: ``model.transformer.h``, GPT-NeoX: ``model.gpt_neox.layers``)
+    and multimodal wrappers that nest a language model one level deeper.
+
+    Raises:
+        ValueError: If no list of blocks can be found.
+    """
+    candidates = [
+        ("model", "layers"),
+        ("model", "language_model", "layers"),
+        ("language_model", "model", "layers"),
+        ("transformer", "h"),
+        ("gpt_neox", "layers"),
+    ]
+    for path in candidates:
+        obj = model
+        for attr in path:
+            obj = getattr(obj, attr, None)
+            if obj is None:
+                break
+        if obj is not None:
+            return list(obj)
+    raise ValueError(
+        f"Could not locate the decoder layers of {type(model).__name__}; "
+        "pass a supported HuggingFace causal LM."
+    )
+
+
+class HookedLLM(LLM):
+    """Open-weights HuggingFace model with activation capture and steering.
+
+    Drop-in provider for every BLADE method (LLaMEA, RandomSearch, ...) that
+    additionally records the model's residual stream while it designs
+    algorithms, for mechanistic-interpretability experiments.
+
+    For every query, the following per-layer summaries of the residual stream
+    (output of each decoder block) are captured during generation:
+
+    * ``last``: the final prompt token, i.e. the state right before the model
+      starts writing. This is the standard position for probing "intent".
+    * ``prompt_mean``: mean over all prompt tokens.
+    * ``gen_mean``: mean over the generated tokens (the state while writing
+      the code).
+
+    Plus cheap output-uncertainty baselines: mean token entropy and mean
+    log-probability of the sampled tokens, computed on the model's own
+    temperature-1 distribution (before temperature and top-p are applied).
+
+    Records are written to ``<run_dir>/mi_activations/`` when a BLADE run
+    logger is attached (one ``.npz`` per query and a line in ``index.jsonl``
+    that links the record to ``solution.id``), else to ``activation_dir``,
+    else kept in memory in ``self.records``.
+
+    Full per-token activations are not stored during the run (too large);
+    use :meth:`replay` to recompute them offline from the logged prompt and
+    response.
+
+    Requires the optional ``mi`` dependency group (``torch``,
+    ``transformers``, ``accelerate``).
+    """
+
+    ARRAY_KEYS = ("last", "prompt_mean", "gen_mean")
+
+    def __init__(
+        self,
+        model: str,
+        capture_layers: list[int] | None = None,
+        capture: bool = True,
+        activation_dir: str | None = None,
+        max_new_tokens: int = 4096,
+        temperature: float = 0.8,
+        top_p: float = 0.95,
+        dtype: str = "bfloat16",
+        device_map: str | dict = "auto",
+        chat_template_kwargs: dict | None = None,
+        store_text: bool = True,
+        hf_model=None,
+        tokenizer=None,
+        **kwargs,
+    ):
+        """Loads the model and registers the hooks.
+
+        Args:
+            model: HuggingFace model id or local path.
+            capture_layers: Decoder layer indices to record. ``None`` records
+                all layers (needed for layer-wise probing curves).
+            capture: Whether to record activations at all.
+            activation_dir: Where to store records when no run logger is
+                attached. ``None`` keeps them in memory.
+            max_new_tokens: Generation limit per query.
+            temperature: Sampling temperature (0 means greedy decoding).
+            top_p: Nucleus sampling threshold.
+            dtype: Torch dtype name for the weights.
+            device_map: Passed to ``from_pretrained``, e.g. ``"auto"`` or
+                ``"cuda:1"``.
+            chat_template_kwargs: Extra arguments for the chat template,
+                e.g. ``{"enable_thinking": False}`` for Qwen3.
+            store_text: Store prompt and response text in ``index.jsonl``
+                so a record is self-contained for offline replay.
+            hf_model: Optional pre-loaded model (skips loading ``model``).
+            tokenizer: Optional pre-loaded tokenizer.
+            **kwargs: Passed to :class:`LLM` (regex patterns, logger).
+        """
+        super().__init__(api_key="", model=model, **kwargs)
+        self.capture_layers = capture_layers
+        self.capture = capture
+        self.activation_dir = activation_dir
+        self.max_new_tokens = max_new_tokens
+        self.temperature = temperature
+        self.top_p = top_p
+        self.dtype = dtype
+        self.device_map = device_map
+        self.chat_template_kwargs = chat_template_kwargs or {}
+        self.store_text = store_text
+        self.records: list[dict] = []
+        self.last_record: dict | None = None
+        self._pending: dict | None = None
+        self._in_sample = False
+        self._query_count = 0
+        self._steering: dict[int, Any] = {}
+        self._steering_alpha = 1.0
+        self._steering_positions = "generation"
+        self._state: dict = {}
+        self._lock = threading.Lock()
+        self._load(hf_model, tokenizer)
+
+    # ------------------------------------------------------------------
+    # Model loading, (de)serialisation and copying
+    # ------------------------------------------------------------------
+    def _load(self, hf_model=None, tokenizer=None):
+        import torch
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+
+        if tokenizer is None:
+            tokenizer = AutoTokenizer.from_pretrained(self.model)
+        if hf_model is None:
+            hf_model = AutoModelForCausalLM.from_pretrained(
+                self.model,
+                dtype=getattr(torch, self.dtype),
+                device_map=self.device_map,
+            )
+        hf_model.eval()
+        self.hf_model = hf_model
+        self.tokenizer = tokenizer
+        self.layers = _find_decoder_layers(hf_model)
+        self.n_layers = len(self.layers)
+        if self.capture_layers is None:
+            self.capture_layers = list(range(self.n_layers))
+        self._hook_handles = [
+            layer.register_forward_hook(self._make_hook(i))
+            for i, layer in enumerate(self.layers)
+        ]
+
+    _HEAVY = ("hf_model", "tokenizer", "layers", "_hook_handles", "_lock")
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        for key in self._HEAVY:
+            state.pop(key, None)
+        state["_state"] = {}
+        state["_steering"] = {}
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._lock = threading.Lock()
+        self._load()
+
+    def __deepcopy__(self, memo):
+        # BLADE deep-copies the method (and its LLM) for every run. Share the
+        # weights, the hooks and the GPU lock instead of reloading the model.
+        cls = self.__class__
+        new = cls.__new__(cls)
+        memo[id(self)] = new
+        for k, v in self.__dict__.items():
+            if k in self._HEAVY or k in ("_state", "_steering"):
+                continue
+            setattr(new, k, copy.deepcopy(v, memo))
+        for k in self._HEAVY:
+            setattr(new, k, getattr(self, k))
+        new._state = {}
+        new._steering = dict(self._steering)
+        # The hooks dispatch to whichever instance is generating, see
+        # ``_make_hook``, so copies need no hooks of their own.
+        return new
+
+    # ------------------------------------------------------------------
+    # Hooks
+    # ------------------------------------------------------------------
+    # Hooks are registered once on the shared model and dispatch to the
+    # instance that is currently generating (set under the lock).
+    _active_by_model: dict[int, "HookedLLM"] = {}
+
+    def _make_hook(self, layer_idx: int):
+        model_key = id(self.hf_model)
+
+        def hook(module, inputs, output):
+            owner = HookedLLM._active_by_model.get(model_key)
+            if owner is None:
+                return None
+            return owner._on_layer(layer_idx, output)
+
+        return hook
+
+    def _on_layer(self, layer_idx: int, output):
+        is_tuple = isinstance(output, tuple)
+        hs = output[0] if is_tuple else output
+        st = self._state
+        prefill = hs.shape[1] > 1 or not st.get("prefilled", False)
+
+        vec = self._steering.get(layer_idx)
+        if vec is not None:
+            add = self._steering_alpha * vec.to(hs.device, hs.dtype)
+            split = st.get("replay_split")
+            if self._steering_positions == "all":
+                hs = hs + add
+            elif split is not None:
+                # Teacher-forced replay: only the response was steered.
+                hs = hs.clone()
+                hs[:, split:] += add
+            elif not prefill:
+                hs = hs + add
+
+        if "full" in st and layer_idx in st["replay_layers"]:
+            st["full"][layer_idx] = hs[0].detach().float().cpu()
+        if st.get("capture") and layer_idx in st["layers"]:
+            h = hs[0].detach().float()
+            if prefill:
+                st["last"][layer_idx] = h[-1].cpu()
+                st["prompt_mean"][layer_idx] = h.mean(0).cpu()
+            else:
+                acc = st["gen_sum"].get(layer_idx)
+                st["gen_sum"][layer_idx] = h[-1] if acc is None else acc + h[-1]
+                st["gen_count"][layer_idx] = st["gen_count"].get(layer_idx, 0) + 1
+        if layer_idx == self.n_layers - 1:
+            st["prefilled"] = True
+
+        if vec is None:
+            return None
+        return (hs,) + tuple(output[1:]) if is_tuple else hs
+
+    # ------------------------------------------------------------------
+    # Steering (experiment 5)
+    # ------------------------------------------------------------------
+    def set_steering(
+        self,
+        vectors: dict,
+        alpha: float = 1.0,
+        positions: str = "generation",
+    ):
+        """Adds ``alpha * vector`` to the residual stream at given layers.
+
+        Args:
+            vectors: Mapping ``layer index -> vector`` (numpy or torch,
+                shape ``[d_model]``).
+            alpha: Global scaling factor.
+            positions: ``"generation"`` steers only generated tokens,
+                ``"all"`` also steers the prompt.
+        """
+        import torch
+
+        if positions not in ("generation", "all"):
+            raise ValueError("positions must be 'generation' or 'all'")
+        self._steering = {
+            int(k): torch.as_tensor(v).flatten() for k, v in vectors.items()
+        }
+        self._steering_alpha = float(alpha)
+        self._steering_positions = positions
+
+    def clear_steering(self):
+        """Removes all steering vectors."""
+        self._steering = {}
+
+    # ------------------------------------------------------------------
+    # Querying
+    # ------------------------------------------------------------------
+    def _encode_chat(self, session: list[dict]):
+        """Applies the chat template; merges a system turn if unsupported."""
+        try:
+            return self.tokenizer.apply_chat_template(
+                session,
+                add_generation_prompt=True,
+                return_tensors="pt",
+                return_dict=True,
+                **self.chat_template_kwargs,
+            )
+        except Exception:
+            merged = [dict(m) for m in session]
+            if merged and merged[0]["role"] == "system" and len(merged) > 1:
+                system = merged.pop(0)["content"]
+                merged[0]["content"] = system + "\n\n" + merged[0]["content"]
+            return self.tokenizer.apply_chat_template(
+                merged,
+                add_generation_prompt=True,
+                return_tensors="pt",
+                return_dict=True,
+                **self.chat_template_kwargs,
+            )
+
+    def _entropy_processor(self, stats: dict):
+        import torch
+        from transformers import LogitsProcessor
+
+        class _Stats(LogitsProcessor):
+            def __call__(self, input_ids, scores):
+                logp = torch.log_softmax(scores[0].float(), dim=-1)
+                prev = stats.get("prev_logp")
+                if prev is not None:
+                    stats["logprob_sum"] += float(prev[input_ids[0, -1]])
+                    stats["n_logprob"] += 1
+                finite = torch.isfinite(logp)
+                p = logp.exp()
+                ent = -(p[finite] * logp[finite]).sum()
+                stats["entropy_sum"] += float(ent)
+                stats["n_entropy"] += 1
+                stats["prev_logp"] = logp
+                return scores
+
+        return _Stats()
+
+    def _query(self, session: list, **kwargs):
+        import numpy as np
+        import torch
+
+        enc = self._encode_chat(session)
+        device = self.hf_model.get_input_embeddings().weight.device
+        enc = {k: v.to(device) for k, v in enc.items()}
+        n_prompt = int(enc["input_ids"].shape[1])
+        stats = {"entropy_sum": 0.0, "n_entropy": 0, "logprob_sum": 0.0}
+        stats["n_logprob"] = 0
+        gen_kwargs = dict(
+            max_new_tokens=self.max_new_tokens,
+            pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+            logits_processor=[self._entropy_processor(stats)],
+        )
+        if self.temperature and self.temperature > 0:
+            gen_kwargs.update(
+                do_sample=True, temperature=self.temperature, top_p=self.top_p
+            )
+        else:
+            gen_kwargs.update(do_sample=False)
+
+        with self._lock:
+            # Seed torch from numpy's global RNG, which BLADE seeds per run,
+            # so runs are reproducible and different seeds sample differently.
+            torch.manual_seed(int(np.random.randint(0, 2**31 - 1)))
+            self._state = {
+                "capture": self.capture,
+                "layers": set(self.capture_layers),
+                "last": {},
+                "prompt_mean": {},
+                "gen_sum": {},
+                "gen_count": {},
+                "prefilled": False,
+            }
+            HookedLLM._active_by_model[id(self.hf_model)] = self
+            start = time.time()
+            try:
+                with torch.no_grad():
+                    out = self.hf_model.generate(**enc, **gen_kwargs)
+            finally:
+                HookedLLM._active_by_model.pop(id(self.hf_model), None)
+            elapsed = time.time() - start
+            st, self._state = self._state, {}
+
+        gen_ids = out[0, n_prompt:]
+        text = self.tokenizer.decode(gen_ids, skip_special_tokens=True)
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+
+        self._query_count += 1
+        record = {
+            "record_id": uuid.uuid4().hex,
+            "query_idx": self._query_count - 1,
+            "model": self.model,
+            "n_prompt_tokens": n_prompt,
+            "n_gen_tokens": int(gen_ids.shape[0]),
+            "mean_entropy": stats["entropy_sum"] / max(stats["n_entropy"], 1),
+            "mean_logprob": stats["logprob_sum"] / max(stats["n_logprob"], 1),
+            "gen_time_s": elapsed,
+            "steering": self._steering_description(),
+            "layers": sorted(st["last"].keys()) if self.capture else [],
+        }
+        if self.store_text:
+            record["prompt"] = session
+            record["response"] = text
+        if self.capture:
+            record["arrays"] = self._stack_arrays(st)
+        self._pending = record
+        return text
+
+    def _stack_arrays(self, st: dict) -> dict:
+        import numpy as np
+
+        layers = sorted(st["last"].keys())
+        arrays = {}
+        if not layers:
+            return arrays
+        arrays["last"] = np.stack([st["last"][l].numpy() for l in layers])
+        arrays["prompt_mean"] = np.stack([st["prompt_mean"][l].numpy() for l in layers])
+        d = arrays["last"].shape[1]
+        gen = []
+        for l in layers:
+            if st["gen_count"].get(l):
+                gen.append((st["gen_sum"][l] / st["gen_count"][l]).cpu().numpy())
+            else:
+                gen.append(np.full(d, np.nan, dtype=np.float32))
+        arrays["gen_mean"] = np.stack(gen)
+        return {k: v.astype(np.float16) for k, v in arrays.items()}
+
+    def _steering_description(self):
+        if not self._steering:
+            return None
+        return {
+            "layers": sorted(self._steering.keys()),
+            "alpha": self._steering_alpha,
+            "positions": self._steering_positions,
+            "norms": {
+                str(k): float(v.float().norm()) for k, v in self._steering.items()
+            },
+        }
+
+    def query(self, session: list, **kwargs):
+        message = super().query(session)
+        if not self._in_sample and self._pending is not None:
+            self._flush(solution_id=None, parent_ids=[])
+        return message
+
+    def sample_solution(
+        self,
+        session_messages: list,
+        parent_ids=[],
+        HPO=False,
+        base_code: str | None = None,
+        diff_mode: bool = False,
+        **kwargs,
+    ):
+        """Generates a solution and links the captured activations to it."""
+        self._in_sample = True
+        self._pending = None
+        try:
+            solution = super().sample_solution(
+                session_messages,
+                parent_ids,
+                HPO=HPO,
+                base_code=base_code,
+                diff_mode=diff_mode,
+                **kwargs,
+            )
+        finally:
+            self._in_sample = False
+        if self._pending is not None:
+            record_id = self._flush(solution.id, list(parent_ids))
+            solution.add_metadata("mi_record_id", record_id)
+        return solution
+
+    # ------------------------------------------------------------------
+    # Storage
+    # ------------------------------------------------------------------
+    def _record_dir(self) -> str | None:
+        import os
+
+        run_dir = getattr(self.logger, "dirname", None) if self.logger else None
+        if run_dir:
+            return os.path.join(run_dir, "mi_activations")
+        return self.activation_dir
+
+    def _flush(self, solution_id, parent_ids) -> str:
+        import json
+        import os
+
+        import numpy as np
+
+        record, self._pending = self._pending, None
+        record["solution_id"] = solution_id
+        record["parent_ids"] = parent_ids
+        self.last_record = record
+        out_dir = self._record_dir()
+        if out_dir is None:
+            self.records.append(record)
+            return record["record_id"]
+        os.makedirs(out_dir, exist_ok=True)
+        arrays = record.pop("arrays", {})
+        if arrays:
+            fname = f"{record['record_id']}.npz"
+            np.savez_compressed(os.path.join(out_dir, fname), **arrays)
+            record["file"] = fname
+        with open(os.path.join(out_dir, "index.jsonl"), "a") as f:
+            f.write(json.dumps(record) + "\n")
+        record["arrays"] = arrays
+        return record["record_id"]
+
+    # ------------------------------------------------------------------
+    # Offline analysis
+    # ------------------------------------------------------------------
+    def replay(
+        self,
+        session: list[dict],
+        response: str,
+        layers: list[int] | None = None,
+    ) -> dict:
+        """Teacher-forces ``prompt + response`` and returns per-token states.
+
+        Use this to recompute full activations for a logged query (e.g. for
+        attribution or SAE analysis) without storing them during the run.
+        Steering vectors, if set, are applied as during generation (with
+        ``positions="generation"`` only to the response tokens).
+
+        Args:
+            session: The chat messages of the query.
+            response: The model's response text.
+            layers: Layers to return (default: ``capture_layers``).
+
+        Returns:
+            dict: ``hidden`` (float16 array ``[n_layers, n_tokens, d]``),
+            ``layers``, ``tokens`` (strings), ``input_ids`` and
+            ``n_prompt_tokens`` (prompt/response boundary).
+        """
+        import numpy as np
+        import torch
+
+        layers = self.capture_layers if layers is None else layers
+        enc = self._encode_chat(session)
+        prompt_ids = enc["input_ids"]
+        resp_ids = self.tokenizer(
+            response, add_special_tokens=False, return_tensors="pt"
+        )["input_ids"]
+        ids = torch.cat([prompt_ids, resp_ids], dim=1)
+        device = self.hf_model.get_input_embeddings().weight.device
+        with self._lock:
+            HookedLLM._active_by_model[id(self.hf_model)] = self
+            self._state = {
+                "capture": False,
+                "prefilled": False,
+                "replay_split": int(prompt_ids.shape[1]),
+                "replay_layers": set(layers),
+                "full": {},
+            }
+            try:
+                with torch.no_grad():
+                    self.hf_model(input_ids=ids.to(device))
+                full = self._state["full"]
+            finally:
+                HookedLLM._active_by_model.pop(id(self.hf_model), None)
+                self._state = {}
+        # Raw block outputs (HF's output_hidden_states applies the final norm
+        # to the last layer, which would not match the captured records).
+        hidden = np.stack([full[l].numpy().astype(np.float16) for l in layers])
+        ids_list = ids[0].tolist()
+        return {
+            "hidden": hidden,
+            "layers": list(layers),
+            "input_ids": ids_list,
+            "tokens": self.tokenizer.convert_ids_to_tokens(ids_list),
+            "n_prompt_tokens": int(prompt_ids.shape[1]),
+        }
+
+    def to_dict(self):
+        d = super().to_dict()
+        d.update(self._settings())
+        return d
+
+    def _settings(self) -> dict:
+        return {
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "max_new_tokens": self.max_new_tokens,
+            "dtype": self.dtype,
+            "capture": self.capture,
+            "capture_layers": self.capture_layers,
+            "chat_template_kwargs": self.chat_template_kwargs,
+        }
+
+    def get_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "model": self.model,
+                "config": self._settings(),
+                "hardware": get_hardware_info(),
+            }
+        ]
 
 
 class Dummy_LLM(LLM):

@@ -1,0 +1,7 @@
+# Raw BLADE logs, activations and processed datasets are large and
+# regenerable; only results/ is committed.
+*/data/
+# Synthetic/smoke results are for pipeline checks only.
+*/results/smoke/
+*/results/synthetic/
+.ipynb_checkpoints/

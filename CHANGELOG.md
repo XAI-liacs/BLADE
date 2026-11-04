@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Major changes
+
+- **`HookedLLM`** (`iohblade.llm`): new LLM provider for open-weights
+  HuggingFace models with forward hooks. It records per-layer
+  residual-stream summaries for every query (last prompt token, prompt mean,
+  generated-token mean) plus token entropy and log-probability, linked to the
+  generated `Solution`. It supports activation steering and offline
+  `replay()` of full per-token activations. Needs the new optional `mi`
+  dependency group (`uv sync --group mi`).
+- `experiments/mi/`: research folder for mechanistic-interpretability
+  experiments on LLM-driven algorithm design (probing pipeline for
+  experiment 1, designs for experiments 2, 3 and 5).
+
 ## v1.1.1 (2026-10-22)
 
 Changes since [v1.1.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.0).

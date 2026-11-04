@@ -231,6 +231,9 @@ BLADE supports integration with various LLM APIs to facilitate automated design 
    * - **MLX_LM** (Beta)
      - A hardware specialised python package for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. `Reference <https://github.com/ml-explore/mlx-lm>`_
      - Used via Python APIs and CLI tools, often integrated into local inference workflows and Apple MLX pipelines.
+   * - **HookedLLM** (Beta)
+     - Any open-weights HuggingFace causal LM, run locally with ``transformers``, recording residual-stream activations for every query and supporting activation steering. For mechanistic-interpretability research. `Reference <https://huggingface.co/docs/transformers>`_
+     - Install with ``uv sync --group mi`` (``torch``, ``transformers``). Activations are stored per run in ``mi_activations/`` and linked to each ``Solution``. See ``experiments/mi/README.md``.
 
 Evaluating against Human Designed Baselines
 -------------------------------------------

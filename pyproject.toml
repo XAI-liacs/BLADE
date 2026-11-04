@@ -69,6 +69,13 @@ methods = [
     "codebleu",
     "tree-sitter-python"
 ]
+mi = [
+    "torch>=2.7",
+    "transformers>=4.56,<6",
+    "accelerate>=1.0",
+    "scikit-learn>=1.5",
+    "matplotlib>=3.8",
+]
 extraproblems = [
     "pymoosh==3.2",
     "pyGDM2==1.1.12",

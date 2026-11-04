@@ -1,176 +1,159 @@
-# Mechanistic Interpretability experiments (branch `experiments/mi`)
+# Mechanistic Interpretability of LLM-driven algorithm design
 
-Research notes for opening up the *generator* inside LLaMEA / BLADE: the
-LLM that writes and mutates the optimisation heuristics. So far BLADE treats
-the LLM as a black box (prompt in, code out). The goal of this branch is to
-look at its internal activations while it designs algorithms.
+Research folder for the `experiments/mi` line. These experiments open up the
+*generator* inside LLaMEA / BLADE, the LLM that writes and mutates
+optimisation heuristics, and study its internal activations while it designs
+algorithms.
 
-> Status: planning only. No code changes yet.
+## Experiments
 
-## Prerequisite: an open-weights, hookable LLM backend
+| # | Folder | Question | Status |
+|---|--------|----------|--------|
+| 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pipeline done, pilot run |
+| 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | planned |
+| 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
+| 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
 
-MI needs access to the model's residual stream, attention and MLP activations.
-`Claude_LLM`, `OpenAI_LLM`, `Gemini_LLM` and even `Ollama_LLM` /
-`LMStudio_LLM` (quantised GGUF behind an HTTP API) do not expose them. Step 0
-is a new provider in `iohblade/llm.py`, for example `HookedLLM`:
+The numbering follows the original research plan. Directions 4 (mode
+collapse), 6 (recall vs. invention), 7 (model diffing) and 8 (error circuits)
+are listed at the end; 8 is partly covered by the `child_failed` and
+`over_budget` probes of experiment 1.
 
-- wraps a HuggingFace model through `transformer_lens.HookedTransformer` or
-  `nnsight.LanguageModel`;
-- implements `_query()` as usual, so LLaMEA and the other methods work
-  unchanged;
-- optionally caches selected activations per query (mean-pooled or
-  per-token at chosen layers/hooks, or SAE feature activations) and
-  attaches them to the `Solution` (metadata or a side file keyed by
-  `solution.id`), so the activations sit next to fitness, feedback,
-  parent ids and mutation operator in the BLADE logs;
-- supports interventions (steering vector, feature clamping, ablation)
-  passed in through kwargs, so an intervention can act as a search operator.
+## Layout
 
-Candidate models (they need public SAEs/transcoders *and* acceptable code
-quality):
-
-| Model | Public dictionaries | Notes |
-|-------|---------------------|-------|
-| Gemma-2-2B / 9B | Gemma Scope (SAEs + transcoders), circuit-tracer support | Best tooling; 2B code quality is weak |
-| Gemma-3 family | Gemma Scope 2 | Newer; check SAELens support |
-| Llama-3.1-8B (-Instruct) | Llama Scope SAEs, Goodfire SAEs | Reasonable code quality |
-| Llama-3.2-1B | circuit-tracer transcoders | Toy-scale attribution graphs |
-| Qwen3 (small) / Qwen2.5-Coder-7B | some circuit-tracer transcoders for Qwen3; train your own for Coder | Best code quality per parameter |
-
-LLaMEA has produced large corpora of prompts and generated code. We can use
-them to train our own task-specific SAEs/transcoders (SAELens, `sparsify`)
-on a code model.
-
-## Research directions (tied to the LLaMEA line)
-
-1. **Does the model know if its mutation will work?** Train linear probes on
-   activations at the end of the mutation prompt (after the parent code and
-   its feedback) to predict (a) parent fitness, (b) fitness improvement of
-   the child, (c) whether the child will crash or time out. If the probes
-   work, we get a free surrogate for pre-screening candidates, which saves
-   evaluation budget. Connects to the LLaMEA surrogate and budget work.
-
-2. **Is the feedback actually used?** Use attribution (circuit-tracer
-   attribution graphs, integrated gradients via `inseq`/`captum`, attention
-   knock-out) from the generated code back to the feedback tokens (fitness
-   value, error trace, behaviour metrics). Measure how much of the edit is
-   driven by feedback vs. by the parent code vs. by the task prompt. Compare
-   mutation prompts ("refine", "new", "simplify"), and test whether richer
-   feedback (BLADE behaviour metrics) is used or ignored.
-
-3. **Algorithmic concept features and code structure.** Find SAE features
-   for metaheuristic concepts (population, step-size adaptation, restart,
-   covariance, crossover, elitism, "CMA-ES", "DE", ...). Correlate them with
-   the AST/code-evolution-graph features and `behaviour_metrics.py` already
-   in BLADE. This gives a three-way map between latent intent, code
-   structure and search behaviour, which extends the explainable-AAD work
-   into the model itself.
-
-4. **Why does it converge to DE/CMA-ES-like designs? Mode collapse and
-   priors.** Find the features or directions behind the "default" algorithm
-   families. Ablating or suppressing them during generation is a test of
-   whether population diversity and novelty go up, and whether fitness goes
-   down.
-
-5. **Activation steering as a variation operator.** Use steering vectors
-   (contrastive, e.g. "exploratory" vs "exploitative" algorithm
-   descriptions) or SAE-feature clamping as a mutation operator, as an
-   alternative to temperature or prompt engineering for controlling
-   exploration. Natural next step for this group: run **CMA-ES in the
-   steering/feature space** to search latent directions that maximise
-   generated-algorithm fitness on BBOB/MA-BBOB. That gives a two-level
-   search: an optimiser in activation space on top of LLaMEA in code space.
-
-6. **Recall or invention?** Use logit lens/tuned lens, token entropy and
-   feature signatures to tell apart code that is reproduced from known
-   algorithms in the training data from genuinely recombined code. Relate
-   this to the novelty of the final elite algorithms.
-
-7. **Model diffing.** Use crosscoders (`dictionary_learning`) or SAE
-   diffing between a base code model and the same model fine-tuned on
-   LLaMEA-generated elites, or between base and instruct models. The
-   question is what the fine-tuning adds: new algorithmic concepts, or only
-   formatting and style.
-
-8. **Error and timeout circuits.** Find the internal signals that come
-   before code that crashes or exceeds the budget, and use them to
-   early-stop generation or reject candidates without executing them.
-
-Suggested order: 0 → 1 → 2 → 3, then 5 (steering) as the main contribution.
-Directions 1 and 8 have the most immediate practical payoff for BLADE.
-
-## Python libraries to consider
-
-**Model access and hooking**
-- `transformer_lens`: HookedTransformer with clean hook points; the standard for
-  small/medium models, built-in caching, logit lens, activation patching.
-- `nnsight` (+ NDIF): tracing and interventions on any HF model; NDIF gives
-  remote access to large open models (e.g. Llama-3.1-70B/405B) without
-  local GPUs.
-- `nnterp`: unified nnsight-based interface across architectures.
-- `pyvene` (Stanford): declarative interventions, causal abstraction and
-  interchange interventions.
-- `baukit`: lightweight tracing/editing helpers.
-
-**Sparse dictionaries (SAEs, transcoders, crosscoders)**
-- `sae_lens`: load pretrained SAEs (Gemma Scope, Llama Scope, ...) and train
-  new ones.
-- `sparsify` (EleutherAI): train SAEs/transcoders at scale on custom data
-  (e.g. LLaMEA corpora).
-- `dictionary_learning` (Sam Marks et al.): SAEs and crosscoders for model
-  diffing.
-- `delphi` (EleutherAI): automated interpretation (LLM-written
-  explanations and scoring) of features.
-- Neuronpedia (web + API): browse, search and explain features; hosts
-  attribution graphs.
-
-**Anthropic-originated open-source**
-- `circuit-tracer` (github.com/safety-research/circuit-tracer): the
-  open-source release of Anthropic's attribution graph / circuit tracing
-  method ("Biology of an LLM"). Builds attribution graphs with
-  cross-layer/per-layer transcoders on Gemma-2-2B, Llama-3.2-1B and Qwen3
-  models, supports interventions, and integrates with Neuronpedia for
-  visualisation.
-- Methodology to reimplement rather than install: Towards
-  Monosemanticity / Scaling Monosemanticity (SAEs), Crosscoders, Circuit
-  Tracing, and the Transformer Circuits thread (transformer-circuits.pub).
-  Note: Claude's internals are **not** accessible via the API, so
-  `Claude_LLM` cannot be used for MI experiments. It can still serve as the
-  automated interpreter (feature labelling) or as a judge.
-
-**Attribution / classic XAI on LLMs** (closest to existing XAI work)
-- `inseq`: feature attribution for generative LMs (IG, attention, gradient x
-  input, contrastive attribution).
-- `captum` (`LLMAttribution`): perturbation and gradient attribution for
-  LLMs.
-
-**Steering**
-- `steering-vectors`, `repeng`: contrastive steering vectors / control
-  vectors on HF models.
-- Goodfire Ember API: hosted SAE-based steering on Llama models (commercial;
-  useful for fast prototyping).
-
-**Probing and analysis**
-- `scikit-learn` (linear/logistic probes), `torch`, `einops`, `jaxtyping`,
-  `plotly`/`circuitsvis` for attention and feature visualisation.
-
-Proposed dependency group in `pyproject.toml` (to add once we start
-implementing; the heavy `torch` stack must stay optional):
-
-```toml
-mi = [
-    "torch",
-    "transformers",
-    "transformer-lens",
-    "nnsight",
-    "sae-lens",
-    "inseq",
-    "scikit-learn",
-    "circuitsvis",
-]
-# circuit-tracer is installed from git:
-#   uv add --group mi "circuit-tracer @ git+https://github.com/safety-research/circuit-tracer"
+```
+experiments/mi/
+├── README.md            # this file: plan, index, conventions, log
+├── env.sh               # cache locations + thread limits (source first)
+├── common/              # code shared by all experiments
+│   ├── models.py        #   model presets (HF id, chat kwargs, SAEs, transcoders)
+│   ├── paths.py         #   data/ and results/ locations (MI_DATA_ROOT)
+│   ├── runs.py          #   read BLADE run dirs + HookedLLM records
+│   └── plotting.py      #   shared matplotlib style and colours
+└── expNN_<name>/
+    ├── README.md        # question, hypotheses, design, how to run, results
+    ├── exp_config.py    # every setting of a campaign, named presets
+    ├── scripts/         # numbered pipeline steps: 01_..., 02_..., 03_...
+    ├── notebooks/       # analysis notebooks (read results/, never raw data)
+    ├── data/            # git-ignored: raw BLADE logs, activations, datasets
+    │   ├── raw/<tag>/
+    │   └── processed/<tag>/
+    └── results/<tag>/   # committed: small CSVs and figures
 ```
 
-Check versions and model support before pinning; this ecosystem changes
-quickly.
+Conventions:
+
+- A **tag** names a data-collection campaign (`smoke`, `pilot`, `main`, ...)
+  and is the preset name in `exp_config.py`. `data/raw/<tag>/config.json`
+  records the exact settings.
+- Scripts are numbered and idempotent. Generation resumes where it stopped,
+  because BLADE's `ExperimentLogger` skips finished runs.
+- `data/` is never committed. `results/` holds only small, regenerable
+  artefacts (CSV, PNG) that the notebooks and the paper use.
+- All experiments use the same model (`common/models.py`, default
+  **Qwen3-8B**), so probes, attribution graphs, SAE features and steering
+  vectors share one representation space.
+
+## Setup
+
+```bash
+uv sync --group dev --group mi
+export MI_CACHE=/local/$USER/cache   # anywhere with ~50 GB free
+source experiments/mi/env.sh
+```
+
+`env.sh` points the Hugging Face, uv, pip and virtualenv caches at
+`$MI_CACHE`, and limits BLAS to one thread per evaluation subprocess.
+Without that limit, parallel runs exhaust the thread limit and the failures
+are wrongly logged as crashes of the generated code.
+
+## Infrastructure: `HookedLLM`
+
+`iohblade.llm.HookedLLM` is a drop-in BLADE LLM provider (works with LLaMEA,
+RandomSearch, ...) that runs any HuggingFace causal LM with PyTorch forward
+hooks:
+
+```python
+from iohblade.llm import HookedLLM
+
+llm = HookedLLM(
+    "Qwen/Qwen3-8B",
+    device_map="cuda:0",
+    chat_template_kwargs={"enable_thinking": False},
+)
+method = LLaMEA(llm, budget=100)
+```
+
+- For every query it records, per decoder layer, the residual stream at the
+  **last prompt token**, the **prompt mean** and the **generated-token
+  mean**. It also records mean token entropy and log-probability as
+  uncertainty baselines.
+- Records go to `<run_dir>/mi_activations/` (`index.jsonl` + one `.npz` per
+  query, about 0.9 MB for Qwen3-8B). Each record is linked to the
+  `Solution` via `solution.id` and `solution.metadata["mi_record_id"]`. The
+  prompt and response text are stored as well.
+- `llm.replay(prompt, response)` recomputes full per-token activations
+  offline. It matches the captured states to cosine > 0.999. Use it for
+  experiments 2 and 3 instead of storing everything during runs.
+- `llm.set_steering({layer: vector}, alpha, positions)` adds vectors to the
+  residual stream (experiment 5). The steering configuration is logged with
+  every record.
+- Deep copies (one per BLADE run) share the weights and a GPU lock. Run one
+  process per GPU and shard seeds across processes.
+
+Plain `transformers` + hooks was chosen over TransformerLens/nnsight for the
+*generation* path because it is fast (~47 tok/s for Qwen3-8B on an RTX PRO
+6000) and works for any architecture. The analysis libraries (SAELens,
+circuit-tracer, nnsight) can load the same weights offline.
+
+## Known caveats
+
+- **MA-BBOB over-budget scoring.** An algorithm that uses more evaluations
+  than allowed raises `OverBudgetException` and scores AOCC 0. The feedback
+  then says "scored 0.000" without the cause. Experiment 1 labels this case
+  (`over_budget`). For experiment 2 it is a confound, because the feedback
+  hides why the score is 0.
+- **SAEs and transcoders for Qwen3-8B are trained on the base model.** Check
+  reconstruction quality on our (post-trained) activations before
+  interpreting features.
+
+## Research directions (full list)
+
+1. **Fitness awareness (probing).** Can activations predict parent fitness,
+   child failure and improvement? If so, a probe gives a free surrogate.
+   → `exp01_probing`
+2. **Is the feedback used? (attribution).** Attribute the edit to feedback,
+   code, error and operator tokens. → `exp02_feedback_attribution`
+3. **Algorithmic concept features.** Map SAE features to AST features and
+   BLADE behaviour metrics. → `exp03_concept_features`
+4. **Mode collapse.** Find the directions behind the default DE/CMA-ES-like
+   designs and ablate them.
+5. **Steering as a variation operator.** Use steering vectors as a mutation
+   operator; run CMA-ES in steering space on top of LLaMEA.
+   → `exp05_steering`
+6. **Recall or invention.** Use logit lens, entropy and feature signatures to
+   tell memorised from recombined code.
+7. **Model diffing.** Use crosscoders between a base model and one
+   fine-tuned on LLaMEA elites.
+8. **Error and timeout circuits.** Reject code before execution.
+
+## Libraries
+
+Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
+`scikit-learn`, `matplotlib`. Add these per experiment when it starts:
+
+| Experiment | Libraries |
+|---|---|
+| 2 | `circuit-tracer` (git, safety-research/circuit-tracer; Anthropic's attribution graphs), `inseq` or `captum` for gradient attribution baselines |
+| 3 | `sae-lens` (load `Qwen/SAE-Res-Qwen3-8B-Base-*`), `delphi` (auto-interpretation), optionally `sparsify` to train SAEs on LLaMEA code |
+| 5 | none beyond `HookedLLM`; `steering-vectors` / `repeng` for comparison, `cma` for the outer CMA-ES loop |
+| general | `nnsight` (+ NDIF for 70B models), `transformer-lens`, `pyvene`, Neuronpedia |
+
+## Log
+
+- 2026-11-04: `HookedLLM` + unit tests; experiment 1 pipeline validated on a
+  smoke run (Qwen2.5-0.5B) and a synthetic planted-signal dataset. Pilot
+  with Qwen3-8B (4 seeds × 20 algorithms) started. Found and fixed two
+  label-contaminating infrastructure issues (BLAS threads; SMAC build in the
+  sandbox).
