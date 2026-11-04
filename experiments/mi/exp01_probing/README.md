@@ -28,8 +28,11 @@ will crash, overspend the evaluation budget or improve on the parent?
 - **Search.** LLaMEA (4 parents, 12 offspring, elitism) with three
   single-parent operators: `refine`, `new` and `simplify`. The operators are
   identified from the prompt text.
-- **Problem.** MA-BBOB, 5-D, 10 training instances, AOCC fitness. Evaluation
-  is sandboxed and runs without SMAC.
+- **Problem.** MA-BBOB, 5-D, 10 training instances, AOCC fitness, with the
+  **budget enforced** (`common.problems.BudgetEnforcedMABBOB`). A run that
+  overspends is stopped at the budget and scored on what it reached, not
+  zeroed. The feedback text is unchanged. This was decided after the pilot
+  (below). Evaluation is sandboxed and runs without SMAC.
 - **Model.** Qwen3-8B with thinking disabled, T = 0.8, top-p = 0.95.
 - **Recorded per query (all 36 layers).** Residual stream at the `last`
   prompt token, `prompt_mean` and `gen_mean`. Also mean entropy and
@@ -61,11 +64,8 @@ fix the layer on `pilot` and report on `main`.
 ```bash
 source experiments/mi/env.sh
 
-# 1. generate (one process per GPU; rerun to resume)
-for g in 0 1 2 3; do
-  uv run python experiments/mi/exp01_probing/scripts/01_generate.py \
-      --config main --device cuda:$g --shard $g --n-shards 4 &
-done; wait
+# 1. generate: 12 detached shards on 4 GPUs (rerun to resume)
+experiments/mi/exp01_probing/scripts/launch.sh main 12 4
 
 # 2. join activations with BLADE logs
 uv run python experiments/mi/exp01_probing/scripts/02_build_dataset.py --tag main
@@ -83,7 +83,7 @@ Presets in `exp_config.py`:
 |---|---|---|---|---|
 | `smoke` | Qwen2.5-0.5B | 2 × 6 | pipeline check | ~5 min |
 | `pilot` | Qwen3-8B | 4 × 20 | label balance, layer selection | ~1–1.5 h |
-| `main` | Qwen3-8B | 12 × 100 | ~1200 labelled queries | ~1 day |
+| `main` | Qwen3-8B | 12 × 100 | ~1200 labelled queries | ~5–8 h (12 shards) |
 
 Most of the wall clock is spent evaluating the algorithms (CPU), not
 generating them (~10 s per algorithm at ~47 tok/s).
@@ -124,5 +124,6 @@ working algorithms (84%) use more evaluations than allowed and score AOCC 0.
 Only 7 of 80 children are valid and within budget, the median fitness is 0,
 and the fitness labels are nearly degenerate. Cause: MA-BBOB's feedback says
 "scored 0.000" without saying that the budget was exceeded (see the top-level
-README), so the model cannot learn the fix. This has to be resolved before
-`main`, otherwise a day of compute produces mostly zero-fitness labels.
+README), so the model cannot learn the fix. **Decision:** `main` uses
+`BudgetEnforcedMABBOB`. Re-scored with it, the pilot's over-budget evolution
+strategy goes from AOCC 0.000 to 0.411.

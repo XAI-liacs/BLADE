@@ -1,12 +1,13 @@
 """Step 1: run LLaMEA with a HookedLLM on MA-BBOB and record activations.
 
 Every LLM query stores per-layer residual-stream summaries next to the BLADE
-logs (see ``HookedLLM``). Shard the seeds over GPUs by starting one process
-per GPU, e.g.::
+logs (see ``HookedLLM``). Shard the seeds over processes; several processes
+can share a GPU because evaluation (CPU) dominates the wall clock, e.g.
+12 shards on 4 GPUs::
 
-    for g in 0 1 2 3; do
+    for k in $(seq 0 11); do
       uv run python experiments/mi/exp01_probing/scripts/01_generate.py \\
-          --config main --device cuda:$g --shard $g --n-shards 4 &
+          --config main --device cuda:$((k % 4)) --shard $k --n-shards 12 &
     done
 
 Re-running the same command resumes: finished runs are skipped.
@@ -26,6 +27,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # exp01_probing
 
 from common.models import MODELS
 from common.paths import data_dir
+from common.problems import BudgetEnforcedMABBOB
 from exp_config import EXPERIMENT, OPERATORS, PRESETS
 from llamea import Operator
 
@@ -75,12 +77,14 @@ def main():
         n_offspring=cfg.n_offspring,
         elitism=cfg.elitism,
     )
-    problem = MA_BBOB(
+    problem_cls = {"mabbob": MA_BBOB, "budget_enforced": BudgetEnforcedMABBOB}
+    problem = problem_cls[cfg.problem](
         dims=cfg.dims,
         budget_factor=cfg.budget_factor,
         training_instances=cfg.training_instances,
         eval_timeout=cfg.eval_timeout,
         dependencies=cfg.eval_dependencies,
+        name="MA_BBOB" if cfg.problem == "mabbob" else "MA_BBOB_enforced",
     )
     logger = ExperimentLogger(str(out / f"shard-{args.shard}"))
     Experiment(

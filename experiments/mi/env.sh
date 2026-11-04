@@ -16,3 +16,7 @@ mkdir -p "$HF_HOME" "$UV_CACHE_DIR" "$PIP_CACHE_DIR" "$XDG_CACHE_HOME" "$VIRTUAL
 # evaluation starts one thread per core, parallel runs exhaust the thread
 # limit, and the failures are wrongly logged as crashes of the generated code.
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+# Keep idle thread pools small (Rust tokenizers, torch CPU ops). Some hosts
+# cap tasks per user (e.g. systemd TasksMax=2048), and with many parallel
+# generators the default one-thread-per-core pools exhaust it.
+export RAYON_NUM_THREADS=2 TOKENIZERS_PARALLELISM=false

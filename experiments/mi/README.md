@@ -10,7 +10,7 @@ algorithms.
 | # | Folder | Question | Status |
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
-| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pipeline done, pilot analysed |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pilot analysed, `main` running |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | planned |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
@@ -30,6 +30,7 @@ experiments/mi/
 │   ├── models.py        #   model presets (HF id, chat kwargs, SAEs, transcoders)
 │   ├── paths.py         #   data/ and results/ locations (MI_DATA_ROOT)
 │   ├── runs.py          #   read BLADE run dirs + HookedLLM records
+│   ├── problems.py      #   problem variants (BudgetEnforcedMABBOB)
 │   └── plotting.py      #   shared matplotlib style and colours
 └── expNN_<name>/
     ├── README.md        # question, hypotheses, design, how to run, results
@@ -109,8 +110,9 @@ circuit-tracer, nnsight) can load the same weights offline.
 
 ## Known caveats
 
-- **MA-BBOB over-budget scoring.** An algorithm that uses more evaluations
-  than allowed raises `OverBudgetException` and scores AOCC 0. The feedback
+- **MA-BBOB over-budget scoring.** In BLADE's `MA_BBOB`, an algorithm that
+  uses more evaluations than allowed raises `OverBudgetException` and scores
+  AOCC 0. Experiment 1 therefore uses `common.problems.BudgetEnforcedMABBOB`. The feedback
   then says "scored 0.000" without the cause. Experiment 1 labels this case
   (`over_budget`). For experiment 2 it is a confound, because the feedback
   hides why the score is 0.
@@ -159,5 +161,7 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   sandbox). Pilot finished: parent fitness is decodable from the last
   prompt token from layer ~20 on, and failure from the generated-code mean.
   But 84% of working algorithms overspend the budget (AOCC 0, not
-  reported in the feedback), so the fitness labels are degenerate. Fix the
-  feedback before `main`.
+  reported in the feedback), so the fitness labels are degenerate.
+  Decision: enforce the budget (`BudgetEnforcedMABBOB`, truncate instead
+  of zero). `main` (12 × 100) started on 12 shards. Also capped idle thread
+  pools in `env.sh`: this host limits a user to 2048 tasks.

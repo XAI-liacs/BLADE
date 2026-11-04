@@ -14,8 +14,9 @@ Labels:
 * ``parent_fitness``: fitness of the solution that was mutated;
 * ``child_fitness``: fitness of the generated solution (nan if it failed);
 * ``child_failed``: the generated code raised, timed out or had no code;
-* ``over_budget``: the code ran but used more evaluations than allowed.
-  MA-BBOB then scores AOCC 0 without telling the LLM why;
+* ``over_budget``: the code ran but used more evaluations than allowed on
+  at least one instance (original MA-BBOB scores this AOCC 0;
+  ``BudgetEnforcedMABBOB`` truncates the run at the budget);
 * ``improved``: the child beat its parent (failed children count as 0, a
   working child of a failed parent as 1);
 * ``delta_fitness``: ``child_fitness - parent_fitness``.
@@ -34,13 +35,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from common.paths import data_dir
-from common.runs import (
-    fitness_scalar,
-    iter_run_dirs,
-    load_arrays,
-    load_run,
-    prompt_text,
-)
+from common.runs import (fitness_scalar, iter_run_dirs, load_arrays, load_run,
+                         prompt_text)
 from exp_config import EXPERIMENT, OPERATORS
 
 MUTATION_MARKER = "The selected solutions to update are"
@@ -65,8 +61,12 @@ def detect_operator(prompt: str) -> str:
 
 
 def _over_budget(sol: dict, n_scores: int) -> bool:
-    """MA-BBOB stops scoring at the first over-budget instance (AOCC 0)."""
-    aucs = (sol.get("metadata") or {}).get("aucs")
+    """Whether the code used more evaluations than allowed on any instance."""
+    meta = sol.get("metadata") or {}
+    if "over_budget_instances" in meta:  # BudgetEnforcedMABBOB
+        return meta["over_budget_instances"] > 0
+    # Original MA-BBOB stops scoring at the first over-budget instance (AOCC 0).
+    aucs = meta.get("aucs")
     return bool(aucs) and len(aucs) < n_scores and aucs[-1] == 0
 
 

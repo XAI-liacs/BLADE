@@ -33,7 +33,10 @@ class ProbeConfig:
     temperature: float = 0.8
     top_p: float = 0.95
     max_new_tokens: int = 3072
-    # MA-BBOB evaluation
+    # MA-BBOB evaluation. "budget_enforced" truncates runs that overspend
+    # instead of scoring them 0 (common.problems.BudgetEnforcedMABBOB);
+    # "mabbob" is BLADE's original scoring (used by the pilot).
+    problem: str = "budget_enforced"
     dims: list[int] = field(default_factory=lambda: [5])
     budget_factor: int = 2000
     training_instances: list[int] = field(default_factory=lambda: list(range(10)))
@@ -63,7 +66,15 @@ PRESETS = {
     ),
     # Pilot with the real model: one seed per GPU, ~20 min. Checks label
     # balance and throughput before committing to the main campaign.
-    "pilot": ProbeConfig(tag="pilot", seeds=[0, 1, 2, 3], budget=20, n_offspring=4),
+    # The pilot used the original scoring; 84% of working algorithms then
+    # scored 0 for overspending, which motivated "budget_enforced".
+    "pilot": ProbeConfig(
+        tag="pilot",
+        seeds=[0, 1, 2, 3],
+        budget=20,
+        n_offspring=4,
+        problem="mabbob",
+    ),
     # Main campaign: 12 runs x 100 algorithms = ~1200 labelled LLM queries.
     "main": ProbeConfig(tag="main"),
 }
