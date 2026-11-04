@@ -10,7 +10,7 @@ algorithms.
 | # | Folder | Question | Status |
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
-| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pipeline done, pilot run |
+| 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | pipeline done, pilot analysed |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | planned |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
@@ -156,4 +156,8 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   smoke run (Qwen2.5-0.5B) and a synthetic planted-signal dataset. Pilot
   with Qwen3-8B (4 seeds × 20 algorithms) started. Found and fixed two
   label-contaminating infrastructure issues (BLAS threads; SMAC build in the
-  sandbox).
+  sandbox). Pilot finished: parent fitness is decodable from the last
+  prompt token from layer ~20 on, and failure from the generated-code mean.
+  But 84% of working algorithms overspend the budget (AOCC 0, not
+  reported in the feedback), so the fitness labels are degenerate. Fix the
+  feedback before `main`.

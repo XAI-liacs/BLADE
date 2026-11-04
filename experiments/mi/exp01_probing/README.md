@@ -104,4 +104,25 @@ float16), so ~1.1 GB for `main`.
 
 ## Results
 
-_To be filled after `pilot` and `main`._
+### Pilot (2026-11-04): Qwen3-8B, 4 runs × 20 algorithms, 80 labelled queries
+
+Figures: `results/pilot/layer_curves.png`, `prescreening.png`,
+`pca_parent_fitness.png`. With n = 61–80 and few positives, the
+shuffled-label control itself reaches 0.7–0.8 AUROC at some layers. Only
+effects that stay above the control across many layers count.
+
+| Target | Probe (mean over layers) | Control (mean) | Best activation-free baseline | Read |
+|---|---|---|---|---|
+| `parent_fitness` | ρ 0.57 (prompt mean); last token ≈ 0 up to layer 15, then 0.6–0.7 from layer 20 | ρ ≈ 0 | code BoW ρ 0.35 | **signal**; it appears in the middle layers at the decision token (H1) |
+| `child_failed` | AUROC 0.85 (gen mean); 0.61 (last) | 0.57 / 0.28 | uncertainty 0.85, code BoW 0.78 | **signal**, but not above the output-entropy baseline yet (H2 open) |
+| `over_budget` | 0.60–0.64 | 0.37–0.70 | code BoW 0.87 | no clear signal (only 7 negatives) |
+| `improved` | 0.29–0.42 | 0.61–0.78 | uncertainty 0.81 | no signal (9 positives) |
+| `child_fitness` | ρ 0.30 (prompt mean) | ≈ 0 | meta ρ 0.23 | weak; fitness is mostly 0 (below) |
+
+**Main issue found: the search is stuck on over-budget code.** 59 of the 70
+working algorithms (84%) use more evaluations than allowed and score AOCC 0.
+Only 7 of 80 children are valid and within budget, the median fitness is 0,
+and the fitness labels are nearly degenerate. Cause: MA-BBOB's feedback says
+"scored 0.000" without saying that the budget was exceeded (see the top-level
+README), so the model cannot learn the fix. This has to be resolved before
+`main`, otherwise a day of compute produces mostly zero-fitness labels.
