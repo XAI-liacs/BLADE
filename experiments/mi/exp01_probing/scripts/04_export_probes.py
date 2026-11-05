@@ -19,9 +19,13 @@ fixed (position, layer). ``results/<tag>/probes/<name>.npz`` stores:
 * ``threshold``: for binary probes, the out-of-fold score above which a
   fraction ``skip_rate`` of the campaign's queries would be flagged.
 
-The layers are the best layers of ``main``. They were picked after seeing the
-scores, so they are only validated on the new seeds of the pre-screen
-campaign.
+Each probe sits at the best layer of its campaign for that target and
+position, read from ``oof_<target>_<position>.csv`` (``03_train_probes.py``),
+so every model gets its own layers. The name records it, e.g.
+``child_failed_gen_mean_L21`` for Qwen3-8B. The layers were picked after
+seeing the scores, so they are only validated on new seeds (the pre-screen
+campaign). ``probes.json`` lists the probes with target, position and layer;
+use :func:`find_probe` to look one up by target.
 """
 
 import argparse
@@ -45,12 +49,21 @@ from exp_config import EXPERIMENT
 
 probes = importlib.import_module("03_train_probes")
 
-# name -> (target, position, layer)
-EXPORT = {
-    "child_failed_gen_mean_L21": ("child_failed", "gen_mean", 21),
-    "over_budget_gen_mean_L9": ("over_budget", "gen_mean", 9),
-    "parent_fitness_prompt_mean_L15": ("parent_fitness", "prompt_mean", 15),
-}
+# (target, position); the layer is the campaign's best one
+EXPORT = [
+    ("child_failed", "gen_mean"),
+    ("over_budget", "gen_mean"),
+    ("parent_fitness", "prompt_mean"),
+]
+
+
+def find_probe(probe_dir: Path, target: str) -> tuple[str, dict]:
+    """Name and info of the exported probe for ``target`` in ``probe_dir``."""
+    summary = json.loads((Path(probe_dir) / "probes.json").read_text())
+    hits = [(n, i) for n, i in summary.items() if i["target"] == target]
+    if len(hits) != 1:
+        raise KeyError(f"{len(hits)} probes for {target} in {probe_dir}")
+    return hits[0]
 
 
 def fit_probe(X: np.ndarray, y: np.ndarray, kind: str) -> dict:
@@ -83,7 +96,10 @@ def main():
     out.mkdir(exist_ok=True)
 
     summary = {}
-    for name, (target, pos, layer) in EXPORT.items():
+    for target, pos in EXPORT:
+        oof = pd.read_csv(results_dir(EXPERIMENT, args.tag) / f"oof_{target}_{pos}.csv")
+        layer = int(oof["layer"].iloc[0])
+        name = f"{target}_{pos}_L{layer}"
         kind, row_filter, _ = probes.TARGETS[target]
         mask = row_filter(meta).to_numpy()
         X = acts[pos][mask, layers.index(layer)].astype(np.float32)
@@ -92,11 +108,6 @@ def main():
         info = {"target": target, "position": pos, "layer": layer, "kind": kind}
         info.update({"n": int(mask.sum()), "alpha": float(p["alpha"])})
         if kind == "binary":
-            oof = pd.read_csv(
-                results_dir(EXPERIMENT, args.tag) / f"oof_{target}_{pos}.csv"
-            )
-            if int(oof["layer"].iloc[0]) != layer:
-                raise ValueError(f"oof_{target}_{pos}.csv is not at layer {layer}")
             p["threshold"] = np.float32(np.quantile(oof["pred"], 1 - args.skip_rate))
             info.update(
                 {"skip_rate": args.skip_rate, "threshold": float(p["threshold"])}

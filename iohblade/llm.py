@@ -1218,6 +1218,7 @@ class HookedLLM(LLM):
         device_map: str | dict = "auto",
         chat_template_kwargs: dict | None = None,
         store_text: bool = True,
+        store_dtype: str = "float16",
         hf_model=None,
         tokenizer=None,
         **kwargs,
@@ -1241,6 +1242,9 @@ class HookedLLM(LLM):
                 e.g. ``{"enable_thinking": False}`` for Qwen3.
             store_text: Store prompt and response text in ``index.jsonl``
                 so a record is self-contained for offline replay.
+            store_dtype: NumPy dtype for stored activations. ``"float16"``
+                halves storage but overflows for models whose residual
+                stream exceeds 65504 (e.g. Gemma 3); use ``"float32"`` then.
             hf_model: Optional pre-loaded model (skips loading ``model``).
             tokenizer: Optional pre-loaded tokenizer.
             **kwargs: Passed to :class:`LLM` (regex patterns, logger).
@@ -1256,6 +1260,7 @@ class HookedLLM(LLM):
         self.device_map = device_map
         self.chat_template_kwargs = chat_template_kwargs or {}
         self.store_text = store_text
+        self.store_dtype = store_dtype
         self.records: list[dict] = []
         self.last_record: dict | None = None
         self._pending: dict | None = None
@@ -1549,7 +1554,8 @@ class HookedLLM(LLM):
             else:
                 gen.append(np.full(d, np.nan, dtype=np.float32))
         arrays["gen_mean"] = np.stack(gen)
-        return {k: v.astype(np.float16) for k, v in arrays.items()}
+        dtype = getattr(self, "store_dtype", "float16")
+        return {k: v.astype(dtype) for k, v in arrays.items()}
 
     def _steering_description(self):
         if not self._steering:
@@ -1655,7 +1661,7 @@ class HookedLLM(LLM):
             layers: Layers to return (default: ``capture_layers``).
 
         Returns:
-            dict: ``hidden`` (float16 array ``[n_layers, n_tokens, d]``),
+            dict: ``hidden`` (``store_dtype`` array ``[n_layers, n_tokens, d]``),
             ``layers``, ``tokens`` (strings), ``input_ids`` and
             ``n_prompt_tokens`` (prompt/response boundary).
         """
@@ -1688,7 +1694,8 @@ class HookedLLM(LLM):
                 self._state = {}
         # Raw block outputs (HF's output_hidden_states applies the final norm
         # to the last layer, which would not match the captured records).
-        hidden = np.stack([full[l].numpy().astype(np.float16) for l in layers])
+        dtype = getattr(self, "store_dtype", "float16")
+        hidden = np.stack([full[l].numpy().astype(dtype) for l in layers])
         ids_list = ids[0].tolist()
         return {
             "hidden": hidden,

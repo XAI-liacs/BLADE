@@ -14,6 +14,7 @@ class ModelPreset:
     gated: bool = False
     transcoders: str | None = None  # circuit-tracer (experiment 2)
     saes: tuple[str, ...] = ()  # residual SAEs (experiment 3)
+    store_dtype: str = "float16"  # activations on disk (see HookedLLM)
     notes: str = ""
 
 
@@ -30,6 +31,22 @@ MODELS: dict[str, ModelPreset] = {
         ),
         notes="SAEs are trained on the base model; check transfer to the "
         "post-trained model (reconstruction loss) before relying on them.",
+    ),
+    # Replication models (experiments 1 and 2 repeated on a bigger model of
+    # the same family and on another family; both have transcoders).
+    "qwen3-14b": ModelPreset(
+        hf_id="Qwen/Qwen3-14B",
+        chat_template_kwargs={"enable_thinking": False},
+        transcoders="mwhanna/qwen3-14b-transcoders",
+        notes="40 layers, d_model 5120.",
+    ),
+    "gemma-3-12b": ModelPreset(
+        hf_id="google/gemma-3-12b-it",
+        gated=True,
+        transcoders="mwhanna/gemma-scope-2-12b-it",
+        store_dtype="float32",  # residual norms overflow float16
+        notes="Gated: needs HF_TOKEN with an accepted licence. 48 layers, "
+        "d_model 3840. Transcoders: Gemma Scope 2 in circuit-tracer format.",
     ),
     "qwen3-4b": ModelPreset(
         hf_id="Qwen/Qwen3-4B",

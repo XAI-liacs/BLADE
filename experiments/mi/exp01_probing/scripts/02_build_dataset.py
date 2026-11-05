@@ -6,7 +6,7 @@ One row per LLM query that produced a logged solution. Writes to
 * ``meta.csv``: run, seed, operator, generation, fitness labels, and the
   output-uncertainty baselines (entropy, log-prob, token counts);
 * ``activations.npz``: ``last``, ``prompt_mean``, ``gen_mean`` stacked as
-  ``[n_rows, n_layers, d_model]`` (float16) plus ``layers``;
+  ``[n_rows, n_layers, d_model]`` (the model preset's ``store_dtype``) plus ``layers``;
 * ``code.jsonl``: generated code per row (for the bag-of-words baseline).
 
 Labels:
@@ -44,8 +44,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from common.paths import data_dir
-from common.runs import (fitness_scalar, iter_run_dirs, load_arrays, load_run,
-                         prompt_text)
+from common.runs import (
+    fitness_scalar,
+    iter_run_dirs,
+    load_arrays,
+    load_run,
+    prompt_text,
+)
 from exp_config import EXPERIMENT, OPERATORS
 
 MUTATION_MARKER = "The selected solutions to update are"

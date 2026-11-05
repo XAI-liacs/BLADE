@@ -63,6 +63,7 @@ def main():
         top_p=cfg.top_p,
         max_new_tokens=cfg.max_new_tokens,
         chat_template_kwargs=preset.chat_template_kwargs,
+        store_dtype=preset.store_dtype,
     )
     operators = [
         Operator(prompt=OPERATORS[k], name=k, weight=1.0, number_of_parents=1)

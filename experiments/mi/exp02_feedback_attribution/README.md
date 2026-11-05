@@ -121,13 +121,13 @@ infrastructure errors, ~4 GPU-hours on 4 GPUs.
 
 The sampling seed depends only on the query and replicate (common random
 numbers), so effects are paired. Effect = variant − full, averaged within a
-query; 95% bootstrap CI over LLaMEA runs. `pf_L15` is experiment 1's
+query; 95% bootstrap CI over LLaMEA runs. `pf` is experiment 1's
 parent-fitness probe read out during the resampled query. Figures:
 `results/cf/counterfactuals_scored.png`, `counterfactuals_error.png`.
 
 **Scored parents**
 
-| Variant | `pf_L15` readout | child fails | working child overspends | child fitness | similarity to parent |
+| Variant | `pf` readout | child fails | working child overspends | child fitness | similarity to parent |
 |---|---|---|---|---|---|
 | score → 0.010 | −0.039 [−0.043, −0.036] | +0.013 (ns) | −0.011 (ns) | −0.003 (ns) | −0.016 [−0.026, −0.007] |
 | score → 0.900 | +0.038 [+0.034, +0.044] | +0.023 (ns) | −0.010 (ns) | −0.012 (ns) | −0.001 (ns) |

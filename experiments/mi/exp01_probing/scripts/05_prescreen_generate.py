@@ -60,14 +60,18 @@ def main():
         raise SystemExit(f"preset {cfg.tag!r} has no prescreen_probe")
     preset = MODELS[cfg.model]
     probe_dir = results_dir(EXPERIMENT, cfg.prescreen_source) / "probes"
-    info = json.loads((probe_dir / "probes.json").read_text())[cfg.prescreen_probe]
-    probe = load_probe(probe_dir / f"{cfg.prescreen_probe}.npz")
+    summary = json.loads((probe_dir / "probes.json").read_text())
+    name = cfg.prescreen_probe
+    if name not in summary:  # a target name: that target's exported probe
+        name = next(n for n, i in summary.items() if i["target"] == name)
+    info = summary[name]
+    probe = load_probe(probe_dir / f"{name}.npz")
     seeds = cfg.seeds[args.shard :: args.n_shards]
     out = data_dir(EXPERIMENT, "raw", cfg.tag)
     (out / "config.json").write_text(
         json.dumps({**cfg.to_dict(), "probe": info}, indent=2)
     )
-    print(f"[{cfg.tag}] probe={cfg.prescreen_probe} {info} seeds={seeds}")
+    print(f"[{cfg.tag}] probe={name} {info} seeds={seeds}")
 
     llm = ScreenedHookedLLM(
         preset.hf_id,
@@ -79,6 +83,7 @@ def main():
         top_p=cfg.top_p,
         max_new_tokens=cfg.max_new_tokens,
         chat_template_kwargs=preset.chat_template_kwargs,
+        store_dtype=preset.store_dtype,
     )
     operators = [
         Operator(prompt=OPERATORS[k], name=k, weight=1.0, number_of_parents=1)

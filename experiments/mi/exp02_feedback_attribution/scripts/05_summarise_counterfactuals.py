@@ -16,8 +16,9 @@ and ``data/processed/<tag>/cf_queries.jsonl``. Per sample:
   is still in the child's code;
 * ``same_error``: (error stratum) the child fails with the parent's error
   type;
-* probe readouts ``pf_L15`` (parent fitness), ``cf_L21`` (child failure),
-  ``ob_L9`` (over budget) from experiment 1.
+* probe readouts ``pf`` (parent fitness), ``cf`` (child failure), ``ob``
+  (over budget) from experiment 1, at the source campaign's probe layers
+  (Qwen3-8B: 15, 21, 9; older shards name them ``pf_L15`` etc.).
 
 Effects are ``variant - full``, averaged over replicates within a query, then
 over queries, with 95% bootstrap CIs over LLaMEA runs. Writes to
@@ -52,9 +53,9 @@ METRICS = [
     "identical",
     "error_line_kept",
     "same_error",
-    "pf_L15",
-    "cf_L21",
-    "ob_L9",
+    "pf",
+    "cf",
+    "ob",
     "n_gen_tokens",
 ]
 
@@ -82,6 +83,8 @@ def load_samples(tag: str) -> pd.DataFrame:
     for path in sorted(data_dir(EXPERIMENT, "raw", tag).glob("shard-*.jsonl")):
         rows += [json.loads(l) for l in open(path)]
     df = pd.DataFrame(rows)
+    # Shards written before the readouts were renamed (Qwen3-8B, tag "cf")
+    df = df.rename(columns={"pf_L15": "pf", "cf_L21": "cf", "ob_L9": "ob"})
     df = df[~df["infra"].fillna(False).astype(bool)]
     df = df.drop_duplicates(["record_id", "variant", "k"], keep="last")
 
@@ -212,7 +215,7 @@ def main():
 
     pd.set_option("display.width", 200)
     print(means.round(3).to_string())
-    show = ["failed", "score", "over_budget", "similarity", "prefix", "pf_L15"]
+    show = ["failed", "score", "over_budget", "similarity", "prefix", "pf"]
     print("\neffects (variant - full), 95% CI over runs:")
     e = eff[eff["metric"].isin(show + ["error_line_kept", "same_error"])]
     print(

@@ -192,7 +192,7 @@ def main():
     ap.add_argument("--tag", default="main")
     ap.add_argument("--n-per-operator", type=int, default=60)
     ap.add_argument("--device", default="cuda:0")
-    ap.add_argument("--model", default="qwen3-8b")
+    ap.add_argument("--model", default=None, help="default: the source campaign's")
     ap.add_argument("--no-gradients", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     args = ap.parse_args()
@@ -206,12 +206,13 @@ def main():
     )
     print(f"{len(queries)} segmentable mutation queries; sampled {len(sample)}")
 
-    preset = MODELS[args.model]
+    preset = MODELS[args.model or load_source_config().PRESETS[args.source_tag].model]
     llm = HookedLLM(
         preset.hf_id,
         capture=False,
         device_map=args.device,
         chat_template_kwargs=preset.chat_template_kwargs,
+        store_dtype=preset.store_dtype,
     )
     scorer = Scorer(llm)
     out = data_dir(EXPERIMENT, "processed", args.tag)

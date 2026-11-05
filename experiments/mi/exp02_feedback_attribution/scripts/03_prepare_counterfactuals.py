@@ -18,7 +18,8 @@ Two strata of recorded mutation queries:
     some instances. The feedback says so explicitly (MA-BBOB's feedback
     never does);
   - ``steer_up`` / ``steer_down``: ``+/- alpha * v`` added to the residual
-    stream at layer 15 on every position, where ``v`` is the difference of
+    stream at the parent-fitness probe's layer (15 for Qwen3-8B) on every
+    position, where ``v`` is the difference of
     the mean ``prompt_mean`` activation between top- and bottom-tercile
     parents (experiment 1's parent-fitness representation; adding ``v``
     moves the exported probe's readout by the tercile gap);
@@ -27,14 +28,17 @@ Two strata of recorded mutation queries:
 
 * ``error``: the parent crashed, so its feedback is an error message. These
   are rare in one campaign (elitism seldom selects a failed parent), so
-  experiment 1 ``main`` and the ``shadow`` runs of ``prescreen`` and
-  ``prescreen2`` are pooled (identical prompts). Variants: ``full``,
+  the source campaign and the ``shadow`` runs of the pre-screen campaigns
+  (``--error-tags``) are pooled (identical prompts). Variants: ``full``,
   ``no_error`` (feedback and error deleted) and ``error_generic`` (replaced
   by "The algorithm crashed during evaluation.").
 
+``--source-tag`` selects the experiment 1 campaign (and so the model), e.g.
+``main`` (Qwen3-8B) or ``main-qwen3-14b``.
+
 Writes ``data/processed/<tag>/cf_queries.jsonl`` (one line per query, with
-every variant's prompt) and ``cf_steering.npz`` (``v``, the random control,
-layer and alpha).
+every variant's prompt), ``cf_steering.npz`` (``v``, the random control,
+layer and alpha) and ``cf_meta.json`` (source campaign, model, layer).
 """
 
 import argparse
@@ -50,13 +54,12 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1]))
 sys.path.insert(0, str(HERE.parent))
 
-from common.paths import data_dir
+from common.paths import data_dir, results_dir
 from common.runs import iter_run_dirs, load_arrays, load_run, prompt_text
 from exp_config import EXPERIMENT, SOURCE_EXPERIMENT, load_source_config
 from spans import ablate, feedback_score, segment
 
 OPERATORS = load_source_config().OPERATORS
-STEER_LAYER = 15
 GENERIC_ERROR = "## Feedback:\n\t The algorithm crashed during evaluation.\n\n"
 
 
@@ -173,6 +176,18 @@ def fitness_direction(queries: list[dict], layer: int) -> tuple[np.ndarray, dict
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tag", default="cf")
+    ap.add_argument("--source-tag", default="main", help="experiment 1 campaign")
+    ap.add_argument(
+        "--error-tags",
+        default="prescreen,prescreen2",
+        help="pre-screen campaigns whose shadow runs add crashed parents",
+    )
+    ap.add_argument(
+        "--layer",
+        type=int,
+        default=None,
+        help="steering layer (default: the parent-fitness probe's layer)",
+    )
     ap.add_argument("--n-scored", type=int, default=32, help="per operator")
     ap.add_argument("--n-error", type=int, default=96)
     ap.add_argument("--alpha", type=float, default=2.0)
@@ -181,8 +196,20 @@ def main():
     rng = np.random.default_rng(args.seed)
     out = data_dir(EXPERIMENT, "processed", args.tag)
 
-    main_q = candidate_queries("main", None)
-    v, info = fitness_direction(main_q, STEER_LAYER)
+    src = load_source_config().PRESETS[args.source_tag]
+    layer = args.layer
+    if layer is None:
+        summary = json.loads(
+            (
+                results_dir(SOURCE_EXPERIMENT, args.source_tag, "probes")
+                / "probes.json"
+            ).read_text()
+        )
+        layer = next(
+            i["layer"] for i in summary.values() if i["target"] == "parent_fitness"
+        )
+    main_q = candidate_queries(args.source_tag, None)
+    v, info = fitness_direction(main_q, layer)
     r = rng.standard_normal(v.shape).astype(np.float32)
     r -= (r @ v) / (v @ v) * v
     r *= np.linalg.norm(v) / np.linalg.norm(r)
@@ -190,10 +217,23 @@ def main():
         out / "cf_steering.npz",
         v=v,
         random=r,
-        layer=STEER_LAYER,
+        layer=layer,
         alpha=args.alpha,
     )
-    print(f"fitness direction at layer {STEER_LAYER}: {info}")
+    (out / "cf_meta.json").write_text(
+        json.dumps(
+            {
+                "source_tag": args.source_tag,
+                "model": src.model,
+                "layer": int(layer),
+                "alpha": args.alpha,
+                "error_tags": args.error_tags.split(",") if args.error_tags else [],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
+    print(f"fitness direction at layer {layer}: {info}")
 
     scored = [
         q
@@ -207,7 +247,7 @@ def main():
         picked += [dict(pool[i], stratum="scored") for i in sorted(idx)]
 
     errors = [q for q in main_q if q["parent_failed"]]
-    for tag in ("prescreen", "prescreen2"):
+    for tag in [t for t in args.error_tags.split(",") if t]:
         errors += [q for q in candidate_queries(tag, "shadow") if q["parent_failed"]]
     idx = rng.choice(len(errors), min(args.n_error, len(errors)), replace=False)
     picked += [dict(errors[i], stratum="error") for i in sorted(idx)]

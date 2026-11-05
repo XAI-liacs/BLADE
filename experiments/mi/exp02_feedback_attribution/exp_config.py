@@ -14,3 +14,22 @@ def load_source_config():
     module = util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def cf_source(tag: str) -> dict:
+    """Source campaign of a counterfactual campaign ``tag``.
+
+    ``03_prepare_counterfactuals.py`` writes ``cf_meta.json`` with the
+    experiment 1 campaign the queries come from (``source_tag``), its model
+    key and the steering layer. Campaigns prepared before that file existed
+    (``cf``) used Qwen3-8B ``main``.
+    """
+    import json
+    from pathlib import Path
+
+    from common.paths import data_dir
+
+    path = Path(data_dir(EXPERIMENT, "processed", tag)) / "cf_meta.json"
+    if path.exists():
+        return json.loads(path.read_text())
+    return {"source_tag": "main", "model": "qwen3-8b"}

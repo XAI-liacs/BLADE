@@ -48,7 +48,8 @@ class ProbeConfig:
     )
 
     # In-loop pre-screen (05_prescreen_generate.py): probe exported by
-    # 04_export_probes.py from campaign ``prescreen_source``. Each seed runs
+    # 04_export_probes.py from campaign ``prescreen_source`` (a probe name,
+    # or a target name such as "child_failed" for that target's probe). Each seed runs
     # twice, "shadow" (flag only) and "screened" (flagged code is shown to
     # LLaMEA as failed); every algorithm is still evaluated.
     prescreen_probe: str | None = None
@@ -98,5 +99,25 @@ PRESETS = {
         tag="prescreen2",
         seeds=list(range(112, 136)),
         prescreen_probe="child_failed_gen_mean_L21",
+    ),
+    # Replication on other models (same design as "main"). The tag carries
+    # the model so that datasets, probes and results stay separate.
+    "main-qwen3-14b": ProbeConfig(tag="main-qwen3-14b", model="qwen3-14b"),
+    "main-gemma-3-12b": ProbeConfig(tag="main-gemma-3-12b", model="gemma-3-12b"),
+    # Held-out pre-screen per model: same seeds as "prescreen", each model's
+    # own child-failure probe (its best layer in its main campaign).
+    "prescreen-qwen3-14b": ProbeConfig(
+        tag="prescreen-qwen3-14b",
+        model="qwen3-14b",
+        seeds=list(range(100, 112)),
+        prescreen_probe="child_failed",
+        prescreen_source="main-qwen3-14b",
+    ),
+    "prescreen-gemma-3-12b": ProbeConfig(
+        tag="prescreen-gemma-3-12b",
+        model="gemma-3-12b",
+        seeds=list(range(100, 112)),
+        prescreen_probe="child_failed",
+        prescreen_source="main-gemma-3-12b",
     ),
 }

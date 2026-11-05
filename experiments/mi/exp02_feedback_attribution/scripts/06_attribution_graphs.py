@@ -12,7 +12,9 @@ the parent, the nearest one before the edit (the *copy token*). For each
 target, the context is the chat prompt plus the response up to that token.
 
 ``circuit-tracer`` builds the attribution graph of the target logit
-through the per-layer transcoders (``mwhanna/qwen3-8b-transcoders``). From
+through the model's per-layer transcoders (``ModelPreset.transcoders``, e.g.
+``mwhanna/qwen3-8b-transcoders``; the model is the source campaign's, from
+``cf_meta.json``). From
 the graph's node influence on the target logit, every node (feature,
 error, token embedding) is assigned to its token position, and positions
 to prompt spans (``spans.SPAN_NAMES``), the chat template or the response
@@ -40,9 +42,10 @@ MI_ROOT = HERE.parents[1]
 sys.path.insert(0, str(MI_ROOT))
 sys.path.insert(0, str(HERE.parent))
 
+from common.models import MODELS
 from common.paths import data_dir
 from common.runs import iter_run_dirs, read_jsonl
-from exp_config import EXPERIMENT, SOURCE_EXPERIMENT, load_source_config
+from exp_config import EXPERIMENT, SOURCE_EXPERIMENT, cf_source, load_source_config
 from spans import segment
 
 OPERATORS = load_source_config().OPERATORS
@@ -257,7 +260,9 @@ def main():
         help="context length up to which --batch-size fits in 96 GB",
     )
     ap.add_argument("--device", default="cuda:0")
-    ap.add_argument("--transcoders", default="mwhanna/qwen3-8b-transcoders")
+    ap.add_argument(
+        "--transcoders", default=None, help="default: the model preset's transcoders"
+    )
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--n-shards", type=int, default=1)
@@ -278,8 +283,10 @@ def main():
     responses = recorded_responses(
         {q["source_tag"] for q in queries}, {q["record_id"] for q in queries}
     )
-    tok = AutoTokenizer.from_pretrained("Qwen/Qwen3-8B")
-    chat_kwargs = {"enable_thinking": False}
+    preset = MODELS[cf_source(args.tag)["model"]]
+    transcoders = args.transcoders or preset.transcoders
+    tok = AutoTokenizer.from_pretrained(preset.hf_id)
+    chat_kwargs = preset.chat_template_kwargs
 
     jobs = []
     for q in queries:
@@ -309,8 +316,8 @@ def main():
     print(f"{len(jobs)} usable queries; attributing {len(picked)} x 2 targets")
 
     model = ReplacementModel.from_pretrained(
-        "Qwen/Qwen3-8B",
-        args.transcoders,
+        preset.hf_id,
+        transcoders,
         device=torch.device(args.device),
         dtype=torch.bfloat16,
         lazy_encoder=not args.eager_encoder,
