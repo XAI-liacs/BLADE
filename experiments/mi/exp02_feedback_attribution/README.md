@@ -270,6 +270,8 @@ the model and the active transcoder rows. Batch size 4 peaks at 91 GB.
 
 ## Status
 
+Report: [`../REPORT_exp02.md`](../REPORT_exp02.md).
+
 Steps 1–6 done (2026-11-05). Summary: LLaMEA's feedback is used when it
 is an error trace (behaviourally: −22 points of failures; mechanistically:
 the error text gains influence at the edit token) and ignored when it is a
