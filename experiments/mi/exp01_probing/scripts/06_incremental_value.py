@@ -264,6 +264,9 @@ def main():
                     "parent over budget": pob == 1,
                 }.items():
                     sel = sel.to_numpy()
+                    if len(np.unique(y[sel])) < 2:  # empty or one class
+                        print(f"   {name:22s} n={int(sel.sum()):3d} skipped")
+                        continue
                     row = {
                         "position": pos,
                         "stratum": name,

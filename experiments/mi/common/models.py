@@ -43,7 +43,8 @@ MODELS: dict[str, ModelPreset] = {
     "gemma-3-12b": ModelPreset(
         hf_id="google/gemma-3-12b-it",
         gated=True,
-        transcoders="mwhanna/gemma-scope-2-12b-it",
+        # The 262k-wide set needs ~190 GB in bf16; the 16k set fits one GPU.
+        transcoders="mwhanna/gemma-scope-2-12b-it/transcoder_all/width_16k_l0_big",
         store_dtype="float32",  # residual norms overflow float16
         notes="Gated: needs HF_TOKEN with an accepted licence. 48 layers, "
         "d_model 3840. Transcoders: Gemma Scope 2 in circuit-tracer format.",

@@ -1,0 +1,30 @@
+{
+  "child_failed_gen_mean_L20": {
+    "target": "child_failed",
+    "position": "gen_mean",
+    "layer": 20,
+    "kind": "binary",
+    "n": 1200,
+    "alpha": 3162.277587890625,
+    "skip_rate": 0.2,
+    "threshold": 0.44555020332336426
+  },
+  "over_budget_gen_mean_L19": {
+    "target": "over_budget",
+    "position": "gen_mean",
+    "layer": 19,
+    "kind": "binary",
+    "n": 747,
+    "alpha": 10000.0,
+    "skip_rate": 0.2,
+    "threshold": 1.045922040939331
+  },
+  "parent_fitness_prompt_mean_L31": {
+    "target": "parent_fitness",
+    "position": "prompt_mean",
+    "layer": 31,
+    "kind": "regression",
+    "n": 1129,
+    "alpha": 0.10000000149011612
+  }
+}
