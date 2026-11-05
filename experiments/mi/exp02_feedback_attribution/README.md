@@ -195,10 +195,47 @@ embedding) on the target logit, summed by the prompt span of its
 position. 24 crashed-parent and 12 scored-parent queries, shortest
 contexts first (1000–1600 tokens).
 
-Results: running (2026-11-05). The first 10 graphs (crashed parents)
-are in `data/processed/cf/attribution_graphs-*.jsonl`.
+**Results (2026-11-05).** 69 graphs (3 of 72 skipped: out of memory even
+at batch size 1, contexts > 1800 tokens), ~10 min each on one 96 GB GPU.
+Figure: `results/cf/attribution_graphs.png`.
+
+| Share of influence | crashed: edit | crashed: copy | scored: edit | scored: copy |
+|---|---|---|---|---|
+| response so far | 0.635 | 0.523 | 0.527 | 0.453 |
+| parent code | 0.174 | 0.273 | 0.233 | 0.241 |
+| task | 0.064 | 0.076 | 0.089 | 0.119 |
+| population | 0.029 | 0.026 | 0.056 | 0.037 |
+| feedback / error | 0.023 | 0.016 | 0.005 | 0.005 |
+| replacement score | 0.09 | 0.10 | 0.10 | 0.15 |
+
+7. **At the edit, the model reads the error message more and the parent
+   code less.** Crashed parents, all 22 pairs: error share +0.007
+   [+0.003, +0.011] (Wilcoxon p = 0.002), parent-code share −0.10
+   (p = 0.0001). With a position-matched control (copy token on a body
+   line just before the edit, 16 pairs, all edits on the error line) the
+   error share is **61% higher** at the edit, +0.010 [+0.006, +0.014],
+   positive in 14 of 16 pairs (p = 0.0002). Edits off the error line
+   (6 pairs) show no increase. This is the mechanistic counterpart of
+   result 5: the edit that removes the crash draws on the error text.
+8. **Most influence is local.** The response written so far carries
+   50–65% of the influence on any token, the parent code 17–27%. The error
+   message, 6–8% of the prompt tokens, carries 2–3%: it steers specific
+   tokens rather than the whole rewrite.
+9. **Scored parents: no conclusion.** Their edits come early (~80
+   response tokens in), so the nearest copied line is always the `import`
+   on the first line: the control differs in position as well as in role.
+   The score share is equally low (0.5%) at both.
+
+Caveats. The replacement score is ~0.1: about 90% of the influence goes
+through the transcoders' error nodes, which are assigned to their token
+position but have no interpretation. Span shares are therefore
+trustworthy as *where* influence comes from, not yet as a circuit. Only
+working children were attributed; the contexts are the shortest that
+qualified (1000–1800 tokens), which over-represents early edits.
 
 ### Next steps
+- Scored parents with a position-matched control: pick queries whose edit
+  comes later in the code, and a body line as the copy token.
 - Look at the top error-span features (`top_feedback_features`) on
   Neuronpedia-style dashboards: do they encode the exception type, the
   line, or "something went wrong"?
@@ -233,4 +270,9 @@ the model and the active transcoder rows. Batch size 4 peaks at 91 GB.
 
 ## Status
 
-Steps 1–5 done. Step 6 (attribution graphs) running.
+Steps 1–6 done (2026-11-05). Summary: LLaMEA's feedback is used when it
+is an error trace (behaviourally: −22 points of failures; mechanistically:
+the error text gains influence at the edit token) and ignored when it is a
+score (the written score barely reaches the fitness representation, which
+the model builds from the code; that representation is causal for how
+much of the parent is rewritten).

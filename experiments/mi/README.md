@@ -11,7 +11,7 @@ algorithms.
 |---|--------|----------|--------|
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
 | 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen transfers to 36 new seeds and is non-inferior at 0.10 AOCC (p = 0.041) while skipping 21% of evaluations; [report](REPORT.md) |
-| 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | step 1 done: the edit is driven by the parent code; scores are ignored, errors are used |
+| 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | steps 1–6 done: error traces are used to fix the code (deleting them: +22 points of failures; attribution: error text gains influence at the edit); the written score is ignored and barely reaches the fitness representation, which is causal for edit size |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
 
@@ -115,7 +115,9 @@ circuit-tracer, nnsight) can load the same weights offline.
   AOCC 0. Experiment 1 therefore uses `common.problems.BudgetEnforcedMABBOB`. The feedback
   then says "scored 0.000" without the cause. Experiment 1 labels this case
   (`over_budget`). For experiment 2 it is a confound, because the feedback
-  hides why the score is 0.
+  hides why the score is 0. Experiment 2 tested the missing message as a
+  counterfactual: it cuts overspending children of overspending parents
+  from 99.6% to 93.5%.
 - **SAEs and transcoders for Qwen3-8B are trained on the base model.** Check
   reconstruction quality on our (post-trained) activations before
   interpreting features.
@@ -195,3 +197,20 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   - Adaptive thresholds (per operator, calibrated risk, running quantile)
     do not beat the fixed one.
   - Report: `REPORT.md`.
+- 2026-11-05: experiment 2, steps 3–6.
+  - Generation counterfactuals: 192 queries × variants × 4 replicates with
+    common random numbers, 4180 evaluated children.
+  - Deleting the error trace of a crashed parent: child failures 43% → 66%,
+    mostly the same exception type; a generic "crashed" message recovers
+    27% of that.
+  - Score set to 0.010 / 0.900 in feedback *and* population list (step 1
+    was confounded by the population list): fitness readout moves ±0.04
+    for ±0.44 written; no effect on the child.
+  - Steering ±2·v (top − bottom tercile mean difference, layer 15):
+    towards "good parent" → larger rewrite (similarity −0.032), towards
+    "bad" → smaller (+0.025), random direction: none, but +5.5 points of
+    failures.
+  - Attribution graphs (circuit-tracer, Qwen3-8B transcoders, 69 graphs):
+    at the edit token, the error message's influence share is 61% higher
+    than at a position-matched copied token (14/16 pairs); the parent
+    code's is 38% lower. Replacement score ~0.1.
