@@ -29,6 +29,7 @@ import argparse
 import difflib
 import json
 import logging
+import os
 import re
 import sys
 import time
@@ -137,17 +138,23 @@ class Context:
         rendered = tok.apply_chat_template(
             session, tokenize=False, add_generation_prompt=True, **chat_kwargs
         )
-        off = rendered.index(user_text)
+        # Some templates (Gemma) trim the message: locate the trimmed text
+        # and shift by the leading whitespace so span offsets still apply.
+        lead = len(user_text) - len(user_text.lstrip())
+        off = rendered.index(user_text.strip()) - lead
         enc = tok(rendered, add_special_tokens=False, return_offsets_mapping=True)
         renc = tok(response, add_special_tokens=False, return_offsets_mapping=True)
         self.prompt_ids = enc["input_ids"]
         self.resp_ids = renc["input_ids"]
         self.resp_starts = [s for s, _ in renc["offset_mapping"]]
+        lo, hi = 0, len(user_text)
+        if user_text not in rendered:  # the template trimmed it
+            lo, hi = lead, len(user_text.rstrip())
         labels = []
         for s, _ in enc["offset_mapping"]:
             c = s - off
             name = "template"
-            if 0 <= c < len(user_text):
+            if lo <= c < hi:
                 name = next(k for k, (a, b) in spans.items() if a <= c < b)
             labels.append(name)
         self.prompt_labels = labels
@@ -245,6 +252,29 @@ def attribute_fit(model, ids, tid, args):
     return None
 
 
+def load_replacement_model(hf_id: str, transcoders: str, args):
+    """Load the model with its transcoders.
+
+    ``transcoders`` is a Hugging Face reference (``org/repo[/subfolder]``)
+    or a local directory with a ``config.yaml`` listing local files, as
+    written by ``fix_transcoders.py`` for sets that circuit-tracer cannot
+    read directly (``mwhanna/qwen3-14b-transcoders``).
+    """
+    from circuit_tracer import ReplacementModel
+    from circuit_tracer.utils.hf_utils import load_transcoders
+
+    kw = dict(device=torch.device(args.device), dtype=torch.bfloat16)
+    lazy = dict(lazy_encoder=not args.eager_encoder, lazy_decoder=True)
+    local = Path(os.path.expandvars(transcoders))
+    if not local.is_dir():
+        return ReplacementModel.from_pretrained(hf_id, transcoders, **kw, **lazy)
+    import yaml
+
+    config = yaml.safe_load((local / "config.yaml").read_text())
+    tc = load_transcoders(config, **kw, **lazy)
+    return ReplacementModel.from_pretrained_and_transcoders(hf_id, tc, **kw)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tag", default="cf")
@@ -274,7 +304,6 @@ def main():
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
 
-    from circuit_tracer import ReplacementModel
     from transformers import AutoTokenizer
 
     proc = data_dir(EXPERIMENT, "processed", args.tag)
@@ -315,14 +344,7 @@ def main():
     picked = picked[args.shard :: args.n_shards][: args.limit]
     print(f"{len(jobs)} usable queries; attributing {len(picked)} x 2 targets")
 
-    model = ReplacementModel.from_pretrained(
-        preset.hf_id,
-        transcoders,
-        device=torch.device(args.device),
-        dtype=torch.bfloat16,
-        lazy_encoder=not args.eager_encoder,
-        lazy_decoder=True,
-    )
+    model = load_replacement_model(preset.hf_id, transcoders, args)
     out_path = proc / f"attribution_graphs-{args.shard}.jsonl"
     done = set()
     if out_path.exists():

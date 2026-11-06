@@ -37,7 +37,9 @@ MODELS: dict[str, ModelPreset] = {
     "qwen3-14b": ModelPreset(
         hf_id="Qwen/Qwen3-14B",
         chat_template_kwargs={"enable_thinking": False},
-        transcoders="mwhanna/qwen3-14b-transcoders",
+        # mwhanna/qwen3-14b-transcoders stores W_dec transposed and has no
+        # config.yaml; exp02 scripts/fix_transcoders.py writes this copy.
+        transcoders="$MI_CACHE/transcoders/qwen3-14b",
         notes="40 layers, d_model 5120.",
     ),
     "gemma-3-12b": ModelPreset(

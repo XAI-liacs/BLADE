@@ -141,7 +141,10 @@ class Scorer:
             add_generation_prompt=True,
             **(self.llm.chat_template_kwargs or {}),
         )
-        offset = rendered.index(user_text)
+        # Some templates (Gemma) trim the message: locate the trimmed text
+        # and shift by the leading whitespace so span offsets still apply.
+        lead = len(user_text) - len(user_text.lstrip())
+        offset = rendered.index(user_text.strip()) - lead
         enc = self.tok(rendered, add_special_tokens=False, return_offsets_mapping=True)
         prompt_ids, resp_ids = self._encode(user_text, response)
         if enc["input_ids"] != prompt_ids[0].tolist():
@@ -159,6 +162,13 @@ class Scorer:
         self.model.zero_grad(set_to_none=True)
         total = attr.sum()
         starts = np.array([s for s, _ in enc["offset_mapping"]]) - offset
+        # With a trimmed message, leading/trailing template tokens fall in
+        # [0, lead) or past the trimmed end: keep them out of the spans,
+        # as for untrimmed templates (leading: template; trailing: none).
+        if user_text not in rendered:  # the template trimmed it
+            starts = np.where(starts < lead, -1, starts)
+            end = len(user_text.rstrip())
+            starts = np.where(starts >= end, len(user_text) + starts, starts)
         out = {}
         for name, (a, b) in spans.items():
             mask = (starts >= a) & (starts < b)
