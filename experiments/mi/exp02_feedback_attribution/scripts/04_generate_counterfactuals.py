@@ -43,7 +43,8 @@ from common.models import MODELS
 from common.paths import data_dir, results_dir
 from common.prescreen import load_probe, probe_score
 from common.problems import BudgetEnforcedMABBOB
-from exp_config import EXPERIMENT, SOURCE_EXPERIMENT, cf_source, load_source_config
+from exp_config import (EXPERIMENT, SOURCE_EXPERIMENT, cf_source,
+                        load_source_config)
 
 from iohblade.llm import HookedLLM
 from iohblade.utils import NoCodeException
@@ -115,11 +116,17 @@ def main():
     }
     print(f"source {meta['source_tag']} ({src.model}); readouts {readouts}")
 
-    out_path = data_dir(EXPERIMENT, "raw", args.tag) / f"shard-{args.shard}.jsonl"
+    raw = data_dir(EXPERIMENT, "raw", args.tag)
+    out_path = raw / f"shard-{args.shard}.jsonl"
+    # Samples done by any shard file count, so a stopped campaign can be
+    # resumed with a different number of shards (stop all shards first).
     done = set()
-    if out_path.exists():
-        for line in open(out_path):
-            r = json.loads(line)
+    for path in sorted(raw.glob("shard-*.jsonl")):
+        for line in open(path):
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:  # a line cut off by a stopped shard
+                continue
             if not r.get("infra"):
                 done.add((r["record_id"], r["variant"], r["k"]))
     tasks = [
