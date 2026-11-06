@@ -30,6 +30,7 @@ import difflib
 import json
 import logging
 import os
+import traceback
 import re
 import sys
 import time
@@ -245,9 +246,14 @@ def attribute_fit(model, ids, tid, args):
                 batch_size=batch,
                 offload="cpu",
             )
-        except torch.OutOfMemoryError:
+        except torch.OutOfMemoryError as e:
+            where = traceback.extract_tb(e.__traceback__)[-1]
             torch.cuda.empty_cache()
-            print(f"out of memory at n={len(ids)}, batch {batch}", flush=True)
+            print(
+                f"out of memory at n={len(ids)}, batch {batch} "
+                f"({where.name}:{where.lineno}, {str(e).split('.')[0]})",
+                flush=True,
+            )
             batch //= 2
     return None
 
