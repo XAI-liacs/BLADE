@@ -227,3 +227,19 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     reads the source campaign, model, probes and transcoders from
     `cf_meta.json`. Readouts renamed `pf`/`cf`/`ob` (the Qwen3-8B summary
     reproduces exactly).
+- 2026-11-06: replication status.
+  - Experiment 1 done for both models (probes, incremental value,
+    held-out pre-screen); experiment 2 span deletion done for both.
+  - Qwen3-14B counterfactuals done (`results/cf-qwen3-14b`): error-trace
+    feedback is used as in Qwen3-8B (removing it: +0.24 failures, same
+    error +0.29); score edits and fitness steering change the rewrite size
+    but not failures or fitness. The budget message cuts over-budget
+    children far more than in 8B (−0.35 vs −0.06).
+  - Attribution graphs do not fit for the replication models. Their
+    transcoders are dense: ~90 active features per token per layer
+    (14B: 1.08M on 300 tokens; Gemma 16k set: 1.29M). On 300 tokens a
+    14B graph peaks at 75 GB and takes 18 min; the real contexts
+    (~1200 tokens) run out of memory on a 96 GB GPU while collecting the
+    active features, for any batch size. Not run; an option is to keep
+    only the top-k features per position (the rest goes to error nodes).
+  - The machine is shared: from now on at most 2 GPUs (2 and 3).

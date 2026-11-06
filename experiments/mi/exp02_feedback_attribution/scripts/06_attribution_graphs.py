@@ -30,10 +30,10 @@ import difflib
 import json
 import logging
 import os
-import traceback
 import re
 import sys
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
