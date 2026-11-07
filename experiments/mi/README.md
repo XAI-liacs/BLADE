@@ -13,7 +13,7 @@ algorithms.
 | 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen transfers to 36 new seeds and is non-inferior at 0.10 AOCC (p = 0.041) while skipping 21% of evaluations; [report](REPORT.md) |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | steps 1–6 done: error traces are used to fix the code (deleting them: +22 points of failures; attribution: error text gains influence at the edit); the written score is ignored and barely reaches the fitness representation, which is causal for edit size. Report: [`REPORT_exp02.md`](REPORT_exp02.md) |
 | 1–2r | `exp01_probing/`, `exp02_feedback_attribution/` (tags `*-qwen3-14b`, `*-gemma-3-12b`) | Replication of experiments 1 and 2 on a bigger model of the same family (Qwen3-14B) and another family (Gemma-3-12B-it); comparison in `cross_model/`, report `REPORT_replication.md` | done (no attribution graphs) |
-| 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
+| 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | steps 1–4 done: base SAEs transfer; every concept has a detecting feature, mostly keyword detectors, a few conceptual (finite-difference gradient, velocity/momentum); concepts not visibly planned at the last prompt token |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
 
 The numbering follows the original research plan. Directions 4 (mode
@@ -151,7 +151,7 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
 | Experiment | Libraries |
 |---|---|
 | 2 | `circuit-tracer` (git, safety-research/circuit-tracer; Anthropic's attribution graphs), `inseq` or `captum` for gradient attribution baselines |
-| 3 | `sae-lens` (load `Qwen/SAE-Res-Qwen3-8B-Base-*`), `delphi` (auto-interpretation), optionally `sparsify` to train SAEs on LLaMEA code |
+| 3 | `common/sae.py` loads `Qwen/SAE-Res-Qwen3-8B-Base-*` directly (no `sae-lens` needed), `delphi` (auto-interpretation), optionally `sparsify` to train SAEs on LLaMEA code |
 | 5 | none beyond `HookedLLM`; `steering-vectors` / `repeng` for comparison, `cma` for the outer CMA-ES loop |
 | general | `nnsight` (+ NDIF for 70B models), `transformer-lens`, `pyvene`, Neuronpedia |
 
@@ -256,3 +256,7 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     to working fixes only in the Qwen models (Gemma keeps the failing
     line more without the error, but fails as often); the over-budget
     message works far better in 14B (−35 points).
+- 2026-11-07 (evening): experiment 3 started on Qwen3-8B (top-k attribution
+  graphs for the replication models skipped: they would mostly re-test
+  what the counterfactuals already show, with a weaker method). Steps
+  1–4 done, see `exp03_concept_features/README.md`.
