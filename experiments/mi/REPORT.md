@@ -4,6 +4,8 @@ Report on experiment 1 (probing), with the first step of experiment 2
 (feedback attribution). BLADE / LLaMEA on MA-BBOB (5-D, AOCC), Qwen3-8B,
 2026-11-04.
 
+Replication on Qwen3-14B and Gemma-3-12B-it: `REPORT_replication.md`.
+
 ## Summary
 
 - While writing a mutated algorithm, Qwen3-8B's residual stream encodes

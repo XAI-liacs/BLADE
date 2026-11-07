@@ -1,0 +1,69 @@
+### exp1 best probe
+
+| finding | Qwen3-8B | Qwen3-14B | Gemma-3-12B |
+|---|---|---|---|
+| child fails (AUROC) | 0.856 (L21, depth 0.60, gen_mean) | 0.790 (L15, depth 0.38, gen_mean) | 0.870 (L20, depth 0.43, gen_mean) |
+| child fails (AUROC): best baseline | 0.711 (uncertainty) | 0.695 (meta) | 0.830 (code_bow) |
+| child fails (AUROC): n, base rate | 1200, 0.175 | 1200, 0.118 | 1200, 0.378 |
+| child over budget (AUROC) | 0.927 (L9, depth 0.26, gen_mean) | 0.784 (L21, depth 0.54, gen_mean) | 0.982 (L19, depth 0.40, gen_mean) |
+| child over budget (AUROC): best baseline | 0.746 (meta) | 0.804 (code_bow) | 0.953 (code_bow) |
+| child over budget (AUROC): n, base rate | 990, 0.872 | 1058, 0.733 | 747, 0.979 |
+| parent fitness (Spearman) | 0.804 (L15, depth 0.43, prompt_mean) | 0.735 (L21, depth 0.54, gen_mean) | 0.554 (L25, depth 0.53, last) |
+| parent fitness (Spearman): best baseline | 0.656 (code_bow) | 0.748 (meta) | 0.655 (meta) |
+
+### exp1 incremental value
+
+| finding | Qwen3-8B | Qwen3-14B | Gemma-3-12B |
+|---|---|---|---|
+| child_failed: M+T+P - M+T (gen mean) | +0.079 [+0.048, +0.108] | +0.059 [+0.029, +0.091] | +0.017 [+0.006, +0.027] |
+| over_budget: M+T+P - M+T (gen mean) | +0.030 [+0.009, +0.078] | +0.011 [-0.013, +0.030] | -0.004 [-0.067, +0.047] |
+
+### exp1 held-out pre-screen
+
+| finding | Qwen3-8B | Qwen3-14B | Gemma-3-12B |
+|---|---|---|---|
+| failure_rate | 0.165 | 0.125 | 0.417 |
+| auroc | 0.860 | 0.809 | 0.870 |
+| failures_caught | 0.688 | 0.590 | 0.421 |
+| working_lost | 0.145 | 0.154 | 0.024 |
+| precision | 0.48 | 0.35 | 0.93 |
+| best fitness, screened vs shadow (median) | 0.650 vs 0.571 (Wilcoxon p=0.73, n=12) | 0.660 vs 0.628 (Wilcoxon p=0.79, n=12) | 0.642 vs 0.581 (Wilcoxon p=0.11, n=12) |
+
+### exp2 span deletion (nats/token)
+
+| finding | Qwen3-8B | Qwen3-14B | Gemma-3-12B |
+|---|---|---|---|
+| parent_code | +0.341 [+0.309, +0.376] | +0.280 [+0.268, +0.291] | +0.241 [+0.225, +0.257] |
+| format | +0.064 [+0.060, +0.070] | +0.072 [+0.067, +0.078] | +0.068 [+0.064, +0.073] |
+| feedback | +0.002 [+0.001, +0.003] | +0.002 [+0.001, +0.003] | +0.004 [+0.003, +0.005] |
+| grad x input share, parent code | 0.52 | 0.55 | 0.69 |
+| score_high (teacher-forced drop) | -0.0000 [-0.0001, +0.0001] | -0.0001 [-0.0002, +0.0000] | +0.0001 [+0.0000, +0.0002] |
+| score_low (teacher-forced drop) | +0.0004 [+0.0003, +0.0005] | +0.0003 [+0.0002, +0.0004] | +0.0002 [+0.0001, +0.0003] |
+
+### exp2 counterfactual generation (variant - full)
+
+| finding | Qwen3-8B | Qwen3-14B | Gemma-3-12B |
+|---|---|---|---|
+| error: full prompt, failed (base) | 0.432 | 0.518 | 0.719 |
+| error: full prompt, same_error (base) | 0.247 | 0.384 | 0.356 |
+| scored: full prompt, failed (base) | 0.128 | 0.138 | 0.357 |
+| scored: full prompt, over_budget (base) | 0.934 | 0.761 | 0.996 |
+| scored: full prompt, similarity (base) | 0.846 | 0.810 | 0.715 |
+| error: no_error -> failed | +0.224 [+0.137, +0.328] | +0.237 [+0.114, +0.368] | +0.007 [-0.084, +0.117] |
+| error: no_error -> same_error | +0.214 [+0.140, +0.301] | +0.286 [+0.167, +0.424] | +0.137 [+0.058, +0.250] |
+| error: no_error -> error_line_kept | +0.197 [+0.043, +0.359] | +0.294 [+0.207, +0.384] | +0.190 [+0.099, +0.323] |
+| error: error_generic -> failed | +0.164 [+0.089, +0.250] | +0.184 [+0.062, +0.307] | +0.017 [-0.043, +0.086] |
+| scored: no_feedback -> failed | +0.016 [-0.036, +0.071] | -0.008 [-0.045, +0.032] | +0.010 [-0.049, +0.090] |
+| scored: score_low -> pf | -0.039 [-0.043, -0.036] | -0.031 [-0.036, -0.027] | -0.045 [-0.052, -0.038] |
+| scored: score_high -> pf | +0.038 [+0.034, +0.044] | +0.021 [+0.017, +0.023] | +0.030 [+0.024, +0.036] |
+| scored: score_low -> failed | +0.013 [-0.020, +0.049] | -0.026 [-0.069, +0.018] | +0.076 [+0.013, +0.143] |
+| scored: score_low -> similarity | -0.016 [-0.026, -0.007] | -0.002 [-0.013, +0.008] | -0.010 [-0.019, -0.001] |
+| scored: steer_up -> pf | +0.826 [+0.826, +0.826] | +0.724 [+0.724, +0.724] | +0.284 [+0.284, +0.284] |
+| scored: steer_random -> pf | -0.065 [-0.065, -0.065] | -0.027 [-0.027, -0.027] | -0.242 [-0.242, -0.242] |
+| scored: steer_up -> similarity | -0.032 [-0.044, -0.019] | +0.011 [-0.001, +0.021] | +0.013 [+0.007, +0.019] |
+| scored: steer_down -> similarity | +0.025 [+0.007, +0.042] | -0.004 [-0.014, +0.006] | -0.005 [-0.017, +0.007] |
+| scored: steer_random -> similarity | +0.005 [-0.005, +0.016] | -0.001 [-0.006, +0.005] | -0.004 [-0.017, +0.007] |
+| scored: steer_up -> failed | +0.039 [-0.015, +0.086] | +0.003 [-0.053, +0.060] | +0.044 [-0.002, +0.093] |
+| scored: steer_down -> failed | -0.021 [-0.061, +0.015] | -0.021 [-0.055, +0.017] | +0.073 [+0.026, +0.129] |
+| scored: steer_random -> failed | +0.055 [+0.012, +0.098] | -0.005 [-0.043, +0.035] | +0.005 [-0.051, +0.061] |
+| scored: budget_msg -> over_budget | -0.062 [-0.090, -0.037] | -0.353 [-0.480, -0.210] | -0.041 [-0.079, -0.012] |

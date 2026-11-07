@@ -4,6 +4,8 @@ Report on experiment 2 (feedback attribution). BLADE / LLaMEA on MA-BBOB
 (5-D, AOCC), Qwen3-8B, 2026-11-04 to 2026-11-05. Experiment 1's report:
 `REPORT.md`.
 
+Replication on Qwen3-14B and Gemma-3-12B-it: `REPORT_replication.md`.
+
 ## Summary
 
 - **Error traces are used to fix the code.** Deleting the error message of

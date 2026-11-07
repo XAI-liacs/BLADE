@@ -12,7 +12,7 @@ algorithms.
 | 0 | `iohblade.llm.HookedLLM` | Infrastructure: capture and steer activations inside any BLADE method | done, unit-tested |
 | 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen transfers to 36 new seeds and is non-inferior at 0.10 AOCC (p = 0.041) while skipping 21% of evaluations; [report](REPORT.md) |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | steps 1–6 done: error traces are used to fix the code (deleting them: +22 points of failures; attribution: error text gains influence at the edit); the written score is ignored and barely reaches the fitness representation, which is causal for edit size. Report: [`REPORT_exp02.md`](REPORT_exp02.md) |
-| 1–2r | `exp01_probing/`, `exp02_feedback_attribution/` (tags `*-qwen3-14b`, `*-gemma-3-12b`) | Replication of experiments 1 and 2 on a bigger model of the same family (Qwen3-14B) and another family (Gemma-3-12B-it) | running |
+| 1–2r | `exp01_probing/`, `exp02_feedback_attribution/` (tags `*-qwen3-14b`, `*-gemma-3-12b`) | Replication of experiments 1 and 2 on a bigger model of the same family (Qwen3-14B) and another family (Gemma-3-12B-it); comparison in `cross_model/`, report `REPORT_replication.md` | done (no attribution graphs) |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | planned |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
 
@@ -243,3 +243,16 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     active features, for any batch size. Not run; an option is to keep
     only the top-k features per position (the rest goes to error nodes).
   - The machine is shared: from now on at most 2 GPUs (2 and 3).
+- 2026-11-07: replication done. Gemma counterfactuals finished
+  (`exp02_feedback_attribution/results/cf-gemma-3-12b`).
+  `cross_model/compare.py` writes the three-model comparison
+  (`cross_model/results/`); report: `REPORT_replication.md`.
+  - Replicates: the child-failure probe adds to metadata + text in all
+    three models; the pre-screen transfers to new seeds; parent code ≫
+    format ≫ feedback; the written score is ignored; the error trace is
+    read.
+  - Model-specific: the parent-fitness representation beyond baselines
+    and its causal effect on rewrite size (8B only); error traces lead
+    to working fixes only in the Qwen models (Gemma keeps the failing
+    line more without the error, but fails as often); the over-budget
+    message works far better in 14B (−35 points).
