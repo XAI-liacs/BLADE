@@ -58,6 +58,7 @@ uv run python $S/10_sparse_failure_probe.py # strata + L1 probes (~10 min CPU)
 uv run python $S/11_failure_types.py       # per error type (~5 min CPU)
 CUDA_VISIBLE_DEVICES=2 uv run python $S/12_undefined_names.py  # ~3 min GPU
 CUDA_VISIBLE_DEVICES=2 uv run python $S/13_undefined_generality.py  # ~3 min GPU
+uv run python $S/14_report_figures.py      # figures for REPORT_exp03.md
 ```
 
 Data: the Qwen3-8B campaigns of experiment 1 (`main`, `prescreen`,
@@ -320,6 +321,7 @@ metrics is still open.
 
 ### Next steps
 
+- Report: `../REPORT_exp03.md` (figures: `14_report_figures.py`).
 - Experiment 5 candidates from the failure analysis: the out-of-scope
   features (L21 f7944, f9410). Ablating or amplifying them while the
   model writes a helper method tests whether the representation can be
