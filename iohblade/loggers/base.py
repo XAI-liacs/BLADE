@@ -105,6 +105,11 @@ class ExperimentLogger:
             progress_callback=progress_cb,
         )
 
+    def _get_clean_llm_model_name(self, llm):
+        llm_name = getattr(llm, "model", "llm-unknown")
+        llm_name = llm_name.replace("/", "-").replace(":", "-")
+        return llm_name
+
     def open_run(self, method, problem, budget=100, seed=0):
         """
         Opens (starts) a new run for logging.
@@ -118,17 +123,20 @@ class ExperimentLogger:
 
         self._before_open_run(run_name, method, problem, budget, seed)
 
-        progress_cb = partial(self.increment_eval, method.name, problem.name, seed)
+        progress_cb = partial(
+            self.increment_eval, method.name, llm_name, problem.name, seed
+        )
 
         self.run_logger = self._create_run_logger(run_name, budget, progress_cb)
         problem.set_logger(self.run_logger)
         with self._lock:
-            entry = self._get_run_entry(method.name, problem.name, seed)
+            entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
             if entry is None:
                 entry = {
                     "method_name": method.name,
+                    "llm_name": llm_name,
                     "problem_name": problem.name,
-                    "seed": seed,
+                    "seed": int(seed),
                     "budget": int(budget),
                     "evaluations": 0,
                     "start_time": None,
@@ -178,14 +186,17 @@ class ExperimentLogger:
             log_dir (str): The directory where the run is logged.
             seed (int): The seed used in the run.
         """
+
         try:
             rel_log_dir = os.path.relpath(log_dir, self.dirname)
         except ValueError:
             rel_log_dir = log_dir
+        llm_name = self._get_clean_llm_model_name(llm)
+
         run_object = {
             "method_name": method.name,
             "problem_name": problem.name,
-            "llm_name": llm.model,
+            "llm_name": llm_name,
             "method": method.to_dict(),
             "problem": problem.to_dict(),
             "llm": llm.to_dict(),
@@ -196,7 +207,7 @@ class ExperimentLogger:
         with jsonlines.open(f"{self.dirname}/experimentlog.jsonl", "a") as file:
             file.write(convert_to_serializable(run_object))
         with self._lock:
-            entry = self._get_run_entry(method.name, problem.name, seed)
+            entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
             if entry is not None:
                 entry["end_time"] = datetime.now().isoformat()
                 entry["log_dir"] = rel_log_dir
@@ -305,12 +316,13 @@ class ExperimentLogger:
 
     # Progress helpers -------------------------------------------------
 
-    def _get_run_entry(self, method_name, problem_name, seed):
+    def _get_run_entry(self, method_name, llm_name, problem_name, seed):
         """Return the run progress entry matching the identifiers."""
         for r in self.progress.get("runs", []):
             if (
                 r.get("method_name") == method_name
                 and r.get("problem_name") == problem_name
+                and r.get("llm_name") == llm_name
                 and r.get("seed") == seed
             ):
                 return r
@@ -422,9 +434,9 @@ class ExperimentLogger:
                 self.progress["end_time"] = datetime.now().isoformat()
             self._write_progress()
 
-    def increment_eval(self, method_name, problem_name, seed):
+    def increment_eval(self, method_name, llm_name, problem_name, seed):
         with self._lock:
-            entry = self._get_run_entry(method_name, problem_name, seed)
+            entry = self._get_run_entry(method_name, llm_name, problem_name, seed)
             if entry is not None:
                 entry["evaluations"] = entry.get("evaluations", 0) + 1
                 self._write_progress()
@@ -441,15 +453,16 @@ class ExperimentLogger:
             seed (int): The seed of the failed run.
             error (str): Short description of the exception.
         """
+        llm_name = self._get_clean_llm_model_name(method.llm)
         with self._lock:
-            entry = self._get_run_entry(method.name, problem.name, seed)
+            entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
             if entry is not None:
                 entry["error"] = str(error)
                 entry["failed_time"] = datetime.now().isoformat()
             self._write_progress()
 
-    def is_run_pending(self, method, problem, seed):
-        entry = self._get_run_entry(method.name, problem.name, seed)
+    def is_run_pending(self, method, llm_name, problem, seed):
+        entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
         if entry is None:
             return True
         return entry.get("end_time") is None
