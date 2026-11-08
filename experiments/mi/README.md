@@ -14,7 +14,7 @@ algorithms.
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | steps 1–6 done: error traces are used to fix the code (deleting them: +22 points of failures; attribution: error text gains influence at the edit); the written score is ignored and barely reaches the fitness representation, which is causal for edit size. Report: [`REPORT_exp02.md`](REPORT_exp02.md) |
 | 1–2r | `exp01_probing/`, `exp02_feedback_attribution/` (tags `*-qwen3-14b`, `*-gemma-3-12b`) | Replication of experiments 1 and 2 on a bigger model of the same family (Qwen3-14B) and another family (Gemma-3-12B-it); comparison in `cross_model/`, report `REPORT_replication.md` | done (no attribution graphs) |
 | 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | done (behaviour metrics open): base SAEs transfer; every concept has a detecting feature, six survive keyword-line masking, elitism/restart are keyword detectors; concepts not planned visibly at the last prompt token; concept features add nothing to outcome prediction beyond text, the whole SAE code adds +0.074 AUROC for failure (largest for NameError/AttributeError); L21 f9410 fires on undefined names (0.3% of valid ones), no feature for undefined attributes. Report: [`REPORT_exp03.md`](REPORT_exp03.md) |
-| 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
+| 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | running |
 
 The numbering follows the original research plan. Directions 4 (mode
 collapse), 6 (recall vs. invention), 7 (model diffing) and 8 (error circuits)
@@ -281,3 +281,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   valid names; f7944 is mostly `func`; no feature separates
   never-assigned `self` attributes (best AUROC 0.61). Report:
   `REPORT_exp03.md`. Experiment 5 started.
+- 2026-11-08 (night): experiment 5 dose response (40 prompts). Steering
+  along L27 f38837 (swarm) puts a particle swarm into 65/93/100% of
+  children at dose 0.5/1/1.5 (unsteered 18%) without more failures and
+  without changing AOCC. Gradient (L15) has no window between "no
+  effect" and degenerate output (dose 1.5: 68% failures); covariance and
+  local search features do not steer. Random directions of equal norm
+  change nothing.

@@ -81,7 +81,58 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Pilot run (2026-11-08); `dose` and `scope` running.
+Pilot and `dose` done (2026-11-08); `scope` running.
+
+### Dose response (`results/dose/summary.md`, `dose_response.png`)
+
+40 prompts (8 init, 32 mutation), one child per condition; Δ is the
+paired difference to the unsteered child (95% bootstrap CI over
+prompts). Unsteered: 15% failures, AOCC 0.297 (failures as 0), 0.350
+for working code.
+
+| direction | dose | target concept (Δ, CI) | failures (Δ, CI) | Δ AOCC (CI) |
+|---|---|---|---|---|
+| swarm (L27) | 0.5 | 0.65 (+0.48, 0.33 to 0.63) | 0.18 (+0.03) | −0.01 (−0.07 to 0.06) |
+| | 1 | 0.93 (+0.75, 0.63 to 0.88) | 0.20 (+0.05) | −0.00 (−0.07 to 0.06) |
+| | 1.5 | 1.00 (+0.83, 0.70 to 0.93) | 0.05 (−0.10) | +0.00 (−0.06 to 0.06) |
+| gradient (L15) | 0.5 | 0.73 (+0.10, −0.05 to 0.28) | 0.08 (−0.08) | +0.04 (−0.02 to 0.11) |
+| | 1 | 0.70 (+0.08, −0.08 to 0.23) | 0.13 (−0.03) | +0.02 (−0.04 to 0.08) |
+| | 1.5 | 0.35 (−0.28, −0.45 to −0.10) | 0.68 (+0.53, 0.33 to 0.73) | −0.18 (−0.28 to −0.09) |
+| covariance (L15) | 0.5 / 1 / 1.5 | 0.18 / 0.23 / 0.28 (+0.03 / +0.08 / +0.13, all CIs include 0) | 0.10 / 0.25 / 0.30 | ≈ 0 |
+| local search (L27) | 0.5 / 1 / 1.5 | 0.05 / 0.03 / 0.03 (≤ 0) | 0.13–0.18 | ≈ +0.03 |
+| random15, random27 | 0.5–1.5 | — | 0.10–0.18 (all CIs include 0) | +0.03 to +0.06 |
+| `resample` | — | — | 0.10 | +0.02 |
+
+- **Swarm steering is a clean, dosed operator.** The rate of particle
+  swarms in the child rises from 0.18 to 0.65, 0.93 and 1.00 with the
+  dose, in init and mutation prompts alike (mutation 0.22 → 1.00; init
+  0 → 1.00), without more failures. Other concepts stay at their
+  unsteered rates, except gradients, which fall slightly (0.63 → 0.45),
+  as the swarm replaces part of the code. The steered algorithms are
+  rarely *named* as swarms (≤ 5% of names): the swarm is added as a
+  component of the algorithm the prompt asked for. It does not make the
+  algorithms better: AOCC is unchanged, working-code fitness 0.31–0.37
+  against 0.35.
+- **Gradient steering has no usable window.** Up to dose 1 the gradient
+  rate rises by at most 0.10 (CI includes 0); at dose 1.5 generation
+  degenerates (83% of children run to the 2,048-token limit and fail to
+  execute), so the concept rate *falls*. The pilot's "7 of 8" was the
+  high unsteered rate (0.63) plus noise.
+- **Covariance and local search do not steer.** Covariance creeps up
+  (+0.13 at dose 1.5, CI includes 0) together with failures; local
+  search does nothing. Both features read their concept (experiment 3)
+  but writing along them does not produce it: a detector is not
+  necessarily a lever.
+- **Controls.** Random directions of the same norm leave failures and
+  every concept rate at their unsteered values. All conditions,
+  including random and `resample`, have a slightly higher AOCC than
+  `none` (+0.02 to +0.06); the unsteered draw happens to be a little low,
+  so AOCC changes are compared with the random controls, not with zero.
+- **How much of the code change is the steer?** Similarity to the
+  unsteered child is 0.73 for `resample` and 0.74–0.80 for random and
+  most feature steers: a weak steer changes the code about as much as a
+  new seed does. Only swarm (0.68 at 1.5) and gradient at 1.5 (0.43) go
+  below it.
 
 ### Pilot (`results/pilot/summary.md`)
 
