@@ -678,8 +678,8 @@ if __name__ == "__main__":
         llm,
         10,
     )
-
-    for key, value in mcts_ahd.get_config().items():
+    config = mcts_ahd.get_config()
+    for key, value in config.items():
         print(
             f"=============================={key}============================================="
         )

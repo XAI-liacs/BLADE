@@ -69,8 +69,15 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         return solution
 
     def get_config(self) -> dict[str, Any]:
+        from iohblade.tags import PrimaryCategories, Benchmark, StructureTag
+
         return {
-            "tags": ["trends", "analysis", "time-series"],
+            "tags": [
+                PrimaryCategories.BBO,
+                Benchmark.ANALYSIS,
+                Benchmark.TRENDS,
+                StructureTag.TIME_SERIES,
+            ],
             "name": "Auto-Correlation 3",
             "prompt": self.get_prompt(),
             "minimisation": self.minimisation,
@@ -91,6 +98,17 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
 
 if __name__ == "__main__":
     ac3 = AutoCorrIneq3()
-    for key, value in ac3.get_config().items():
+    config = ac3.get_config()
+    for key, value in config.items():
         print(f"------------------------------{key}------------------------------")
         print(value)
+    import json, hashlib
+
+    json_data = json.dumps(
+        config,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    config["hash"] = hashlib.sha256(json_data).hexdigest()
+    with open("problem.json", "w+") as f:
+        f.write(json.dumps(config, indent=4))

@@ -1,8 +1,9 @@
 import json
-import uuid
 import traceback
-import numpy as np
+import uuid
 from typing import Optional
+
+import numpy as np
 
 from .fitness import Fitness
 
@@ -49,6 +50,7 @@ class Solution:
         self.parent_ids = parent_ids
         self.metadata = {}  # Dictionary to store additional metadata
         self.operator = operator
+        self.operator_id = None  # Operator.id, set by set_operator()
         self.task_prompt = task_prompt
 
     def __getstate__(self):
@@ -58,13 +60,24 @@ class Solution:
         # Reconstruct Fitness from the serialised dict produced by __getstate__
         # (which calls to_dict()). Without this, fitness stays a plain dict after
         # every pickle round-trip, breaking Pareto comparisons in search methods.
+        state = dict(state)  # don't mutate the incoming state
+        state.setdefault("operator_id", None)  # older pickles lack this field
         fitness_data = state.get("fitness")
         if isinstance(fitness_data, dict):
-            state = dict(state)  # don't mutate the incoming state
             state["fitness"] = Fitness.from_dict(fitness_data)
         self.__dict__.update(state)
         if self.configspace == "":
             self.configspace = None
+        elif isinstance(self.configspace, dict):
+            # to_dict() stores the configspace serialised, restore it
+            try:
+                from ConfigSpace import ConfigurationSpace
+
+                self.configspace = ConfigurationSpace.from_serialized_dict(
+                    self.configspace
+                )
+            except Exception:
+                pass  # keep the dict, to_dict() passes it on as is
 
     def fitness_is_valid(self) -> bool:
         """
@@ -82,9 +95,18 @@ class Solution:
         Sets the operator name that generated this individual.
 
         Args:
-            operator (str): The name of the operator (for logging purposes).
+            operator (str | tuple): The name of the operator, or, as passed
+                by LLaMEA >= 1.4, a tuple ``(Operator, *parent_ids)``. The
+                tuple is stored as text plus ``operator_id`` so the solution
+                stays picklable without LLaMEA installed (the evaluation
+                subprocess does not have it).
         """
-        self.operator = operator
+        if isinstance(operator, tuple) and operator:
+            op, parents = operator[0], operator[1:]
+            self.operator = f"Operator: {op}, with parents: {parents}."
+            self.operator_id = getattr(op, "id", None)
+        else:
+            self.operator = operator
 
     def add_metadata(self, key, value):
         """
@@ -178,6 +200,7 @@ class Solution:
         new_solution.feedback = self.feedback
         new_solution.error = self.error
         new_solution.metadata = self.metadata.copy()  # Copy the metadata as well
+        new_solution.operator_id = self.operator_id
         return new_solution
 
     def empty_copy(self):
@@ -207,7 +230,8 @@ class Solution:
         """
         try:
             cs = self.configspace
-            cs = cs.to_serialized_dict()
+            if not isinstance(cs, dict):
+                cs = cs.to_serialized_dict()
         except Exception:
             cs = ""
         fitness_value = (
@@ -227,6 +251,7 @@ class Solution:
             "error": self.error,
             "parent_ids": self.parent_ids,
             "operator": self.operator,
+            "operator_id": self.operator_id,
             "metadata": self.metadata,
             "task_prompt": self.task_prompt,
         }
@@ -243,8 +268,9 @@ class Solution:
 
         if isinstance(configspace, dict):  # Deserialize if necessary
             try:
-                configspace = ConfigSpace()  # Replace with actual class
-                configspace.from_serialized_dict(data["configspace"])
+                from ConfigSpace import ConfigurationSpace
+
+                configspace = ConfigurationSpace.from_serialized_dict(configspace)
             except Exception as e:
                 print(f"Warning: Failed to deserialize configspace - {e}")
                 configspace = None
@@ -265,6 +291,7 @@ class Solution:
         self.error = data.get("error")
         self.parent_ids = data.get("parent_ids", [])
         self.operator = data.get("operator")
+        self.operator_id = data.get("operator_id")
         self.metadata = data.get("metadata", {})
 
     def to_json(self):

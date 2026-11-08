@@ -209,3 +209,54 @@ def test_fitness_type_invalidity():
         "Got Distance = 788 km, and Fuel capture failed."
     )
     assert not s.fitness_is_valid(), 'Fitness type with invalid values, expects invalidity.'
+
+
+class _FakeOperator:
+    """Stands in for llamea.operator.Operator (an object with an id)."""
+
+    id = "op-1"
+
+    def __str__(self):
+        return "mutation"
+
+
+def test_set_operator_tuple_is_stored_as_text_and_id():
+    # LLaMEA >= 1.4 passes (Operator, *parent_ids).
+    s = Solution()
+    s.set_operator((_FakeOperator(), "p1", "p2"))
+    assert s.operator == "Operator: mutation, with parents: ('p1', 'p2')."
+    assert s.operator_id == "op-1"
+    # Nothing but plain data is left, so the evaluation subprocess (which
+    # has no llamea installed) can unpickle it.
+    assert b"_FakeOperator" not in pickle.dumps(s)
+    restored = pickle.loads(pickle.dumps(s))
+    assert restored.operator == s.operator
+    assert restored.operator_id == "op-1"
+    assert s.copy().operator_id == "op-1"
+    s2 = Solution()
+    s2.from_dict(s.to_dict())
+    assert s2.operator_id == "op-1"
+
+
+def test_set_operator_string_unchanged():
+    s = Solution()
+    s.set_operator("crossover")
+    assert s.operator == "crossover"
+    assert s.operator_id is None
+
+
+def test_setstate_without_operator_id():
+    state = Solution().to_dict()
+    del state["operator_id"]
+    s = Solution.__new__(Solution)
+    s.__setstate__(state)
+    assert s.operator_id is None
+
+
+def test_set_operator_with_real_llamea_operator():
+    llamea_operator = pytest.importorskip("llamea.operator")
+    op = llamea_operator.Operator(prompt="Refine the algorithm.", name="refine")
+    s = Solution()
+    s.set_operator((op, "p1"))
+    assert s.operator_id == op.id
+    assert b"llamea" not in pickle.dumps(s)

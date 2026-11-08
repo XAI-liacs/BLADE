@@ -5,6 +5,7 @@ import copy
 import logging
 import sys
 import json
+import traceback
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import uuid
@@ -80,9 +81,14 @@ class Experiment(ABC):
     def _status_tokens(self):
         enc = (getattr(sys.__stdout__, "encoding", "") or "").lower()
         if "utf" in enc or "65001" in enc:  # utf-8 or Windows UTF-8 codepage
-            return {"done": "✅", "running": "🔄", "pending": "⏳"}
+            return {"done": "✅", "running": "🔄", "pending": "⏳", "failed": "❌"}
         else:
-            return {"done": "[DONE]", "running": "[RUN]", "pending": "[WAIT]"}
+            return {
+                "done": "[DONE]",
+                "running": "[RUN]",
+                "pending": "[WAIT]",
+                "failed": "[FAIL]",
+            }
 
     def _print_run_overview(self) -> None:
         """Pretty print the planned runs and their status."""
@@ -93,6 +99,8 @@ class Experiment(ABC):
         for r in runs:
             if r.get("end_time"):
                 status = tokens["done"]
+            elif r.get("error"):
+                status = tokens["failed"]
             elif r.get("start_time"):
                 status = tokens["running"]
             else:
@@ -174,17 +182,25 @@ class Experiment(ABC):
                         )
                         tasks[future] = (m_copy, p_copy, logger, seed)
 
+            failures = []
             for fut in as_completed(tasks):
                 method, problem, logger, seed = tasks[fut]
-                solution = fut.result()
-                self.exp_logger.add_run(
-                    method,
-                    problem,
-                    method.llm,
-                    solution,
-                    log_dir=logger.dirname,
-                    seed=seed,
-                )
+                error = fut.exception()
+                if error is not None:
+                    # Record the failure and keep going: raising here would
+                    # stop every other run from being recorded as finished.
+                    failures.append(
+                        self._record_failure(method, problem, logger, seed, error)
+                    )
+                else:
+                    self.exp_logger.add_run(
+                        method,
+                        problem,
+                        method.llm,
+                        fut.result(),
+                        log_dir=logger.dirname,
+                        seed=seed,
+                    )
 
                 if not self.show_stdout:
                     self._refresh_console()
@@ -192,7 +208,38 @@ class Experiment(ABC):
                     self._print_run_overview()
         for problem in self.problems:
             problem.cleanup()
+        if failures:
+            raise RuntimeError(
+                f"{len(failures)} of {len(tasks)} runs failed (the others were "
+                "recorded; rerunning retries only the failed ones):\n"
+                + "\n".join(failures)
+            )
         return
+
+    def _record_failure(self, method, problem, logger, seed, error) -> str:
+        """Writes a failed run's traceback to its log dir and marks it failed.
+
+        Returns:
+            str: One summary line for the end-of-experiment report.
+        """
+        trace = "".join(traceback.format_exception(error))
+        error_path = os.path.join(logger.dirname, "error.txt")
+        try:
+            with open(error_path, "w") as f:
+                f.write(trace)
+        except OSError:
+            error_path = "(could not write error.txt)"
+        if hasattr(self.exp_logger, "mark_run_failed"):
+            self.exp_logger.mark_run_failed(
+                method, problem, seed, f"{type(error).__name__}: {error}"
+            )
+        line = (
+            f"{method.name} / {problem.name} / seed {seed}: "
+            f"{type(error).__name__}: {error} (traceback: {error_path})"
+        )
+        # sys.__stderr__: worker threads may have redirected sys.stderr.
+        print(f"Run failed: {line}", file=sys.__stderr__, flush=True)
+        return line
 
     def _run_single(self, method, problem, logger, seed):
         np.random.seed(seed)
@@ -226,6 +273,9 @@ class Experiment(ABC):
                 with contextlib.redirect_stderr(None):
                     problem._ensure_env()
                     result = method(problem)
+        # If the problem keeps a separate test set (e.g. AutoML), score the result on it.
+        if hasattr(problem, "final_evaluation"):
+            result = problem.final_evaluation(result)
         if hasattr(logger, "finish_run"):
             logger.finish_run(result)
         success = self._log_data(method, problem, logger)
@@ -237,15 +287,14 @@ class Experiment(ABC):
         return result
 
     def _get_hash(self, config: dict) -> str:
-        "Provides a identifier for a problem desciptor. Helps declutter BLADE_db."
-        stringified_tags = [tag.name for tag in getattr(config, "tags", [])]
-        config["tags"] = stringified_tags
+        "Provides a identifier for a problem/method/llm desciptor. Helps declutter BLADE_db."
         json_data = json.dumps(
             config,
             sort_keys=True,
             separators=(",", ":"),
+            default=str,
         ).encode("utf-8")
-        return hashlib.sha256(json_data).hexdigest()[:16]
+        return hashlib.sha256(json_data).hexdigest()
 
     def _log_data(self, method, problem, logger) -> bool:
         root = logger.get_log_dir()
@@ -253,19 +302,22 @@ class Experiment(ABC):
         # method
         method_path = os.path.join(root, "method.json")
         method_config = method.get_config()
+        method_config["hash"] = self._get_hash(method_config)
         method_success = self._export_config_data(method_config, method_path)
         success = method_success and success
 
         # problem
         problem_path = os.path.join(root, "problem.json")
         problem_config = problem.get_config()
-        problem_config["id"] = self._get_hash(problem_config)
+        problem_config["hash"] = self._get_hash(problem_config)
         problem_success = self._export_config_data(problem_config, problem_path)
         success = problem_success and success
 
         # llm
         llm_path = os.path.join(root, "llm.json")
         llm_config = method.llm.get_config()
+        for llm in llm_config:
+            llm["hash"] = self._get_hash(llm)
         llm_success = self._export_config_data(llm_config, llm_path)
         success = llm_success and success
 
@@ -284,7 +336,7 @@ class Experiment(ABC):
         """
         try:
             with open(location, "w") as f:
-                data = json.dumps(config, indent=4)
+                data = json.dumps(config, indent=4, default=str)
                 f.write(data)
         except Exception as e:
             print(f"Error logging configuration {config} into file {location}: {e}.")

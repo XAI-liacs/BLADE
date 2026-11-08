@@ -116,7 +116,8 @@ class ExperimentLogger:
         Typically call this right before your run, so that the RunLogger can log step data.
         """
         llm = getattr(method, "llm", None)
-        llm_name = self._get_clean_llm_model_name(llm)
+        llm_name = getattr(llm, "model", "llm-unknown")
+        llm_name = llm_name.replace("/", "-").replace(":", "-")
 
         run_name = f"{method.name}-{llm_name}-{problem.name}-{seed}"
 
@@ -160,6 +161,8 @@ class ExperimentLogger:
             entry["start_time"] = datetime.now().isoformat()
             entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
             entry["end_time"] = None
+            entry.pop("error", None)  # a retry starts clean
+            entry.pop("failed_time", None)
             self._write_progress()
         return self.run_logger
 
@@ -438,8 +441,27 @@ class ExperimentLogger:
                 entry["evaluations"] = entry.get("evaluations", 0) + 1
                 self._write_progress()
 
-    def is_run_pending(self, method, llm_name, problem, seed):
-        entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
+    def mark_run_failed(self, method, problem, seed, error):
+        """Records that a run raised an exception.
+
+        The run keeps ``end_time = None``, so it stays pending and a rerun of
+        the experiment retries it.
+
+        Args:
+            method (Method): The method of the failed run.
+            problem (Problem): The problem of the failed run.
+            seed (int): The seed of the failed run.
+            error (str): Short description of the exception.
+        """
+        with self._lock:
+            entry = self._get_run_entry(method.name, problem.name, seed)
+            if entry is not None:
+                entry["error"] = str(error)
+                entry["failed_time"] = datetime.now().isoformat()
+            self._write_progress()
+
+    def is_run_pending(self, method, problem, seed):
+        entry = self._get_run_entry(method.name, problem.name, seed)
         if entry is None:
             return True
         return entry.get("end_time") is None

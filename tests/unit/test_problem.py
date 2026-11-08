@@ -111,3 +111,57 @@ def test_timeout_cleans_child_processes():
     after = _active_run_eval_processes()
 
     assert not after or after == before
+
+
+class EchoProblem(Problem):
+    """Scores a solution with the number in its name, after a short wait."""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Large state makes each problem pickle slow to write, which made
+        # concurrent evaluations read each other's half-written files.
+        self.payload = np.zeros(2_000_000)
+
+    def get_prompt(self):
+        return "Problem prompt"
+
+    def evaluate(self, s):
+        time.sleep(0.5)
+        s.set_scores(float(s.name), f"echo {s.name}")
+        return s
+
+    def test(self, s):
+        return s
+
+    def to_dict(self):
+        return {}
+
+    def get_config(self) -> dict[str, Any]:
+        return {}
+
+
+def test_parallel_evaluations_do_not_share_files():
+    import copy
+    from concurrent.futures import ThreadPoolExecutor
+
+    problem = EchoProblem(eval_timeout=120)
+    problem._ensure_env()
+
+    def run(i):
+        # Experiment deep-copies the problem per run; copies share the env.
+        p = copy.deepcopy(problem)
+        return p(Solution(name=str(i)))
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(run, range(12)))
+
+    for i, sol in enumerate(results):
+        assert sol.error == "", sol.error
+        assert sol.fitness == float(i), (i, sol.fitness, sol.feedback)
+    leftovers = [
+        f.name
+        for f in problem._env_path.iterdir()
+        if f.suffix == ".pkl" or f.name.endswith("run_eval.py")
+    ]
+    assert leftovers == []
+    problem.cleanup()

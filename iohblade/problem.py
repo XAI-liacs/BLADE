@@ -9,8 +9,8 @@ import traceback
 import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Optional
 
-from typing import Optional, Any
 import cloudpickle
 import numpy as np
 
@@ -69,24 +69,28 @@ def simplify_subprocess_error(stderr: str, solution=None):
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
     proc = None
+    temp_files = []
     try:
         env_path = problem._env_path
         python_bin = problem._python_bin
 
-        problem_pickle = env_path / "problem.pkl"
-        solution_pickle = env_path / f"solution_{uuid.uuid4().hex}.pkl"
-        result_pickle = (
-            Path(tempfile.gettempdir()) / f"blade_result_{uuid.uuid4().hex}.pkl"
-        )
+        # Unique names per evaluation: runs executed in parallel (n_jobs > 1)
+        # share env_path, and fixed names let one evaluation read another's
+        # half-written problem or run another's script.
+        token = uuid.uuid4().hex
+        problem_pickle = env_path / f"problem_{token}.pkl"
+        solution_pickle = env_path / f"solution_{token}.pkl"
+        result_pickle = Path(tempfile.gettempdir()) / f"blade_result_{token}.pkl"
+        script_path = env_path / f"{token}_run_eval.py"
+        temp_files = [problem_pickle, solution_pickle, result_pickle, script_path]
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
-        if not os.path.exists(problem_pickle):
-            with open(problem_pickle, "wb") as f:
-                cloudpickle.dump(problem_copy, f)
+        # Always write the problem, its state can change between evaluations.
+        with open(problem_pickle, "wb") as f:
+            cloudpickle.dump(problem_copy, f)
         with open(solution_pickle, "wb") as f:
             cloudpickle.dump(solution, f)
 
-        script_path = env_path / "run_eval.py"
         imports_block = getattr(problem, "imports", "")
         script_path.write_text(
             (f"{imports_block}\n" if imports_block else "")
@@ -160,6 +164,11 @@ def evaluate_in_subprocess(problem, conn, solution):
         if proc and proc.poll() is None:
             proc.kill()
             proc.communicate()
+        for path in temp_files:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
         conn.close()
 
 
@@ -200,6 +209,8 @@ class Problem(ABC):
         self.format_prompt = "Write the format description part here."
         self.name = name
         self.eval_timeout = eval_timeout
+        # If True, evaluations can also use the packages installed where BLADE runs.
+        self.use_system_site_packages = False
         # Combine the base dependencies with any problem specific ones
         self.dependencies = BASE_DEPENDENCIES.copy()
         if dependencies:
@@ -265,16 +276,25 @@ class Problem(ABC):
                 target=evaluate_in_subprocess, args=(self, child_conn, solution)
             )
             process.start()
-            process.join(
+            child_conn.close()  # Only the child writes to the pipe.
+            # Read before joining, otherwise the child blocks in send() when the
+            # result is larger than the pipe buffer.
+            received = False
+            if parent_conn.poll(
                 timeout=self.eval_timeout + 60
-            )  # We allow 1 minute for setting up the environment.
-
-            if process.is_alive():
+            ):  # We allow 1 minute for setting up the environment.
+                try:
+                    result = parent_conn.recv()
+                    received = True
+                except EOFError:
+                    pass
+            elif process.is_alive():
                 raise TimeoutException(
                     f"Evaluation timed out after {self.eval_timeout} seconds."
                 )
-            if parent_conn.poll():
-                result = parent_conn.recv()
+            process.join(timeout=60)
+
+            if received:
                 if isinstance(result, dict):
                     stdout = result.get("stdout", "")
                     stderr = result.get("stderr", "")
@@ -341,19 +361,27 @@ class Problem(ABC):
 
         env_dir = tempfile.mkdtemp(prefix="blade_env_")
         self._env_path = Path(env_dir)
-        virtualenv.cli_run([env_dir])
+        if getattr(self, "use_system_site_packages", False):
+            virtualenv.cli_run(["--system-site-packages", env_dir])
+        else:
+            virtualenv.cli_run([env_dir])
         self._python_bin = (
             self._env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
         )
 
         deps = getattr(self, "dependencies", [])
         if deps:
-            subprocess.run(
-                [str(self._python_bin), "-m", "pip", "install", *deps],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
+            try:
+                subprocess.run(
+                    [str(self._python_bin), "-m", "pip", "install", *deps],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except subprocess.CalledProcessError as e:
+                raise RuntimeError(
+                    f"Failed to install the dependencies {deps}:\n{e.stderr or e.stdout}"
+                ) from e
 
     def cleanup(self):
         try:
