@@ -57,6 +57,7 @@ uv run python $S/09_failure_features.py    # failure-predictive SAE features
 uv run python $S/10_sparse_failure_probe.py # strata + L1 probes (~10 min CPU)
 uv run python $S/11_failure_types.py       # per error type (~5 min CPU)
 CUDA_VISIBLE_DEVICES=2 uv run python $S/12_undefined_names.py  # ~3 min GPU
+CUDA_VISIBLE_DEVICES=2 uv run python $S/13_undefined_generality.py  # ~3 min GPU
 ```
 
 Data: the Qwen3-8B campaigns of experiment 1 (`main`, `prescreen`,
@@ -278,11 +279,47 @@ metrics is still open.
     - The model represents the bug at the token where it writes it, and
       writes it anyway.
 
+11. **f9410 reads "undefined name", not only `func`; no feature reads
+    "undefined attribute"** (`results/k100/undefined_generality.*`,
+    step 13). Every name load and every `self.<attr>` load in all 8,400
+    solutions was labelled with Python's scoping rules (function scopes,
+    class bodies, module, builtins; classes with base classes or
+    `setattr` skipped).
+    - *Label check against the logged errors:* flagged solutions fail in
+      91–93% of cases, mostly with the matching error. The labels find
+      73% of the logged NameErrors and 53% of the AttributeErrors. The
+      misses are mostly dynamic: an attribute read before its assignment
+      in `__init__`, `ndarray.append`, or names imported correctly whose
+      evaluation still raised NameError.
+    - *Activity at L21* (fraction of tokens with the feature > 0; 588
+      solutions, 105k reference tokens):
+
+    | reference | n | f7944 | f9410 |
+    |---|---|---|---|
+    | `func` out of scope | 88 | 0.55 | 0.72 |
+    | other name, bound in another function (`best_x`, `sigma`) | 32 | 0.31 | 0.50 |
+    | name bound nowhere (`norm`, `scipy`, `j`) | 60 | 0.27 | 0.53 |
+    | `self.<attr>` never assigned (`pop_size`, `mu`) | 205 | 0.05 | 0.17 |
+    | valid names | 84,310 | 0.000 | 0.003 |
+    | valid `self` attributes | 20,258 | 0.001 | 0.003 |
+    | all other code tokens | 360,543 | 0.000 | 0.003 |
+
+    - f9410 fires on about half of all undefined names. Against valid
+      names it ranks third of all 65,536 features for both new name
+      groups (token AUROC 0.75–0.77). The two features above it are
+      either active on 46–63% of valid names or specific to one group.
+      f7944 is narrower, mostly `func`.
+    - Undefined `self` attributes are a different case. No feature
+      separates them from valid ones (best token AUROC 0.61), although
+      the class body is in context. The AttributeError gain of step 11
+      must come from elsewhere in the code.
+    - Outcomes: with an out-of-scope `func`, 40 of 52 solutions fail
+      with NameError; with another name bound elsewhere, 13 of 21; with
+      a name bound nowhere, 15 of 29. With an undefined attribute, 66
+      of 92 fail with AttributeError.
+
 ### Next steps
 
-- Out-of-scope features beyond `func`: do f7944 / f9410 also fire on
-  other undefined names (`norm`, `minimize` used without import;
-  `self.func` never assigned)?
 - Experiment 5 candidates from the failure analysis: the out-of-scope
   features (L21 f7944, f9410). Ablating or amplifying them while the
   model writes a helper method tests whether the representation can be
