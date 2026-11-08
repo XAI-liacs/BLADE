@@ -453,15 +453,16 @@ class ExperimentLogger:
             seed (int): The seed of the failed run.
             error (str): Short description of the exception.
         """
+        llm_name = self._get_clean_llm_model_name(method.llm)
         with self._lock:
-            entry = self._get_run_entry(method.name, problem.name, seed)
+            entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
             if entry is not None:
                 entry["error"] = str(error)
                 entry["failed_time"] = datetime.now().isoformat()
             self._write_progress()
 
-    def is_run_pending(self, method, problem, seed):
-        entry = self._get_run_entry(method.name, problem.name, seed)
+    def is_run_pending(self, method, llm_name, problem, seed):
+        entry = self._get_run_entry(method.name, llm_name, problem.name, seed)
         if entry is None:
             return True
         return entry.get("end_time") is None
