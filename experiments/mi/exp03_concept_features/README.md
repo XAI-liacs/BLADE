@@ -54,6 +54,7 @@ for k in 0 1; do CUDA_VISIBLE_DEVICES=$((2 + k)) \
 uv run python $S/07_keyword_masking.py --analyze
 uv run python $S/08_concept_outcomes.py    # features vs failure/fitness (~15 min CPU)
 uv run python $S/09_failure_features.py    # failure-predictive SAE features
+uv run python $S/10_sparse_failure_probe.py # strata + L1 probes (~10 min CPU)
 ```
 
 Data: the Qwen3-8B campaigns of experiment 1 (`main`, `prescreen`,
@@ -186,11 +187,48 @@ metrics is still open.
    beyond L and T seems to be a diffuse code-quality / complexity
    signal, not a concept.
 
+8. **The failure signal is robust but needs hundreds of features**
+   (`results/k100/failure_strata.csv`, `failure_sparse.csv`,
+   `failure_probe.md`).
+   - *Strata:* the gain of the SAE code over M+L+T holds wherever an
+     obvious cause is fixed:
+     - without surrogates: +0.086 [0.068, 0.103];
+     - without surrogates or restarts: +0.084;
+     - per operator: +0.060 (init) to +0.119 (simplify);
+     - after a working parent: +0.080; after a failing parent: +0.146.
+   - *Sparse probes* (L1, out of fold, stacked with M+L+T):
+     - fewer than about 10 features add nothing beyond the text
+       (≤ +0.006);
+     - 25–40 features recover about half of the gain (L21, 40 features:
+       +0.042);
+     - the full gain needs about 260 features at one layer (L21: +0.089)
+       or about 370 over all layers (+0.091; M+L+T+S 0.894).
+     - L21 is the best single layer, as in experiment 1's probe.
+   - *Named features* (L21, 37 features at C = 0.01):
+     - *Toward failure:* scikit-learn Gaussian-process code (`.fit`,
+       `_std`, `alpha`, `Process`, `Kernel`); matrix products (`.dot`,
+       `.outer`); finite-difference gradients (`.gradient`);
+       `random.choice` calls.
+     - *Toward working code:* features that fire more often in working
+       code:
+       - an "only numpy imported, class follows" feature (f6057, on the
+         newline before `class`) and `import`/`from` lines;
+       - budget/parameter boilerplate (`self.budget = budget`,
+         `self.F = F`);
+       - `func.bounds` and indexing in DE updates;
+       - `.copy`, `perturbation`, `for`, `init`.
+   - *Ground truth:* every algorithm importing scikit-learn fails (2.4%
+     of all, n = 186); with scipy, 75% fail (vs 16%). The SAE picks
+     these up, but so can the text. What the SAE adds on top is a
+     distributed sense of "standard, budget-aware numpy code" vs
+     "unusual dependencies and linear algebra". It is not a few
+     interpretable failure detectors.
+
 ### Next steps
 
-- Failure beyond text: a sparse probe on the SAE code (L1, few
-  features) to name the features S uses, and checks within strata
-  (no surrogate, same operator).
+- Failure types: the logs keep the error message of failing
+  algorithms. Split `child_failed` into import errors, runtime errors
+  and timeouts, and check which feature groups predict which.
 - Behaviour metrics (`iohblade/behaviour_metrics.py`): the BLADE logs keep
   per-instance AUCs but no search trajectories, so a subset of algorithms
   has to be re-run with trajectory logging (CPU).
