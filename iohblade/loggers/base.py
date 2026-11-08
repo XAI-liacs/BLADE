@@ -109,7 +109,7 @@ class ExperimentLogger:
         llm_name = getattr(llm, "model", "llm-unknown")
         llm_name = llm_name.replace("/", "-").replace(":", "-")
         return llm_name
-    
+
     def open_run(self, method, problem, budget=100, seed=0):
         """
         Opens (starts) a new run for logging.
@@ -122,7 +122,9 @@ class ExperimentLogger:
 
         self._before_open_run(run_name, method, problem, budget, seed)
 
-        progress_cb = partial(self.increment_eval, method.name, llm_name, problem.name, seed)
+        progress_cb = partial(
+            self.increment_eval, method.name, llm_name, problem.name, seed
+        )
 
         self.run_logger = self._create_run_logger(run_name, budget, progress_cb)
         problem.set_logger(self.run_logger)

@@ -154,7 +154,9 @@ class Experiment(ABC):
                         np.random.seed(seed)
                         if hasattr(
                             self.exp_logger, "is_run_pending"
-                        ) and not self.exp_logger.is_run_pending(method, llm_name, problem, seed):
+                        ) and not self.exp_logger.is_run_pending(
+                            method, llm_name, problem, seed
+                        ):
                             continue
 
                         m_copy = copy.deepcopy(method)
