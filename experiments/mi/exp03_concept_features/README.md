@@ -52,6 +52,8 @@ uv run python $S/06_concept_intent.py      # last prompt token -> child concepts
 for k in 0 1; do CUDA_VISIBLE_DEVICES=$((2 + k)) \
   uv run python $S/07_keyword_masking.py --shard $k --n-shards 2 & done
 uv run python $S/07_keyword_masking.py --analyze
+uv run python $S/08_concept_outcomes.py    # features vs failure/fitness (~15 min CPU)
+uv run python $S/09_failure_features.py    # failure-predictive SAE features
 ```
 
 Data: the Qwen3-8B campaigns of experiment 1 (`main`, `prescreen`,
@@ -61,8 +63,9 @@ loads it without SAELens.
 
 ## Status
 
-Steps 1–4 of the design and the keyword-masking test done (2026-11-07);
-the three-way map with behaviour metrics is still open.
+Steps 1–4 of the design, the keyword-masking test (2026-11-07) and the
+link to outcomes (2026-11-08) done; the three-way map with behaviour
+metrics is still open.
 
 1. **The base-model SAEs transfer.** On the generated code of the
    post-trained model, k100 leaves 21–31% of the variance unexplained
@@ -135,10 +138,59 @@ the three-way map with behaviour metrics is still open.
    Masking tests where the evidence is read, not what is represented:
    later lines can still attend back to a masked keyword.
 
+6. **Concept features do not predict outcomes beyond the code; the rest
+   of the SAE code predicts failure** (`results/k100/concept_outcomes.*`).
+   This uses 10-fold cross-validation over runs. The blocks are:
+   - M: the metadata of experiment 1;
+   - L: the 18 labels + log length;
+   - C: the 9 line-mask-robust concept features;
+   - A: all 240 selected concept features;
+   - S: the whole SAE code, as 256 label-free SVD components per layer;
+   - T: code TF-IDF.
+
+   | target | M+L | +C | +A | +S | M+L+T | +C | +S |
+   |---|---|---|---|---|---|---|---|
+   | failure (AUROC, n = 8,381) | 0.757 | +0.013 | +0.070 | **+0.120** | 0.804 | +0.001 | **+0.074** [0.058, 0.089] |
+   | over budget (AUROC, n = 6,968) | 0.921 | +0.004 | +0.015 | +0.016 | 0.935 | +0.002 | +0.004 [−0.002, 0.012] |
+   | fitness (Spearman, n = 6,968) | 0.746 | +0.001 | +0.006 | +0.016 | 0.749 | +0.001 | +0.012 [0.004, 0.018] |
+
+   - The concept features add nothing once the code text is known.
+   - The whole SAE code reaches failure AUROC 0.877. That is the same
+     gain over text that experiment 1's residual-stream probe showed
+     (+0.079). Its gain for fitness is small.
+   - Within the algorithms that use a concept, the concept feature's
+     strength is mostly unrelated to the outcome. One exception: among
+     PSO algorithms, a stronger velocity feature (L27 f38837) goes with
+     lower fitness (Spearman −0.22 [−0.31, −0.13], n = 1,183).
+
+   The concept representation records *what* is implemented, not
+   whether it will work. The SVD is fitted on all solutions, including
+   the test folds; it uses no labels.
+7. **Failure is spread over many weak features**
+   (`results/k100/failure_features.*`). No single feature exceeds
+   validation AUROC 0.76. The readable ones:
+   - *Predict failure:*
+     - scikit-learn Gaussian-process code (`Regressor`, `Kernel`,
+       `Gaussian`, `.fit`, `.predict`); surrogate algorithms fail 93% of
+       the time;
+     - finite-difference gradients (`.gradient`, `(func`);
+     - covariance setup (`.eye`);
+     - random sampling calls (`.uniform`, `.normal`, `.clip`).
+   - *Predict working code:* features that fire everywhere but more
+     strongly in tidy code (`class`, `def`, imports, comments, loop
+     headers).
+
+   By label, failure rates are: surrogate 0.93, restart 0.50, elitism
+   0.22, covariance 0.21, against 0.10–0.16 for DE, PSO, local search
+   and adaptive parameters. That signal is already in L. What S adds
+   beyond L and T seems to be a diffuse code-quality / complexity
+   signal, not a concept.
+
 ### Next steps
 
-- Concept features vs outcome: do they predict failure or fitness beyond
-  the labels (intent vs implementation)?
+- Failure beyond text: a sparse probe on the SAE code (L1, few
+  features) to name the features S uses, and checks within strata
+  (no surrogate, same operator).
 - Behaviour metrics (`iohblade/behaviour_metrics.py`): the BLADE logs keep
   per-instance AUCs but no search trajectories, so a subset of algorithms
   has to be re-run with trajectory logging (CPU).

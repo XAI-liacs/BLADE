@@ -1,0 +1,417 @@
+# Failure-predictive SAE features
+
+## L9
+
+- **f29882** (fails) AUROC 0.734 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.97; max tokens `'Regressor'` ×9, `'Kernel'` ×5, `'func'` ×5
+  - 8.4 (fail): `_improvement(self, mean, std, best_f): with« np».errstate(divide`
+  - 8.4 (fail): `.gaussian_process import GaussianProcessRegressor from sklearn.gaussian_process.k«ernels» import RBF,`
+  - 8.4 (fail): `based on the acquisition function.""" X = np.atleast_2«d»(X) Y`
+  - 8.3 (fail): `(x, self.bayesian_model.mean, self.bayesian_model«.std», self.f_opt`
+- **f45280** (fails) AUROC 0.707 (val), active 1.00 in failing / 1.00 in working code; top examples fail 1.00; max tokens `''` ×21, `'='` ×20, `')'` ×13
+  - 5.7 (fail): `, sigma = self.gp_model.predict(self.X_particles, return_std«=True») ucb`
+  - 5.7 (fail): `_size = pop_size self.sigma = sigma self.kernel« =» kernel self`
+  - 5.6 (fail): `process model self.gp_model.fit(self.X, self.y«) » # Update elite`
+  - 5.6 (fail): `_size = pop_size self.inertia_weight = inertia_weight « » self.cognitive_coeff`
+- **f25170** (fails) AUROC 0.713 (val), active 0.97 in failing / 0.91 in working code; top examples fail 0.94; max tokens `'.uniform'` ×30, `'.gradient'` ×22, `'.normal'` ×11
+  - 9.5 (fail): `step: sample from the kernel density x = self.kernel.res«ample»()[0]`
+  - 8.9 (fail): `) * self.initial_sigma)) sample = np.clip(sample, func«.bounds».lb, func.bounds`
+  - 7.8 (fail): `) > 1: self.surrogate = gaussian_kde«(self».X.T, bw`
+  - 7.6 (fail): `: '''python import numpy as np from scipy.stats import gaussian«_k»de from sklearn`
+- **f64203** (fails) AUROC 0.677 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.71; max tokens `','` ×68, `''` ×6, `'),'` ×5
+  - 14.0 (fail): `.X.shape[0])) mu = self._predict(self.X,« self».X, K,`
+  - 13.9 (fail): `=1.0, kernel=RBF(length_scale=1.0«),» grad_step`
+  - 13.9 (fail): `): mean, std = self.gpr.predict(np.array([x«]),» return_std=True)`
+  - 13.9 (fail): `= GaussianProcessRegressor(kernel=kernel, alpha=1e-6«,» n_restarts_optimizer`
+- **f45786** (fails) AUROC 0.718 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.59; max tokens `'_idx'` ×13, `','` ×6, `'='` ×5
+  - 9.5 (ok): `= np.clip(u, lb, ub) # Evaluate « f» = func(u)`
+  - 9.5 (fail): `_opt = np.inf self.x_opt = None self«.population» = np.random.uniform`
+  - 9.5 (ok): `np.random.randint(0, self.pop_size) new_pop[rand«_idx»] = np.random`
+  - 9.2 (fail): `np.sqrt(cov) pop = np.vstack([new_pop,« pop»_sorted[self.mu:`
+- **f57821** (fails) AUROC 0.667 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.24; max tokens `','` ×93, `'),'` ×2, `'],'` ×1
+  - 6.1 (ok): `_size random_x = np.clip(random_x, func.bounds.lb«,» func.bounds.ub`
+  - 5.9 (fail): `# Update strategy weights self._update_strategy_weights(strategy_idx«,» self.strategy_performance[str`
+  - 5.9 (fail): `def __init__(self, budget=10000«,» dim=10`
+  - 5.8 (fail): `.Y) self.x_opt = self.X[np.argmin(self.Y«),» :] #`
+- **f46548** (fails) AUROC 0.685 (val), active 0.99 in failing / 0.97 in working code; top examples fail 0.83; max tokens `''` ×11, `')'` ×8, `'='` ×6
+  - 8.9 (fail): `_std=True) sigma = np.clip(sigma, 1e-«8», np.inf)`
+  - 8.9 (fail): `.gaussian_process import GaussianProcessRegressor from sklearn.gaussian_process.k«ernels» import RBF,`
+  - 8.4 (fail): `.clip(sigma, 1e-2, 1e2) « » return (mu -`
+  - 7.0 (fail): `'''python import numpy as np class HybridAdaptiveSimulated«Anne»alingWithGradientRef`
+- **f3972** (fails) AUROC 0.658 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.99; max tokens `''` ×11, `'='` ×10, `','` ×5
+  - 7.7 (fail): `2)) # Evaluate candidates candidate_values = [] for« x» in candidates:`
+  - 7.7 (fail): `Generate a population of candidate solutions using evolutionary strategies population = np«.random».uniform(func.bounds.lb`
+  - 7.6 (fail): `_samples)) * np.exp(-0.5 * (mean - np«.min»(self.f_samples))`
+  - 7.6 (fail): `.x_opt - self.learning_rate * grad # Clip to bounds« » x = np`
+- **f49210** (fails) AUROC 0.672 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.46; max tokens `'.pop'` ×4, `'.'` ×3, `'0'` ×3
+  - 26.8 (fail): `exploration_rate self.learning_rate = learning_rate self.p«ert»urbation_decay = pert`
+  - 24.6 (ok): `0.5, learning_rate=0.01,« decay»_rate=0.`
+  - 23.1 (ok): `= population_size self.learning_rate = learning_rate self«.ex»ploration_rate =`
+  - 22.4 (ok): `_size=20, F=0.8, CR=0«.»9, scale_factor`
+- **f16321** (fails) AUROC 0.692 (val), active 0.93 in failing / 0.84 in working code; top examples fail 0.99; max tokens `','` ×35, `''` ×10, `'return'` ×7
+  - 4.8 (fail): `e-2, 1e2)) + WhiteKernel(noise«_level»=1.0`
+  - 4.6 (fail): `remaining_budget // 2, 'disp': False}) if« result».success: self`
+  - 4.5 (fail): `.5, kernel=RBF(length_scale=1.0«,» length_scale_bounds=(`
+  - 4.5 (fail): `1: mean, std = self.gp_model.predict([trial«],» return_std=True)`
+
+- **f48603** (works) AUROC 0.323 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.05; max tokens `''` ×58, `')'` ×10, `'#'` ×4
+  - 4.6 (ok): `[1]) self.memory = self.memory[:self.memory_size] « » # Local search around`
+  - 4.4 (ok): `.f_opt = f_new self.x_opt = x_new « » remaining_budget -=`
+  - 4.4 (ok): `: if self.budget_used >= self.budget: break« » perturbation =`
+  - 4.3 (ok): `1e-5, dynamic_pop_ratio=0.5«,» gradient_smoothing_window`
+- **f62677** (works) AUROC 0.328 (val), active 0.78 in failing / 0.97 in working code; top examples fail 0.05; max tokens `''` ×96
+  - 0.9 (ok): `in continuous optimization. # Code: '''python import numpy as np« »class AdaptiveHybrid`
+  - 0.9 (ok): `and Adaptive Exploration # Code: '''python import numpy as np« »class HADSM`
+  - 0.9 (ok): `-HEA) # Code: '''python import numpy as np« »class ADSDM`
+  - 0.9 (ok): `the function landscape. # Code: '''python import numpy as np« »class ADSDM`
+- **f24135** (works) AUROC 0.365 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.11; max tokens `''` ×14, `'_opt'` ×6, `'='` ×6
+  - 5.1 (ok): `np.zeros(self.dim) perturb[d] = self.grad_epsilon« » f_plus =`
+  - 5.1 (ok): `0, 0.05), 0.5, «1».0)`
+  - 5.0 (ok): `.inf self.x_opt = None self.pop_size =« initial»_pop_size`
+  - 4.7 (ok): `func(x_new) evaluations += 1 if f_new« <» self.f_opt:`
+- **f59616** (works) AUROC 0.344 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.17; max tokens `''` ×56, `')'` ×13, `':'` ×12
+  - 5.2 (ok): `self.sigma = sigma # Initial step size for CMA-ES« » self.alpha =`
+  - 5.1 (ok): `diversity self.gamma = gamma # Weight for diversity in mutation« » self.rho`
+  - 5.1 (fail): `numpy as np class GradientInformedHybridDE_CMAES«: » def __init`
+  - 5.1 (ok): `- 2 + (self.mu - 1) * self.beta«)) » # Generate new`
+- **f19343** (works) AUROC 0.365 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.08; max tokens `'for'` ×90, `'while'` ×6
+  - 4.6 (ok): `_type == 'rand': trial = np.copy(pop[j]) « for» k in range(self`
+  - 4.5 (ok): `_size, self.dim)) fitness = np.array([func(ind)« for» ind in population])`
+  - 4.5 (fail): `e-5) elif self.grad_type == 'forward': « for» d in range(self`
+  - 4.4 (ok): `[best_idx] best_f = fitness[best_idx] « for» i in range(self`
+- **f25163** (works) AUROC 0.355 (val), active 0.99 in failing / 0.99 in working code; top examples fail 0.06; max tokens `''` ×25, `'self'` ×15, `'='` ×10
+  - 9.9 (ok): `explore_f = np.array([func(x) for x in explore_samples«]) » combined_pop =`
+  - 9.9 (ok): `self.best_value = echo_value self.best_position = np.copy«(e»cho_position)`
+  - 9.8 (ok): `self.best_f: self.best_f = f_perturbed « » self.best_x =`
+  - 9.7 (ok): `_x = x_perturbed # Adaptive exploration based on counter« » self.expl`
+- **f23986** (works) AUROC 0.371 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.04; max tokens `''` ×45, `'#'` ×12, `'def'` ×12
+  - 3.4 (fail): `'''python import numpy as np class HybridPSORandomSearch«: » def __init`
+  - 3.4 (ok): `as np class HybridAdaptiveDEWithMultiStageLocalSearch: « » def __init__(`
+  - 3.4 (fail): `self.pop = None self.fitness = None « » def __call__(`
+  - 3.4 (ok): `udget): if remaining_budget <= 0: break « #» Generate new samples using`
+- **f17755** (works) AUROC 0.374 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.16; max tokens `'#'` ×27, `''` ×20, `'"""'` ×13
+  - 3.1 (ok): `_factor = sigma_factor # Scaling factor for step size self«._»initialize() def`
+  - 3.0 (ok): `""" Hybrid Gradient Random Search Algorithm Parameters: budget« (»int): Maximum number`
+  - 3.0 (fail): `ariance-Driven Evolutionary Search (ACDES) algorithm. Comb«ines» covariance matrix adaptation,`
+  - 3.0 (ok): `: Crossover probability. - weight: Weight for mutation. « """ » self.budget`
+- **f46700** (works) AUROC 0.344 (val), active 0.99 in failing / 0.99 in working code; top examples fail 0.04; max tokens `''` ×62, `'class'` ×8, `')'` ×6
+  - 2.3 (ok): `trial[j][k] = mutant[j][k] else«: » trial[j][`
+  - 2.3 (ok): `self.best_fitness_history = [] self.fitness_history = [] « » def __call__(`
+  - 2.2 (ok): `Learning Rate Adjustment # Code: '''python import numpy as np« »class AdaptiveGradientIn`
+  - 2.2 (ok): `Refinement # Code: '''python import numpy as np «class» AdaptiveCovariance`
+- **f9246** (works) AUROC 0.350 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.07; max tokens `''` ×29, `'def'` ×26, `'__'` ×14
+  - 1.4 (ok): `.exploration_rate)) # Gradient-based refinement with momentum « if» np.linalg.norm(best`
+  - 1.3 (ok): `=0.99, momentum=0.9): """ « » Enhanced hybrid algorithm combining`
+  - 1.2 (ok): `.0) return self.f_opt, self.x_opt « def» _estimate_gradient(self`
+  - 1.2 (ok): `""" Self-adaptive hybrid algorithm combining differential evolution with dynamic gradient descent«, » covariance matrix adaptation`
+
+## L15
+
+- **f12602** (fails) AUROC 0.709 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.80; max tokens `''` ×17, `'self'` ×7, `'='` ×7
+  - 5.6 (ok): `_trial self.population[j] = trial # Update best« » if f_trial`
+  - 5.5 (fail): `model and track the best solution self.X = np.vstack((«self».X, next_x`
+  - 5.5 (fail): `import numpy as np from sklearn.gaussian_process import GaussianProcessRegressor« »from sklearn.gaussian`
+  - 5.4 (fail): `call__(self, func): # Initialize population with random samples « » population = np.random`
+- **f23064** (fails) AUROC 0.734 (val), active 0.98 in failing / 0.89 in working code; top examples fail 0.96; max tokens `'aussian'` ×20, `'np'` ×15, `'.g'` ×13
+  - 9.0 (fail): `def __call__(self, func): self.f_opt =« np».inf self`
+  - 7.7 (fail): `_remaining = self.budget # Initialize population population =« np».random.uniform(func.bounds`
+  - 7.4 (fail): `(n) return np.linalg.solve(K, Y) def« __»call__(self,`
+  - 7.2 (fail): `import numpy as np from scipy.stats import norm from sklearn.g«aussian»_process import GaussianProcess`
+- **f30951** (fails) AUROC 0.737 (val), active 1.00 in failing / 0.97 in working code; top examples fail 0.66; max tokens `'.clip'` ×12, `'.normal'` ×6, `'.gradient'` ×6
+  - 10.0 (fail): `): # Select candidate for mutation x = population[np.random«.randint»(len(population))]`
+  - 9.0 (ok): `strategy_counts[2]: self.strategy_weights[0] = np«.clip»(self.strategy_weights[`
+  - 8.9 (fail): `='ei', alpha=0.05, kernel=RBF(length«_scale»=1.0`
+  - 8.9 (fail): `range(len(elite_population))]) diffs = diffs[np.triu«_indices»(len(elite_population`
+- **f58091** (fails) AUROC 0.736 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.31; max tokens `''` ×40, `')'` ×29, `'])'` ×9
+  - 6.4 (ok): `self.x_opt = x_new remaining_budget -= 1« » # Adaptive pert`
+  - 6.4 (fail): `new_f_pop) pop = np.vstack((pop, new_pop«)) » pop = pop`
+  - 6.4 (fail): `std > 0: imp = (mean - self.f_opt«)» / std`
+  - 6.3 (ok): `idxs = np.random.choice(pop_size, 3, replace=False«) » a, b`
+- **f29112** (fails) AUROC 0.740 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.47; max tokens `'np'` ×74, `'.array'` ×6, `'[np'` ×5
+  - 18.4 (fail): `_plus[j] += 1e-5 x_plus =« np».clip(x_plus,`
+  - 18.2 (fail): `= np.min(self.fitness) self.x_opt = self.population«[np».argmin(self.f`
+  - 18.2 (ok): `utation_factor * (pop[b] - pop[c]) mutant =« np».clip(mutant,`
+  - 18.2 (ok): `5.0) # Evaluate new candidates new_fitness =« np».array([func(x`
+- **f38061** (fails) AUROC 0.707 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.85; max tokens `'def'` ×38, `'class'` ×27, `'__'` ×22
+  - 4.0 (ok): `= crossover_rate self.elitism = elitism « self».sigma = sigma_initial`
+  - 4.0 (fail): `itation balance. # Code: '''python import numpy as np «class» HybridCMA_R`
+  - 4.0 (fail): `= exploration_rate self.learning_rate = learning_rate self«.dec»ay_rate = decay`
+  - 4.0 (fail): `RBF, WhiteKernel class BayesianOptimizationHybrid: « def» __init__(self`
+- **f5390** (fails) AUROC 0.671 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.60; max tokens `','` ×48, `'self'` ×30, `''` ×9
+  - 8.6 (fail): `norm class HybridDEBayesian: def __init__(self«,» budget=10`
+  - 8.6 (ok): `self, budget=10000, dim=10«,» init_steps=1`
+  - 8.6 (fail): `, mutation_factor=0.5, crossover_rate=0.7«,» initial_ex`
+  - 8.5 (fail): `, initial_search_radius=5.0, refine_steps=10«,» momentum=0.`
+- **f26159** (fails) AUROC 0.680 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.58; max tokens `'func'` ×13, `'budget'` ×5, `'sigma'` ×5
+  - 13.0 (fail): `def _upper_confidence_bound(self, mean, std,« best»_f): return`
+  - 12.5 (fail): `self.acquisition_type}") def _expected_improvement(self,« x», model, best`
+  - 12.3 (fail): `_improvement(self, model, X, y, bounds, n«_points»=10):`
+  - 12.2 (fail): `def __init__(self, budget=10000,« dim»=10,`
+- **f59084** (fails) AUROC 0.736 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.50; max tokens `''` ×19, `'='` ×7, `'self'` ×5
+  - 18.2 (fail): `.argsort(combined_fitness)[:self.pop_size] population = combined_population«[»indices] fitness`
+  - 17.1 (fail): `d in range(self.dim): perturb = np.zeros(self.dim«) » perturb[d`
+  - 16.6 (fail): `.uniform(func.bounds.lb, func.bounds.ub, self.dim) « f»_rand = func(x`
+  - 15.9 (ok): `) diversity_metric = np.mean(diversity) # Initialize« trust» region trust`
+- **f9121** (fails) AUROC 0.705 (val), active 0.95 in failing / 0.91 in working code; top examples fail 0.77; max tokens `','` ×6, `'.uniform'` ×5, `'.gradient'` ×5
+  - 9.9 (ok): `, self.dim) cauchy_perturbation = np.random«.standard»_cauchy(self`
+  - 7.7 (ok): `indices idxs = np.random.choice(self.pop_size, «3», replace=False)`
+  - 7.0 (fail): `.kernels import RBF, ConstantKernel as C from sklearn.g«aussian»_process.correlation_function`
+  - 6.8 (ok): `# Sort population by fitness self.population.sort(key=lambda« x»: x[1`
+
+- **f13501** (works) AUROC 0.336 (val), active 0.79 in failing / 0.93 in working code; top examples fail 0.00; max tokens `''` ×29, `'='` ×7, `':'` ×6
+  - 7.8 (ok): `omentum *= self.gradient_decay return self.f_opt, self.x«_opt» '''`
+  - 7.7 (ok): `. Dynamically adjusts the budget allocation and step sizes based on exploration« and» improvement.`
+  - 7.4 (ok): `use finite differences grad = np.zeros(self.dim) eps« =» 1e-`
+  - 7.2 (ok): `_rate_decay=0.995, exploration_prob=0.«3», memory_size=`
+- **f17249** (works) AUROC 0.296 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.19; max tokens `''` ×17, `'='` ×8, `'self'` ×6
+  - 7.6 (fail): `numpy as np class HybridRandomGradientSearch: def __init«__(»self, budget=`
+  - 7.4 (ok): `self.dim = dim self.pop_size = pop_size « » self.crossover_rate`
+  - 7.3 (ok): `() < self.diversity_factor: # Generate a random candidate« » rand_x =`
+  - 7.2 (fail): `numpy as np class HybridCMAES: def __init«__(»self, budget=`
+- **f26651** (works) AUROC 0.348 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.07; max tokens `''` ×25, `'self'` ×17, `'_opt'` ×14
+  - 5.1 (ok): `= np.array([func(ind) for ind in pop]) self«.f»_opt = np.min`
+  - 5.0 (ok): `< self.f_opt: self.f_opt = f_candidate « self».x_opt = x`
+  - 5.0 (ok): `: self.f_opt = f_candidate self.x_opt =« x»_candidate #`
+  - 4.9 (ok): `f < self.f_opt: self.f_opt = f « self».x_opt = x`
+- **f23860** (works) AUROC 0.331 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.02; max tokens `'0'` ×10, `'5'` ×7, `')'` ×6
+  - 7.0 (ok): `.dim)) fitness = np.array([func(x) for x in« population»]) best_idx`
+  - 6.7 (ok): `_update_freq = multi_grad_update_freq self.gradient_steps = gradient«_steps» self.ex`
+  - 6.5 (ok): `self.v x_new = np.clip(x_new, func.bounds«.lb», func.bounds.`
+  - 6.5 (ok): `_min=0.5, mutation_factor_max=1.«5», local_search_decay`
+- **f40998** (works) AUROC 0.324 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.25; max tokens `','` ×33, `'='` ×20, `'func'` ×7
+  - 6.7 (fail): `def __init__(self, budget=10000«,» dim=10`
+  - 6.5 (fail): `X.T @ f def _get_surrogate_prediction(self,« x»): """Predict`
+  - 5.9 (fail): `self, budget=10000, dim=10«,» initial_samples=2`
+  - 5.7 (fail): `trial def _covariance_matrix_adaptation(self, pop«,» bounds, sigma,`
+- **f50914** (works) AUROC 0.327 (val), active 0.87 in failing / 0.96 in working code; top examples fail 0.05; max tokens `''` ×51, `')'` ×19, `']'` ×4
+  - 6.1 (ok): `= np.clip(new_x, func.bounds.lb, func.bounds.ub«) » new_f =`
+  - 6.1 (ok): `.lb, func.bounds.ub) updated_f = func(updated_x«) » if updated_f`
+  - 6.0 (ok): `np.clip(x_new, -5.0, 5.0«) » f_new =`
+  - 5.8 (ok): `self.f_opt = f2 self.x_opt = candidate2« » # Update momentum`
+- **f3558** (works) AUROC 0.315 (val), active 0.82 in failing / 0.94 in working code; top examples fail 0.01; max tokens `'='` ×5, `''` ×5, `'0'` ×5
+  - 3.7 (ok): `def __call__(self, func): """ Optimize« the» given function using the`
+  - 3.6 (ok): `5.0, (self.pop_size, self.dim)) « fitness» = np.array([`
+  - 3.6 (ok): `adapt_F=True, adapt_CR=True, exploration_rate=0.«7», learning`
+  - 3.5 (ok): `CovariancePSO: def __init__(self, budget«=»1000`
+- **f60952** (works) AUROC 0.350 (val), active 0.52 in failing / 0.73 in working code; top examples fail 0.00; max tokens `''` ×49, `'.b'` ×11, `'.'` ×6
+  - 5.5 (ok): `local # Add new candidates to history for candidate in« new»_population: self`
+  - 5.5 (ok): `# Exploration phase self.sigma *= self.sigma_decay self«.learning»_rate *= self.learning`
+  - 5.5 (ok): `= None self.history = [] self.phase = 0« » # 0:`
+  - 5.3 (ok): `mutation_decay_rate self.crossover_decay_rate = crossover_decay_rate« » self.local_search`
+- **f52359** (works) AUROC 0.336 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.06; max tokens `''` ×38, `'self'` ×16, `'init'` ×14
+  - 3.4 (ok): `, local_steps=50): self.budget = budget « » self.dim = dim`
+  - 3.4 (ok): `import numpy as np class HybridEvolutionaryRefinement: « def» __init__(self`
+  - 3.3 (ok): `inementAndEliteDrivenPerturbation: def __init__(self«,» budget=10`
+  - 3.3 (ok): `, crossover_strategy='binomial'): self.budget = budget « » self.dim = dim`
+- **f40935** (works) AUROC 0.325 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.03; max tokens `'class'` ×58, `':'` ×36, `'0'` ×1
+  - 3.4 (ok): `Code: '''python import numpy as np class AGIDEM«: » def __init`
+  - 3.3 (ok): `python import numpy as np class AdaptiveGradientGaussianSearchPlus«: » def __init`
+  - 3.3 (ok): `Refinement # Code: '''python import numpy as np «class» AdaptiveCovariance`
+  - 3.3 (ok): `Diversity Control # Code: '''python import numpy as np «class» HybridGradientDifferential`
+
+## L21
+
+- **f29748** (fails) AUROC 0.737 (val), active 0.69 in failing / 0.30 in working code; top examples fail 1.00; max tokens `'Process'` ×11, `'='` ×8, `','` ×6
+  - 7.8 (fail): `.gpr.predict(x.reshape(1, -1))[0] « sigma» = std[np.arg`
+  - 7.6 (fail): `self.X = pop self.y = fitness self.g«p» = GaussianProcessRegressor`
+  - 7.5 (fail): `) # Predictive mean and variance mean, std =« self».gpr.predict(self`
+  - 7.5 (fail): `ive mean and variance mean, std = self.gp.predict«(self».X, return_std`
+- **f57937** (fails) AUROC 0.729 (val), active 0.96 in failing / 0.87 in working code; top examples fail 0.42; max tokens `'.arg'` ×18, `'keep'` ×16, `'__'` ×11
+  - 19.7 (ok): `([func(x) for x in population]) best_idx = np«.arg»min(fitness)`
+  - 15.1 (fail): `, 5.0) next_x = next_x.reshape(«1», -1)`
+  - 14.7 (ok): `self.grad_threshold = grad_threshold self.step_size =« max»_step self`
+  - 13.4 (fail): `np.min(new_f_pop) self.x_opt = self.pop[np«.arg»min(self.f_pop`
+- **f21942** (fails) AUROC 0.668 (val), active 0.83 in failing / 0.68 in working code; top examples fail 1.00; max tokens `'.predict'` ×13, `'call'` ×12, `'.fit'` ×11
+  - 18.6 (fail): `Code: '''python import numpy as np from scipy.optimize import« minimize» class HybridRandom`
+  - 17.1 (fail): `) # Build initial GP model self.gp_model =« Gaussian»ProcessRegressor(kernel=self`
+  - 16.9 (fail): `Nelder-Mead) to find the next point from scipy«.optimize» import minimize`
+  - 16.9 (fail): `((self.y_train, self.fitness)) self.gp_model«.fit»(self.X_train,`
+- **f18631** (fails) AUROC 0.716 (val), active 0.93 in failing / 0.85 in working code; top examples fail 0.95; max tokens `'pr'` ×16, `'_model'` ×15, `'func'` ×6
+  - 18.6 (fail): `self.kernel_lengthscale = self.gp.kernel_.get_params()['k«1»__length_scale']`
+  - 18.2 (fail): `_history.append(f) # Build initial kernel density estimate self«.kernel» = gaussian_kde`
+  - 18.0 (fail): `(self.fitness)) # Acquisition = prior + likelihood return« prior».pdf(x) +`
+  - 17.6 (fail): `self._acquisition_function(pop, fitness, bounds) if next«_x» is not None:`
+- **f40887** (fails) AUROC 0.678 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.17; max tokens `','` ×27, `'_gradient'` ×12, `'func'` ×10
+  - 30.9 (ok): `func, eps=1e-6): grad = np.zeros«_like»(x) for`
+  - 29.4 (ok): `.random.uniform(func.bounds.lb, func.bounds.ub) f =« func»(x) self`
+  - 27.0 (ok): `_opt, self.x_opt def _estimate_gradient(self, x«,» func, epsilon=`
+  - 26.4 (ok): `_x = population[j] grad = self._estimate_gradient(current_x«,» func) #`
+- **f7639** (fails) AUROC 0.732 (val), active 0.61 in failing / 0.24 in working code; top examples fail 1.00; max tokens `'.fit'` ×17, `'_std'` ×12, `'alpha'` ×12
+  - 14.5 (fail): `return func(x) def grad_func(x): return np«.gradient»(f(x))`
+  - 13.8 (fail): `e-2, 1e2)) + WhiteKernel(noise«_level»=1e-`
+  - 13.4 (fail): `guide search # Predict on current population self.gp«.fit»(self.X, self`
+  - 13.3 (fail): `, gp_kernel=RBF(length_scale=1.0, length_scale«_bounds»=(1e-`
+- **f36698** (fails) AUROC 0.722 (val), active 1.00 in failing / 0.98 in working code; top examples fail 0.25; max tokens `'self'` ×11, `'(self'` ×9, `'func'` ×5
+  - 19.9 (ok): `_opt) # Early stopping if converged if len(self.f«_pop»_history) >`
+  - 15.8 (fail): `three distinct indices a, b, c = np.random.choice«(self».pop_size,`
+  - 15.7 (ok): `self.cov_matrix = np.cov(self.x_opt - np«.mean»(pop, axis=`
+  - 15.0 (fail): `best_point = self.points[best_idx] grad = np.gradient«(func», best_point,`
+- **f33626** (fails) AUROC 0.737 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.43; max tokens `'numpy'` ×51, `'np'` ×40, `'Regressor'` ×3
+  - 28.4 (ok): `exploration and exploitation in continuous optimization. # Code: '''python import« numpy» as np class`
+  - 27.4 (ok): `exploitation in continuous optimization. # Code: '''python import numpy as« np» class AdaptiveC`
+  - 25.6 (fail): `import GaussianProcessRegressor from sklearn.gaussian_process.kernels import R«BF», ConstantKernel as`
+  - 24.9 (fail): `balance diversity and convergence. # Code: '''python import numpy as« np» class HybridC`
+- **f45700** (fails) AUROC 0.678 (val), active 0.73 in failing / 0.53 in working code; top examples fail 1.00; max tokens `'aussian'` ×16, `'.k'` ×8, `'1'` ×8
+  - 27.9 (fail): `Regressor from sklearn.gaussian_process.kernels import RBF,« Constant»Kernel as C`
+  - 27.7 (fail): `5 * Z ** 2) * (Z + np.sqrt(«2» * np.pi)`
+  - 27.4 (fail): `.lb, func.bounds.ub, (1, self.dim)), « return»_std=True)`
+  - 27.2 (fail): `ProcessRegressor from sklearn.gaussian_process.kernels import RBF,« White»Kernel class Bayesian`
+- **f36014** (fails) AUROC 0.721 (val), active 0.85 in failing / 0.69 in working code; top examples fail 1.00; max tokens `'aussian'` ×16, `'.k'` ×8, `'BF'` ×7
+  - 23.8 (fail): `'''python import numpy as np from sklearn.gaussian_process import« Gaussian»ProcessRegressor from`
+  - 23.8 (fail): `# Initialize Gaussian process model from sklearn.gaussian_process import« Gaussian»ProcessRegressor`
+  - 23.2 (fail): `import GaussianProcessRegressor from sklearn.gaussian_process.kernels import R«BF», ConstantKernel as`
+  - 23.0 (fail): `.5 * (y_mean - self.f_opt)**2 / y«_std»**2) *`
+
+- **f23503** (works) AUROC 0.296 (val), active 0.88 in failing / 0.97 in working code; top examples fail 0.03; max tokens `''` ×43, `'='` ×7, `'0'` ×7
+  - 12.7 (ok): `= self.trust_radius * (self.trust_decay ** iter) « » # Evaluate particles`
+  - 12.7 (ok): `class BayesianPSO: def __init__(self, budget=«1»0000`
+  - 12.1 (ok): `fitness = combined_fitness[indices] # Update best solution « » best_idx = np`
+  - 11.7 (ok): `=10000, dim=10, pop_size«=»20, F`
+- **f51462** (works) AUROC 0.298 (val), active 0.82 in failing / 0.94 in working code; top examples fail 0.02; max tokens `''` ×16, `'self'` ×11, `'0'` ×8
+  - 16.7 (ok): `.grad_step) # Move against gradient x = x -« »0.5 *`
+  - 15.6 (ok): `_step=1.0, step_decay=0.999«,» exploration_ratio=0`
+  - 14.7 (fail): `and evals < self.budget: for _ in range(self«.hy»brid_local_steps):`
+  - 13.8 (ok): `GradientEnhancement: def __init__(self, budget=1«0»000,`
+- **f14288** (works) AUROC 0.305 (val), active 0.84 in failing / 0.94 in working code; top examples fail 0.03; max tokens `''` ×24, `'.b'` ×11, `'.'` ×6
+  - 11.8 (ok): `_x = np.clip(self.best_x, func.bounds.lb, func.bounds«.»ub) self`
+  - 11.3 (ok): `_decay = gradient_decay self.exploration_rate = exploration_rate« » self.step_size`
+  - 11.1 (ok): `self.mean = np.mean(self.pop, axis=0) self«.c»ovariance = np`
+  - 10.4 (ok): `= budget self.dim = dim self.pop_size =« pop»_size self`
+- **f50085** (works) AUROC 0.357 (val), active 0.97 in failing / 0.99 in working code; top examples fail 0.11; max tokens `''` ×21, `'='` ×16, `'self'` ×14
+  - 10.9 (ok): `__(self, budget=10000, dim=1«0», step_size=`
+  - 9.9 (ok): `.dim = dim self.inertia_weight = inertia_weight « self».cognitive_coeff =`
+  - 9.8 (ok): `.social_coeff = social_coeff self.grad_step = grad_step « » self.grad_update_freq`
+  - 9.7 (ok): `[j] = (self.inertia_weight * velocities[j] + « self».cognitive_coeff *`
+- **f2951** (works) AUROC 0.292 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.03; max tokens `''` ×16, `'='` ×10, `','` ×5
+  - 11.7 (ok): `# Add new candidates to population self.population += new_candidates« » # Tournament selection`
+  - 11.5 (ok): `0.3): self.budget = budget self.dim« =» dim self`
+  - 11.5 (ok): `0.3): self.budget = budget self.dim« =» dim self`
+  - 11.4 (ok): `_pop) self.x_opt = self.pop[best_idx].copy«() » self.f_opt`
+- **f22485** (works) AUROC 0.345 (val), active 0.81 in failing / 0.91 in working code; top examples fail 0.02; max tokens `','` ×29, `'call'` ×16, `'.f'` ×15
+  - 7.5 (ok): `None self.grad_history = [] def __call__(self«,» func): self`
+  - 7.5 (ok): `+ (1 - self.momentum_decay) * (x - self«.x»_opt) #`
+  - 7.4 (ok): `self.step_size = initial_step_size def __call__(self«,» func): self`
+  - 7.4 (ok): `self.last_grad_norm = 0.0 def __«call»__(self, func`
+- **f28762** (works) AUROC 0.351 (val), active 0.81 in failing / 0.94 in working code; top examples fail 0.05; max tokens `'#'` ×50, `'if'` ×7, `'count'` ×3
+  - 16.0 (ok): `for _ in range(min(self.max_gradient_steps, grad_budget)): « #» Take a step in`
+  - 15.2 (ok): `next_position self.step_count = 0 # Reset step« count» if new best found`
+  - 15.1 (ok): `.current_position = next_position self.step_count = 0 « #» Reset step count if`
+  - 15.1 (ok): `scale_perturb *= self.scale_decay else: « #» Use standard perturbation`
+- **f24322** (works) AUROC 0.316 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.07; max tokens `'numpy'` ×35, `'import'` ×34, `'np'` ×26
+  - 5.4 (ok): `Adaptation and Gradient Smoothing # Code: '''python import« numpy» as np class`
+  - 5.4 (fail): `balance exploration and exploitation in continuous optimization. # Code: '''python «import» numpy as np`
+  - 5.4 (ok): `Tuning and Gradient Noise Injection # Code: '''python import« numpy» as np class`
+  - 5.4 (ok): `Learning, and Dynamic Perturbation Ratio # Code: '''python «import» numpy as np`
+- **f13658** (works) AUROC 0.336 (val), active 0.98 in failing / 0.99 in working code; top examples fail 0.01; max tokens `''` ×34, `')'` ×7, `'self'` ×6
+  - 18.9 (ok): `(pop, axis=0)) # Adapt gradient step based on diversity« » if pop_div`
+  - 18.7 (ok): `([func(x) for x in offspring]) # Combine and select« » combined = np`
+  - 18.7 (ok): `itness_history.append(self.f_opt) return self.f_opt, self«.x»_opt def`
+  - 18.2 (ok): `0 population = np.random.uniform(func.bounds.lb, func.bounds«.»ub, (pop`
+- **f46455** (works) AUROC 0.338 (val), active 0.90 in failing / 0.98 in working code; top examples fail 0.18; max tokens `'import'` ×85, `'from'` ×11
+  - 3.4 (fail): `'''python import numpy as np from scipy.stats import norm «from» sklearn.gaussian_process`
+  - 3.4 (fail): `adaptive mutation. # Code: '''python import numpy as np «from» scipy.stats import norm`
+  - 3.4 (ok): `urbation and Dynamic Trust Region Refinement # Code: '''python «import» numpy as np`
+  - 3.4 (fail): `'''python import numpy as np from scipy.stats import norm «from» sklearn.gaussian_process`
+
+## L27
+
+- **f61577** (fails) AUROC 0.757 (val), active 0.99 in failing / 0.98 in working code; top examples fail 0.40; max tokens `'.eye'` ×12, `','` ×11, `'ig'` ×9
+  - 66.7 (ok): `urb: perturb_scale = self.perturb_scale * np«.sqrt»(np.trace(grad_hist`
+  - 66.2 (fail): `Expected Improvement def objective(x): return -self.model.predict«(x».reshape(1,`
+  - 65.9 (ok): `] + self.mutation_factor * np.dot(self.covariance_matrix«,» (population`
+  - 62.5 (fail): `self.gradient_directions = np.linalg.lstsq(self.gradient_directions,« grad», rcond=None`
+- **f43990** (fails) AUROC 0.695 (val), active 1.00 in failing / 0.99 in working code; top examples fail 0.44; max tokens `'func'` ×15, `'.bounds'` ×8, `'_opt'` ×6
+  - 38.5 (ok): `new_pop = new_pop[np.argsort(new_fitness)][:self.pop«_size»] new_fitness`
+  - 37.5 (fail): `.sigma *= (1.0 + 0.1 * np.random«.rand»() - 0`
+  - 32.8 (fail): `(self.f)[:int(self.pop.shape[0] * self.shrink«_factor»)]] self`
+  - 32.7 (fail): `break x = np.random.uniform(func.bounds.lb, func«.bounds».ub)`
+- **f45899** (fails) AUROC 0.723 (val), active 0.81 in failing / 0.60 in working code; top examples fail 0.93; max tokens `'.gradient'` ×33, `'(func'` ×27, `'.uniform'` ×7
+  - 94.1 (fail): `.inf self.x_opt = None x = np.random«.uniform»(func.bounds.lb,`
+  - 65.7 (fail): `expected_improvement if self.acquisition_type == 'ei' else« lower»_confidence_bound`
+  - 64.0 (fail): `(self.pop_size): # Gradient step grad = np.gradient«(func», self.pop[j`
+  - 63.5 (fail): `range(self.pop_size): # Gradient step grad = np«.gradient»(func, self.pop`
+- **f30539** (fails) AUROC 0.696 (val), active 1.00 in failing / 1.00 in working code; top examples fail 1.00; max tokens `','` ×21, `'in'` ×7, `'func'` ×6
+  - 68.1 (fail): `self.budget): # Generate population population = np.random«.uniform»(func.bounds.lb,`
+  - 66.4 (fail): `, std = self.gp_model.predict(np.atleast_2d«(self».x_opt), return`
+  - 66.1 (fail): `(self.pop_size, self.dim)) fitness = np.array([«func»(ind) for ind`
+  - 65.9 (fail): `)] # Update Gaussian process model self.gp_model.fit«(self».X, self.y`
+- **f53724** (fails) AUROC 0.726 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.84; max tokens `','` ×18, `'self'` ×15, `''` ×15
+  - 60.4 (fail): `0, population_size=20, initial_sigma=0.5«,» acquisition_type`
+  - 56.0 (fail): `_opt = np.inf self.x_opt = None self«.s»urrogate = None`
+  - 55.1 (fail): `kernel density estimation def __call__(self, func): « self».f_opt = np`
+  - 47.7 (fail): `x = np.random.uniform(func.bounds.lb, func.bounds.ub)« +» self.sigma * delta`
+- **f25933** (fails) AUROC 0.673 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.55; max tokens `'='` ×12, `'self'` ×11, `''` ×9
+  - 131.1 (fail): `.sigma *= self.sigma_factor if np.random.random() < self«.alpha»: # Increase`
+  - 111.9 (fail): `0][0], self.hms_memory[0][0][-1«]) » new_fitness =`
+  - 105.7 (fail): `x_local = x_local - self.learning_rate * grad « x»_local = np.clip`
+  - 101.6 (fail): `_ratio self.f_opt = np.inf self.x_opt« =» None self`
+- **f32193** (fails) AUROC 0.698 (val), active 0.59 in failing / 0.29 in working code; top examples fail 1.00; max tokens `''` ×12, `','` ×11, `'='` ×9
+  - 59.2 (fail): `Bayesian optimization step try: # Predict next point « mean», std = self`
+  - 58.4 (fail): `p_kernel, alpha=1e-5, n_restarts_optimizer«=»10)`
+  - 58.3 (fail): `Code: '''python import numpy as np from sklearn.gaussian«_process» import GaussianProcessRegressor`
+  - 58.3 (fail): `= np.min(self.Y_acquisition) ei = (mean -« best») * np.exp`
+- **f51605** (fails) AUROC 0.718 (val), active 0.70 in failing / 0.43 in working code; top examples fail 0.96; max tokens `'(func'` ×45, `'self'` ×6, `'0'` ×5
+  - 62.2 (fail): `)) self._fitness = np.apply_along_axis(func, «0», self._population`
+  - 51.3 (fail): `.acquisition_type == 'ei': return self._expected_impro«vement» elif self`
+  - 48.6 (fail): `gradient_step, self._random_perturbation, self._hybrid«_step»] self.strategy`
+  - 48.0 (fail): `if type == 'ei': return self._expected_improvement« » elif type ==`
+- **f54527** (fails) AUROC 0.674 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.89; max tokens `''` ×6, `'='` ×5, `'(x'` ×4
+  - 143.5 (fail): `_std=True) x_rand = np.random.normal(mean_pred, std«_pred» * 2)`
+  - 137.0 (fail): `grad[i] = (func(x + e) - func(x -« e»)) / (2`
+  - 128.9 (fail): `# Update GP self.X_gp = np.vstack([self.X«_gp», x])`
+  - 128.0 (fail): `def ei(x): mean_pred, std_pred = self.g«pr».predict(x.reshape(`
+- **f65370** (fails) AUROC 0.692 (val), active 1.00 in failing / 0.98 in working code; top examples fail 1.00; max tokens `','` ×7, `'aussian'` ×5, `'import'` ×5
+  - 48.4 (fail): `from sklearn.gaussian_process import GaussianProcessRegressor from sklearn.g«aussian»_process.kernels import`
+  - 48.1 (fail): `uncertainty = np.sqrt(std) acquisition = -mean + np.sqrt«(»2 * np.log`
+  - 47.9 (fail): `'''python import numpy as np from sklearn.gaussian_process import« Gaussian»ProcessRegressor from`
+  - 47.6 (fail): `(mean_pred - self.f_opt) * norm.cdf(z)« +» std_pred * norm`
+
+- **f8898** (works) AUROC 0.291 (val), active 0.74 in failing / 0.92 in working code; top examples fail 0.03; max tokens `'class'` ×18, `'#'` ×10, `'a'` ×7
+  - 24.2 (ok): `00): """ Hybrid Adaptive Gradient Descent with Dynamic Exploration« and» Population Refinement.`
+  - 23.2 (ok): `ines gradient-based steps with a population of diverse solutions, adaptive exploration,« and» memory-based learning.`
+  - 23.0 (ok): `adaptive strategy. # Code: '''python import numpy as np «class» AdaptiveMultiStageOptimizer`
+  - 22.9 (ok): `x = candidate_mut # Maintain a history of directions« for» future exploration`
+- **f52860** (works) AUROC 0.302 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.17; max tokens `'import'` ×48, `'.f'` ×9, `'['` ×9
+  - 87.6 (fail): `else: # Reduce importance of this dimension self.dim«_import»ance[self.dim_ref`
+  - 87.6 (ok): `self.sigma, self.pop.shape) # Dimensional learning: update« importance» based on function values`
+  - 79.2 (ok): `dim_importance = np.abs(np.gradient(self.x_opt)) dim«_import»ance = np.clip`
+  - 79.0 (ok): `formed Exploration (ADP-GIE) # Code: '''python «import» numpy as np`
+- **f40191** (works) AUROC 0.328 (val), active 0.81 in failing / 0.93 in working code; top examples fail 0.06; max tokens `''` ×16, `'.b'` ×8, `'.'` ×8
+  - 54.7 (ok): `# Final refinement around the best solution for _ in range(self«.ref»ine_steps):`
+  - 52.6 (ok): `.01, 0.1) grad_budget = int«(»remaining_budget * self`
+  - 52.1 (ok): `) for x in self.population]) return self.f_opt, self«.x»_opt '''`
+  - 51.8 (ok): `) self.population.append((x_new, f_new)) self«.b»udget -= 1`
+- **f30218** (works) AUROC 0.340 (val), active 0.41 in failing / 0.67 in working code; top examples fail 0.01; max tokens `'self'` ×9, `'.c'` ×6, `'#'` ×5
+  - 20.5 (ok): `np.clip(x_perturbed, -5.0, 5«.»0) f`
+  - 20.0 (ok): `urbed = func(x_perturbed) self.budget_used +=« »1 if`
+  - 19.7 (ok): `self.f_opt: self.f_opt = f_new self«.x»_opt = x_new`
+  - 19.6 (ok): `next_value = func(next_position) if next_value <« self».best_value:`
+- **f10016** (works) AUROC 0.314 (val), active 0.78 in failing / 0.93 in working code; top examples fail 0.03; max tokens `''` ×20, `'numpy'` ×11, `'np'` ×8
+  - 13.5 (ok): `mutant = parent1 + self.mutation_factor * (parent«2» - parent3)`
+  - 13.0 (ok): `def __call__(self, func): # Initialize population « bounds» = func.bounds`
+  - 13.0 (ok): `self.dim = dim self.pop_size = pop_size « » self.F = F`
+  - 12.9 (ok): `, budget=10000, dim=10,« init»_samples=20`
+- **f48636** (works) AUROC 0.322 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.01; max tokens `'='` ×14, `''` ×9, `'0'` ×5
+  - 45.2 (ok): `.zeros(self.dim) for k in range(self.dim): eps« =» 1e-`
+  - 42.7 (fail): `.ub) # Replace half of the population with local search points« » population = np`
+  - 42.6 (ok): `.dim)) fitness = np.array([func(x) for x in« pop»]) best_idx`
+  - 42.5 (ok): `ploration = init_exploration def __call__(self«,» func): #`
+- **f44630** (works) AUROC 0.331 (val), active 0.89 in failing / 0.97 in working code; top examples fail 0.07; max tokens `':'` ×34, `'):'` ×28, `''` ×21
+  - 25.9 (ok): `_opt = population[best_idx] # Adaptive step size control« » self.step_size`
+  - 25.0 (ok): `_seq[i-1]) elif self.chaos_type == 'tent«': » if chaos_seq`
+  - 23.5 (ok): `# Apply pitch adjustment if np.random.rand() < self.par«: » for i in`
+  - 23.2 (ok): `.x_opt = self.pop[best_idx] # Update step size« » self.step_size`
+- **f15447** (works) AUROC 0.337 (val), active 0.49 in failing / 0.76 in working code; top examples fail 0.05; max tokens `'0'` ×18, `'__'` ×7, `'.'` ×7
+  - 38.7 (fail): `find the point that maximizes acquisition # This is a heuristic« and» could be replaced with`
+  - 38.4 (ok): `import numpy as np class AdaptiveGradientMomentumSearch: def« __»init__(self,`
+  - 34.2 (ok): `candidate_x = np.clip(candidate_x, func.bounds.lb, func.bounds«.»ub) #`
+  - 33.9 (ok): `.pop_size if remaining_budget <= 0: return self«.f»_opt, self.x`
+- **f20738** (works) AUROC 0.328 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.14; max tokens `'as'` ×38, `'numpy'` ×30, `'np'` ×23
+  - 57.8 (ok): `a simplified gradient estimation method. # Code: '''python import numpy« as» np class Hybrid`
+  - 56.5 (fail): `balance exploration and exploitation. # Code: '''python import numpy as« np» class HybridRandom`
+  - 56.4 (ok): `population management and gradient estimation. # Code: '''python import numpy« as» np class Improved`
+  - 56.2 (ok): `on observed diversity and performance. # Code: '''python import numpy« as» np class Hybrid`
+- **f32640** (works) AUROC 0.393 (val), active 1.00 in failing / 1.00 in working code; top examples fail 0.09; max tokens `'='` ×76, `'(['` ×6, `'-'` ×4
+  - 31.6 (fail): `) self.mu = np.zeros(len(self.X)) self.sigma« =» np.sqrt(np.diag`
+  - 27.6 (ok): `ity_threshold: # Add random solution to increase diversity population« =» np.vstack((population`
+  - 27.3 (fail): `+ self.step_size * np.random.randn(self.dim) x_new« =» np.clip(x_new`
+  - 27.2 (ok): `+ self.crossover_rate * (mutant - parent) trial« =» np.clip(trial`

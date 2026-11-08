@@ -13,7 +13,7 @@ algorithms.
 | 1 | [`exp01_probing/`](exp01_probing/) | Does the model know how good its parent is, and whether its child will crash, overspend the budget or improve? | done: H1, H2 supported; H3 rejected; failure pre-screen transfers to 36 new seeds and is non-inferior at 0.10 AOCC (p = 0.041) while skipping 21% of evaluations; [report](REPORT.md) |
 | 2 | [`exp02_feedback_attribution/`](exp02_feedback_attribution/) | Which parts of the prompt (feedback, code, error, operator) drive the edit? | steps 1–6 done: error traces are used to fix the code (deleting them: +22 points of failures; attribution: error text gains influence at the edit); the written score is ignored and barely reaches the fitness representation, which is causal for edit size. Report: [`REPORT_exp02.md`](REPORT_exp02.md) |
 | 1–2r | `exp01_probing/`, `exp02_feedback_attribution/` (tags `*-qwen3-14b`, `*-gemma-3-12b`) | Replication of experiments 1 and 2 on a bigger model of the same family (Qwen3-14B) and another family (Gemma-3-12B-it); comparison in `cross_model/`, report `REPORT_replication.md` | done (no attribution graphs) |
-| 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | steps 1–4 + keyword masking done: base SAEs transfer; every concept has a detecting feature; with keyword lines masked, covariance, gradient, swarm, surrogate, local-search and adaptive-parameter features still detect their concept beyond co-occurrence, elitism/restart features are keyword detectors; concepts not visibly planned at the last prompt token |
+| 3 | [`exp03_concept_features/`](exp03_concept_features/) | Which SAE features encode metaheuristic concepts, and do they match code structure and search behaviour? | steps 1–4 + keyword masking done: base SAEs transfer; every concept has a detecting feature; with keyword lines masked, covariance, gradient, swarm, surrogate, local-search and adaptive-parameter features still detect their concept beyond co-occurrence, elitism/restart features are keyword detectors; concepts not visibly planned at the last prompt token; concept features add nothing to outcome prediction beyond code text, the whole SAE code adds +0.074 AUROC for failure |
 | 5 | [`exp05_steering/`](exp05_steering/) | Can steering vectors act as a variation operator, and can CMA-ES search the steering space? | planned |
 
 The numbering follows the original research plan. Directions 4 (mode
@@ -265,3 +265,8 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   parameters survive masking of the keyword lines; elitism and restart
   features are keyword detectors; crossover/DE features read the DE
   family as a whole.
+- 2026-11-08: experiment 3 outcomes. Concept features add nothing to
+  failure/fitness prediction beyond the code text; the whole SAE code
+  adds +0.074 AUROC for failure (as the residual probe in experiment 1),
+  spread over many weak features (GP surrogate, finite-difference
+  gradient, code tidiness).
