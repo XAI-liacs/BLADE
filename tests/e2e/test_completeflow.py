@@ -131,7 +131,8 @@ def test_full_matrix_experiment_optimization(cleanup_tmp_dir, monkeypatch):
     for p in problems:
         for m in methods:
             for seed in range(2):
-                entry = logger._get_run_entry(m.name, p.name, seed)
+                llm_name = logger._get_clean_llm_model_name(m.llm)
+                entry = logger._get_run_entry(m.name, llm_name, p.name, seed)
 
                 assert (
                     entry is not None

@@ -371,6 +371,7 @@ def test_failed_run_is_recorded_and_others_continue(tmp_path):
         assert "Traceback" in trace and "screener failed to load" in trace
     with open(os.path.join(root, "experimentlog.jsonl")) as f:
         assert len(f.readlines()) == 2  # only the successful runs
+    llm_name = exp.exp_logger._get_clean_llm_model_name(llm)
     assert exp.exp_logger.is_run_pending(
-        BrokenMethod(llm, 1, name="broken"), NoEnvProblem(name="p"), 0
+        BrokenMethod(llm, 1, name="broken"),  llm_name, NoEnvProblem(name="p"), 0
     )

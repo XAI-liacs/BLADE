@@ -16,25 +16,24 @@ if __name__ == "__main__":
     # api_key = environ.get("GOOGLE_API_KEY")
 
 
-    llm1 = Ollama_LLM('llama3.2:latest')
-    llm2 = LMStudio_LLM('google/gemma-3-12b')
-    # gemini_llm = Gemini_LLM(api_key=api_key)
-
-
+    ollama_llm = Ollama_LLM('gemma4:latest')
+    ollama_llm2 = Ollama_LLM('gpt-oss:20b')
 
     erdos_min_overlap = get_combinatorics_problems(False)
 
     methods = []
-    for llm in [llm1, llm2]:
+
+    for llm in [ollama_llm, ollama_llm2]:
         method = LLaMEA(
             llm,
             n_parents=4,
             n_offspring=4,
             budget=budget,
         )
-        method.name += f"-{method.llm.model}"
+
         methods.append(method)
-    logger = ExperimentLogger(f"results/Erdös_Min_Overlap")
+
+    logger = ExperimentLogger(f"results/ErdösMinOverlap")
 
     experiment = Experiment(
         methods,
