@@ -242,7 +242,7 @@ def test_start_progress_and_restart(tmp_path):
     # Restart with same config should succeed
     logger2 = ExperimentLogger(name=str(logger_dir))
     logger2.start_progress(uuid.uuid4().hex, 1, methods=[m], problems=[p], seeds=[0], budget=1)
-    assert logger2.is_run_pending(m, p, 0)
+    assert logger2.is_run_pending(m, "llm-unknown", p, 0)
 
 
 def test_start_progress_mismatch(tmp_path):
@@ -330,7 +330,9 @@ def test_open_run_create_and_restart(tmp_path):
     # 1. First call should create a run directory and a progress entry
     # ------------------------------------------------------------------
     run1 = logger.open_run(m, p, budget=5, seed=0)
-    entry = logger._get_run_entry("methodX", "problemY", 0)
+    path = os.path.join(os.path.join(logger.dirname, "methodX-unknown-problemY-0"), "progress.json")
+
+    entry = logger._get_run_entry("methodX", "llm-unknown", "problemY", 0)
 
     assert entry is not None, "Progress entry not created"
     assert entry["evaluations"] == 0
@@ -352,7 +354,7 @@ def test_open_run_create_and_restart(tmp_path):
     #    delete old dir, reset evaluations, and create a new dir
     # ------------------------------------------------------------------
     run2 = logger.open_run(m, p, budget=5, seed=0)
-    entry_after = logger._get_run_entry("methodX", "problemY", 0)
+    entry_after = logger._get_run_entry("methodX", "llm-unknown", "problemY", 0)
 
     assert entry_after["evaluations"] == 0, "Evaluations were not reset"
     assert entry_after["log_dir"] == os.path.relpath(run2.dirname, logger.dirname)
@@ -362,7 +364,7 @@ def test_open_run_create_and_restart(tmp_path):
     # 3. Different seed should create an independent progress entry
     # ------------------------------------------------------------------
     run3 = logger.open_run(m, p, budget=5, seed=1)
-    new_entry = logger._get_run_entry("methodX", "problemY", 1)
+    new_entry = logger._get_run_entry("methodX", "llm-unknown", "problemY", 1)
 
     assert new_entry is not None
     assert new_entry is not entry_after  # distinct entry

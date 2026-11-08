@@ -149,11 +149,12 @@ class Experiment(ABC):
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             for problem in self.problems:
                 for method in self.methods:
+                    llm_name = self.exp_logger._get_clean_llm_model_name(method.llm)
                     for seed in self.seeds:
                         np.random.seed(seed)
                         if hasattr(
                             self.exp_logger, "is_run_pending"
-                        ) and not self.exp_logger.is_run_pending(method, problem, seed):
+                        ) and not self.exp_logger.is_run_pending(method, llm_name, problem, seed):
                             continue
 
                         m_copy = copy.deepcopy(method)
