@@ -55,6 +55,8 @@ uv run python $S/07_keyword_masking.py --analyze
 uv run python $S/08_concept_outcomes.py    # features vs failure/fitness (~15 min CPU)
 uv run python $S/09_failure_features.py    # failure-predictive SAE features
 uv run python $S/10_sparse_failure_probe.py # strata + L1 probes (~10 min CPU)
+uv run python $S/11_failure_types.py       # per error type (~5 min CPU)
+CUDA_VISIBLE_DEVICES=2 uv run python $S/12_undefined_names.py  # ~3 min GPU
 ```
 
 Data: the Qwen3-8B campaigns of experiment 1 (`main`, `prescreen`,
@@ -224,11 +226,67 @@ metrics is still open.
      "unusual dependencies and linear algebra". It is not a few
      interpretable failure detectors.
 
+9. **The SAE code beats the text most on reference errors**
+   (`results/k100/failure_types.*`). Each error type is scored against
+   working code (out-of-fold AUROC). The most common error messages:
+   - ValueError: `np.random.choice` on a 2-D population, ambiguous
+     array truth values;
+   - TypeError: `np.gradient(func, x)` misuse;
+   - ModuleNotFoundError: scikit-learn is not installed.
+
+   | type | n | text | SAE (L21, L1) | text + SAE | delta |
+   |---|---|---|---|---|---|
+   | ValueError | 421 | 0.749 | 0.848 | 0.850 | +0.100 [0.072, 0.129] |
+   | TypeError | 265 | 0.816 | 0.893 | 0.906 | +0.090 [0.053, 0.128] |
+   | ModuleNotFoundError | 205 | 1.000 | 1.000 | 1.000 | 0 |
+   | IndexError | 162 | 0.786 | 0.817 | 0.827 | +0.042 [0.021, 0.063] |
+   | AttributeError | 121 | 0.607 | 0.783 | 0.786 | +0.179 [0.108, 0.242] |
+   | NameError | 92 | 0.723 | 0.921 | 0.917 | +0.194 [0.139, 0.248] |
+
+   - The gain is largest for errors about whether a name or attribute
+     exists. A bag of words cannot see that: it needs to relate a use
+     to its definition.
+   - The TypeError probe is led by an `np.gradient` feature (f64822,
+     AUROC 0.84).
+   - The NameError probe is led by a single feature, L21 f7944 (AUROC
+     0.85).
+   - Timeouts are rare: only 9 of the failures.
+10. **An "out-of-scope reference" feature** (`results/k100/undefined_names.*`).
+    Most NameErrors (39 of 92) are `name 'func' is not defined`: the
+    objective, a parameter of `__call__`, is used in a helper method
+    that does not receive it.
+    - *Labels:* every load of `func` was labelled from the AST with
+      Python's scoping rules. 52 solutions have an out-of-scope
+      reference; 40 of them fail with NameError, and only 2 work.
+    - *Tokens:* 88 out-of-scope and 7,128 in-scope references, from 752
+      solutions. Of the in-scope ones, 754 lie outside `__call__`, in
+      helpers that take `func` as a parameter or in closures.
+
+    | group | n | L21 f7944 active | L21 f9410 active |
+    |---|---|---|---|
+    | out of scope | 88 | 0.55 (mean 3.2) | 0.72 (mean 7.5) |
+    | in scope, inside `__call__` | 6,374 | 0.000 | 0.006 |
+    | in scope, elsewhere | 754 | 0.000 | 0.005 |
+    | all other code tokens | – | 0.000 | – |
+
+    - f7944 never fires on an in-scope `func`, or on any other code
+      token. It fires on about half the out-of-scope references.
+    - f9410 is the best separator among all 65,536 features (token
+      AUROC 0.857); two more, f57487 and f16349, behave the same way.
+    - These features read scope, not position: legitimate uses outside
+      `__call__` stay silent.
+    - The model represents the bug at the token where it writes it, and
+      writes it anyway.
+
 ### Next steps
 
-- Failure types: the logs keep the error message of failing
-  algorithms. Split `child_failed` into import errors, runtime errors
-  and timeouts, and check which feature groups predict which.
+- Out-of-scope features beyond `func`: do f7944 / f9410 also fire on
+  other undefined names (`norm`, `minimize` used without import;
+  `self.func` never assigned)?
+- Experiment 5 candidates from the failure analysis: the out-of-scope
+  features (L21 f7944, f9410). Ablating or amplifying them while the
+  model writes a helper method tests whether the representation can be
+  used, e.g. to make the model pass `func` along.
 - Behaviour metrics (`iohblade/behaviour_metrics.py`): the BLADE logs keep
   per-instance AUCs but no search trajectories, so a subset of algorithms
   has to be re-run with trajectory logging (CPU).

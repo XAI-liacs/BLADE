@@ -1,0 +1,17 @@
+{
+ "ValueError": 421,
+ "TypeError": 265,
+ "ModuleNotFoundError": 205,
+ "IndexError": 162,
+ "AttributeError": 121,
+ "NameError": 92,
+ "AxisError": 59,
+ "UnboundLocalError": 35,
+ "LinAlgError": 29,
+ "Timeout": 9,
+ "ZeroDivisionError": 5,
+ "OverflowError": 4,
+ "KeyError": 4,
+ "other": 1,
+ "SyntaxError": 1
+}
