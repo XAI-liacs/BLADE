@@ -141,6 +141,55 @@ def select_queries(camp, rng) -> list[dict]:
     ]
 
 
+def prepare_contrast(camp, rng, out):
+    """Directions of step 5b (``08_contrast.py``). Scale: the residual norm
+    (``dose_unit="residual"``) or the norm of the mean difference
+    (``"diff"``, as in contrastive activation addition)."""
+    from exp_config import CORPUS
+
+    src = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    vecs = np.load(src / "directions.npz")
+    all_info = json.loads((src / "info.json").read_text())
+    arrays, info = {}, {}
+    for name in camp.directions:
+        if name not in all_info:  # too few positives in the corpus
+            print(f"skipping {name}: not in {src / 'info.json'}")
+            continue
+        v = all_info[name]
+        arrays[name] = vecs[name]
+        info[name] = {
+            "layer": v["layer"],
+            "feature": None,
+            "concept": v["target"] if v["kind"] == "concept" else None,
+            "behaviour": v["target"] if v["kind"] == "behaviour" else None,
+            "residual_norm": v["residual_norm"],
+            "diff_norm": v["diff_norm"],
+            "scale": v["diff_norm"] if camp.dose_unit == "diff" else v["residual_norm"],
+        }
+    for layer in camp.random_layers:
+        at = [v for v in info.values() if v["layer"] == layer]
+        d = next(iter(arrays.values())).shape[0]
+        r = rng.standard_normal(d).astype(np.float32)
+        arrays[f"random{layer}"] = r / np.linalg.norm(r)
+        info[f"random{layer}"] = {
+            "layer": layer,
+            "feature": None,
+            "concept": None,
+            "behaviour": None,
+            "residual_norm": at[0]["residual_norm"] if at else None,
+            "scale": float(np.median([v["scale"] for v in at])),
+        }
+    np.savez(out / "directions.npz", **arrays)
+    queries = select_queries(camp, rng)
+    with open(out / "queries.jsonl", "w") as fh:
+        for q in queries:
+            fh.write(json.dumps(q) + "\n")
+    meta = {"campaign": dataclasses.asdict(camp), "directions": info}
+    (out / "campaign.json").write_text(json.dumps(meta, indent=1))
+    print(json.dumps(info, indent=1))
+    print(f"{len(queries)} queries -> {out}")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tag", default="pilot", choices=list(CAMPAIGNS))
@@ -151,6 +200,9 @@ def main():
     rng = np.random.default_rng(camp.seed)
     out = data_dir(EXPERIMENT, "processed", camp.tag)
     out.mkdir(parents=True, exist_ok=True)
+
+    if camp.direction_source == "contrast":
+        return prepare_contrast(camp, rng, out)
 
     import torch
     from common.sae import TopKSAE

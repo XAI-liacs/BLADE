@@ -32,7 +32,7 @@ sys.path.insert(0, str(HERE.parent))
 
 from common.models import MODELS
 from common.paths import data_dir
-from common.problems import BudgetEnforcedMABBOB
+from common.problems import BudgetEnforcedMABBOB, TracedMABBOB
 from exp_config import CAMPAIGNS, EXPERIMENT, MODEL, SOURCE_EXPERIMENT
 
 from iohblade.llm import HookedLLM
@@ -83,6 +83,7 @@ def evaluate(problem, solution) -> dict:
         "failed": bool(not finite or err),
         "error": err[:500],
         "over_budget_instances": solution.metadata.get("over_budget_instances"),
+        "behaviour": solution.metadata.get("behaviour") if finite and not err else None,
         "eval_s": time.time() - t0,
         "infra": False,
     }
@@ -140,7 +141,7 @@ def main():
         max_new_tokens=camp.max_new_tokens,
         chat_template_kwargs=preset.chat_template_kwargs,
     )
-    problem = BudgetEnforcedMABBOB(
+    problem = (TracedMABBOB if camp.traced else BudgetEnforcedMABBOB)(
         dims=src.dims,
         budget_factor=src.budget_factor,
         training_instances=src.training_instances,

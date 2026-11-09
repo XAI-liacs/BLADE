@@ -38,7 +38,9 @@ sys.path.insert(0, str(HERE))
 import importlib
 
 from common.paths import data_dir, results_dir
-from exp_config import CAMPAIGNS, EXPERIMENT
+from exp_config import BEHAVIOUR_METRICS, CAMPAIGNS, EXPERIMENT
+
+BEHAVIOUR_SHOWN = ["exploration_pct", "intensification", "dist_to_best"]
 
 prep = importlib.import_module("01_prepare")
 labels_mod = prep.exp03_module("03_concept_labels")
@@ -75,6 +77,9 @@ def load_samples(tag: str) -> pd.DataFrame:
     df["code"] = df.get("code", pd.Series([""] * len(df))).fillna("")
     df["failed"] = df.failed.fillna(True).astype(bool)
     df["aocc"] = np.where(df.failed, 0.0, df.fitness.fillna(0.0))
+    for m in BEHAVIOUR_METRICS:
+        beh = df.get("behaviour", pd.Series([None] * len(df)))
+        df[f"b_{m}"] = [b.get(m) if isinstance(b, dict) else np.nan for b in beh]
     feats = pd.DataFrame([sample_features(c) for c in df.code], index=df.index)
     df = pd.concat([df, feats], axis=1)
     base = df[df.condition == "none"].set_index(["record_id", "k"]).code
@@ -111,6 +116,7 @@ def summarise(df, info, n_boot, rng) -> pd.DataFrame:
     for cond, g in df.groupby("condition", sort=False):
         direction = g.direction.iloc[0]
         concept = info.get(direction, {}).get("concept") if direction else None
+        metric = info.get(direction, {}).get("behaviour") if direction else None
         row = {
             "condition": cond,
             "direction": direction or cond,
@@ -127,7 +133,10 @@ def summarise(df, info, n_boot, rng) -> pd.DataFrame:
             "undefined_attr": float(g.u_self_attr.mean()),
             "concept": concept or "",
             "concept_rate": float(g[f"c_{concept}"].mean()) if concept else np.nan,
+            "behaviour": metric or "",
         }
+        for m in BEHAVIOUR_SHOWN:
+            row[f"{m}"] = float(g[f"b_{m}"].mean())
         if cond != "none":
             for col, key in (
                 ("failed", "d_failed"),
@@ -139,6 +148,9 @@ def summarise(df, info, n_boot, rng) -> pd.DataFrame:
             if concept:
                 d, lo, hi = paired_delta(df, cond, f"c_{concept}", n_boot, rng)
                 row.update(d_concept=d, d_concept_lo=lo, d_concept_hi=hi)
+            for m in BEHAVIOUR_SHOWN:  # pairs where both children work
+                d, lo, hi = paired_delta(df, cond, f"b_{m}", n_boot, rng)
+                row.update({f"d_{m}": d, f"d_{m}_lo": lo, f"d_{m}_hi": hi})
         rows.append(row)
     out = pd.DataFrame(rows)
     out["_o"] = out.condition.ne("none")
@@ -262,6 +274,7 @@ def main():
         "d_undefined_name_lo",
         "d_undefined_name_hi",
         "undefined_attr",
+        *[x for m in BEHAVIOUR_SHOWN for x in (m, f"d_{m}", f"d_{m}_lo", f"d_{m}_hi")],
     ]
     show = [c for c in show if c in summary]
     lines = [

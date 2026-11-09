@@ -69,6 +69,11 @@ class Campaign:
     # mean residual norm at the direction's layer (comparable across
     # features, needs 01_prepare.py --device)
     dose_unit: str = "peak"
+    # "sae": DIRECTIONS (SAE decoder columns); "contrast": directions of
+    # step 5b (``08_contrast.py``), named "<c_concept|b_metric>@L<layer>"
+    direction_source: str = "sae"
+    # evaluate with ``TracedMABBOB`` (adds search-behaviour metrics)
+    traced: bool = False
     max_new_tokens: int = 2048
     seed: int = 0
     notes: str = ""
@@ -130,6 +135,53 @@ CAMPAIGNS = {
         n_mut=12,
         seed=1,
     ),
+    # Step 5b: contrastive directions (08_contrast.py) on the screen's
+    # prompts. Concepts: the rare and elicited ones, positive doses.
+    # Behaviour: the exploration axis, raw and with the concept labels
+    # regressed out, at signed doses (a dial in both directions), at the
+    # best-validated layer and at L27.
+    "contrast-c": Campaign(
+        tag="contrast-c",
+        directions=[
+            f"c_{c}@L15"
+            for c in (
+                "levy_flight",
+                "opposition",
+                "quasi_random_init",
+                "archive",
+                "simulated_annealing",
+                "surrogate",
+                "restart",
+                "tournament_selection",
+                "local_search",
+                "covariance",
+            )
+        ],
+        random_layers=[15],
+        doses=[0.15, 0.3, 0.5],
+        dose_unit="residual",
+        direction_source="contrast",
+        traced=True,
+        n_init=4,
+        n_mut=12,
+        seed=1,
+    ),
+    "contrast-b": Campaign(
+        tag="contrast-b",
+        directions=[
+            f"b_{m}@L{l}"
+            for m in ("exploration_pct", "exploration_pct_resid")
+            for l in (15, 27)
+        ],
+        random_layers=[15, 27],
+        doses=[-0.5, -0.3, -0.15, 0.15, 0.3, 0.5],
+        dose_unit="residual",
+        direction_source="contrast",
+        traced=True,
+        n_init=4,
+        n_mut=12,
+        seed=1,
+    ),
 }
 
 
@@ -177,3 +229,52 @@ LLAMEA_CAMPAIGNS = {
     ),
     "llamea": LLaMEACampaign(tag="llamea", arms=ARMS, seeds=list(range(200, 208))),
 }
+
+
+# Step 5b: contrastive levers. A labelled corpus of code (natural: every
+# algorithm of experiment 1's main campaign and of the `llamea` campaign;
+# elicited: initial prompts with one extra instruction), with concept
+# labels (experiment 3's regexes) and search-behaviour labels (traced
+# evaluation, ``common.problems.TracedMABBOB``). Directions are differences
+# of mean residual states (teacher forced, one neutral prompt) between code
+# with and without a concept, or between the most and least exploratory
+# code.
+ELICIT = {
+    "levy_flight": "Levy flights: heavy-tailed step lengths drawn with "
+    "Mantegna's algorithm",
+    "opposition": "opposition-based learning: also evaluate the opposite "
+    "point lb + ub - x of candidate solutions",
+    "quasi_random_init": "a quasi-random initial design (Latin hypercube or "
+    "Sobol sampling)",
+    "archive": "an archive of good or recently replaced solutions that new "
+    "candidates are drawn from",
+    "simulated_annealing": "simulated annealing: accept worse moves with a "
+    "probability that depends on a decreasing temperature",
+    "surrogate": "a cheap surrogate model of the objective to pre-select "
+    "candidates before evaluating them",
+    "restart": "restarts from new random points when the search stagnates",
+    "tournament_selection": "tournament selection of parents",
+    "local_search": "a local search (pattern search or Nelder-Mead) around "
+    "the best solution",
+    "covariance": "a covariance matrix that is adapted to shape the "
+    "sampling distribution (as in CMA-ES)",
+    "explore": "strong global exploration: it must keep spreading its "
+    "evaluations over the whole search space for as long as possible",
+    "exploit": "strong exploitation: it must quickly concentrate its "
+    "evaluations around the best solution found and refine it",
+}
+ELICIT_TEMPLATE = "\nThe algorithm must use {}."
+CORPUS = {
+    "tag": "corpus",
+    "n_per_target": 24,
+    "natural": {"exp01_probing": "main", "exp05_steering": "llamea"},
+    "trace_instances": list(range(10)),  # all of experiment 1's instances
+}
+CONTRAST_LAYERS = [9, 15, 21, 27, 33]
+BEHAVIOUR_METRICS = [
+    "exploration_pct",
+    "dist_to_best",
+    "intensification",
+    "last_improvement",
+    "success_rate",
+]
