@@ -182,6 +182,21 @@ CAMPAIGNS = {
         n_mut=12,
         seed=1,
     ),
+    # confirmation of the exploration dial (concept-residualised directions)
+    # on new prompts, 4x the samples per condition
+    "dial": Campaign(
+        tag="dial",
+        directions=[f"b_exploration_pct_resid@L{l}" for l in (15, 27)],
+        random_layers=[15, 27],
+        doses=[-0.4, -0.2, 0.2, 0.4],
+        dose_unit="residual",
+        direction_source="contrast",
+        traced=True,
+        n_init=8,
+        n_mut=24,
+        k=2,
+        seed=2,
+    ),
 }
 
 

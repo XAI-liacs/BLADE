@@ -40,7 +40,8 @@ import importlib
 from common.paths import data_dir, results_dir
 from exp_config import BEHAVIOUR_METRICS, CAMPAIGNS, EXPERIMENT
 
-BEHAVIOUR_SHOWN = ["exploration_pct", "intensification", "dist_to_best"]
+# dist_to_best is unbounded (algorithms that leave the box); not shown.
+BEHAVIOUR_SHOWN = ["exploration_pct", "intensification", "last_improvement"]
 
 prep = importlib.import_module("01_prepare")
 labels_mod = prep.exp03_module("03_concept_labels")
@@ -157,6 +158,43 @@ def summarise(df, info, n_boot, rng) -> pd.DataFrame:
     return out.sort_values(["_o", "direction", "dose"]).drop(columns="_o")
 
 
+def dose_slopes(df, n_boot, rng) -> pd.DataFrame:
+    """Slope of each behaviour metric on signed dose, per direction.
+
+    All doses of a direction plus the unsteered children, working children
+    only, with prompt fixed effects (both sides centred per prompt);
+    95% CI from a bootstrap over prompts.
+    """
+    base = df[df.condition == "none"].assign(dose=0.0)
+    steered = df[df.direction.notna() & (df.condition != "none")]
+    steered = steered[steered.direction != "resample"]
+    rows = []
+    for d, g in steered.groupby("direction", sort=False):
+        row = {"direction": d, "doses": len(g.dose.unique())}
+        for m in BEHAVIOUR_SHOWN:
+            x = pd.concat([g, base])
+            x = x[x[f"b_{m}"].notna()]
+            xc = x.dose - x.groupby("record_id").dose.transform("mean")
+            yc = x[f"b_{m}"] - x.groupby("record_id")[f"b_{m}"].transform("mean")
+            sxy = (xc * yc).groupby(x.record_id).sum().to_numpy()
+            sxx = (xc * xc).groupby(x.record_id).sum().to_numpy()
+            if sxx.sum() == 0:
+                continue
+            i = rng.integers(0, len(sxy), (n_boot, len(sxy)))
+            boots = sxy[i].sum(1) / np.maximum(sxx[i].sum(1), 1e-12)
+            lo, hi = np.percentile(boots, [2.5, 97.5])
+            row.update(
+                {
+                    "n": len(x),
+                    f"slope_{m}": sxy.sum() / sxx.sum(),
+                    f"slope_{m}_lo": lo,
+                    f"slope_{m}_hi": hi,
+                }
+            )
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def concept_matrix(df, info) -> pd.DataFrame:
     """Rate of every direction's concept under every condition."""
     concepts = sorted({v["concept"] for v in info.values() if v.get("concept")})
@@ -166,7 +204,7 @@ def concept_matrix(df, info) -> pd.DataFrame:
     return m.reset_index()
 
 
-def plot(summary, path):
+def plot(summary, path, unit="x feature peak activation"):
     import matplotlib
 
     matplotlib.use("Agg")
@@ -211,7 +249,7 @@ def plot(summary, path):
                 resample[col].iloc[0], color=INK, lw=0.8, ls=":", label="resample"
             )
         ax.set_title(title, color=INK, fontsize=10, loc="left")
-        ax.set_xlabel("dose (x feature peak activation)")
+        ax.set_xlabel(f"dose ({unit})")
     fig.legend(
         *axes[1].get_legend_handles_labels(),
         loc="lower center",
@@ -219,6 +257,48 @@ def plot(summary, path):
         fontsize=8,
     )
     fig.tight_layout(rect=(0, 0.1, 1, 1))
+    fig.savefig(path, dpi=160)
+    plt.close(fig)
+
+
+def plot_behaviour(summary, path, unit):
+    """Paired change of the behaviour metrics against signed dose."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from common.plotting import INK, NEUTRAL, SERIES, setup
+
+    setup()
+    s = summary[~summary.direction.isin(["none", "resample"])]
+    dirs = list(dict.fromkeys(s.direction))
+    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.4))
+    i = j = 0
+    for d in dirs:
+        g = s[s.direction == d].sort_values("dose")
+        if d.startswith("random"):
+            c, ls = NEUTRAL, ("--", ":", "-.")[j % 3]
+            j += 1
+        else:
+            c, ls = SERIES[i % len(SERIES)], "-"
+            i += 1
+        for ax, m in zip(axes, BEHAVIOUR_SHOWN):
+            x = np.r_[0.0, g.dose]
+            y = np.r_[0.0, g[f"d_{m}"]]
+            o = np.argsort(x)
+            ax.plot(x[o], y[o], ls, marker="o", ms=3.5, color=c, label=d, lw=1.4)
+            ax.vlines(g.dose, g[f"d_{m}_lo"], g[f"d_{m}_hi"], color=c, lw=0.8)
+    for ax, m in zip(axes, BEHAVIOUR_SHOWN):
+        ax.axhline(0, color=INK, lw=0.6)
+        ax.set_title(f"change in {m}", color=INK, fontsize=10, loc="left")
+        ax.set_xlabel(f"signed dose ({unit})")
+    fig.legend(
+        *axes[0].get_legend_handles_labels(),
+        loc="lower center",
+        ncol=min(len(dirs), 4),
+        fontsize=8,
+    )
+    fig.tight_layout(rect=(0, 0.16, 1, 1))
     fig.savefig(path, dpi=160)
     plt.close(fig)
 
@@ -242,6 +322,12 @@ def main():
     out = results_dir(EXPERIMENT, args.tag)
     out.mkdir(parents=True, exist_ok=True)
 
+    camp = CAMPAIGNS[args.tag]
+    unit = {
+        "peak": "x feature peak activation",
+        "residual": "x residual norm",
+        "diff": "x mean-difference norm",
+    }.get(getattr(camp, "dose_unit", "peak"), "")
     df = load_samples(args.tag)
     keep = [c for c in df.columns if c not in ("code", "response", "error")]
     df[keep + ["error"]].assign(error=df.error.fillna("").str[-200:]).to_csv(
@@ -280,8 +366,8 @@ def main():
     lines = [
         f"# Steering campaign `{args.tag}`",
         "",
-        f"{df.record_id.nunique()} prompts, {len(df)} samples. Doses in units of",
-        "the feature's peak activation; `steer_norm` is the norm of the added",
+        f"{df.record_id.nunique()} prompts, {len(df)} samples. Doses {unit};",
+        "`steer_norm` is the norm of the added",
         "vector (residual norms: "
         + ", ".join(
             f"L{v['layer']} {v['residual_norm']:.0f}"
@@ -298,9 +384,23 @@ def main():
         to_markdown(cm),
         "",
     ]
+    if (summary.dose < 0).any():
+        sl = dose_slopes(df, args.n_boot, rng)
+        sl.to_csv(out / "slopes.csv", index=False)
+        lines += [
+            "## Behaviour slopes on signed dose",
+            "",
+            "Change per unit dose (working children, prompt fixed effects,"
+            " CI over prompts).",
+            "",
+            to_markdown(sl),
+            "",
+        ]
     (out / "summary.md").write_text("\n".join(lines))
     if (summary.dose > 0).groupby(summary.direction).sum().max() > 1:
-        plot(summary, out / "dose_response.png")
+        plot(summary, out / "dose_response.png", unit)
+    if (summary.behaviour != "").any():
+        plot_behaviour(summary, out / "behaviour_dose.png", unit)
     print("\n".join(lines))
 
 
