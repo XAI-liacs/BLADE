@@ -294,3 +294,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   produce undefined names but truncates (+4) or lengthens (−4) the code.
   Suppression is untestable: resampled, these prompts rarely produce an
   undefined name.
+- 2026-11-09 (later): experiment 5 lever screen (20 concept detectors ×
+  4 doses, 1,216 children). Only two steer their concept cleanly:
+  swarm (L27 f38837) and gradient (L27 f49680) at 0.5 × the residual
+  norm. L21 detectors break the code at 0.3+ and do nothing reliable at
+  0.1–0.2; most L27 detectors do nothing. Step 5 (LLaMEA with a steered
+  operator, code diversity via CodeBLEU, AST and concept-set distance)
+  launched with 4 arms × 8 seeds.

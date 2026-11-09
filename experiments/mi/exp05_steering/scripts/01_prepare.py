@@ -4,7 +4,8 @@
   column (unit norm) and its scale ``a`` = median activation of its top
   examples in experiment 3. One random unit vector per ``random_layers``
   entry, with the median scale of all ``DIRECTIONS`` features at that
-  layer (or of the campaign's, if none).
+  layer (or of the campaign's, if none). With ``dose_unit="residual"``
+  the scale is the residual norm at the layer instead.
 * **Residual norm.** With ``--device``, the mean per-token residual norm
   of the generated code at each steering layer (20 recorded queries,
   teacher forced), so a dose can be read as a fraction of it.
@@ -186,9 +187,13 @@ def main():
         torch.cuda.empty_cache()
     np.savez(out / "directions.npz", **arrays)
     norms = residual_norms(layers, args.n_norm, args.device) if args.device else {}
+    if camp.dose_unit == "residual" and not norms:
+        raise SystemExit("dose_unit='residual' needs --device")
     for v in info.values():
         if v["layer"] in norms:
             v["residual_norm"] = norms[v["layer"]]
+        if camp.dose_unit == "residual":
+            v["peak_scale"], v["scale"] = v["scale"], norms[v["layer"]]
     queries = select_queries(camp, rng)
     with open(out / "queries.jsonl", "w") as fh:
         for q in queries:

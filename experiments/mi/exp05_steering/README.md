@@ -54,13 +54,36 @@ Campaigns (`exp_config.CAMPAIGNS`):
 | `pilot` | 4 init + 4 mutation (`main`, parent worked) | gradient, covariance, swarm, random15/27 | 0.25, 0.5, 1, 2 | 168 |
 | `dose` | 8 init + 32 mutation | covariance, gradient, swarm, local search, random15/27 | 0.5, 1, 1.5 | 800 |
 | `scope` | the 99 recorded queries whose child used an undefined name | undef_9410, undef_7944, random21 | −4, +4 | 1,584 (k = 2) |
+| `screen` | 4 init + 12 mutation | rank-0 detector of 10 concepts at L21 and L27, swarm, random21/27 | 0.3, 0.5 × residual norm | 768 |
+| `screen2` | same prompts | the 10 L21 detectors, surrogate27, crossover27, random21 | 0.1, 0.2 × residual norm | 448 |
+| `llamea` | LLaMEA runs, budget 100 | arms `refine2`, `new2`, `levers`, `random` | levers of `screen` + `screen2` | 8 seeds × 4 arms |
 
-Later steps (not started):
-
-5. **Steering as an operator.** Add the steered generation as an extra
-   LLaMEA operator, and compare it with prompt-only operators at an equal
-   evaluation budget.
-6. **CMA-ES in steering space.** Parameterise the steering vector as a
+5. **Steering as a diversity operator** (`04_select_levers.py`,
+   `05_llamea.py`, `06_llamea_analyze.py`). The dose response showed that
+   a lever changes *what* the model writes without making it better, so
+   the operator is tested for diversity, with fitness as a
+   non-inferiority check.
+   - *Levers.* The `screen` campaign steers the rank-0 detector of ten
+     concepts at L21 and L27, at 0.3 and 0.5 × the residual norm (a
+     common scale: swarm worked at 0.33–0.49, L15/L21 broke at 0.56+).
+     A lever adds its concept (paired gain ≥ 0.2, CI above 0) without
+     raising failures by more than 0.15; one lever per concept.
+   - *Arms.* LLaMEA as in experiment 1 (refine, new, simplify; 4
+     parents, 12 offspring, elitism, 100 algorithms) plus one extra
+     operator of equal weight: `refine2` (refine again, control),
+     `new2` ("generate a new algorithm" again, prompt-based diversity),
+     `levers` (refine prompt + a random lever) and `random` (refine
+     prompt + a random direction with the lever's layer and norm). 8
+     seeds per arm.
+   - *Diversity* (`common/diversity.py`). Distance between two
+     algorithms as 1 − CodeBLEU (symmetrised; n-gram, keyword, AST and
+     data-flow match), LLaMEA's AST distance, and Jaccard distance of
+     their concept sets (algorithm family). Per run: mean pairwise
+     distance (all, working, final population), entropy and number of
+     distinct concept sets. Per child: novelty (distance to the nearest
+     earlier algorithm of the run) and step (distance to its parent),
+     compared between operators.
+6. **CMA-ES in steering space** (not started). Parameterise the steering vector as a
    combination of k directions with a coefficient vector z. CMA-ES
    optimises z; the fitness of z is the mean AOCC of algorithms generated
    under steering z.
@@ -81,7 +104,31 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Pilot, `dose` and `scope` done (2026-11-09).
+Pilot, `dose`, `scope`, `screen` and `screen2` done (2026-11-09);
+`llamea` running (GPUs 2/3, 8 shards).
+
+### Lever screen (`results/screen/levers.md`)
+
+Of the 20 concept detectors (10 concepts × L21, L27), only two are
+clean levers (n = 16 children per cell, so CIs are wide):
+
+| Lever | Dose (× residual norm) | Concept rate, unsteered → steered | Failures (unsteered 0.12–0.25) |
+|---|---|---|---|
+| `swarm` (L27 f38837) | 0.5 | particle swarm 0.12 → 1.00 | 0.06 |
+| `gradient27` (L27 f49680) | 0.5 | gradient 0.56 → 0.88 | 0.12 |
+
+- `gradient21` at 0.3 also qualifies; one lever per concept is kept.
+- **L21 is a cliff.** At 0.3–0.5 most L21 detectors break the code
+  (failures 0.75–1.0); a random L21 direction of the same norm does not
+  (0.2). Some still add their concept on the way: particle_swarm21 0.3
+  (+0.81, failures 0.81), restart21 0.5 (+0.44, 0.88). At 0.1–0.2
+  (`screen2`) the code survives but no concept rises reliably.
+- **Most L27 detectors do nothing** at these doses (covariance,
+  restart, elitism, adaptive parameters: gain ≤ 0.13); surrogate27 adds
+  surrogates only while breaking the code (0.3: +0.25, failures 0.81).
+- So a detector feature is rarely a lever: two of 20 steer their
+  concept cleanly, and the step 5 operator draws between these two.
+
 
 ### Undefined-name features (`results/scope/summary.md`)
 
