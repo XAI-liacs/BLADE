@@ -288,3 +288,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   effect" and degenerate output (dose 1.5: 68% failures); covariance and
   local search features do not steer. Random directions of equal norm
   change nothing.
+- 2026-11-09: experiment 5 undefined-name steering (99 prompts × 2).
+  Adding L21 f7944 raises undefined names from 4.5% to 30% (all kinds,
+  not only `func`) and NameErrors from 5% to 23%; f9410 does not
+  produce undefined names but truncates (+4) or lengthens (−4) the code.
+  Suppression is untestable: resampled, these prompts rarely produce an
+  undefined name.

@@ -81,7 +81,52 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Pilot and `dose` done (2026-11-08); `scope` running.
+Pilot, `dose` and `scope` done (2026-11-09).
+
+### Undefined-name features (`results/scope/summary.md`)
+
+The 99 recorded queries whose child used an undefined name, 2
+replicates per condition (198 samples each), steered at L21 by ±4 ×
+the feature's peak activation (norms: f9410 71, f7944 30, random 50;
+residual norm 127). "Undefined" is experiment 3's step 13 label (an
+out-of-scope `func`, another function's local, or a name bound
+nowhere).
+
+| condition | undefined name (Δ, CI) | NameError | failures (Δ, CI) | Δ AOCC (CI) | tokens |
+|---|---|---|---|---|---|
+| `none` | 0.045 | 0.05 | 0.25 | | 903 |
+| `resample` | 0.061 (+0.02, −0.03 to 0.06) | 0.05 | 0.27 (+0.02) | −0.01 | 899 |
+| random21 −4 | 0.071 (+0.03, −0.02 to 0.08) | 0.06 | 0.31 (+0.06, −0.02 to 0.14) | −0.03 | 986 |
+| random21 +4 | 0.136 (+0.09, 0.04 to 0.15) | 0.14 | 0.36 (+0.11, 0.02 to 0.20) | −0.04 | 859 |
+| f7944 −4 | 0.051 (+0.01, −0.04 to 0.05) | 0.05 | 0.34 (+0.09, 0.01 to 0.18) | −0.04 | 856 |
+| **f7944 +4** | **0.303 (+0.26, 0.19 to 0.33)** | **0.23** | 0.47 (+0.22, 0.12 to 0.31) | −0.08 | 954 |
+| f9410 −4 | 0.066 (+0.02, −0.03 to 0.07) | 0.07 | 0.46 (+0.21, 0.12 to 0.30) | −0.06 | 1,213 |
+| f9410 +4 | 0.056 (+0.01, −0.04 to 0.06) | 0.05 | 0.85 (+0.60, 0.51 to 0.68) | −0.21 | 304 |
+
+- **The prompts are not prone to undefined names.** Resampled without
+  steering, only 4.5% of their children use an undefined name (the
+  recorded child did by selection): the original error was mostly a
+  sampling accident. Suppression (dose −4) therefore cannot be tested
+  here; neither feature lowers the rate, but there is little to lower.
+- **f7944 is a lever.** Adding it raises the undefined-name rate
+  sevenfold (0.045 → 0.30) and NameErrors from 5% to 23%, with the
+  smallest norm of all steers (30, a quarter of the residual norm). It
+  produces all three kinds, not only `func` out of scope (0.11) but
+  also other functions' locals (0.13) and names bound nowhere (0.12);
+  in experiment 3 f7944 *read* mostly `func`. A random direction of
+  larger norm (50) has a third of the effect (+0.09), so a general
+  perturbation at L21 makes the model a little sloppier with names, and
+  f7944 much more.
+- **f9410 is a detector, not a lever.** It reads undefined names more
+  generally than f7944 (experiment 3), but adding it does not produce
+  them: the model ends the code block early (304 tokens instead of 903,
+  a third of the code) and 85% of the children fail as stubs
+  (TypeError, unclosed brackets). Subtracting it makes the output
+  longer (23% hit the token limit) and fail more (0.46), again without
+  changing the undefined-name rate. Reading f9410 as "something is
+  wrong here, wrap up" would fit both directions, but this campaign does
+  not test that.
+- No steer at L21 improves fitness; all lower AOCC.
 
 ### Dose response (`results/dose/summary.md`, `dose_response.png`)
 
