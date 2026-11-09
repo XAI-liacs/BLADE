@@ -301,3 +301,11 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   0.1–0.2; most L27 detectors do nothing. Step 5 (LLaMEA with a steered
   operator, code diversity via CodeBLEU, AST and concept-set distance)
   launched with 4 arms × 8 seeds.
+- 2026-11-09 (evening): experiment 5 step 5, LLaMEA with a steered
+  operator (4 arms × 8 seeds × 100 algorithms). The swarm lever puts a
+  PSO into 99% of its children (control 15%) and is as novel as the
+  "generate a new algorithm" prompt with fewer failures, but those
+  children are worse and selected away: run-level code diversity
+  (CodeBLEU, AST, concept Jaccard) is not significantly above the
+  control; only the extra "new" prompt arm is (p 0.015). No arm changes
+  best AOCC.

@@ -104,8 +104,58 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Pilot, `dose`, `scope`, `screen` and `screen2` done (2026-11-09);
-`llamea` running (GPUs 2/3, 8 shards).
+Steps 1–5 done (2026-11-09). Step 6 not started.
+
+### Steered LLaMEA operator (`results/llamea/summary.md`, `diversity.png`)
+
+4 arms × 8 seeds × 100 algorithms (3,200). Each arm is LLaMEA with
+refine, new, simplify plus one extra operator; the arms differ only in
+that operator. Means over runs; p from Mann–Whitney vs `refine2`.
+
+| Arm (extra operator) | Best AOCC | Failed | Pairwise 1 − CodeBLEU | Concept Jaccard | Final pop. 1 − CodeBLEU | Families |
+|---|---|---|---|---|---|---|
+| `refine2` (control) | 0.722 | 0.14 | 0.497 | 0.414 | 0.231 | 24.1 |
+| `new2` (prompt) | 0.686 | 0.22 | **0.540** (p 0.015) | 0.517 (p 0.05) | 0.264 | 30.6 (p 0.07) |
+| `levers` (steered) | 0.679 | 0.16 | 0.523 (p 0.33) | 0.490 (p 0.16) | 0.322 (p 0.08) | 24.9 |
+| `random` (random dir.) | 0.661 | 0.19 | 0.516 (p 0.28) | 0.483 (p 0.20) | 0.273 | 30.3 |
+
+Per child of the extra operator:
+
+| Extra operator | Lever | PSO | Gradient | Failed | AOCC | Novelty 1 − CodeBLEU | Novelty concepts |
+|---|---|---|---|---|---|---|---|
+| `x_refine` | — | 0.15 | 0.66 | 0.12 | 0.43 | 0.250 | 0.049 |
+| `x_new` | — | 0.26 | 0.66 | 0.28 | 0.28 | 0.328 | 0.156 |
+| `x_levers` | swarm | **0.99** | 0.50 | 0.18 | 0.27 | 0.303 | 0.140 |
+| `x_levers` | gradient27 | 0.20 | **0.88** | 0.08 | 0.36 | 0.267 | 0.019 |
+| `x_random` | random (both norms) | 0.07 | 0.64 | 0.20 | 0.37 | 0.262 | 0.088 |
+
+- **The levers work inside LLaMEA.** Steered along swarm, 99% of
+  children contain a particle swarm (refine control 15%), without the
+  failure rate of the "new" prompt. Gradient: 88% vs 66%. A random
+  direction of equal norm does neither.
+- **The swarm lever is as novel as the "new" prompt** (concept
+  novelty 0.140 vs 0.156, CodeBLEU novelty 0.303 vs 0.328) and far more
+  than refine (0.049, 0.250), with a lower failure rate (0.18 vs 0.28).
+  The gradient lever adds no novelty: gradient steps are already in two
+  thirds of the code.
+- **But population diversity barely moves.** Only the `new2` arm is
+  more diverse than the control at p < 0.05. The `levers` arm's
+  per-run diversity is between control and `new2` and not significant
+  with 8 seeds; only its final population is somewhat more diverse
+  (0.322 vs 0.231, p 0.08). One extra operator in four, half of whose
+  children go to one lever, is a small push, and selection removes the
+  PSO children: they are worse (AOCC 0.27 vs 0.43), and the arm's best
+  algorithms contain a PSO no more often than the control's (2/8 each).
+- **Fitness**: no arm differs from the control (all p > 0.4); the
+  control is numerically best.
+- So steering is a *directed* diversity operator: it puts a chosen
+  concept into a child reliably and cheaply, which a prompt cannot. As a
+  general diversity operator it is limited by the number of levers: two
+  usable features (step 4) give the operator two places to go. What
+  would make it useful: more levers (other models, SAEs per concept,
+  contrastive directions), a lever schedule that steers *towards*
+  under-represented families instead of at random, or protecting the
+  steered children from early selection (niching).
 
 ### Lever screen (`results/screen/levers.md`)
 
