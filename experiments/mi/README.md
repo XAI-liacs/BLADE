@@ -309,3 +309,14 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   (CodeBLEU, AST, concept Jaccard) is not significantly above the
   control; only the extra "new" prompt arm is (p 0.015). No arm changes
   best AOCC.
+- 2026-11-10: experiment 5 step 5b, contrastive levers. A corpus of
+  4,712 algorithms with concept labels and traced search behaviour
+  (312 elicited with one prompt sentence for 10 rare concepts and for
+  exploration/exploitation) gives mean-difference directions. Four of
+  ten rare-concept directions steer their concept (covariance, local
+  search, simulated annealing, surrogate; +0.31 to +0.44, at a failure
+  cost); six do nothing. The exploration direction residualised on the
+  concept labels is a dial for search behaviour: at L27 the children's
+  exploration rises by 20 points per unit dose (CI 6 to 36) and
+  intensification falls, replicated on new prompts (1,152 children);
+  the raw direction and random directions do not move it.

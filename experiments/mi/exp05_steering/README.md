@@ -57,6 +57,9 @@ Campaigns (`exp_config.CAMPAIGNS`):
 | `screen` | 4 init + 12 mutation | rank-0 detector of 10 concepts at L21 and L27, swarm, random21/27 | 0.3, 0.5 × residual norm | 768 |
 | `screen2` | same prompts | the 10 L21 detectors, surrogate27, crossover27, random21 | 0.1, 0.2 × residual norm | 448 |
 | `llamea` | LLaMEA runs, budget 100 | arms `refine2`, `new2`, `levers`, `random` | levers of `screen` + `screen2` | 8 seeds × 4 arms |
+| `contrast-c` | 4 init + 12 mutation (seed 1) | contrastive concept directions of 10 rare concepts at L15, random15 | 0.15, 0.3, 0.5 × residual norm | 560 |
+| `contrast-b` | same prompts | exploration direction, raw and concept-residualised, at L15 and L27; random15/27 | ±0.15, ±0.3, ±0.5 × residual norm | 608 |
+| `dial` | 8 init + 24 mutation (seed 2), k = 2 | residualised exploration direction at L15 and L27; random15/27 | ±0.2, ±0.4 × residual norm | 1,152 |
 
 5. **Steering as a diversity operator** (`04_select_levers.py`,
    `05_llamea.py`, `06_llamea_analyze.py`). The dose response showed that
@@ -83,6 +86,37 @@ Campaigns (`exp_config.CAMPAIGNS`):
      distinct concept sets. Per child: novelty (distance to the nearest
      earlier algorithm of the run) and step (distance to its parent),
      compared between operators.
+5b. **More levers: contrastive directions** (`07_corpus.py`,
+   `08_contrast.py`, campaigns `contrast-c`, `contrast-b`, `dial`). SAE
+   detectors gave only two clean levers, and no lever for rare concepts
+   or for search behaviour. Directions are instead taken from a labelled
+   corpus as differences of mean activations.
+   - *Corpus* (`results/corpus/directions.md`). 4,712 algorithms: every
+     algorithm of experiment 1 `main` and of step 5 `llamea`, plus 312
+     elicited ones (24 initial prompts per target with one extra
+     sentence, "The algorithm must use …", for 12 targets: 10 rare
+     concepts, "strong exploration", "strong exploitation", plus 24
+     plain prompts). All are re-evaluated on the traced problem
+     (`common.problems.TracedMABBOB`), which records every evaluation
+     and computes BLADE's search-behaviour metrics (exploration %,
+     distance to the best so far, intensification, stagnation, success
+     rate).
+   - *Directions.* Every algorithm is teacher-forced under one neutral
+     initial prompt; the mean residual over its code tokens at L9, L15,
+     L21, L27, L33 is its activation. Concept direction = mean(with) −
+     mean(without); behaviour direction = mean(top third) − mean(bottom
+     third) of a metric; the `_resid` variant first regresses the
+     activations on the 18 concept labels, so the direction is not just
+     "another algorithm family". Validated by 5-fold held-out AUROC
+     (concepts) and Spearman (behaviour).
+   - *Screens.* `contrast-c` steers the ten rare-concept directions at
+     L15 (best held-out layer); `contrast-b` steers the exploration
+     direction (raw and residualised, L15 and L27) at signed doses;
+     `dial` repeats the residualised directions on new prompts with 4×
+     the samples. Behaviour of the children comes from the traced
+     problem; the dial is tested by the slope of each metric on signed
+     dose (prompt fixed effects, bootstrap over prompts), against random
+     directions of the same norm.
 6. **CMA-ES in steering space** (not started). Parameterise the steering vector as a
    combination of k directions with a coefficient vector z. CMA-ES
    optimises z; the fitness of z is the mean AOCC of algorithms generated
@@ -104,7 +138,78 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Steps 1–5 done (2026-11-09). Step 6 not started.
+Steps 1–5 and 5b done (2026-11-10). Step 6 not started.
+
+### More levers: contrastive directions (`results/corpus`, `contrast-c`, `contrast-b`, `dial`)
+
+**Corpus and elicitation.** One sentence in the prompt elicits every rare
+concept: archive, restart, simulated annealing, surrogate and tournament
+selection in 100% of the elicited code, covariance and opposition 79%,
+Lévy flight 63%, local search 33% (0–8% unprompted). Some elicited
+families do not run in the sandbox: quasi-random initialisation fails
+100% (22/24 use `scipy.stats.qmc`, not installed in the sandbox),
+surrogate 96% (20/24 import `sklearn`, not installed), archive 88% (real
+bugs, mostly ragged numpy arrays of archived solutions). The prompt is also a strong exploration dial: median
+exploration 77% under "strong exploration", 37% unprompted, 18% under
+"strong exploitation".
+
+**Contrastive directions.** Concept directions separate held-out code
+well (AUROC 0.75–0.99, best at L9/L15). Behaviour directions are weaker
+(held-out Spearman 0.2–0.42) and the raw ones are mostly concept
+directions: the exploration direction has cosine −0.86 with DE,
+population and local search and +0.69 with step-size adaptation.
+Residualised on the concept labels they keep Spearman 0.23–0.29 with
+small concept cosines.
+
+**Concept levers (`contrast-c`, 16 children per condition).** Four of
+the ten rare-concept directions add their concept:
+
+| direction | dose | concept rate | gain (95% CI) | failures (Δ) |
+|---|---|---|---|---|
+| covariance | 0.3 | 0.44 | +0.31 (0.13 to 0.56) | 0.31 (+0.19) |
+| local search | 0.3 | 0.31 | +0.31 (0.13 to 0.56) | 0.31 (+0.19) |
+| simulated annealing | 0.5 | 0.56 | +0.38 (0.13 to 0.63) | 0.44 (+0.31) |
+| surrogate | 0.5 | 0.44 | +0.44 (0.19 to 0.69) | 0.69 (+0.56) |
+
+Archive, Lévy flight, opposition, quasi-random initialisation, restart
+(+0.19, CI includes 0) and tournament selection do not appear at any
+dose; at 0.5 most of them break the code (failures 0.5–0.75, unsteered
+0.13). A direction that *reads* a concept well (high AUROC) is often not
+one that *writes* it. With swarm and gradient the lever set grows from 2
+to about 5, at a higher failure cost than swarm; for the other rare
+concepts the prompt is the better lever.
+
+**Exploration dial (`contrast-b`, `dial`).** Slope per unit dose
+(× residual norm), working children, prompt fixed effects:
+
+| direction | screen | exploration % (95% CI) | intensification (95% CI) |
+|---|---|---|---|
+| raw @L15 | contrast-b | +7.8 (−24.5 to 35.3) | −0.05 (−0.34 to 0.32) |
+| raw @L27 | contrast-b | −1.4 (−20.3 to 21.1) | −0.08 (−0.33 to 0.14) |
+| resid @L15 | contrast-b | +18.7 (−2.7 to 43.6) | −0.22 (−0.43 to −0.02) |
+| resid @L27 | contrast-b | +21.4 (−6.6 to 46.1) | −0.12 (−0.39 to 0.16) |
+| random15 | contrast-b | −7.4 (−28.1 to 12.5) | −0.00 (−0.16 to 0.14) |
+| random27 | contrast-b | −15.3 (−31.3 to −0.2) | +0.14 (−0.01 to 0.29) |
+| resid @L15 | dial | **+13.4 (0.7 to 29.0)** | −0.12 (−0.29 to 0.03) |
+| resid @L27 | dial | **+20.3 (6.2 to 35.7)** | **−0.16 (−0.30 to −0.02)** |
+| random15 | dial | +7.8 (−4.7 to 20.3) | −0.07 (−0.20 to 0.05) |
+| random27 | dial | −3.2 (−14.9 to 7.3) | +0.08 (−0.05 to 0.23) |
+
+The concept-residualised exploration direction at L27 is a dial: on new
+prompts its children's mean exploration rises monotonically with the
+dose (27.9, 36.7, 40.8, 46.7% at −0.4, −0.2, +0.2, +0.4; unsteered
+34.4%) and intensification falls, while the random directions stay
+flat. The raw direction is not a dial: it mixes the behaviour with the
+algorithm family. The dial is fine-grained but small: ±0.4 spans about
+19 points of exploration, where the prompt spans 59 (18 → 77%).
+±0.2 costs no extra failures (0.13 and 0.17, unsteered 0.17); ±0.4
+does at the positive end (0.34). Unlike the prompt it needs no
+instruction and changes behaviour *within* a family (the residualised
+direction is nearly orthogonal to the concept directions).
+
+`dist_to_best` is not reported for the screens: about 10% of the
+children evaluate points far outside the box, which makes it unbounded.
+
 
 ### Steered LLaMEA operator (`results/llamea/summary.md`, `diversity.png`)
 
