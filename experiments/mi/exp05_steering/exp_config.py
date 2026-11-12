@@ -345,3 +345,34 @@ BEHAVIOUR_METRICS = [
     "last_improvement",
     "success_rate",
 ]
+
+
+# Step 5d: does the exploration dial transfer to other BLADE problems?
+# Screen on the problem's own LLaMEA prompts: the initial prompt (k_init
+# samples per condition) and refine prompts on n_parents working unsteered
+# initial algorithms (k_refine each). Conditions: none, the dial at each
+# dose, and a random unit direction (one of 8, random sign) at
+# random_dose. Common random numbers: the sampling seed depends on the
+# prompt and the replicate only.
+@dataclass
+class TransferCampaign:
+    tag: str
+    problem: str  # "bragg" (TracedPhotonics) or "packing26"
+    doses: list[float] = field(default_factory=lambda: [-0.4, -0.2, 0.2, 0.4])
+    random_dose: float = 0.4
+    direction: str = "b_exploration_pct_resid@L27"
+    k_init: int = 32
+    n_parents: int = 16
+    k_refine: int = 2
+    max_new_tokens: int = 2048
+
+
+TRANSFER_CAMPAIGNS = {
+    t.tag: t
+    for t in [
+        TransferCampaign("transfer-smoke-bragg", "bragg", k_init=2, n_parents=1),
+        TransferCampaign("transfer-smoke-packing", "packing26", k_init=2, n_parents=1),
+        TransferCampaign("transfer-bragg", "bragg"),
+        TransferCampaign("transfer-packing", "packing26"),
+    ]
+}
