@@ -53,7 +53,7 @@ CONCEPTS = [
     "local_search",
     "gradient",
 ]
-SCORE = {"bragg": "AOCC", "packing26": "sum of radii"}
+SCORE = {"bragg": "AOCC", "packing26": "sum of radii (repaired)"}
 
 
 def load(tag: str) -> pd.DataFrame:
@@ -278,7 +278,11 @@ def stage_report(args):
         else:
             print("acts.npz is stale; rerun --stage acts")
     traced = camp.problem == "bragg"
-    beh = BEHAVIOUR if traced else []
+    # packing: strictly feasible rate (all samples) next to the repaired score
+    beh = BEHAVIOUR if traced else ["feasible_f"]
+    if not traced:
+        feas = df["feasible"] if "feasible" in df else pd.Series(False, df.index)
+        df["feasible_f"] = (feas == True).astype(float)  # noqa: E712
     # probe readout of working algorithms only (as the corpus probe)
     df["probe_expl_w"] = np.where(df.failed, np.nan, df.probe_expl)
 
@@ -322,7 +326,7 @@ def stage_report(args):
     summ.to_csv(out / "conditions.csv", index=False)
     sl.to_csv(out / "slopes.csv", index=False)
     rand.to_csv(out / "paired.csv", index=False)
-    pcols = (["exploration_pct", "intensification"] if traced else []) + [
+    pcols = (["exploration_pct", "intensification"] if traced else ["feasible_f"]) + [
         "probe_expl_w",
         "score",
         "failed_f",
@@ -333,6 +337,7 @@ def stage_report(args):
         "probe_expl_w": "exploration % (probe readout)",
         "score": SCORE[camp.problem] + " (working)",
         "failed_f": "failure rate",
+        "feasible_f": "strictly feasible rate",
     }
     plot(df, pcols, [labels[c] for c in pcols], out / "dose.png")
 

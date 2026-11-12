@@ -131,6 +131,10 @@ The selected solutions to update are:\n\n# 1
     return [{"role": "user", "content": ROLE + text}]
 
 
+def _finite(v):
+    return v if v is not None and np.isfinite(v) else None
+
+
 def evaluate(problem, solution) -> dict:
     t0 = time.time()
     try:
@@ -151,6 +155,9 @@ def evaluate(problem, solution) -> dict:
         "aocc_blade": md.get("aocc_blade") if ok else None,
         "over_budget_runs": md.get("over_budget_runs"),
         "runtime_s": md.get("runtime_s"),
+        "feasible": md.get("feasible"),
+        "strict_score": _finite(md.get("strict_score")),
+        "violation": md.get("violation"),
         "eval_s": time.time() - t0,
         "infra": False,
     }
@@ -175,18 +182,55 @@ def tasks_for(camp, phase, problem, raw) -> list[tuple]:
     return [(pid, s, k, c, par) for pid, s, par in prompts for k in ks for c in conds]
 
 
+def reevaluate(problem, raw, workers: int):
+    """Re-score every generated sample in ``raw`` with the current problem
+    (after a change to the evaluator); generations are kept."""
+    from iohblade.solution import Solution
+
+    for phase in ("init", "refine"):
+        path = raw / f"{phase}.jsonl"
+        if not path.exists():
+            continue
+        rows = list(read_jsonl(path))
+
+        def one(row):
+            if row.get("code") and not row.get("infra"):
+                sol = Solution(
+                    code=row["code"], name=row["name"], description=row["description"]
+                )
+                row.update(evaluate(problem, sol))
+            return row
+
+        with ThreadPoolExecutor(workers) as pool:
+            rows = list(pool.map(one, rows))
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text("".join(json.dumps(r) + "\n" for r in rows))
+        tmp.replace(path)
+        n_fail = sum(bool(r.get("failed")) for r in rows)
+        print(f"{phase}: re-evaluated {len(rows)} rows, {n_fail} failed", flush=True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tag", required=True, choices=list(TRANSFER_CAMPAIGNS))
     ap.add_argument("--phase", default="both", choices=["init", "refine", "both"])
     ap.add_argument("--device", default="cuda:0")
     ap.add_argument("--eval-workers", type=int, default=8)
+    ap.add_argument(
+        "--reevaluate",
+        action="store_true",
+        help="re-score the samples already generated and exit (no GPU)",
+    )
     args = ap.parse_args()
 
     camp = TRANSFER_CAMPAIGNS[args.tag]
     raw = data_dir(EXPERIMENT, "raw", camp.tag)
     problem = make_problem(camp.problem)
     problem._ensure_env()
+    if args.reevaluate:
+        reevaluate(problem, raw, args.eval_workers)
+        problem.cleanup()
+        return
     d = dial(camp)
     conds = conditions(camp)
     preset = MODELS[MODEL]

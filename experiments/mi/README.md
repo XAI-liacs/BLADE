@@ -320,3 +320,21 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   exploration rises by 20 points per unit dose (CI 6 to 36) and
   intensification falls, replicated on new prompts (1,152 children);
   the raw direction and random directions do not move it.
+- 2026-11-12: experiment 5 step 5c.
+  - Re-evaluation: BLADE's `exec(code, globals, locals)` hid module-level
+    imports from the class (`NameError`), and the sandbox lacked scipy
+    and scikit-learn. Fixing both cuts quasi-random code failures from
+    100% to 29%. Surrogate code still fails: GP timeouts and
+    hallucinated APIs. Archive failures are real bugs.
+  - The exploration dial in LLaMEA (5 arms × 8 seeds × 100 algorithms):
+    any steering raises the exploration of the generated code. The
+    random direction does too, so the dial-specific part is small
+    (explore − exploit +3.5 points, n.s.; +10 on fresh algorithms).
+    Steering towards exploitation lowers best AOCC by 0.18 and the
+    number of families from 26 to 16. Explore and anneal match the
+    control. Selection washes the behaviour out of the final
+    populations.
+  - Step 5d started: the dial on mini-Bragg photonics and on unit-square
+    packing (n=26). BLADE's versions of both needed sandbox fixes
+    (`common/transfer_problems.py`). Packing is scored on the repaired
+    packing, because 96% of the 8B model's packings are infeasible.

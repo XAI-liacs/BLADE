@@ -138,7 +138,75 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Steps 1–5 and 5b done (2026-11-10). Step 6 not started.
+Steps 1–5, 5b and 5c done (2026-11-12); 5d (transfer to other
+problems) running. Step 6 not started.
+
+### Dial in LLaMEA and re-evaluation (step 5c: `results/llamea-dial`, `results/reeval`)
+
+**Re-evaluation in an extended sandbox (`09_reeval.py`).** Two thirds
+of the "failed" quasi-random code failed for the harness, not for the
+code. BLADE's MA-BBOB runs generated code with separate globals and
+locals (`exec(code, globals, locals)`), so a module-level import or
+helper is invisible inside the class's methods (`NameError` for
+`qmc`, `math`, …), and the sandbox had neither scipy nor scikit-learn.
+With one namespace (`common.problems`, `shared_namespace`) and
+`scipy==1.18.0`, `scikit-learn==1.9.0` added (24 elicited algorithms per
+concept):
+
+| elicited concept | failed before | failed after | AOCC of working |
+|---|---|---|---|
+| quasi-random init | 1.00 | **0.29** | 0.26 |
+| surrogate | 0.96 | 0.88 | 0.24 |
+| archive | 0.88 | 0.88 | 0.26 |
+| (unprompted) | 0.25 | 0.25 | 0.28 |
+
+Quasi-random initialisation is now a viable family. Surrogate code
+still fails: 11 of 21 time out (a GP refit per evaluation exceeds 120 s),
+the rest call APIs that do not exist (`np.erf`, `pyDOE`, `pySOT`).
+Archive failures are real bugs (ragged arrays of archived solutions).
+The steered `contrast-c` children do not change: their failures were
+not import failures. All later campaigns (`llamea-dial`, step 5d) use
+the extended sandbox.
+
+**The dial in LLaMEA (`llamea-dial`, 5 arms × 8 seeds × 100
+algorithms).** Every algorithm generated (all operators) is steered
+along `b_exploration_pct_resid@L27`: `explore` at +0.3, `exploit` at
+−0.3, `anneal` from +0.3 to −0.3 over the run, `randomdir` one of 8
+random unit directions at ±0.3 (× residual norm). Means over seeds (95%
+bootstrap CI):
+
+| arm | best AOCC | failed | exploration % (working) | final pop. exploration % | families | CodeBLEU div. |
+|---|---|---|---|---|---|---|
+| control | 0.61 (0.48–0.72) | 0.16 | 22.5 (16.6–30.2) | 11.5 | 25.8 | 0.51 |
+| explore | 0.65 (0.53–0.76) | 0.21 | **35.5 (29.9–42.1)** | 17.2 | 28.8 | 0.55 |
+| exploit | **0.43 (0.35–0.51)** | 0.14 | 32.0 (21.0–46.3) | 19.6 | **16.4** | 0.54 |
+| anneal | 0.67 (0.57–0.74) | 0.14 | 28.8 (25.7–31.9) | 10.9 | 27.8 | 0.55 |
+| randomdir | 0.55 (0.48–0.63) | 0.20 | 34.1 (25.9–41.7) | 23.1 | 23.1 | 0.56 |
+
+* The dial moves exploration in the loop, but mostly unspecifically.
+  Paired by seed, `explore` raises the working algorithms' exploration
+  by 13 points over control (8/8 seeds). But `exploit` (+9.5, 6/8) and
+  the random directions (+11.6) raise it too. The direction-specific
+  part, `explore − exploit`, is +3.5 points (CI −14 to +19; 5/8 seeds).
+  It is +10 to +11 on the `init` and `new` operators (fresh algorithms,
+  as in the screens) and about 0 on `refine` and `simplify`, where the
+  parent's code fixes the search behaviour.
+* Steering at all makes the code more exploratory. Dose 0.3 at every
+  token perturbs the code towards simpler, more random sampling
+  algorithms, and the random direction does the same.
+* `exploit` hurts the search: best AOCC −0.18 against control (2/8
+  seeds better), and 16 algorithm families instead of 26 (lower family
+  entropy, 2.8 vs 3.4). `explore` (+0.05) and `anneal` (+0.06) are
+  within noise of control. `explore` costs failures (0.21 vs 0.16).
+* Selection washes the dial out: the final populations (the 10 best)
+  are low-exploration (11–23%) in every arm, without a consistent
+  order.
+* Every steered arm has a higher CodeBLEU diversity of the generated
+  code (0.54–0.56 vs 0.51), the random direction included.
+
+So in a closed loop, the dial is a weak control of behaviour. Steering
+"exploit" narrows the search and costs performance. "Explore" and
+"anneal" are safe, but do not beat the control.
 
 ### More levers: contrastive directions (`results/corpus`, `contrast-c`, `contrast-b`, `dial`)
 
