@@ -25,6 +25,7 @@ import multiprocessing
 multiprocessing.set_start_method("spawn", force=True)
 
 import argparse
+import importlib
 import json
 import sys
 from pathlib import Path
@@ -35,6 +36,7 @@ HERE = Path(__file__).resolve().parent
 MI_ROOT = HERE.parents[1]
 sys.path.insert(0, str(MI_ROOT))
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE))
 
 from common.models import MODELS
 from common.paths import data_dir
@@ -238,16 +240,19 @@ def main():
         max_new_tokens=camp.max_new_tokens,
         chat_template_kwargs=preset.chat_template_kwargs,
     )
-    problem = (TracedMABBOB if camp.traced else BudgetEnforcedMABBOB)(
-        dims=src.dims,
-        budget_factor=src.budget_factor,
-        training_instances=src.training_instances,
-        eval_timeout=src.eval_timeout,
-        dependencies=src.eval_dependencies
-        + (EXTRA_EVAL_DEPENDENCIES if camp.extra_deps else []),
-        name="MA_BBOB_enforced",
-    )
-    problem.shared_namespace = camp.extra_deps
+    if camp.problem == "mabbob":
+        problem = (TracedMABBOB if camp.traced else BudgetEnforcedMABBOB)(
+            dims=src.dims,
+            budget_factor=src.budget_factor,
+            training_instances=src.training_instances,
+            eval_timeout=src.eval_timeout,
+            dependencies=src.eval_dependencies
+            + (EXTRA_EVAL_DEPENDENCIES if camp.extra_deps else []),
+            name="MA_BBOB_enforced",
+        )
+        problem.shared_namespace = camp.extra_deps
+    else:
+        problem = importlib.import_module("10_transfer").make_problem(camp.problem)
     ops = src_mod.OPERATORS
     methods = []
     for arm in camp.arms:

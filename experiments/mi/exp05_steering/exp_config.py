@@ -258,6 +258,9 @@ class LLaMEACampaign:
     dial_direction: str = "b_exploration_pct_resid@L27"
     traced: bool = False  # TracedMABBOB: behaviour of every algorithm
     extra_deps: bool = False  # extended sandbox (see EXTRA_EVAL_DEPENDENCIES)
+    # step 5d: "mabbob", or a problem of ``10_transfer.make_problem``
+    # ("bragg", "packing26"; always traced where possible, extended sandbox)
+    problem: str = "mabbob"
 
 
 ARMS = [
@@ -376,3 +379,20 @@ TRANSFER_CAMPAIGNS = {
         TransferCampaign("transfer-packing", "packing26"),
     ]
 }
+
+# Step 5d, part 2: LLaMEA with the dial on the transfer problems.
+for _p, _name in [("bragg", "bragg"), ("packing26", "packing")]:
+    LLAMEA_CAMPAIGNS[f"llamea-dial-{_name}-smoke"] = LLaMEACampaign(
+        tag=f"llamea-dial-{_name}-smoke",
+        arms=DIAL_ARMS,
+        seeds=[997],
+        budget=6,
+        n_offspring=2,
+        problem=_p,
+    )
+    LLAMEA_CAMPAIGNS[f"llamea-dial-{_name}"] = LLaMEACampaign(
+        tag=f"llamea-dial-{_name}",
+        arms=DIAL_ARMS,
+        seeds=list(range(400, 406)),
+        problem=_p,
+    )
