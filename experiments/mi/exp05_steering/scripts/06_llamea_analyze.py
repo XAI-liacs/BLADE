@@ -47,6 +47,7 @@ prep = importlib.import_module("01_prepare")
 labels_mod = prep.exp03_module("03_concept_labels")
 
 N_PARENTS = 4
+BEHAVIOUR = ["exploration_pct", "intensification"]  # traced campaigns only
 
 
 def load_runs(tag: str) -> list[pd.DataFrame]:
@@ -69,12 +70,24 @@ def load_runs(tag: str) -> list[pd.DataFrame]:
                 "generation": [r.get("generation") for r in rows],
                 "operator": [(r.get("metadata") or {}).get("operator") for r in rows],
                 "steer": [(r.get("metadata") or {}).get("steer") for r in rows],
+                "steer_dose": [
+                    (r.get("metadata") or {}).get("steer_dose") for r in rows
+                ],
+                **{
+                    f"b_{m}": [
+                        ((r.get("metadata") or {}).get("behaviour") or {}).get(m)
+                        for r in rows
+                    ]
+                    for m in BEHAVIOUR
+                },
                 "code": [r.get("code") or "" for r in rows],
                 "fitness": [fitness_scalar(r.get("fitness")) for r in rows],
                 "error": [r.get("error") or "" for r in rows],
             }
         )
         df["failed"] = ~np.isfinite(df.fitness) | (df.error != "")
+        for m in BEHAVIOUR:
+            df[f"b_{m}"] = pd.to_numeric(df[f"b_{m}"], errors="coerce")
         df["aocc"] = np.where(df.failed, 0.0, df.fitness.fillna(0.0))
         runs.append(df)
     return runs
@@ -114,6 +127,12 @@ def run_measures(df: pd.DataFrame, pool) -> tuple[pd.DataFrame, dict]:
         summary[f"div_{m}"] = dv.mean_pairwise_distance(S)
         summary[f"div_ok_{m}"] = dv.mean_pairwise_distance(S, ok)
         summary[f"div_final_{m}"] = dv.mean_pairwise_distance(S, best)
+    for m in BEHAVIOUR:
+        b = df[f"b_{m}"].astype(float)
+        summary[m] = float(b.mean()) if b.notna().any() else np.nan
+        summary[f"{m}_final"] = (
+            float(b.iloc[best].mean()) if b.iloc[best].notna().any() else np.nan
+        )
     ent, n_fam = dv.family_entropy(sets)
     summary.update(family_entropy=ent, n_families=n_fam)
     return df.drop(columns="code"), summary
@@ -177,20 +196,26 @@ def plot(sol: pd.DataFrame, path):
 
     setup()
     arms = sorted(sol.arm.unique())
-    fig, axes = plt.subplots(1, 3, figsize=(10.5, 3.4))
+    traced = sol["b_exploration_pct"].notna().any()
+    n = 4 if traced else 3
+    fig, axes = plt.subplots(1, n, figsize=(3.5 * n, 3.4))
     for k, arm in enumerate(arms):
         g = sol[sol.arm == arm]
         c = SERIES[k % len(SERIES)]
         best = g.groupby("run").aocc.cummax()
         curve = best.groupby(g.idx).mean()
         axes[0].plot(curve.index + 1, curve.values, color=c, label=arm)
-        for ax, m in ((axes[1], "novelty_codebleu"), (axes[2], "novelty_concepts")):
+        panels = [(axes[1], "novelty_codebleu"), (axes[2], "novelty_concepts")]
+        if traced:
+            panels.append((axes[3], "b_exploration_pct"))
+        for ax, m in panels:
             w = g.groupby("idx")[m].mean().rolling(12, min_periods=6).mean()
             ax.plot(w.index + 1, w.values, color=c, label=arm)
     titles = (
         "best AOCC so far",
         "novelty (1 - CodeBLEU to nearest earlier)",
         "novelty (concept-set Jaccard)",
+        "exploration % of working algorithms",
     )
     for ax, t in zip(axes, titles):
         ax.set_title(t, color=INK, fontsize=10, loc="left")
@@ -260,6 +285,12 @@ def main():
         "div_final_codebleu",
         "family_entropy",
         "n_families",
+    ]
+    arm_cols += [
+        c
+        for m in BEHAVIOUR
+        for c in (m, f"{m}_final")
+        if c in runs and runs[c].notna().any()
     ]
     op_cols = [
         "failed",

@@ -54,6 +54,15 @@ for _c, _by_layer in _SCREEN.items():
         DIRECTIONS[f"{_c}{_layer}"] = (_layer, _f, _c)
 
 
+# Extended sandbox, used when a campaign sets ``extra_deps``: these packages
+# are added to experiment 1's evaluation dependencies (pinned to the host
+# versions) and the code runs in one namespace
+# (``BudgetEnforcedMABBOB.shared_namespace``). Quasi-random designs
+# (``scipy.stats.qmc``) and surrogate models (``sklearn``) otherwise fail:
+# MA_BBOB's exec hides module-level imports from the class's methods.
+EXTRA_EVAL_DEPENDENCIES = ["scipy==1.18.0", "scikit-learn==1.9.0"]
+
+
 @dataclass
 class Campaign:
     tag: str
@@ -74,6 +83,8 @@ class Campaign:
     direction_source: str = "sae"
     # evaluate with ``TracedMABBOB`` (adds search-behaviour metrics)
     traced: bool = False
+    # extended sandbox (EXTRA_EVAL_DEPENDENCIES + shared namespace)
+    extra_deps: bool = False
     max_new_tokens: int = 2048
     seed: int = 0
     notes: str = ""
@@ -214,10 +225,23 @@ class LLaMEAArm:
       ``levers.json`` (``04_select_levers.py``) added, drawn at random;
     * ``random``: as ``levers``, but each lever replaced by a random unit
       direction at the same layer and norm.
+
+    ``extra=None`` adds no operator. ``dial`` steers *every* generated
+    algorithm (initial population included) along the campaign's
+    exploration dial (``LLaMEACampaign.dial_direction``) with a signed
+    dose (x the residual norm):
+
+    * ``explore``: +``dose``; ``exploit``: -``dose``;
+    * ``anneal``: from +``dose`` to -``dose``, linear in the share of the
+      budget used (explore early, exploit late);
+    * ``random``: a random direction of the same norm (one of 8 fixed
+      ones, random sign) per algorithm.
     """
 
     name: str
-    extra: str
+    extra: str | None = None
+    dial: str = ""
+    dose: float = 0.3
 
 
 @dataclass
@@ -230,6 +254,10 @@ class LLaMEACampaign:
     n_parents: int = 4
     n_offspring: int = 12
     max_new_tokens: int = 3072  # as experiment 1
+    # step 5c: exploration dial (a direction of the step 5b corpus)
+    dial_direction: str = "b_exploration_pct_resid@L27"
+    traced: bool = False  # TracedMABBOB: behaviour of every algorithm
+    extra_deps: bool = False  # extended sandbox (see EXTRA_EVAL_DEPENDENCIES)
 
 
 ARMS = [
@@ -244,6 +272,30 @@ LLAMEA_CAMPAIGNS = {
     ),
     "llamea": LLaMEACampaign(tag="llamea", arms=ARMS, seeds=list(range(200, 208))),
 }
+# Step 5c: LLaMEA with the exploration dial on every generated algorithm.
+DIAL_ARMS = [
+    LLaMEAArm("control"),
+    LLaMEAArm("explore", dial="explore"),
+    LLaMEAArm("exploit", dial="exploit"),
+    LLaMEAArm("anneal", dial="anneal"),
+    LLaMEAArm("randomdir", dial="random"),
+]
+LLAMEA_CAMPAIGNS["llamea-dial-smoke"] = LLaMEACampaign(
+    tag="llamea-dial-smoke",
+    arms=DIAL_ARMS,
+    seeds=[998],
+    budget=6,
+    n_offspring=2,
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-dial"] = LLaMEACampaign(
+    tag="llamea-dial",
+    arms=DIAL_ARMS,
+    seeds=list(range(300, 308)),
+    traced=True,
+    extra_deps=True,
+)
 
 
 # Step 5b: contrastive levers. A labelled corpus of code (natural: every

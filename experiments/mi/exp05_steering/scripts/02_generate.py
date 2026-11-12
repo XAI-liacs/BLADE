@@ -33,7 +33,13 @@ sys.path.insert(0, str(HERE.parent))
 from common.models import MODELS
 from common.paths import data_dir
 from common.problems import BudgetEnforcedMABBOB, TracedMABBOB
-from exp_config import CAMPAIGNS, EXPERIMENT, MODEL, SOURCE_EXPERIMENT
+from exp_config import (
+    CAMPAIGNS,
+    EXPERIMENT,
+    EXTRA_EVAL_DEPENDENCIES,
+    MODEL,
+    SOURCE_EXPERIMENT,
+)
 
 from iohblade.llm import HookedLLM
 from iohblade.utils import NoCodeException
@@ -146,9 +152,11 @@ def main():
         budget_factor=src.budget_factor,
         training_instances=src.training_instances,
         eval_timeout=src.eval_timeout,
-        dependencies=src.eval_dependencies,
+        dependencies=src.eval_dependencies
+        + (EXTRA_EVAL_DEPENDENCIES if camp.extra_deps else []),
         name="MA_BBOB_enforced",
     )
+    problem.shared_namespace = camp.extra_deps
     problem._ensure_env()
 
     lock = threading.Lock()

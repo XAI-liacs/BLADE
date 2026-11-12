@@ -31,11 +31,18 @@ class BudgetEnforcedMABBOB(MA_BBOB):
     still be analysed as a label.
     """
 
+    # ``MA_BBOB`` executes the code with separate globals and locals, so a
+    # module-level import (``from scipy.stats.qmc import Sobol``) lands in
+    # the locals and is not visible inside the class's methods (NameError).
+    # With ``shared_namespace`` the code runs in one namespace, as a module
+    # does. Off by default: experiments 1-5b evaluated with MA_BBOB's rule.
+    shared_namespace = False
+
     def evaluate(self, solution: Solution, test=False, ioh_dir=""):
         code = solution.code
         algorithm_name = solution.name
         safe_globals = {"np": np}
-        local_env = {}
+        local_env = safe_globals if self.shared_namespace else {}
         exec(code, safe_globals, local_env)
 
         # Small test run to catch code errors (as in MA_BBOB).

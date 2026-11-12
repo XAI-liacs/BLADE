@@ -38,8 +38,15 @@ sys.path.insert(0, str(HERE.parent))
 
 from common.models import MODELS
 from common.paths import data_dir
-from common.problems import BudgetEnforcedMABBOB
-from exp_config import EXPERIMENT, LLAMEA_CAMPAIGNS, MODEL, SOURCE_EXPERIMENT
+from common.problems import BudgetEnforcedMABBOB, TracedMABBOB
+from exp_config import (
+    CORPUS,
+    EXPERIMENT,
+    EXTRA_EVAL_DEPENDENCIES,
+    LLAMEA_CAMPAIGNS,
+    MODEL,
+    SOURCE_EXPERIMENT,
+)
 from llamea import LLaMEA as LLaMEAAlgorithm
 from llamea import Operator
 
@@ -68,17 +75,46 @@ class OperatorSteeredLLM(HookedLLM):
     algorithm sets ``next_operator`` before each query (same thread).
     """
 
-    def __init__(self, model: str, plans: dict | None = None, **kwargs):
+    def __init__(
+        self, model: str, plans: dict | None = None, dial: dict | None = None, **kwargs
+    ):
         super().__init__(model, **kwargs)
         self.plans = plans or {}
+        self.dial = dial  # dial_config(); None: no dial
         self.next_operator = None
+        self.progress = 0.0  # share of the budget used, set by the algorithm
+
+    def _dial_lever(self):
+        """The dial's steering vector for the next algorithm, or None."""
+        d = self.dial
+        if not d or not d.get("mode"):
+            return None
+        if d["mode"] == "random":
+            k = np.random.randint(len(d["random"]))
+            sign = 1.0 if np.random.rand() < 0.5 else -1.0
+            dose, unit, name = sign * d["dose"], d["random"][k], f"random{k}"
+        else:
+            dose = {
+                "explore": d["dose"],
+                "exploit": -d["dose"],
+                "anneal": d["dose"] * (1.0 - 2.0 * min(self.progress, 1.0)),
+            }[d["mode"]]
+            unit, name = d["unit"], d["name"]
+        return {
+            "name": name,
+            "layer": d["layer"],
+            "vector": (dose * d["scale"] * unit).astype(np.float32),
+            "dose": float(dose),
+        }
 
     def sample_solution(self, session_messages: list, parent_ids=[], **kwargs):
         op, self.next_operator = self.next_operator or "init", None
-        lever = None
         if self.plans.get(op):
             options = self.plans[op]
             lever = options[np.random.randint(len(options))]
+        else:
+            lever = self._dial_lever()
+        if lever is not None:
             self.set_steering({lever["layer"]: lever["vector"]})
         try:
             solution = super().sample_solution(session_messages, parent_ids, **kwargs)
@@ -90,12 +126,15 @@ class OperatorSteeredLLM(HookedLLM):
         solution.add_metadata(
             "steer_norm", float(np.linalg.norm(lever["vector"])) if lever else 0.0
         )
+        solution.add_metadata("steer_dose", lever.get("dose") if lever else None)
+        solution.add_metadata("progress", float(self.progress))
         return solution
 
 
 class _Algorithm(LLaMEAAlgorithm):
     def _evolve_solution(self, individual, operator):
         self.llm.next_operator = operator.name
+        self.llm.progress = len(self.run_history) / self.budget
         return super()._evolve_solution(individual, operator)
 
 
@@ -140,6 +179,29 @@ def lever_plans(source_tag: str) -> dict[str, list[dict]]:
     return plans
 
 
+def dial_config(camp, arm) -> dict | None:
+    """The dial of an arm: unit direction, layer and scale from the corpus."""
+    if not arm.dial:
+        return None
+    proc = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    info = json.loads((proc / "info.json").read_text())[camp.dial_direction]
+    unit = np.load(proc / "directions.npz")[camp.dial_direction].astype(np.float32)
+    rng = np.random.default_rng(54321)
+    random = []
+    for _ in range(8):
+        r = rng.standard_normal(unit.shape).astype(np.float32)
+        random.append(r / np.linalg.norm(r))
+    return {
+        "mode": arm.dial,
+        "dose": arm.dose,
+        "layer": info["layer"],
+        "unit": unit / np.linalg.norm(unit),
+        "scale": info["residual_norm"],
+        "name": camp.dial_direction,
+        "random": random,
+    }
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tag", default="llamea-smoke", choices=list(LLAMEA_CAMPAIGNS))
@@ -176,14 +238,16 @@ def main():
         max_new_tokens=camp.max_new_tokens,
         chat_template_kwargs=preset.chat_template_kwargs,
     )
-    problem = BudgetEnforcedMABBOB(
+    problem = (TracedMABBOB if camp.traced else BudgetEnforcedMABBOB)(
         dims=src.dims,
         budget_factor=src.budget_factor,
         training_instances=src.training_instances,
         eval_timeout=src.eval_timeout,
-        dependencies=src.eval_dependencies,
+        dependencies=src.eval_dependencies
+        + (EXTRA_EVAL_DEPENDENCIES if camp.extra_deps else []),
         name="MA_BBOB_enforced",
     )
+    problem.shared_namespace = camp.extra_deps
     ops = src_mod.OPERATORS
     methods = []
     for arm in camp.arms:
@@ -192,14 +256,19 @@ def main():
             Operator(prompt=ops[k], name=k, weight=1.0, number_of_parents=1)
             for k in ("refine", "new", "simplify")
         ]
-        prompt = ops["new"] if arm.extra == "new" else ops["refine"]
-        operators.append(
-            Operator(
-                prompt=prompt, name=f"x_{arm.extra}", weight=1.0, number_of_parents=1
+        if arm.extra:
+            prompt = ops["new"] if arm.extra == "new" else ops["refine"]
+            operators.append(
+                Operator(
+                    prompt=prompt,
+                    name=f"x_{arm.extra}",
+                    weight=1.0,
+                    number_of_parents=1,
+                )
             )
-        )
         if arm.extra in plans:
             llm.plans = {f"x_{arm.extra}": plans[arm.extra]}
+        llm.dial = dial_config(camp, arm)
         methods.append(
             SteeredLLaMEA(
                 llm,
