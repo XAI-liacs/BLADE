@@ -27,10 +27,9 @@ One LLaMEA campaign per function, each function a single target:
 | landscape | unimodal, ill-conditioned | unimodal, curved valley | multimodal, weak global structure |
 | prediction | exploit ≥ control > explore | exploit ≥ control > explore | explore > control > exploit |
 
-* **Instances.** The proposed sets overlap at 15. Suggestion: train on
-  instances 10–14 (5 instances, in the loop) and validate the final
-  best algorithm of each run on instances 15–30 (16 held-out
-  instances). Alternatively use 16–30 for validation.
+* **Instances (confirmed 2026-11-13).** Train on instances 10–14 (5
+  instances, in the loop) and validate the final best algorithm of each
+  run on instances 15–30 (16 held-out instances).
 * **Problem.** BLADE's `BBOB_SBOX` with `problem_type=ioh.ProblemClass.BBOB`,
   `specific_fid`, `dims=[20]`, via a subclass with our fixes: shared
   namespace, extended sandbox, budget truncation instead of AOCC 0, and
@@ -107,15 +106,32 @@ activations: compute it there now.
 * Comparison of the final algorithms with human baselines (CMA-ES via
   modcma, DE) on the validation instances.
 
-## Order and timeline
+## Order and timeline (decided 2026-11-13: staged, stop any time)
 
-| weeks | runs | GPU-h |
-|---|---|---|
-| now–22 Nov | Bragg/packing LLaMEA (running); E4 on existing screens; E1 screens f2, f20 | ~10 |
-| 23 Nov–13 Dec | E1 f20 + f2 with E2 and E3 arms | ~45 |
-| 14 Dec–3 Jan | E1 f9; E5 | ~25 |
-| 4–17 Jan | analysis, figures, writing; abstract 18 Jan | – |
-| 18–25 Jan | final paper, supplement, anonymised code | – |
+Prototype style: every stage ends in a state the paper can be written
+from, so the campaign can stop after any stage.
 
-Total: about 80 GPU-hours on 2 GPUs, which fits in about 5 weeks of
-wall time with margin.
+**Stage 1. Complete the three problems we already have** (MA-BBOB 5-D,
+Bragg, circle packing).
+
+1. E5: extra seeds for MA-BBOB `llamea-dial` (explore, exploit,
+   control) and the Bragg screen at dose ±0.4 and 0 with `k_init` 64.
+2. E2 + E3: two prompt arms ("strong exploration" / "strong
+   exploitation") and the adaptive dial arm, as LLaMEA campaigns on
+   MA-BBOB, Bragg and packing (same seeds as the existing dial
+   campaigns, so they pair with control, explore, exploit, anneal).
+3. E4: frozen failure-probe AUROC on the Bragg and packing screens (CPU).
+
+Checkpoint: the paper's steering section on three problems, with
+prompt and adaptive baselines.
+
+**Stage 2. BBOB 20-D, one function at a time** (E1), each with a
+single-generation screen first, then the LLaMEA campaign with the arms
+of stage 1: f20 first (multimodal, prediction: explore helps), then f2,
+then f9. Each function is a checkpoint; the landscape × dial claim needs
+at least f20 and one unimodal function.
+
+**Stage 3 (if time).** E6.
+
+Deadlines: abstract 18 Jan 2027, paper 25 Jan 2027. Stop starting new
+stages by about 4 Jan to leave two weeks for writing.
