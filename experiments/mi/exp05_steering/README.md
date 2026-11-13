@@ -182,7 +182,7 @@ algorithm. The subclasses fix this and leave the benchmarks unchanged:
   feasibility is kept in the metadata (`feasible_f` below);
 * the sandbox gets the extended packages of step 5c (scipy,
   scikit-learn). numpy versions were checked: main venv 2.3.0, sandboxes
-  2.3.0 (photonics, pinned through pandas 2.2.3 / ioh) and 2.5.4
+  2.3.0 (photonics) and 2.5.4
   (packing).
 
 **Screen (`10_transfer.py`, `11_transfer_analyze.py`).** LLaMEA's own
