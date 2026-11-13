@@ -41,8 +41,12 @@ sys.path.insert(0, str(HERE))
 from common.models import MODELS
 from common.paths import data_dir
 from common.problems import BudgetEnforcedMABBOB, TracedMABBOB
+from common.runs import fitness_scalar
 from exp_config import (
+    ADAPTIVE_STEP,
     CORPUS,
+    ELICIT,
+    ELICIT_TEMPLATE,
     EXPERIMENT,
     EXTRA_EVAL_DEPENDENCIES,
     LLAMEA_CAMPAIGNS,
@@ -85,13 +89,29 @@ class OperatorSteeredLLM(HookedLLM):
         self.dial = dial  # dial_config(); None: no dial
         self.next_operator = None
         self.progress = 0.0  # share of the budget used, set by the algorithm
+        self.prompt_suffix = ""  # prompt baseline: appended to every prompt
+        self.adaptive_dose = 0.0  # adaptive dial, updated by the algorithm
 
-    def _dial_lever(self):
+    def update_adaptive(self, success: bool):
+        """1/5th success rule for the ``adaptive`` dial's dose."""
+        d = self.dial
+        if not d or d.get("mode") != "adaptive":
+            return
+        step = -ADAPTIVE_STEP if success else ADAPTIVE_STEP / 4
+        self.adaptive_dose = float(
+            np.clip(self.adaptive_dose + step, -d["dose"], d["dose"])
+        )
+
+    def _dial_lever(self, op: str):
         """The dial's steering vector for the next algorithm, or None."""
         d = self.dial
         if not d or not d.get("mode"):
             return None
-        if d["mode"] == "random":
+        if d["mode"] == "adaptive":
+            if op == "init" or self.adaptive_dose == 0.0:
+                return None
+            dose, unit, name = self.adaptive_dose, d["unit"], d["name"]
+        elif d["mode"] == "random":
             k = np.random.randint(len(d["random"]))
             sign = 1.0 if np.random.rand() < 0.5 else -1.0
             dose, unit, name = sign * d["dose"], d["random"][k], f"random{k}"
@@ -115,7 +135,11 @@ class OperatorSteeredLLM(HookedLLM):
             options = self.plans[op]
             lever = options[np.random.randint(len(options))]
         else:
-            lever = self._dial_lever()
+            lever = self._dial_lever(op)
+        if self.prompt_suffix:
+            session_messages = [dict(m) for m in session_messages]
+            last = max(i for i, m in enumerate(session_messages) if m["role"] == "user")
+            session_messages[last]["content"] += self.prompt_suffix
         if lever is not None:
             self.set_steering({lever["layer"]: lever["vector"]})
         try:
@@ -130,14 +154,31 @@ class OperatorSteeredLLM(HookedLLM):
         )
         solution.add_metadata("steer_dose", lever.get("dose") if lever else None)
         solution.add_metadata("progress", float(self.progress))
+        if self.prompt_suffix:
+            solution.add_metadata("prompt_suffix", self.prompt_suffix.strip())
         return solution
 
 
 class _Algorithm(LLaMEAAlgorithm):
+    _best = None  # best fitness so far (sign: higher is better)
+
+    def _score(self, solution) -> float:
+        f = fitness_scalar(solution.fitness)
+        if not np.isfinite(f):
+            return -np.inf
+        return -f if self.minimization else f
+
     def _evolve_solution(self, individual, operator):
         self.llm.next_operator = operator.name
         self.llm.progress = len(self.run_history) / self.budget
-        return super()._evolve_solution(individual, operator)
+        if self._best is None:  # initial population
+            scores = [self._score(p) for p in self.run_history]
+            self._best = max(scores, default=-np.inf)
+        child = super()._evolve_solution(individual, operator)
+        score = self._score(child)
+        self.llm.update_adaptive(score > self._best)
+        self._best = max(self._best, score)
+        return child
 
 
 class SteeredLLaMEA(LLaMEA):
@@ -274,6 +315,9 @@ def main():
         if arm.extra in plans:
             llm.plans = {f"x_{arm.extra}": plans[arm.extra]}
         llm.dial = dial_config(camp, arm)
+        llm.prompt_suffix = (
+            ELICIT_TEMPLATE.format(ELICIT[arm.prompt]) if arm.prompt else ""
+        )
         methods.append(
             SteeredLLaMEA(
                 llm,

@@ -235,13 +235,28 @@ class LLaMEAArm:
     * ``anneal``: from +``dose`` to -``dose``, linear in the share of the
       budget used (explore early, exploit late);
     * ``random``: a random direction of the same norm (one of 8 fixed
-      ones, random sign) per algorithm.
+      ones, random sign) per algorithm;
+    * ``adaptive``: no steering of the initial population; afterwards a
+      dose in [-``dose``, +``dose``] (starting at 0) controlled by the 1/5th
+      success rule: after every child that improves the run's best
+      fitness the dose moves ``ADAPTIVE_STEP`` towards exploitation,
+      after every other child a quarter of that towards exploration, so
+      the dose is stationary at a success rate of 1/5.
+
+    ``prompt`` (a key of ``ELICIT``, e.g. ``explore``) appends that
+    instruction (``ELICIT_TEMPLATE``) to the prompt of every generated
+    algorithm, initial population included: the prompt baseline of the
+    dial (stage 1 of ``paper_gecco2027/PLAN.md``).
     """
 
     name: str
     extra: str | None = None
     dial: str = ""
     dose: float = 0.3
+    prompt: str = ""
+
+
+ADAPTIVE_STEP = 0.1  # 1/5th success rule: -step on success, +step/4 else
 
 
 @dataclass
@@ -296,6 +311,40 @@ LLAMEA_CAMPAIGNS["llamea-dial"] = LLaMEACampaign(
     tag="llamea-dial",
     arms=DIAL_ARMS,
     seeds=list(range(300, 308)),
+    traced=True,
+    extra_deps=True,
+)
+
+
+# Stage 1 of paper_gecco2027/PLAN.md: the prompt baseline and the
+# adaptive dial, paired with the step 5c/5d campaigns (same seeds), and
+# more seeds for the main MA-BBOB arms.
+STAGE1_ARMS = [
+    LLaMEAArm("adaptive", dial="adaptive"),
+    LLaMEAArm("prompt_explore", prompt="explore"),
+    LLaMEAArm("prompt_exploit", prompt="exploit"),
+]
+LLAMEA_CAMPAIGNS["llamea-stage1-smoke"] = LLaMEACampaign(
+    tag="llamea-stage1-smoke",
+    arms=STAGE1_ARMS,
+    seeds=[996],
+    budget=12,
+    n_offspring=2,
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-stage1"] = LLaMEACampaign(
+    tag="llamea-stage1",
+    arms=STAGE1_ARMS,
+    seeds=list(range(300, 308)),  # as llamea-dial
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-stage1-seeds"] = LLaMEACampaign(
+    tag="llamea-stage1-seeds",
+    arms=[a for a in DIAL_ARMS if a.name in ("control", "explore", "exploit")]
+    + STAGE1_ARMS,
+    seeds=list(range(308, 316)),
     traced=True,
     extra_deps=True,
 )
@@ -394,5 +443,11 @@ for _p, _name in [("bragg", "bragg"), ("packing26", "packing")]:
         tag=f"llamea-dial-{_name}",
         arms=DIAL_ARMS,
         seeds=list(range(400, 406)),
+        problem=_p,
+    )
+    LLAMEA_CAMPAIGNS[f"llamea-stage1-{_name}"] = LLaMEACampaign(
+        tag=f"llamea-stage1-{_name}",
+        arms=STAGE1_ARMS,
+        seeds=list(range(400, 406)),  # as llamea-dial-{_name}
         problem=_p,
     )
