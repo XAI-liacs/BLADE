@@ -354,3 +354,16 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   - The MA-BBOB-trained exploration probe does not transfer (Spearman
     −0.03 with measured exploration on Bragg).
   - The LLaMEA campaigns (5 dial arms × 6 seeds per problem) started.
+- 2026-11-13: experiment 5 step 5d, LLaMEA campaigns with the dial on
+  Bragg and packing (6 seeds × 5 arms × 100 algorithms each).
+  - Every steered arm is worse than control on Bragg (best AOCC 0.58
+    control; exploit 0.23 and anneal 0.32 significantly lower). Steering
+    at +0.3 breaks nearly all initial Bragg algorithms. Measured
+    exploration does not move in the loop.
+  - Packing: explore and exploit lower the best repaired sum of radii
+    (2.19 → 1.82 / 1.77) and strict feasibility (0.37 → 0.10 / 0.09;
+    random direction 0.14); anneal matches control. Exploit pushes the
+    code to local search (0.82 vs 0.17).
+  - The single-shot dial effects do not survive selection. Next: the
+    adaptive dial and the prompt baseline (`paper_gecco2027/PLAN.md`,
+    stage 1).

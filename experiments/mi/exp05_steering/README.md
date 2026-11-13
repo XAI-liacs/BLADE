@@ -138,9 +138,8 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Steps 1–5, 5b and 5c done (2026-11-12). Step 5d (transfer to other
-problems): screens done; LLaMEA campaigns `llamea-dial-{bragg,packing}`
-running. Step 6 not started.
+Steps 1–5, 5b, 5c and 5d done (2026-11-13). Next: stage 1 of
+`../paper_gecco2027/PLAN.md` (more seeds, prompt and adaptive arms).
 
 ### Transfer of the dial to other problems (step 5d: `results/transfer-bragg`, `results/transfer-packing`)
 
@@ -239,6 +238,58 @@ CI), init and refine pooled:
 * **Packing score does not move.** The repaired sum of radii (≈1.0–1.3,
   best known 2.635) and the strictly feasible rate (0–16%) are flat in
   the dose; the random direction lowers feasibility.
+
+**Dial in LLaMEA on Bragg and packing (`results/llamea-dial-bragg`,
+`results/llamea-dial-packing`; `06_llamea_analyze.py`, `07_paired.py`).**
+The step 5c campaign design on both problems: arms control, explore
+(+0.3), exploit (−0.3), anneal (+0.3 → −0.3 over the run) and randomdir,
+6 seeds (400–405) × 100 algorithms per arm, 3,000 algorithms per
+problem. Differences are paired by seed, 95% bootstrap CIs.
+
+| | control | explore | exploit | anneal | randomdir |
+|---|---|---|---|---|---|
+| Bragg best AOCC | 0.58 | 0.37 (−0.21, −0.44 to 0.01) | **0.23 (−0.36, −0.57 to −0.18)** | **0.32 (−0.27, −0.43 to −0.10)** | 0.43 (−0.15, n.s.) |
+| Bragg runs with best > 0.6 | 4/6 | 1/6 | 1/6 | 0/6 | 2/6 |
+| Bragg failure rate | 0.37 | 0.48 | **0.48** | 0.43 | 0.40 |
+| Bragg failure, initial population | 0.71 | 1.00 | 0.92 | 0.96 | 0.83 |
+| Bragg exploration % (working) | 36 | 34 | 34 | 40 | 31 |
+| Bragg DE / local search share | 0.69 / 0.81 | 0.28 / 0.41 | 0.20 / 0.79 | 0.38 / 0.40 | 0.48 / 0.72 |
+| packing best sum of radii (repaired) | 2.19 | 1.82 (−0.37, −0.89 to 0.13) | **1.77 (−0.42, −0.61 to −0.22)** | 2.28 (+0.09, n.s.) | 2.16 (≈) |
+| packing strictly feasible (working) | 0.37 | **0.10** | **0.09** | 0.29 | **0.14** |
+| packing best strictly feasible score | 2.10 | **1.22** | **1.21** | 2.24 | 2.01 |
+| packing local search / population share | 0.17 / 0.14 | 0.46 / 0.27 | 0.82 / 0.05 | 0.53 / 0.14 | 0.35 / 0.15 |
+
+* **The screen effects do not survive the loop.** On Bragg the screen
+  found more exploration and better AOCC at +0.4; in LLaMEA no arm
+  raises the measured exploration (31–40% everywhere, CIs ±15), and
+  every steered arm is worse than control. Bragg runs are bimodal (best
+  AOCC about 0.8 when a run finds the quarter-wave stack, 0.2–0.4
+  otherwise), and control finds it in 4 of 6 runs.
+* **The initial population is the weak point.** Steering at +0.3 on
+  LLaMEA's initial prompt breaks almost all initial Bragg algorithms
+  (explore 1.00, anneal 0.96 failed vs 0.71 control), so the steered
+  runs start from worse or random parents. The screen used 32 samples
+  per condition and kept only working ones; the loop has 4 initial
+  samples per run.
+* **Family shifts persist, but are not specific.** Exploit concentrates
+  packing code on local search (0.82) and removes population code
+  (0.05); explore keeps more population code (0.27). On Bragg both signs
+  cut DE from 0.69 to 0.20–0.28 and crossover drops under exploit
+  (0.81 → 0.23). Against control, both signs move in the same direction
+  for most concepts, as on MA-BBOB (step 5c).
+* **Steering costs constraint handling on packing.** Strict feasibility
+  of working packings falls from 0.37 to about 0.1 under explore,
+  exploit and the random direction, while the failure rate is flat.
+  Any perturbation of this size degrades the model's care with the
+  disjointness and boundary constraints, which the repaired score hides.
+* **Anneal is the safe setting on packing (and MA-BBOB), not on
+  Bragg.** On packing it matches control on every measure; on Bragg it
+  loses through the broken initial population.
+* **Conclusion for the paper.** A fixed dial is a behaviour lever in
+  single-shot generation (screens, three problems), but in the closed
+  loop its effect is swamped by selection and by its cost in
+  correctness. This motivates the adaptive dial (dose chosen from search
+  progress, zero at initialisation) and the prompt baseline of stage 1.
 
 ### Dial in LLaMEA and re-evaluation (step 5c: `results/llamea-dial`, `results/reeval`)
 
