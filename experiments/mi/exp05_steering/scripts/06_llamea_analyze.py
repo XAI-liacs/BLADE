@@ -48,6 +48,8 @@ labels_mod = prep.exp03_module("03_concept_labels")
 
 N_PARENTS = 4
 BEHAVIOUR = ["exploration_pct", "intensification"]  # traced campaigns only
+PACKING = ["feasible", "strict_score", "violation"]  # packing campaigns only
+NEAR_FEASIBLE = 1e-6  # max violation counted as near-feasible
 
 
 def load_runs(tag: str) -> list[pd.DataFrame]:
@@ -58,7 +60,7 @@ def load_runs(tag: str) -> list[pd.DataFrame]:
             continue
         name = log.parent.name  # run-<method>-<model>-<problem>-<seed>-<i>
         arm = name.split("-")[2] if name.startswith("run-LLaMEA-") else "?"
-        seed = int(re.search(r"MA_BBOB\w*-(\d+)", name).group(1))
+        seed = int(re.search(r"-(\d+)(?:-\d+)?$", name).group(1))
         df = pd.DataFrame(
             {
                 "arm": arm,
@@ -80,6 +82,9 @@ def load_runs(tag: str) -> list[pd.DataFrame]:
                     ]
                     for m in BEHAVIOUR
                 },
+                **{
+                    m: [(r.get("metadata") or {}).get(m) for r in rows] for m in PACKING
+                },
                 "code": [r.get("code") or "" for r in rows],
                 "fitness": [fitness_scalar(r.get("fitness")) for r in rows],
                 "error": [r.get("error") or "" for r in rows],
@@ -89,6 +94,10 @@ def load_runs(tag: str) -> list[pd.DataFrame]:
         for m in BEHAVIOUR:
             df[f"b_{m}"] = pd.to_numeric(df[f"b_{m}"], errors="coerce")
         df["aocc"] = np.where(df.failed, 0.0, df.fitness.fillna(0.0))
+        # Packing: strict feasibility of the raw packing (before repair).
+        df["feasible"] = df.feasible.map(lambda v: v is True)
+        df["strict_score"] = pd.to_numeric(df.strict_score, errors="coerce")
+        df["violation"] = pd.to_numeric(df.violation, errors="coerce")
         runs.append(df)
     return runs
 
@@ -133,6 +142,14 @@ def run_measures(df: pd.DataFrame, pool) -> tuple[pd.DataFrame, dict]:
         summary[f"{m}_final"] = (
             float(b.iloc[best].mean()) if b.iloc[best].notna().any() else np.nan
         )
+    if df.violation.notna().any():  # packing: feasibility of working ones
+        w = df.iloc[ok]
+        summary["feasible"] = float(w.feasible.mean()) if len(w) else np.nan
+        summary["near_feasible"] = (
+            float((w.violation <= NEAR_FEASIBLE).mean()) if len(w) else np.nan
+        )
+        st = df.strict_score.where(df.feasible)
+        summary["best_strict"] = float(st.max()) if st.notna().any() else 0.0
     ent, n_fam = dv.family_entropy(sets)
     summary.update(family_entropy=ent, n_families=n_fam)
     return df.drop(columns="code"), summary
@@ -212,7 +229,7 @@ def plot(sol: pd.DataFrame, path):
             w = g.groupby("idx")[m].mean().rolling(12, min_periods=6).mean()
             ax.plot(w.index + 1, w.values, color=c, label=arm)
     titles = (
-        "best AOCC so far",
+        "best fitness so far",
         "novelty (1 - CodeBLEU to nearest earlier)",
         "novelty (concept-set Jaccard)",
         "exploration % of working algorithms",
@@ -286,6 +303,7 @@ def main():
         "family_entropy",
         "n_families",
     ]
+    arm_cols += [c for c in ("feasible", "near_feasible", "best_strict") if c in runs]
     arm_cols += [
         c
         for m in BEHAVIOUR
