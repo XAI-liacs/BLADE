@@ -179,7 +179,16 @@ def tasks_for(camp, phase, problem, raw) -> list[tuple]:
             (f"refine-{p['k']}", refine_prompt(problem, p), p["k"]) for p in parents
         ]
         ks = range(camp.k_refine)
-    return [(pid, s, k, c, par) for pid, s, par in prompts for k in ks for c in conds]
+    tasks = [(pid, s, k, c, par) for pid, s, par in prompts for k in ks for c in conds]
+    if phase == "init" and camp.k_init_extra:  # more replicates, some conditions
+        extra = range(camp.k_init, camp.k_init + camp.k_init_extra)
+        tasks += [
+            (pid, s, k, c, par)
+            for pid, s, par in prompts
+            for k in extra
+            for c in camp.extra_conditions
+        ]
+    return tasks
 
 
 def reevaluate(problem, raw, workers: int):

@@ -414,6 +414,10 @@ class TransferCampaign:
     random_dose: float = 0.4
     direction: str = "b_exploration_pct_resid@L27"
     k_init: int = 32
+    # stage 1 (E5): extra initial-prompt replicates k_init .. k_init +
+    # k_init_extra - 1 for these conditions only (names as 10_transfer)
+    k_init_extra: int = 0
+    extra_conditions: list[str] = field(default_factory=list)
     n_parents: int = 16
     k_refine: int = 2
     max_new_tokens: int = 2048
@@ -424,7 +428,12 @@ TRANSFER_CAMPAIGNS = {
     for t in [
         TransferCampaign("transfer-smoke-bragg", "bragg", k_init=2, n_parents=1),
         TransferCampaign("transfer-smoke-packing", "packing26", k_init=2, n_parents=1),
-        TransferCampaign("transfer-bragg", "bragg"),
+        TransferCampaign(
+            "transfer-bragg",
+            "bragg",
+            k_init_extra=32,
+            extra_conditions=["none", "dial@-0.4", "dial@+0.4"],
+        ),
         TransferCampaign("transfer-packing", "packing26"),
     ]
 }
