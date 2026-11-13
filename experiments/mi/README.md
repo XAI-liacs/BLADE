@@ -367,3 +367,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   - The single-shot dial effects do not survive selection. Next: the
     adaptive dial and the prompt baseline (`paper_gecco2027/PLAN.md`,
     stage 1).
+- 2026-11-13: stage 1 of the GECCO plan (`paper_gecco2027/PLAN.md`)
+  started after the server reboot: prompt-baseline and adaptive-dial
+  (1/5th success rule) LLaMEA arms on MA-BBOB, Bragg and packing, 8 more
+  MA-BBOB seeds, 32 more Bragg screen samples per condition at ±0.4.
+  - E4: the frozen MA-BBOB failure probe ranks failing code on Bragg
+    (AUROC 0.79) and packing (0.72) almost as well as a refit probe
+    (0.82, 0.73); its threshold has to be recalibrated per problem.

@@ -138,8 +138,50 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Steps 1–5, 5b, 5c and 5d done (2026-11-13). Next: stage 1 of
-`../paper_gecco2027/PLAN.md` (more seeds, prompt and adaptive arms).
+Steps 1–5, 5b, 5c and 5d done (2026-11-13). Stage 1 of
+`../paper_gecco2027/PLAN.md` running (`scripts/run_stage1.sh`, started
+2026-11-13): prompt-baseline and adaptive-dial arms on MA-BBOB, Bragg and
+packing, more MA-BBOB seeds, more Bragg screen samples. E4 done (below).
+
+### Stage 1 (`paper_gecco2027/PLAN.md`)
+
+**Arms (`exp_config.STAGE1_ARMS`, `05_llamea.py`).**
+
+* `prompt_explore` / `prompt_exploit`: the corpus elicitation sentence
+  ("The algorithm must use strong global exploration: ..." /
+  "... strong exploitation: ...") is appended to the prompt of every
+  generated algorithm, initial population included. This is the obvious
+  alternative to the dial.
+* `adaptive`: the dial with the dose set by the 1/5th success rule. The
+  initial population is not steered (the Bragg campaign showed that
+  steering it breaks the start). The dose starts at 0, moves −0.1 after a
+  child that improves the run's best and +0.025 after any other child,
+  clipped to [−0.3, +0.3], so it is stationary at a success rate of 1/5.
+  It explores while the run stagnates and exploits after progress.
+
+Campaigns: `llamea-stage1` (MA-BBOB, seeds 300–307, pairs with
+`llamea-dial`), `llamea-stage1-{bragg,packing}` (seeds 400–405, pair with
+`llamea-dial-<p>`), `llamea-stage1-seeds` (control, explore, exploit and
+the three new arms on seeds 308–315). `transfer-bragg` gets 32 more
+initial-prompt samples for none and the dial at ±0.4.
+
+**E4: the failure pre-screen on new problems
+(`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
+MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on
+the screens' code activations (teacher-forced code mean, layer 21):
+
+| problem | n | failure rate | frozen AUROC | refit AUROC (CV) | precision, top 21% skipped |
+|---|---|---|---|---|---|
+| Bragg | 312 | 0.65 | 0.79 (0.74 to 0.84) | 0.82 | 0.92 |
+| packing | 384 | 0.51 | 0.72 (0.67 to 0.76) | 0.73 | 0.79 |
+| MA-BBOB corpus | 4,712 | 0.19 | 0.82 (0.81 to 0.84) | 0.88 | 0.53 |
+
+The probe's ranking transfers: without retraining it is almost as good
+as a probe fitted on each problem, and far above code length (AUROC
+0.56–0.57). Its threshold does not: on this representation (which
+differs from the in-loop one even on MA-BBOB) it flags 95–100% of the
+code. A pre-screen on a new problem needs a recalibrated threshold, for
+example the score quantile that skips a fixed share of evaluations.
 
 ### Transfer of the dial to other problems (step 5d: `results/transfer-bragg`, `results/transfer-packing`)
 
