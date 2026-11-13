@@ -12,6 +12,7 @@ LOGS=${MI_CACHE:-/local/steinnvan/cache}/logs
 PY=".venv/bin/python -X faulthandler"
 
 for pid in "$@"; do
+  [ "$pid" = "--llamea-only" ] && continue
   while kill -0 "$pid" 2>/dev/null; do sleep 60; done
 done
 echo "$(date -u) campaign done, starting 5d"
@@ -28,7 +29,9 @@ run() {  # gpu tag-suffix
   echo "$(date -u) $name screen done"
   $PY $S/05_llamea.py --tag llamea-dial-$name-smoke \
     > $LOGS/exp05_llamea-dial-$name-smoke.log 2>&1
-  if ! grep -q "shard 0: done" $LOGS/exp05_llamea-dial-$name-smoke.log; then
+  # The process can exit in teardown before printing "shard 0: done";
+  # the run overview lists one finished run (✅) per arm.
+  if [ "$(grep -c '✅' $LOGS/exp05_llamea-dial-$name-smoke.log)" -lt 5 ]; then
     echo "$(date -u) $name LLaMEA smoke failed"
     return 1
   fi
@@ -40,6 +43,19 @@ run() {  # gpu tag-suffix
   echo "$(date -u) $name LLaMEA done"
 }
 
+if [ "${1:-}" = "--llamea-only" ]; then  # screens done: campaigns only
+  for spec in "2 bragg" "3 packing"; do
+    set -- $spec
+    (export CUDA_VISIBLE_DEVICES=$1
+     for k in 0 1 2; do
+       $PY $S/05_llamea.py --tag llamea-dial-$2 --shard $k --n-shards 3 \
+         > $LOGS/exp05_llamea-dial-${2}_$k.log 2>&1 &
+     done
+     wait; echo "$(date -u) $2 LLaMEA done") &
+  done
+  wait
+  exit 0
+fi
 run 2 bragg &
 run 3 packing &
 wait

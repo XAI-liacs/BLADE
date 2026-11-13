@@ -338,3 +338,19 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     packing (n=26). BLADE's versions of both needed sandbox fixes
     (`common/transfer_problems.py`). Packing is scored on the repaired
     packing, because 96% of the 8B model's packings are infeasible.
+- 2026-11-13: experiment 5 step 5d, transfer screens (Bragg 312, packing
+  384 samples).
+  - BLADE's photonics and packing problems needed sandbox fixes: the
+    shared namespace, `six` for pyGDM2, AOCC on log regret (BLADE's
+    window compresses all scores to 0.20–0.28), the problem description
+    restored for LLaMEA, budget truncation, packing example tabs and a
+    repaired packing score.
+  - On Bragg the MA-BBOB exploration dial transfers: measured
+    exploration +26 per unit dose, intensification −0.44, and AOCC
+    rises (+0.09 at +0.4). The random direction does not do this.
+  - On both problems the dial also swaps algorithm families: local
+    search for DE, population-based code and PSO. On packing it cuts
+    failures but not the score.
+  - The MA-BBOB-trained exploration probe does not transfer (Spearman
+    −0.03 with measured exploration on Bragg).
+  - The LLaMEA campaigns (5 dial arms × 6 seeds per problem) started.

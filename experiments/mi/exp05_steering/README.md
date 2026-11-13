@@ -138,8 +138,107 @@ uv run python $S/03_analyze.py --tag dose
 
 ## Status
 
-Steps 1–5, 5b and 5c done (2026-11-12); 5d (transfer to other
-problems) running. Step 6 not started.
+Steps 1–5, 5b and 5c done (2026-11-12). Step 5d (transfer to other
+problems): screens done; LLaMEA campaigns `llamea-dial-{bragg,packing}`
+running. Step 6 not started.
+
+### Transfer of the dial to other problems (step 5d: `results/transfer-bragg`, `results/transfer-packing`)
+
+**Problems and sandbox fixes (`common/transfer_problems.py`).** Two BLADE
+benchmarks: mini-Bragg photonics (10 layer thicknesses, minimise
+1 − reflectivity; `TracedPhotonics`) and unit-square circle packing with
+26 circles (AlphaEvolve B.12, maximise the sum of radii;
+`SandboxedUnitSquarePacking`). Probe programs (a module-level helper
+function, helper class and import; scipy and sklearn; a random search)
+showed that BLADE's versions fail most code for reasons unrelated to the
+algorithm. The subclasses fix this and leave the benchmarks unchanged:
+
+* both run code with `exec(code, globals, locals)`, which hides
+  module-level helpers and imports inside the class (`NameError`), the
+  same bug as MA-BBOB. Fixed with one namespace;
+* photonics: `pyGDM2` imports `six`, which nothing declares and the
+  sandbox lacks. Every evaluation failed, so `six==1.17.0` is pinned;
+* photonics: AOCC is computed on the raw cost in a log window of
+  [1e-8, 1e2], while costs lie in [0.165, 1]. Every algorithm scores
+  0.20–0.28; the intended bounds are computed but never used. Replaced
+  by the AOCC of the log regret to the optimum (cost 0.164856, the
+  quarter-wave stack, confirmed by differential evolution). Random
+  search: 0.11;
+* photonics: the problem description and algorithmic insights are only
+  in `get_prompt`, which BLADE's LLaMEA wrapper does not call, so
+  LLaMEA never saw them. They are folded into the task and example
+  prompts;
+* photonics: an algorithm that overspends the budget scores 0. It is now
+  truncated at the budget (as `BudgetEnforcedMABBOB`). The 2-D BBOB test
+  run is dropped: it rejected code that uses the problem's structure
+  (`dim // 2` periods) but works on the problem itself;
+* packing: the example code in the prompt mixes tab and space
+  indentation. Fixed;
+* packing: 96% of the model's packings are infeasible (circles outside
+  the square or overlapping, by 0.01–0.9), and BLADE scores those −inf.
+  The fitness is now the sum of radii after a repair: radii are clipped
+  to the walls, then scaled by the smallest d_ij / (r_i + r_j) over
+  overlapping neighbours. The feedback names the violation, and strict
+  feasibility is kept in the metadata (`feasible_f` below);
+* the sandbox gets the extended packages of step 5c (scipy,
+  scikit-learn). numpy versions were checked: main venv 2.3.0, sandboxes
+  2.3.0 (photonics, pinned through pandas 2.2.3 / ioh) and 2.5.4
+  (packing).
+
+**Screen (`10_transfer.py`, `11_transfer_analyze.py`).** LLaMEA's own
+prompts for each problem: the initial prompt (32 samples per condition)
+and the refine prompt on the first 16 working unsteered initial
+algorithms (2 each; Bragg had only 10 such parents). The dial
+`b_exploration_pct_resid@L27` is applied at −0.4, −0.2, +0.2 and +0.4,
+plus a random direction at +0.4, with seeds shared across conditions.
+Bragg is traced (exploration % and intensification measured as on
+MA-BBOB). Packing calls no black box, so exploration is read out by a
+ridge probe on the L15 code activations, trained on the 3,798 MA-BBOB
+corpus algorithms (CV Spearman 0.66 there).
+
+Slopes per unit dose (prompt × replicate fixed effects, 95% bootstrap
+CI), init and refine pooled:
+
+| problem | metric | slope (95% CI) | random dir. +0.4 vs none |
+|---|---|---|---|
+| Bragg | exploration % (measured) | **+26 (0.0 to 51)** | −2 (−28 to 29) |
+| Bragg | intensification (measured) | **−0.44 (−0.73 to −0.17)** | +0.14 (0.02 to 0.29) |
+| Bragg | AOCC (working) | **+0.056 (0.012 to 0.096)** | +0.04 (−0.04 to 0.13) |
+| Bragg | failure rate | −0.13 (−0.33 to 0.09) | +0.02 |
+| Bragg | DE / local search rate | **+0.47 / −0.22** | |
+| packing | exploration % (probe) | +2 (−13 to 15) | +11 (−5 to 25) |
+| packing | sum of radii (repaired) | +0.03 (−0.40 to 0.46) | −0.35 (−0.77 to 0.18) |
+| packing | strictly feasible | +0.02 (−0.05 to 0.09) | −0.09 (−0.19 to −0.02) |
+| packing | failure rate | **−0.37 (−0.55 to −0.19)** | +0.16 (−0.02 to 0.33) |
+| packing | population / local search rate | **+0.62 / −0.90** | |
+
+* **Bragg: the dial transfers.** Measured exploration rises and
+  intensification falls with the dose, in the same direction as on
+  MA-BBOB and with a similar size (+20 and −0.16 there). The random
+  direction moves intensification the other way. The effect rests on
+  few working algorithms (65–80% of Bragg code fails at every dose;
+  about 90 working samples), and most of it comes from +0.4 on the
+  initial prompt (exploration 88% vs 41% unsteered). The more
+  exploratory code is also better: AOCC +0.09 at +0.4, paired (0.05 to
+  0.13). Bragg is multimodal, and the DE-style global search the dial
+  favours suits it.
+* **On new problems the dial also changes the algorithm family.** On
+  MA-BBOB the residualised direction was nearly orthogonal to the
+  concept directions. On Bragg it trades local search for differential
+  evolution, and on packing it trades local search (0.88 of the code at
+  −0.4, 0.04 at +0.4 on the initial prompt) for population-based code
+  and PSO. On packing, "explore" also cuts failures, from 0.75 at −0.4
+  to 0.28 at +0.4.
+* **The probe readout does not transfer.** On Bragg, the corpus probe's
+  readout and the measured exploration are uncorrelated (Spearman −0.03,
+  105 working algorithms), and the probe moves opposite to the measured
+  dial effect. A probe trained on MA-BBOB code reads the code's style,
+  not the behaviour on a new problem. The packing probe readout (flat)
+  is therefore no evidence either way. The family shift is the
+  measurable effect there.
+* **Packing score does not move.** The repaired sum of radii (≈1.0–1.3,
+  best known 2.635) and the strictly feasible rate (0–16%) are flat in
+  the dose; the random direction lowers feasibility.
 
 ### Dial in LLaMEA and re-evaluation (step 5c: `results/llamea-dial`, `results/reeval`)
 
