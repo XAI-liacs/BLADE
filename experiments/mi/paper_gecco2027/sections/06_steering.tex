@@ -1,0 +1,99 @@
+\section{Steering as a Variation Operator}\label{sec:steering}
+\pages{2.0}
+
+\plan{Steering vector $c\cdot a\cdot d$ added to the residual stream at
+every generated token: unit direction $d$, dose $c$, scale $a$ (typical
+feature activation or residual norm). Controls: random unit directions
+at the same norm, and a resample with a new seed. Directions: SAE
+decoder columns, and contrastive mean differences on a labelled corpus
+of 4,712 algorithms (concept present vs.\ absent; most vs.\ least
+exploratory), the exploration direction residualised on the concept
+labels.}
+
+\subsection{Concept levers}
+\begin{itemize}
+  \item Of the SAE features, only swarm and gradient steer their concept
+    cleanly (at $0.5\times$); most do nothing or break the code.
+  \item Of ten contrastive rare-concept directions, four insert their
+    concept (covariance, local search, simulated annealing, surrogate:
+    +0.31 to +0.44), at a failure cost; a direction that \emph{reads} a
+    concept well is often not one that \emph{writes} it.
+  \item In \llamea (4 arms $\times$ 8 seeds $\times$ 100): the swarm
+    lever puts a PSO in 99\% of its children (control 15\%), as novel as
+    the \emph{new} prompt with fewer failures, but these children are
+    selected away; run-level diversity and best \aocc unchanged.
+\end{itemize}
+\src{exp05\_steering: screen, contrast-c, llamea}
+
+\subsection{An exploration dial}
+\begin{itemize}
+  \item Residualised exploration direction at layer 27: the children's
+    measured exploration rises by 20 points per unit dose (95\% CI 6 to
+    36) and intensification falls, replicated on new prompts (1,152
+    children); raw and random directions do not move it.
+  \item Fine but small: $\pm0.4$ spans about 19 points; a prompt
+    instruction spans 59.
+\end{itemize}
+\src{exp05\_steering: contrast-b, dial}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2.5em}
+    Dose response: measured exploration and intensification vs.\ dose
+    for the dial and random directions; MA-BBOB and Bragg panels.
+    \vspace{2.5em}}}
+  \caption{The exploration dial. \todo{figure from
+    results/dial and results/transfer-bragg}}
+  \Description{Placeholder for dose-response curves.}
+  \label{fig:dial}
+\end{figure}
+
+\subsection{Transfer to new problems}
+\plan{The dial derived from MA-BBOB code, applied unchanged to
+\llamea prompts for mini-Bragg photonics (10 layers) and unit-square
+circle packing ($n=26$).}
+\begin{itemize}
+  \item Bragg: measured exploration +26 per unit dose (CI 0 to 51),
+    intensification $-0.44$ (CI $-0.73$ to $-0.17$); random direction
+    moves intensification the other way. \aocc rises (+0.09 at +0.4,
+    paired). Few working algorithms (65--80\% of Bragg code fails).
+  \item Both problems: the dial also swaps families (local search
+    $\to$ DE / population / PSO); on packing it cuts failures but not
+    the score.
+  \item A probe of exploration trained on MA-BBOB code does not transfer
+    (Spearman $-0.03$ with measured exploration on Bragg).
+\end{itemize}
+\src{exp05\_steering: transfer-bragg, transfer-packing}
+
+\subsection{The dial in the closed loop}
+\begin{itemize}
+  \item MA-BBOB, 5 arms $\times$ 8 seeds $\times$ 100: every steered arm,
+    the random direction included, raises the exploration of the
+    generated code; the dial-specific part (explore $-$ exploit) is
+    +3.5 points (n.s.), about +10 on fresh algorithms.
+  \item Steering towards exploitation lowers best \aocc by 0.18 and the
+    number of algorithm families from 26 to 16; explore and anneal match
+    the control.
+  \item Selection washes the behaviour out of the final populations.
+  \item \todo{Bragg and packing campaigns (5 arms $\times$ 6 seeds),
+    running}
+\end{itemize}
+\src{exp05\_steering: llamea-dial, llamea-dial-\{bragg,packing\}}
+
+\begin{table}[t]
+  \caption{The dial in \llamea on MA-BBOB, means over 8 seeds.
+    \todo{add Bragg; CIs}}
+  \label{tab:dial-llamea}
+  \small
+  \begin{tabular}{lrrrr}
+    \toprule
+    Arm & best \aocc & failed & expl.\ \% & families\\
+    \midrule
+    control & 0.61 & 0.16 & 22.5 & 25.8\\
+    explore & 0.65 & 0.21 & 35.5 & 28.8\\
+    exploit & 0.43 & 0.14 & 32.0 & 16.4\\
+    anneal & 0.67 & 0.14 & 28.8 & 27.8\\
+    random dir. & 0.55 & 0.20 & 34.1 & 23.1\\
+    \bottomrule
+  \end{tabular}
+\end{table}

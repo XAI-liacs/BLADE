@@ -1,0 +1,52 @@
+\section{Introduction}\label{sec:intro}
+\pages{1.0}
+
+\plan{Motivation (1 paragraph).} LLM-driven automated algorithm design
+(AAD) generates and evolves optimisation heuristics with a language model
+as the variation operator~\cite{vanstein2025llamea,liu2024eoh,
+romeraparedes2024funsearch,ye2024reevo,novikov2025alphaevolve}. The
+model is used as a black box: methods differ in prompts, populations and
+selection, not in what they know about the generator. Every generated
+algorithm costs a full benchmark evaluation, and a sizable fraction
+crash (16--25\% in our runs).
+
+\plan{Gap (1 paragraph).} Mechanistic interpretability offers tools
+to read (linear probes~\cite{alain2016probes}, sparse
+autoencoders~\cite{bricken2023monosemanticity,cunningham2024sae}) and
+write (activation steering~\cite{turner2023actadd,rimsky2024caa,
+zou2023repe}) the internal state of a model, but they have not been
+applied to the generator of an evolutionary loop. Questions for the EC
+community: does the model know, while writing, whether its offspring
+will work or be good? Which parts of the prompt does it actually use?
+Can the internal state be used as a cheaper or more controllable
+variation operator?
+
+\plan{Approach (1 paragraph).} Instrumented open-weight model
+(Qwen3-8B; replication on Qwen3-14B and Gemma-3-12B) inside \llamea on
+MA-BBOB, all via the \blade benchmark suite~\cite{blade2025}. Thousands
+of generated algorithms with their full activation traces, evaluation
+outcomes and traced search behaviour.
+
+\plan{Contributions (itemised list).}
+\begin{itemize}
+  \item \textbf{C1, reading for efficiency.} The child's failure is
+    linearly decodable from the generator's state while it writes the
+    code, beyond code text, output uncertainty and metadata; a frozen
+    probe used as a pre-screen saves 21\% of evaluations with
+    non-inferior search quality (pre-registered test, 36 seeds).
+  \item \textbf{C2, what drives the edit.} The model represents parent
+    fitness but does not use the written score; edits are driven by the
+    parent code and by error traces (counterfactual prompts).
+  \item \textbf{C3, concepts.} Sparse-autoencoder features detect
+    metaheuristic building blocks beyond keywords; a feature fires on
+    undefined names (a source of crashes).
+  \item \textbf{C4, writing.} Steering vectors as variation operators:
+    concept levers that insert an algorithm family, and an exploration
+    dial that shifts measured search behaviour and transfers to a new
+    problem (mini-Bragg photonics); its effect in the closed loop.
+  \item \textbf{C5, practice.} Sandbox and scoring issues in widely used
+    AAD benchmarks that inflate failure rates or compress scores, and
+    their fixes \todo{decide: contribution or setup paragraph}.
+\end{itemize}
+
+\todo{one sentence on code and data availability (anonymised link)}

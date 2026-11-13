@@ -1,0 +1,26 @@
+\section{Background and Related Work}\label{sec:related}
+\pages{0.75}
+
+\paragraph{LLM-driven algorithm design.}
+\plan{FunSearch~\cite{romeraparedes2024funsearch}, EoH~\cite{liu2024eoh},
+ReEvo~\cite{ye2024reevo}, \llamea~\cite{vanstein2025llamea},
+AlphaEvolve~\cite{novikov2025alphaevolve}; benchmarking with
+\blade~\cite{blade2025}. Analyses of generated code so far are external:
+code features, ASTs, behaviour of the generated algorithms
+\todo{cite code-evolution-graph / behaviour-space analyses of LLaMEA
+runs}. None look inside the generator.}
+
+\paragraph{Learning for EC.}
+\plan{Surrogates and pre-selection of offspring to save evaluations
+\todo{cite surrogate pre-selection survey}; our pre-screen is a surrogate
+that is free (read from the generator's own state) and predicts failure
+rather than fitness.}
+
+\paragraph{Mechanistic interpretability.}
+\plan{Linear probes~\cite{alain2016probes}; sparse autoencoders and
+transcoders~\cite{bricken2023monosemanticity,cunningham2024sae};
+attribution graphs~\cite{ameisen2025circuits}; activation
+steering~\cite{turner2023actadd,rimsky2024caa,zou2023repe}. Prior work on
+code models probes syntax and correctness \todo{cite probing for code
+correctness}; we probe a generator embedded in an optimisation loop and
+evaluate the downstream effect on search.}

@@ -1,0 +1,21 @@
+%% Draft abstract (target: 200 words, also the abstract submitted on
+%% 18 Jan 2027). Numbers are from the current results; update at the end.
+LLM-driven algorithm design methods such as \llamea, EoH and FunSearch
+treat the language model as a black-box variation operator. We open the
+box: we record and edit the internal activations of the model while it
+writes and mutates optimisation heuristics in \llamea on MA-BBOB.
+\emph{Reading:} a linear probe on the residual stream predicts, while the
+code is being written, whether the new algorithm will crash
+(AUROC 0.85, +0.08 over code text, output uncertainty and search
+metadata). Used as a free pre-screen on 36 new runs, it skips 21\% of the
+evaluations with non-inferior final quality. The model represents the
+parent's fitness, but its edits ignore the written score and follow the
+parent code and error traces. Sparse-autoencoder features detect
+metaheuristic concepts such as particle swarms or covariance adaptation.
+\emph{Writing:} adding concept directions to the residual stream works as
+a variation operator that inserts an algorithm family. A contrastive
+direction acts as a dial for the \emph{search behaviour} of the generated
+code: it shifts its measured exploration. The dial transfers to a
+photonic design problem it was not derived from, where more exploratory
+code also scores higher. In the closed \llamea loop, however, selection
+washes most of the steered behaviour out. \todo{final numbers; 200 words}

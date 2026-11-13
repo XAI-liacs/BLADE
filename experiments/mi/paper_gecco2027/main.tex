@@ -1,0 +1,82 @@
+%% GECCO 2027 full paper, track: Learning for Evolutionary Computation (L4EC).
+%% Template: ACM acmart, sigconf, as required by the GECCO 2027 call for
+%% papers (double-blind: anonymous=true, review=true). 8 pages excluding
+%% references; extra material goes to the (anonymised) supplement.
+%% Deadlines: abstract (200 words) 18 Jan 2027, full paper 25 Jan 2027.
+%%
+%% OUTLINE DRAFT: every section lists the planned content, the claims, the
+%% numbers that support them (with their source in experiments/mi) and a
+%% page budget. Text in \todo{} is for the authors and must go before
+%% submission.
+\documentclass[dvipsnames, format=sigconf, anonymous=true, review=true]{acmart}
+
+%% ---- Rights and conference metadata (filled in at camera-ready) -------
+\setcopyright{none}
+\acmConference[GECCO '27]{Genetic and Evolutionary Computation Conference}%
+  {July 2027}{TBA}
+\acmBooktitle{Genetic and Evolutionary Computation Conference (GECCO '27)}
+\acmDOI{}
+\acmISBN{}
+\settopmatter{printacmref=false}
+
+%% ---- Packages and macros ----------------------------------------------
+\usepackage{multirow}
+\usepackage{xspace}
+\newcommand{\todo}[1]{\textcolor{BrickRed}{[\textbf{TODO:} #1]}}
+\newcommand{\plan}[1]{\textcolor{NavyBlue}{\emph{#1}}}
+\newcommand{\pages}[1]{\noindent\textcolor{Gray}{\footnotesize[page
+    budget: #1]}\par}
+\newcommand{\src}[1]{\textcolor{Gray}{\footnotesize[\texttt{#1}]}}
+\newcommand{\llamea}{LLaMEA\xspace}
+\newcommand{\blade}{BLADE\xspace}
+\newcommand{\aocc}{AOCC\xspace}
+
+\begin{document}
+
+%% Working title; alternatives in README.md.
+\title{What Does the Generator Know? Reading and Steering the Language
+  Model inside LLM-driven Algorithm Design}
+
+\author{Anonymous Author(s)}
+\affiliation{\institution{Anonymous Institution}\country{}}
+
+\begin{abstract}
+\input{sections/00_abstract}
+\end{abstract}
+
+\begin{CCSXML}
+<ccs2012>
+<concept>
+<concept_id>10010147.10010257.10010293.10011809.10011812</concept_id>
+<concept_desc>Computing methodologies~Genetic algorithms</concept_desc>
+<concept_significance>500</concept_significance>
+</concept>
+<concept>
+<concept_id>10010147.10010178.10010179</concept_id>
+<concept_desc>Computing methodologies~Natural language processing</concept_desc>
+<concept_significance>300</concept_significance>
+</concept>
+</ccs2012>
+\end{CCSXML}
+\ccsdesc[500]{Computing methodologies~Genetic algorithms}
+\ccsdesc[300]{Computing methodologies~Natural language processing}
+
+\keywords{Automated algorithm design, large language models, mechanistic
+  interpretability, linear probes, sparse autoencoders, activation
+  steering, explainable AI}
+
+\maketitle
+
+\input{sections/01_introduction}
+\input{sections/02_background}
+\input{sections/03_setup}
+\input{sections/04_reading}
+\input{sections/05_concepts}
+\input{sections/06_steering}
+\input{sections/07_discussion}
+\input{sections/08_conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\end{document}

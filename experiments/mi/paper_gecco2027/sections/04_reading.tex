@@ -1,0 +1,83 @@
+\section{Reading the Generator}\label{sec:reading}
+\pages{1.75}
+
+\subsection{What the model knows while it writes (C1)}
+\plan{Ridge/logistic probes per layer and position (last prompt
+token; mean over the generated code), nested leave-one-run-out, against
+stacked baselines: search metadata, code text (TF-IDF), output
+uncertainty (mean log-probability, entropy). Shuffled-label controls
+$\le 0.53$ AUROC.}
+\begin{itemize}
+  \item Child crash: AUROC 0.85 from the code state (layers 21--23);
+    best text/uncertainty baseline 0.71; +0.08 [0.05, 0.11] on top of
+    metadata and text.
+  \item Over-budget child: AUROC 0.93 vs 0.75; the signal before writing
+    is inherited from the parent, the signal while writing is not.
+  \item Parent fitness: $\rho\approx0.8$ from layer $\sim$20.
+    Improvement and child fitness: not decodable beyond metadata.
+  \item Replication: the failure probe adds to metadata and text in all
+    three models.
+\end{itemize}
+\src{exp01\_probing; REPORT.md; REPORT\_replication.md}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2.5em}
+    AUROC per layer: code-state probe vs.\ baselines (crash,
+    over-budget); three models.\vspace{2.5em}}}
+  \caption{Decodability of the child's outcome while the code is
+    written. \todo{figure}}
+  \Description{Placeholder for a line plot of probe AUROC per layer.}
+  \label{fig:probes}
+\end{figure}
+
+\subsection{A free pre-screen (C1)}
+\plan{Frozen probe, fixed threshold; a flagged child is not evaluated
+and gets a rejection message. Pre-registered non-inferiority test after
+a power analysis on 12 seeds: margin 0.10 \aocc, one-sided paired
+$t$-test, 36 seeds (82\% power).}
+\begin{itemize}
+  \item Probe AUROC on new seeds 0.84--0.86; flags 23.5\% of the
+    evaluations and catches 69\% of the failures.
+  \item Skips 20.8\% of the evaluations; best fitness 0.591 vs 0.628
+    (mean difference $-0.037$, 90\% CI $[-0.096, 0.023]$, $p=0.041$):
+    non-inferior, narrowly; no two-sided difference (Wilcoxon
+    $p=0.25$).
+  \item Adaptive thresholds (per operator, calibrated risk, running
+    quantile) do not beat the fixed one.
+\end{itemize}
+\src{exp01\_probing/results/prescreen}
+
+\begin{table}[t]
+  \caption{Pre-screen on 36 new seeds. \todo{final layout}}
+  \label{tab:prescreen}
+  \small
+  \begin{tabular}{lrr}
+    \toprule
+    & no screen & pre-screen\\
+    \midrule
+    Best \aocc, mean (median) & 0.628 (0.583) & 0.591 (0.575)\\
+    True failure rate & 16.5\% & 17.1\%\\
+    Evaluations skipped & 0 & 20.8\%\\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{What drives the edit (C2)}
+\plan{Counterfactual prompts with common random numbers (192 queries
+$\times$ variants $\times$ 4 replicates, 4180 evaluated children) and
+attribution graphs~\cite{ameisen2025circuits} for Qwen3-8B.}
+\begin{itemize}
+  \item Deleting the error trace of a crashed parent: child failures
+    43\% $\to$ 66\%; error text gains 61\% influence share at the edit
+    token (14/16 pairs).
+  \item Rewriting the score in the feedback (0.01 vs 0.90): no effect on
+    the child; the internal fitness readout moves by only $\pm0.04$.
+  \item Steering along the fitness representation changes the size of
+    the rewrite, not the outcome.
+\end{itemize}
+\plan{Message for EC: feedback design matters only where the model
+reads it; the score in the prompt is decorative for this model class.}
+\src{exp02\_feedback\_attribution; REPORT\_exp02.md}
+\todo{decide whether C2 stays in the main text or moves to the
+supplement if space is short}

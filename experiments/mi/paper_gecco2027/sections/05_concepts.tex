@@ -1,0 +1,24 @@
+\section{Concepts in the Generator}\label{sec:concepts}
+\pages{0.75}
+
+\plan{Pretrained sparse autoencoders on the residual stream
+\todo{name the SAE release}; features matched to concept labels of the
+generated code; keyword-line masking to separate concept detectors from
+keyword detectors.}
+\begin{itemize}
+  \item Every labelled concept has a detecting feature; covariance,
+    gradient, swarm, surrogate, local search and adaptive parameters
+    survive keyword masking; elitism and restart features are keyword
+    detectors.
+  \item Concepts are not visibly planned at the last prompt token.
+  \item The concept features add nothing to outcome prediction beyond
+    the text; the whole SAE code adds +0.074 AUROC for failure, largest
+    for \texttt{NameError} (+0.19) and \texttt{AttributeError}
+    (+0.18).
+  \item A layer-21 feature fires on about half of all undefined names
+    (0.3\% of valid ones), e.g.\ the objective function used out of
+    scope.
+\end{itemize}
+\src{exp03\_concept\_features; REPORT\_exp03.md}
+\plan{Bridge to Sec.~\ref{sec:steering}: features that \emph{read} a
+concept are candidate \emph{write} directions.}

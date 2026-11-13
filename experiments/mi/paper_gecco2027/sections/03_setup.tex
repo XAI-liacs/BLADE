@@ -1,0 +1,59 @@
+\section{Experimental Setup}\label{sec:setup}
+\pages{1.0}
+
+\paragraph{Loop and problem.}
+\plan{\llamea (4 parents, 12 offspring, elitist; operators
+\emph{refine}, \emph{new}, \emph{simplify}) on MA-BBOB~\cite{vermetten2025mabbob}
+5-D, 10 training instances, fitness \aocc of the best-so-far curve.
+Budget enforced by truncation (BLADE's MA-BBOB scores a run that
+overspends with 0; 84\% of the algorithms in our pilot did so, which
+degenerates the fitness labels).}
+\src{exp01\_probing, REPORT.md}
+
+\paragraph{Generator and instrumentation.}
+\plan{Qwen3-8B~\cite{qwen3} (thinking off, $T=0.8$); replication on
+Qwen3-14B and Gemma-3-12B-it. A hooked LLM wrapper (part of the released
+code) records residual-stream activations at every layer for the prompt
+and the generated code and adds steering vectors at chosen layers. All
+generations are seeded; counterfactual and steering comparisons use
+common random numbers.}
+
+\paragraph{Labels.}
+\plan{Per generated algorithm: crash (and exception type),
+over-budget, fitness, improvement over the parent; algorithm concepts
+from code patterns (population, DE, PSO, CMA-style covariance, local
+search, restart, surrogate, \dots); search behaviour from traced
+evaluations (exploration \%, intensification, last improvement); code
+diversity (CodeBLEU~\cite{ren2020codebleu}, AST distance, concept-set
+Jaccard).}
+
+\paragraph{Sandbox fixes (lessons for benchmarks).}
+\plan{Short paragraph or box. Generated code is executed with
+separate globals and locals, which hides module-level imports and
+helpers from the class (\texttt{NameError}); missing packages
+(scipy/sklearn for MA-BBOB, \texttt{six} for the photonics problem);
+a photonics AOCC window that compresses every score to 0.20--0.28;
+problem descriptions dropped from the \llamea prompt. Fixing the
+namespace and packages cuts the failure rate of quasi-random
+initialisation code from 100\% to 29\%.}
+\src{exp05\_steering README, steps 5c/5d}
+\todo{report these to the benchmark maintainers before submission and
+cite the fix (anonymously)}
+
+\begin{table}[t]
+  \caption{Campaigns. \todo{fill from the run configs}}
+  \label{tab:campaigns}
+  \small
+  \begin{tabular}{llrr}
+    \toprule
+    Campaign & Purpose & Runs & Algorithms\\
+    \midrule
+    probing (main) & probes, C1--C2 & 12 & 1200\\
+    pre-screen & non-inferiority test & 36 $\times$ 2 & \todo{}\\
+    replication & 14B, Gemma & \todo{} & \todo{}\\
+    steering screens & levers, dial, C4 & -- & \todo{}\\
+    steered \llamea & closed loop & 5 arms $\times$ 8 & 4000\\
+    transfer & Bragg, packing & \todo{} & \todo{}\\
+    \bottomrule
+  \end{tabular}
+\end{table}
