@@ -376,6 +376,15 @@ LLAMEA_CAMPAIGNS["llamea-ext200"] = LLaMEACampaign(
     extra_deps=True,
     warm_from={"control": "llamea-dial", "adaptive_cal": "llamea-stage1-cal"},
 )
+LLAMEA_CAMPAIGNS["llamea-ext200-adaptive"] = LLaMEACampaign(
+    tag="llamea-ext200-adaptive",
+    arms=[LLaMEAArm("adaptive", dial="adaptive")],
+    seeds=list(range(300, 308)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+    warm_from={"adaptive": "llamea-stage1"},
+)
 LLAMEA_CAMPAIGNS["llamea-ext-smoke"] = LLaMEACampaign(
     tag="llamea-ext-smoke",
     arms=[LLaMEAArm("adaptive", dial="adaptive")],

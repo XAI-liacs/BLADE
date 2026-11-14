@@ -277,6 +277,11 @@ stays for stage 2 and `adaptive_cal` is dropped.
   positive dose, not the feedback. `adaptive` is close to "explore after
   the initial population" (its dose mean is +0.25).
 
+**Budget 200, adaptive arm (`llamea-ext200-adaptive`, started
+2026-11-14 on GPU 3).** Since `adaptive_cal` was dropped, `adaptive` is
+also extended to 200 (warm start from `llamea-stage1`, same seeds), so the
+budget-200 comparison covers control, `adaptive` and `adaptive_cal`.
+
 **Budget 200 (`llamea-ext200`, `scripts/run_ext200.sh`).** Control and
 `adaptive_cal` on MA-BBOB seeds 300–307 continue from their 100-evaluation
 state to 200 evaluations. BLADE's LLaMEA has no usable warm start (the
