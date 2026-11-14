@@ -246,7 +246,7 @@ class LLaMEAArm:
       rule, though with the opposite sign: stagnation -> explore).
       ``adaptive_cal``: the same stagnation logic, calibrated: the target
       is the control's measured rate of children that improve the run's
-      best (0.049 MA-BBOB, 0.062 Bragg, 0.040 packing in step 5c/5d), so
+      best (0.055 MA-BBOB, 0.064 Bragg, 0.038 packing in step 5c/5d), so
       a run progressing at the usual pace sits near dose 0, a stagnating
       one drifts to explore, a fast one to exploit.
 
