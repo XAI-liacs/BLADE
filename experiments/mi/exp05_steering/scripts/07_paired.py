@@ -51,7 +51,7 @@ for arm in [a for a in runs.arm.unique() if a != "control"]:
         out.append(
             f"{c}={x.mean():+.3f} [{np.percentile(b,2.5):+.3f},{np.percentile(b,97.5):+.3f}]"
         )
-    print(f"{arm} (n={len(x)})", "; ".join(out))
+    print(f"{arm} (n={a[cols[0]].notna().sum()})", "; ".join(out))
 for p in ["", "prompt_"]:
     if {p + "explore", p + "exploit"} <= set(runs.arm):
         x = (

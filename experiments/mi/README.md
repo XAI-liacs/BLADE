@@ -382,3 +382,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   adaptive dial is the only arm that widens it (+7.9 families, +0.08
   concept diversity, +7 points failures). Its 1/5th rule saturates near
   the +0.3 cap (success rate ≪ 1/5).
+- 2026-11-14: stage 1 Bragg and packing arms done. Nothing beats control
+  on either problem; the adaptive dial hurts Bragg (−0.29 best fitness) as
+  much as anneal, and both prompts cost strict feasibility on packing as
+  much as the dial (−0.16 to −0.23). Calibrated stagnation dial
+  (`adaptive_cal`, target success rate 0.05) launched on MA-BBOB; its dose
+  moves both ways (51% positive, 2% at the cap).

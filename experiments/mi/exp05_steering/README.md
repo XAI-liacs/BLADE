@@ -207,6 +207,31 @@ over the 8 seeds with 95% bootstrap CIs:
   cap). In practice it is "explore after an unsteered start", with short
   exploit dips after improvements.
 
+**Bragg and packing (`results/llamea-stage1-{bragg,packing}`, finished
+2026-11-14; `07_paired.py llamea-stage1-<p> --with llamea-dial-<p>`).**
+Differences against control, 6 seeds, 95% bootstrap CIs; the step 5d dial
+arms are repeated for reference:
+
+| arm | Bragg best fitness | packing best fitness | packing strictly feasible |
+|---|---|---|---|
+| adaptive | −0.29 (−0.50 to −0.05) | −0.20 (−0.60 to +0.16) | −0.21 (−0.39 to +0.01) |
+| prompt_explore | −0.15 (−0.43 to +0.15) | −0.18 (−0.47 to +0.08) | −0.23 (−0.40 to −0.04) |
+| prompt_exploit | −0.08 (−0.31 to +0.15) | −0.30 (−0.53 to −0.05) | −0.16 (−0.35 to +0.00) |
+| anneal (5d) | −0.27 (−0.44 to −0.10) | +0.09 (−0.12 to +0.30) | −0.09 (−0.23 to +0.06) |
+| explore (5d) | −0.21 (−0.44 to +0.01) | −0.37 (−0.91 to +0.13) | −0.28 (−0.38 to −0.17) |
+| exploit (5d) | −0.36 (−0.56 to −0.19) | −0.42 (−0.62 to −0.22) | −0.28 (−0.43 to −0.11) |
+
+* On the two new problems nothing beats the unsteered control. Leaving
+  the initial population unsteered (adaptive) does not rescue Bragg: the
+  adaptive dial is as harmful as anneal there (it sits near +0.3 most of
+  the time, as on MA-BBOB).
+* The prompt is not a free lunch either: both prompts cost strict
+  feasibility on packing as much as the dial does (−0.16 to −0.23), and
+  the exploit prompt lowers the best packing fitness. So the packing cost
+  comes from pushing the search behaviour at all, not from activation
+  steering as such. On Bragg the prompts are the least harmful arms.
+* Anneal remains the only arm that is neutral on packing.
+
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
 MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on
