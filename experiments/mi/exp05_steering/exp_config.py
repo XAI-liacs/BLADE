@@ -285,6 +285,10 @@ class LLaMEACampaign:
     # step 5d: "mabbob", or a problem of ``10_transfer.make_problem``
     # ("bragg", "packing26"; always traced where possible, extended sandbox)
     problem: str = "mabbob"
+    # warm start (``05_llamea.py``): arm name -> campaign whose finished run
+    # of that arm and seed is continued up to ``budget`` (the restored
+    # algorithms are copied into the new run's log)
+    warm_from: dict[str, str] = field(default_factory=dict)
 
 
 ARMS = [
@@ -360,6 +364,27 @@ LLAMEA_CAMPAIGNS["llamea-stage1-cal"] = LLaMEACampaign(
     seeds=list(range(300, 308)),  # as llamea-dial
     traced=True,
     extra_deps=True,
+)
+# Budget 100 -> 200 for control and adaptive_cal (decided 2026-11-14): the
+# MA-BBOB runs are continued from their 100-evaluation state.
+LLAMEA_CAMPAIGNS["llamea-ext200"] = LLaMEACampaign(
+    tag="llamea-ext200",
+    arms=[LLaMEAArm("control"), ADAPTIVE_CAL_ARM],
+    seeds=list(range(300, 308)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+    warm_from={"control": "llamea-dial", "adaptive_cal": "llamea-stage1-cal"},
+)
+LLAMEA_CAMPAIGNS["llamea-ext-smoke"] = LLaMEACampaign(
+    tag="llamea-ext-smoke",
+    arms=[LLaMEAArm("adaptive", dial="adaptive")],
+    seeds=[996],
+    budget=16,
+    n_offspring=2,
+    traced=True,
+    extra_deps=True,
+    warm_from={"adaptive": "llamea-stage1-smoke"},
 )
 LLAMEA_CAMPAIGNS["llamea-stage1-seeds"] = LLaMEACampaign(
     tag="llamea-stage1-seeds",

@@ -250,6 +250,22 @@ adaptive and explore in final AOCC (+0.05 to +0.07) shrink to +0.02, so
 they come late in the run (the question behind extending control and
 `adaptive_cal` to 200 evaluations).
 
+**Budget 200 (`llamea-ext200`, `scripts/run_ext200.sh`).** Control and
+`adaptive_cal` on MA-BBOB seeds 300–307 continue from their 100-evaluation
+state to 200 evaluations. BLADE's LLaMEA has no usable warm start (the
+LLaMEA pickle is never written because BLADE disables LLaMEA's own
+logger, and `get_population_from` takes the last `n_parents` log lines,
+which is not the elitist population), so `05_llamea.py` restores the run
+itself (`LLaMEACampaign.warm_from`): it reads the source run's
+`log.jsonl`, copies it into the new run's log (the budget counts its
+lines), replays the (μ + λ) selection generation by generation to recover
+the parent population, the best so far and the generation counter, and
+replays the adaptive dose. Checked on a smoke run (`llamea-ext-smoke`, 12
+→ 16 evaluations). Not restored: the RNG state, so the continuation is a
+valid run but not bit-identical to a 200-evaluation run from scratch.
+Starts on GPU 2 when `llamea-stage1-cal` finishes; raw data are backed up
+in `$MI_CACHE/backups/` first.
+
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
 MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on

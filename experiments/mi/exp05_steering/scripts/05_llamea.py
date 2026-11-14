@@ -27,6 +27,7 @@ multiprocessing.set_start_method("spawn", force=True)
 import argparse
 import importlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -59,6 +60,7 @@ from iohblade.experiment import Experiment
 from iohblade.llm import HookedLLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.methods import LLaMEA
+from iohblade.solution import Solution
 
 
 def load_source_config():
@@ -161,6 +163,40 @@ class OperatorSteeredLLM(HookedLLM):
 
 class _Algorithm(LLaMEAAlgorithm):
     _best = None  # best fitness so far (sign: higher is better)
+    warm: list[dict] | None = None  # log of a finished run to continue
+
+    def initialize(self):
+        """Fresh initial population, or the state of a finished run (warm)."""
+        if not self.warm:
+            return super().initialize()
+        sols = []
+        for d in self.warm:
+            s = Solution()
+            s.from_dict(d)
+            f = fitness_scalar(s.fitness)
+            s.fitness = f if np.isfinite(f) else self.worst_value
+            sols.append(s)
+        # the new run's log starts with the restored algorithms (the
+        # budget counts its lines)
+        self.f.logger.log_population(sols)
+        self.run_history = list(sols)
+        gens = sorted({s.generation for s in sols})
+        self.population = [s for s in sols if s.generation == gens[0]]
+        best = max(self._score(s) for s in self.population)
+        for g in gens[1:]:  # replay the elitist selection and the dial
+            kids = [s for s in sols if s.generation == g]
+            self.population = self.selection(self.population, kids)
+            for k in kids:
+                self.llm.update_adaptive(self._score(k) > best)
+                best = max(best, self._score(k))
+        self._best = best
+        self.generation = gens[-1] + 1
+        self.update_best()
+        print(
+            f"warm start: {len(sols)} algorithms, generation {self.generation}, "
+            f"best {self.best_so_far.fitness}, dose {self.llm.adaptive_dose}",
+            flush=True,
+        )
 
     def _score(self, solution) -> float:
         f = fitness_scalar(solution.fitness)
@@ -184,6 +220,8 @@ class _Algorithm(LLaMEAAlgorithm):
 class SteeredLLaMEA(LLaMEA):
     """BLADE's LLaMEA method, with the operator name passed to the LLM."""
 
+    warm_from = ""  # campaign whose finished run is continued (warm start)
+
     def __call__(self, problem):
         self.llamea_instance = _Algorithm(
             f=problem,
@@ -198,6 +236,14 @@ class SteeredLLaMEA(LLaMEA):
             minimization=getattr(problem, "minimisation", False),
             **self.kwargs,
         )
+        if self.warm_from:  # continue the finished run of this arm and seed
+            run = Path(problem.logger.dirname).name
+            seed = int(re.search(r"-(\d+)(?:-\d+)?$", run).group(1))
+            src = data_dir(EXPERIMENT, "raw", self.warm_from)
+            logs = list(src.glob(f"shard-*/run-{self.name}-*-{seed}/log.jsonl"))
+            assert len(logs) == 1, (self.warm_from, self.name, seed, logs)
+            lines = logs[0].read_text().splitlines()
+            self.llamea_instance.warm = [json.loads(l) for l in lines]
         return self.llamea_instance.run()
 
 
@@ -331,6 +377,7 @@ def main():
                 elitism=True,
             )
         )
+        methods[-1].warm_from = camp.warm_from.get(arm.name, "")
     # One Experiment for all arms: it deletes the problem's evaluation
     # environment when it finishes, so runs must not span Experiments.
     Experiment(

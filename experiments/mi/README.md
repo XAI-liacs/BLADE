@@ -388,3 +388,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   much as the dial (−0.16 to −0.23). Calibrated stagnation dial
   (`adaptive_cal`, target success rate 0.05) launched on MA-BBOB; its dose
   moves both ways (51% positive, 2% at the cap).
+  - Anytime performance (area under the best-so-far curve) added to
+    `07_paired.py`; same picture as the final best, MA-BBOB gains shrink
+    to +0.02 (they come late). Control and `adaptive_cal` get a budget of
+    200 on MA-BBOB by warm-starting the 100-evaluation runs
+    (`llamea-ext200`, own resume from the run log, queued after
+    `llamea-stage1-cal`).
