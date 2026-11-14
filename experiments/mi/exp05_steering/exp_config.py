@@ -521,3 +521,26 @@ for _p, _name in [("bragg", "bragg"), ("packing26", "packing")]:
         seeds=list(range(400, 406)),  # as llamea-dial-{_name}
         problem=_p,
     )
+
+
+# Stage 2 (E1): LLaMEA on single BBOB functions in 20-D (TracedBBOB).
+# Arms: control, the explore/exploit dials, the adaptive dial (kept over
+# adaptive_cal, 2026-11-14) and the two prompt baselines. 10 seeds.
+STAGE2_ARMS = [
+    a for a in DIAL_ARMS if a.name in ("control", "explore", "exploit")
+] + STAGE1_ARMS
+for _f in (20, 2, 9):
+    LLAMEA_CAMPAIGNS[f"llamea-bbob-f{_f}"] = LLaMEACampaign(
+        tag=f"llamea-bbob-f{_f}",
+        arms=STAGE2_ARMS,
+        seeds=list(range(500, 510)),
+        problem=f"bbob-f{_f}",
+    )
+LLAMEA_CAMPAIGNS["llamea-bbob-smoke"] = LLaMEACampaign(
+    tag="llamea-bbob-smoke",
+    arms=STAGE2_ARMS,
+    seeds=[995],
+    budget=6,
+    n_offspring=2,
+    problem="bbob-f20",
+)

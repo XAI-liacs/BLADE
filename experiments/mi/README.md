@@ -410,3 +410,7 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
 - 2026-11-14: stage 2 started: single-generation screen of the dial on
   BBOB f20 20-D (`transfer-bbob-f20`, GPU 2; `common.problems.TracedBBOB`,
   instances 10–14 train, 15–30 test). Smoke run passes.
+- 2026-11-15: f20 screen done: the dial changes the code on f20 as on
+  MA-BBOB (population +0.84, DE +0.23, gradient −0.35 per unit dose;
+  exploration +20, CI touches 0); AOCC low (≈0.05) and flat. f20 LLaMEA
+  campaign (`llamea-bbob-f20`, 6 arms × 10 seeds) launched.

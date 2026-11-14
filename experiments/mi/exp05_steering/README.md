@@ -821,3 +821,19 @@ explore > control > exploit; f2 and f9 exploit ≥ control > explore.
 The LLaMEA arms will be control, the explore/exploit dials, the
 adaptive dial (`adaptive`, kept over `adaptive_cal`) and the two prompt
 baselines.
+
+**f20 screen (`results/transfer-bbob-f20`, finished 2026-11-14).** The
+dial changes the code as on MA-BBOB: per unit dose, population-based
++0.84 (0.69 to 0.98), DE +0.23, gradient −0.35 (pooled init + refine).
+Measured exploration % +20 (−2 to +41; init +29, refine +13), the
+probe readout +14 (3 to 25), intensification −0.12 (n.s.). AOCC is low
+on f20 20-D (about 0.05 for working code; many algorithms never get
+below regret 1e2 and score 0) and does not change with dose (+0.02,
+n.s.). Failures: the exploit side fails more at init (41% at −0.4 vs 16%
+unsteered).
+
+**f20 LLaMEA campaign (`llamea-bbob-f20`, started 2026-11-15).** Arms
+control, explore, exploit (dial ±0.3), adaptive, prompt_explore,
+prompt_exploit; seeds 500–509; budget 100 (4 + 8 × 12). 5 shards of 2
+seeds (`scripts/run_stage2_llamea.sh f20`), started on GPU 2 or 3 as
+memory frees up. Smoke run (`llamea-bbob-smoke`) passes.
