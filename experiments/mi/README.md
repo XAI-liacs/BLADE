@@ -347,7 +347,8 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     repaired packing score.
   - On Bragg the MA-BBOB exploration dial transfers: measured
     exploration +26 per unit dose, intensification −0.44, and AOCC
-    rises (+0.09 at +0.4). The random direction does not do this.
+    rises (+0.09 at +0.4; with 32 more samples on 2026-11-14 only +0.04,
+    n.s.). The random direction does not do this.
   - On both problems the dial also swaps algorithm families: local
     search for DE, population-based code and PSO. On packing it cuts
     failures but not the score.
@@ -374,6 +375,8 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   - E4: the frozen MA-BBOB failure probe ranks failing code on Bragg
     (AUROC 0.79) and packing (0.72) almost as well as a refit probe
     (0.82, 0.73); its threshold has to be recalibrated per problem.
+    (With the extra Bragg samples, 2026-11-14: Bragg 0.77 vs refit 0.84,
+    n = 408.)
 - 2026-11-14: stage 1 MA-BBOB arms done (`exp05_steering/results/llamea-stage1`).
   No arm improves best AOCC significantly vs control (adaptive +0.07,
   prompt_explore +0.05, CIs include 0). The explore prompt moves

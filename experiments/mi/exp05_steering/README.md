@@ -273,8 +273,8 @@ the screens' code activations (teacher-forced code mean, layer 21):
 
 | problem | n | failure rate | frozen AUROC | refit AUROC (CV) | precision, top 21% skipped |
 |---|---|---|---|---|---|
-| Bragg | 312 | 0.65 | 0.79 (0.74 to 0.84) | 0.82 | 0.92 |
-| packing | 384 | 0.51 | 0.72 (0.67 to 0.76) | 0.73 | 0.79 |
+| Bragg | 408 | 0.70 | 0.77 (0.72 to 0.82) | 0.84 | 0.92 |
+| packing | 384 | 0.51 | 0.72 (0.67 to 0.77) | 0.73 | 0.79 |
 | MA-BBOB corpus | 4,712 | 0.19 | 0.82 (0.81 to 0.84) | 0.88 | 0.53 |
 
 The probe's ranking transfers: without retraining it is almost as good
@@ -343,11 +343,11 @@ CI), init and refine pooled:
 
 | problem | metric | slope (95% CI) | random dir. +0.4 vs none |
 |---|---|---|---|
-| Bragg | exploration % (measured) | **+26 (0.0 to 51)** | −2 (−28 to 29) |
-| Bragg | intensification (measured) | **−0.44 (−0.73 to −0.17)** | +0.14 (0.02 to 0.29) |
-| Bragg | AOCC (working) | **+0.056 (0.012 to 0.096)** | +0.04 (−0.04 to 0.13) |
-| Bragg | failure rate | −0.13 (−0.33 to 0.09) | +0.02 |
-| Bragg | DE / local search rate | **+0.47 / −0.22** | |
+| Bragg | exploration % (measured) | **+30 (2 to 55)** | −2 (−28 to 29) |
+| Bragg | intensification (measured) | **−0.46 (−0.74 to −0.19)** | +0.14 (0.02 to 0.29) |
+| Bragg | AOCC (working) | +0.046 (−0.006 to 0.085) | +0.04 (−0.04 to 0.13) |
+| Bragg | failure rate | −0.03 (−0.18 to 0.12) | +0.02 |
+| Bragg | DE / local search rate | **+0.46 / −0.39** | |
 | packing | exploration % (probe) | +2 (−13 to 15) | +11 (−5 to 25) |
 | packing | sum of radii (repaired) | +0.03 (−0.40 to 0.46) | −0.35 (−0.77 to 0.18) |
 | packing | strictly feasible | +0.02 (−0.05 to 0.09) | −0.09 (−0.19 to −0.02) |
@@ -358,12 +358,13 @@ CI), init and refine pooled:
   intensification falls with the dose, in the same direction as on
   MA-BBOB and with a similar size (+20 and −0.16 there). The random
   direction moves intensification the other way. The effect rests on
-  few working algorithms (65–80% of Bragg code fails at every dose;
-  about 90 working samples), and most of it comes from +0.4 on the
-  initial prompt (exploration 88% vs 41% unsteered). The more
-  exploratory code is also better: AOCC +0.09 at +0.4, paired (0.05 to
-  0.13). Bragg is multimodal, and the DE-style global search the dial
-  favours suits it.
+  few working algorithms (65–88% of Bragg code fails at every dose;
+  about 105 working samples), and most of it comes from +0.4 on the
+  initial prompt (exploration 91% vs 46% unsteered). Updated 2026-11-14
+  with 32 more initial-prompt samples for none and ±0.4 (n = 64 each):
+  the behaviour effect holds, but the AOCC gain does not. Paired AOCC at
+  +0.4 is now +0.04 (−0.04 to +0.10), down from +0.09 (0.05 to 0.13) on
+  32 samples, and the dose slope on AOCC includes 0.
 * **On new problems the dial also changes the algorithm family.** On
   MA-BBOB the residualised direction was nearly orthogonal to the
   concept directions. On Bragg it trades local search for differential
@@ -372,8 +373,8 @@ CI), init and refine pooled:
   and PSO. On packing, "explore" also cuts failures, from 0.75 at −0.4
   to 0.28 at +0.4.
 * **The probe readout does not transfer.** On Bragg, the corpus probe's
-  readout and the measured exploration are uncorrelated (Spearman −0.03,
-  105 working algorithms), and the probe moves opposite to the measured
+  readout and the measured exploration are uncorrelated (Spearman −0.08,
+  120 working algorithms), and the probe moves opposite to the measured
   dial effect. A probe trained on MA-BBOB code reads the code's style,
   not the behaviour on a new problem. The packing probe readout (flat)
   is therefore no evidence either way. The family shift is the
