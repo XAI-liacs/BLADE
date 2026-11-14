@@ -232,6 +232,24 @@ arms are repeated for reference:
   steering as such. On Bragg the prompts are the least harmful arms.
 * Anneal remains the only arm that is neutral on packing.
 
+**Anytime performance (`auc_best` in `paired.txt`: area under the
+best-so-far curve, mean over the 100 evaluations; failed algorithms count
+as the run's worst).** Paired differences against control:
+
+| arm | MA-BBOB | Bragg | packing |
+|---|---|---|---|
+| adaptive | +0.02 (−0.10 to +0.13) | −0.17 (−0.33 to +0.00) | −0.18 (−0.45 to +0.09) |
+| prompt_explore | −0.01 (−0.13 to +0.10) | −0.09 (−0.28 to +0.11) | −0.22 (−0.40 to −0.02) |
+| prompt_exploit | −0.05 (−0.16 to +0.09) | −0.08 (−0.23 to +0.10) | −0.24 (−0.37 to −0.07) |
+| anneal | −0.01 (−0.15 to +0.12) | −0.23 (−0.38 to −0.07) | +0.13 (−0.10 to +0.34) |
+| explore | +0.02 (−0.13 to +0.14) | −0.17 (−0.33 to −0.02) | −0.34 (−0.77 to +0.06) |
+| exploit | −0.21 (−0.36 to −0.07) | −0.26 (−0.37 to −0.16) | −0.46 (−0.71 to −0.22) |
+
+The area tells the same story as the final best: the MA-BBOB gains of
+adaptive and explore in final AOCC (+0.05 to +0.07) shrink to +0.02, so
+they come late in the run (the question behind extending control and
+`adaptive_cal` to 200 evaluations).
+
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
 MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on

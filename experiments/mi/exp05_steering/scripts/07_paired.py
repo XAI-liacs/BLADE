@@ -21,10 +21,24 @@ tags = [args.tag] + args.others
 runs = pd.concat([pd.read_csv(f"results/{t}/runs.csv") for t in tags])
 s = pd.concat([pd.read_csv(f"results/{t}/solutions.csv") for t in tags])
 runs = runs.drop_duplicates(["arm", "seed"])
+s = s.drop_duplicates(["arm", "seed", "idx"])
+
+
+def auc_best(g):
+    """Area under the best-so-far curve, as a mean over the evaluations
+    (anytime performance; failed algorithms count as the run's worst)."""
+    f = g.sort_values("idx").aocc.astype(float)
+    f = f.where(np.isfinite(f))
+    return f.fillna(f.min()).cummax().mean()
+
+
+auc = s.groupby(["arm", "seed"]).apply(auc_best, include_groups=False)
+runs = runs.merge(auc.rename("auc_best").reset_index(), on=["arm", "seed"])
 cols = [
     c
     for c in [
         "best_aocc",
+        "auc_best",
         "failed",
         "n_families",
         "div_concepts",
@@ -37,6 +51,8 @@ cols = [
     ]
     if c in runs
 ]
+print("per-arm mean over seeds")
+print(runs.groupby("arm")[cols].mean().round(3).to_string())
 rng = np.random.default_rng(0)
 ctrl = runs[runs.arm == "control"].set_index("seed")
 print("paired diff vs control (mean, 95% bootstrap CI over seeds)")
