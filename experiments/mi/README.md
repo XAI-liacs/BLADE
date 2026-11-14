@@ -407,3 +407,6 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   `llamea-ext200` (budget 200, warm start verified: first 100 ids equal,
   generation 9 next, dose continues) running; shard 3 OOM'd on GPU 2 at
   start and was relaunched on GPU 3.
+- 2026-11-14: stage 2 started: single-generation screen of the dial on
+  BBOB f20 20-D (`transfer-bbob-f20`, GPU 2; `common.problems.TracedBBOB`,
+  instances 10–14 train, 15–30 test). Smoke run passes.

@@ -464,7 +464,8 @@ BEHAVIOUR_METRICS = [
 @dataclass
 class TransferCampaign:
     tag: str
-    problem: str  # "bragg" (TracedPhotonics) or "packing26"
+    # "bragg" (TracedPhotonics), "packing26" or "bbob-f<fid>" (TracedBBOB)
+    problem: str
     doses: list[float] = field(default_factory=lambda: [-0.4, -0.2, 0.2, 0.4])
     random_dose: float = 0.4
     direction: str = "b_exploration_pct_resid@L27"
@@ -490,6 +491,11 @@ TRANSFER_CAMPAIGNS = {
             extra_conditions=["none", "dial@-0.4", "dial@+0.4"],
         ),
         TransferCampaign("transfer-packing", "packing26"),
+        # Stage 2 (E1): single-generation screens on BBOB 20-D functions.
+        TransferCampaign("transfer-smoke-bbob", "bbob-f20", k_init=1, n_parents=1),
+        TransferCampaign("transfer-bbob-f20", "bbob-f20"),
+        TransferCampaign("transfer-bbob-f2", "bbob-f2"),
+        TransferCampaign("transfer-bbob-f9", "bbob-f9"),
     ]
 }
 

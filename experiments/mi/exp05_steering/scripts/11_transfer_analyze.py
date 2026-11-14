@@ -54,6 +54,7 @@ CONCEPTS = [
     "gradient",
 ]
 SCORE = {"bragg": "AOCC", "packing26": "sum of radii (repaired)"}
+SCORE.update({f"bbob-f{i}": "AOCC (20-D)" for i in range(1, 25)})
 
 
 def load(tag: str) -> pd.DataFrame:
@@ -277,7 +278,7 @@ def stage_report(args):
             df.loc[ok, "probe_expl"] = model.predict(X[ok])
         else:
             print("acts.npz is stale; rerun --stage acts")
-    traced = camp.problem == "bragg"
+    traced = camp.problem == "bragg" or camp.problem.startswith("bbob-")
     # packing: strictly feasible rate (all samples) next to the repaired score
     beh = BEHAVIOUR if traced else ["feasible_f"]
     if not traced:

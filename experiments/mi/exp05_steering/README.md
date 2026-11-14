@@ -795,3 +795,29 @@ pick the doses.
   logits sends the sample down another path. The `resample` control in
   the later campaigns measures how much of that is ordinary sampling
   variability.
+
+## Stage 2: BBOB 20-D (E1), single-generation screens
+
+Started 2026-11-14 with f20 (Schwefel, multimodal, weak global
+structure); f2 and f9 follow. Problem: `common.problems.TracedBBOB`
+(subclass of BLADE's `BBOB_SBOX`, `problem_type=BBOB`, one function,
+20-D, budget 2000·D = 40,000, AOCC on log regret in [1e-8, 1e2]; training
+instances 10–14, test 15–30; code in one namespace; extended sandbox
+(scipy, scikit-learn); runs that overspend are truncated and scored
+within the budget; every training evaluation traced for exploration %
+and intensification; `np.random` seeded with the instance id; timeout
+600 s). The prompt is BLADE's generic BBOB prompt, without a
+function-specific description, so the model sees a black box.
+
+Screen (`transfer-bbob-<f>`, `scripts/run_stage2_screen.sh <f> <gpu>`):
+as the Bragg/packing screens, 32 initial-prompt samples and 16 parents ×
+2 refine samples per condition (none, dial at ±0.2, ±0.4, a random
+direction at 0.4), then `11_transfer_analyze.py` acts + report. Smoke run
+(`transfer-smoke-bbob`): the code runs, evaluations take about 8 s, and
+exploration % follows the dial's sign.
+
+Pre-registered predictions for the LLaMEA campaigns (PLAN.md E1): f20
+explore > control > exploit; f2 and f9 exploit ≥ control > explore.
+The LLaMEA arms will be control, the explore/exploit dials, the
+adaptive dial (`adaptive`, kept over `adaptive_cal`) and the two prompt
+baselines.

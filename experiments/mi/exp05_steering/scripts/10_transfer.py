@@ -68,6 +68,14 @@ def make_problem(name: str):
         return SandboxedUnitSquarePacking(
             n_circles=26, extra_dependencies=EXTRA_EVAL_DEPENDENCIES
         )
+    if name.startswith("bbob-f"):  # stage 2: one BBOB function, 20-D
+        from common.problems import TracedBBOB
+
+        return TracedBBOB(
+            int(name[len("bbob-f") :]),
+            dependencies=["pandas==2.2.3", "ioh==0.3.22", "configspace==1.2.1"]
+            + EXTRA_EVAL_DEPENDENCIES,
+        )
     raise ValueError(name)
 
 

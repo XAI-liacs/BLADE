@@ -11,6 +11,7 @@ from ioh import get_problem
 from ioh import logger as ioh_logger
 
 from iohblade.benchmarks import MA_BBOB
+from iohblade.benchmarks.BBOB.bbob_sboxcost import BBOB_SBOX
 from iohblade.solution import Solution
 from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
 
@@ -226,6 +227,113 @@ class TracedMABBOB(BudgetEnforcedMABBOB):
         mean = {k: float(np.mean([b[k] for b in beh])) for k in (beh[0] if beh else {})}
         solution.add_metadata("behaviour", mean)
         solution.add_metadata("behaviour_per_instance", beh)
+
+
+class TracedBBOB(BBOB_SBOX):
+    """One BBOB function (stage 2, E1 of ``paper_gecco2027/PLAN.md``),
+    evaluated as ``TracedMABBOB``.
+
+    ``BBOB_SBOX`` with ``problem_type=BBOB`` on a single function ``fid``
+    in ``dims`` (default 20-D), training instances ``train_iids`` and test
+    instances ``test_iids``. Differences from ``BBOB_SBOX.evaluate``:
+
+    * the code runs in one namespace, as a module (see
+      ``BudgetEnforcedMABBOB.shared_namespace``);
+    * every training evaluation is recorded and summarised by
+      :func:`behaviour` (``metadata["behaviour"]``, mean over instances);
+    * ``metadata["over_budget_instances"]`` counts truncated runs (the
+      base already scores them on what they reached within the budget).
+
+    The prompt is the generic one (no ``specific_fid`` description): the
+    model sees a black box, so differences between functions come from
+    the feedback and selection only. AOCC on log regret in [1e-8, 1e2]
+    (``aoc_logger``), budget ``budget_factor * dim``.
+    """
+
+    def __init__(
+        self,
+        fid: int,
+        dims=(20,),
+        train_iids=range(10, 15),
+        test_iids=range(15, 31),
+        eval_timeout: int = 600,
+        dependencies=None,
+        **kwargs,
+    ):
+        super().__init__(
+            training_instances=[(fid, i) for i in train_iids],
+            test_instances=[(fid, i) for i in test_iids],
+            name=f"BBOB_f{fid}_{'_'.join(map(str, dims))}D",
+            eval_timeout=eval_timeout,
+            dims=list(dims),
+            problem_type=ioh.ProblemClass.BBOB,
+            dependencies=dependencies,
+            **kwargs,
+        )
+        self.fid = fid
+
+    def evaluate(self, solution: Solution, test=False):
+        name = solution.name
+        ns = {"np": np, "ioh": ioh, "__name__": "candidate"}
+        exec(compile(solution.code, name, "exec"), ns)
+
+        # Small test run to catch code errors (as BBOB_SBOX).
+        try:
+            l2_temp = aoc_logger(100, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+            problem = get_problem(
+                1, instance=1, dimension=2, problem_class=self.problem_type
+            )
+            problem.attach_logger(l2_temp)
+            ns[name](budget=100, dim=2)(problem)
+        except OverBudgetException:
+            pass
+
+        instances = self.test_instances if test else self.training_instances
+        aucs, finals, beh, over = [], [], [], 0
+        for dim in self.dims:
+            budget = self.budget_factor * dim
+            for fid, iid in instances:
+                f = get_problem(
+                    fid, instance=iid, dimension=dim, problem_class=self.problem_type
+                )
+                l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+                f.attach_logger(l2)
+                target = _Recorder(f)
+                np.random.seed(iid)
+                try:
+                    ns[name](budget=budget, dim=dim)(target)
+                except OverBudgetException:
+                    over += 1  # truncated at the budget, scored below
+                aucs.append(float(correct_aoc(f, l2, budget)))
+                finals.append(float(f.state.current_best_internal.y))
+                if not test and len(target.X) >= 3:
+                    X = np.asarray(target.X, dtype=float)
+                    y = np.asarray(target.y, dtype=float)
+                    ok = np.isfinite(y) & np.isfinite(X).all(1)
+                    beh.append(behaviour(X[ok], y[ok]))
+                l2.reset(f)
+                f.reset()
+
+        auc_mean = float(np.mean(aucs))
+        beh = [b for b in beh if b]
+        solution.add_metadata("aucs", aucs)
+        solution.add_metadata("final_regret", finals)
+        solution.add_metadata("over_budget_instances", over)
+        if not test:
+            solution.add_metadata(
+                "behaviour",
+                {
+                    k: float(np.mean([b[k] for b in beh]))
+                    for k in (beh[0] if beh else {})
+                },
+            )
+            solution.add_metadata("behaviour_per_instance", beh)
+        solution.set_scores(
+            auc_mean,
+            f"The algorithm {name} scored {auc_mean:.3f} on AOCC "
+            "(higher is better, 1.0 is the best).",
+        )
+        return solution
 
 
 REJECTED = (
