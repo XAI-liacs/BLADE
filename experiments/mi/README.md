@@ -397,3 +397,13 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
     200 on MA-BBOB by warm-starting the 100-evaluation runs
     (`llamea-ext200`, own resume from the run log, queued after
     `llamea-stage1-cal`).
+- 2026-11-14: `adaptive_cal` done (`exp05_steering/results/llamea-stage1-cal`).
+  Worse than `adaptive` (paired best −0.08, auc −0.08, CIs exclude 0;
+  6/8 seeds) and no better than control (best −0.01). The dose moves both
+  ways but drifts to the exploit side (mean −0.05; 4/8 runs sit near
+  −0.19): early improvements push it down faster than stagnation pushes
+  it up. `adaptive` kept for stage 2; `adaptive_cal` dropped. Its gain is
+  probably the constant positive dose (mean +0.25), not the feedback.
+  `llamea-ext200` (budget 200, warm start verified: first 100 ids equal,
+  generation 9 next, dose continues) running; shard 3 OOM'd on GPU 2 at
+  start and was relaunched on GPU 3.

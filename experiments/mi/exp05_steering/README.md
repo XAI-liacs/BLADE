@@ -169,7 +169,8 @@ packing, more MA-BBOB seeds, more Bragg screen samples. E4 done (below).
   improving child, +0.0079 after any other (about 38 non-improving
   children, three generations, from 0 to +0.3). A run that progresses at
   the usual pace stays near 0. If it does better than `adaptive`, it
-  replaces `adaptive` on later problems (stage 2).
+  replaces `adaptive` on later problems (stage 2). It did not (see
+  below): dropped.
 
 Campaigns: `llamea-stage1` (MA-BBOB, seeds 300–307, pairs with
 `llamea-dial`), `llamea-stage1-{bragg,packing}` (seeds 400–405, pair with
@@ -249,6 +250,32 @@ The area tells the same story as the final best: the MA-BBOB gains of
 adaptive and explore in final AOCC (+0.05 to +0.07) shrink to +0.02, so
 they come late in the run (the question behind extending control and
 `adaptive_cal` to 200 evaluations).
+
+**`adaptive_cal` vs `adaptive` (`results/llamea-stage1-cal`, finished
+2026-11-14; MA-BBOB seeds 300–307, `07_paired.py llamea-stage1-cal --with
+llamea-dial llamea-stage1`).** The calibrated dial is worse, so `adaptive`
+stays for stage 2 and `adaptive_cal` is dropped.
+
+| | best AOCC | auc_best | failed | families | dose mean | share at ±0.3 | share > 0 | sign changes |
+|---|---|---|---|---|---|---|---|---|
+| control | 0.61 | 0.55 | 0.16 | 25.8 | – | – | – | – |
+| adaptive | 0.67 | 0.57 | 0.23 | 33.6 | +0.25 | 0.59 | 0.98 | 1.0 |
+| adaptive_cal | 0.59 | 0.49 | 0.17 | 28.9 | −0.05 | 0.04 | 0.43 | 1.6 |
+
+* vs control (paired): best −0.01 (−0.16 to +0.14), auc_best −0.06
+  (−0.20 to +0.09); exploration +7.1 (−0.7 to +14.5), concept diversity
+  +0.06 (n.s.).
+* vs `adaptive` (paired): best −0.08 (−0.15 to −0.00), auc_best −0.08
+  (−0.13 to −0.01); `adaptive` wins on 6 of 8 seeds.
+* The calibration does what it was meant to do: the dose moves both ways
+  and rarely sits at the cap. But it moves mostly towards exploit: one
+  improving child costs −0.15, which takes 19 non-improving children to
+  undo, and improvements cluster early in the run, so 4 of 8 runs spend
+  most of the run at about −0.19 (exploit side) and never recover. The
+  exploit dial was the worst fixed arm (−0.18 best), which fits.
+* Reading: what helped in `adaptive` is probably the (near-)constant
+  positive dose, not the feedback. `adaptive` is close to "explore after
+  the initial population" (its dose mean is +0.25).
 
 **Budget 200 (`llamea-ext200`, `scripts/run_ext200.sh`).** Control and
 `adaptive_cal` on MA-BBOB seeds 300–307 continue from their 100-evaluation
