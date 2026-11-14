@@ -53,15 +53,17 @@ labels.}
 \llamea prompts for mini-Bragg photonics (10 layers) and unit-square
 circle packing ($n=26$).}
 \begin{itemize}
-  \item Bragg: measured exploration +26 per unit dose (CI 0 to 51),
-    intensification $-0.44$ (CI $-0.73$ to $-0.17$); random direction
-    moves intensification the other way. \aocc rises (+0.09 at +0.4,
-    paired). Few working algorithms (65--80\% of Bragg code fails).
+  \item Bragg: measured exploration +30 per unit dose (CI 2 to 55),
+    intensification $-0.46$ (CI $-0.74$ to $-0.19$); random direction
+    moves intensification the other way. \aocc does not rise
+    significantly (+0.04 at +0.4, paired, CI $-0.04$ to $0.10$; 64
+    samples per condition). Few working algorithms (65--88\% of Bragg
+    code fails).
   \item Both problems: the dial also swaps families (local search
     $\to$ DE / population / PSO); on packing it cuts failures but not
     the score.
   \item A probe of exploration trained on MA-BBOB code does not transfer
-    (Spearman $-0.03$ with measured exploration on Bragg).
+    (Spearman $-0.08$ with measured exploration on Bragg).
 \end{itemize}
 \src{exp05\_steering: transfer-bragg, transfer-packing}
 
