@@ -139,7 +139,7 @@ uv run python $S/03_analyze.py --tag dose
 ## Status
 
 Steps 1–5, 5b, 5c and 5d done (2026-11-13). Stage 1 of
-`../paper_gecco2027/PLAN.md` running (`scripts/run_stage1.sh`, started
+`../paper_gecco2027/PLAN.md` running (MA-BBOB arms done 2026-11-14) (`scripts/run_stage1.sh`, started
 2026-11-13): prompt-baseline and adaptive-dial arms on MA-BBOB, Bragg and
 packing, more MA-BBOB seeds, more Bragg screen samples. E4 done (below).
 
@@ -164,6 +164,36 @@ Campaigns: `llamea-stage1` (MA-BBOB, seeds 300–307, pairs with
 `llamea-dial-<p>`), `llamea-stage1-seeds` (control, explore, exploit and
 the three new arms on seeds 308–315). `transfer-bragg` gets 32 more
 initial-prompt samples for none and the dial at ±0.4.
+
+**MA-BBOB result (`results/llamea-stage1`, finished 2026-11-14; paired
+by seed with the `llamea-dial` control, `07_paired.py llamea-stage1 --with
+llamea-dial`, output in `paired.txt`).** Differences against control, mean
+over the 8 seeds with 95% bootstrap CIs:
+
+| arm | best AOCC | failed | families | concept diversity | exploration % |
+|---|---|---|---|---|---|
+| adaptive | +0.07 (−0.05 to +0.19) | +0.07 (+0.02 to +0.12) | +7.9 (+0.4 to +14.6) | +0.08 (+0.03 to +0.12) | +8.9 (−1.1 to +17.6) |
+| prompt_explore | +0.05 (−0.10 to +0.19) | +0.02 (−0.06 to +0.10) | −8.5 (−16.4 to −0.8) | +0.04 (−0.10 to +0.17) | +15.9 (+6.1 to +26.4) |
+| prompt_exploit | −0.01 (−0.12 to +0.11) | −0.02 (−0.09 to +0.04) | −7.9 (−16.0 to +0.6) | −0.03 (−0.09 to +0.04) | −2.3 (−8.5 to +4.0) |
+| dial explore (5c) | +0.05 (−0.10 to +0.19) | +0.06 (+0.00 to +0.11) | +3.0 (−5.6 to +11.9) | −0.04 (−0.12 to +0.04) | +13.0 (+8.5 to +17.7) |
+| dial exploit (5c) | −0.18 (−0.34 to −0.01) | −0.01 (−0.10 to +0.06) | −9.4 (−18.6 to −1.4) | +0.03 (−0.07 to +0.13) | +9.5 (−7.4 to +28.0) |
+
+* No arm improves the best AOCC significantly; the sign is positive for
+  adaptive, both explore arms and anneal (+0.05 to +0.07), negative for
+  the exploit dial.
+* The prompt moves the behaviour about as much as the dial in the explore
+  direction (+15.9 vs +13.0 points exploration), at no significant cost in
+  failures, but it narrows the search: about 8 fewer algorithm families,
+  and the sentence leaves a strong lexical imprint (prompt_exploit: 83% of
+  working algorithms use step-size adaptation and 52% a covariance, vs 21%
+  and 8% in control; prompt_explore drops DE/crossover). The exploit
+  prompt does not lower the measured exploration.
+* The adaptive dial is the only arm that widens the search: +7.9
+  families and +0.08 concept diversity, at +7 points failures. Its 1/5th
+  rule is mostly saturated: the success rate stays well below 1/5, so 97%
+  of the steered children get a positive dose (mean +0.25, 59% at the +0.3
+  cap). In practice it is "explore after an unsteered start", with short
+  exploit dips after improvements.
 
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
