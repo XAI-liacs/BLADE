@@ -237,11 +237,18 @@ class LLaMEAArm:
     * ``random``: a random direction of the same norm (one of 8 fixed
       ones, random sign) per algorithm;
     * ``adaptive``: no steering of the initial population; afterwards a
-      dose in [-``dose``, +``dose``] (starting at 0) controlled by the 1/5th
+      dose in [-``dose``, +``dose``] (starting at 0) controlled by a
       success rule: after every child that improves the run's best
-      fitness the dose moves ``ADAPTIVE_STEP`` towards exploitation,
-      after every other child a quarter of that towards exploration, so
-      the dose is stationary at a success rate of 1/5.
+      fitness the dose moves ``step`` towards exploitation,
+      after every other child ``step * target / (1 - target)`` towards
+      exploration, so the dose is stationary at a success rate of
+      ``target`` (``adaptive``: step 0.1, target 1/5 as in the 1/5th
+      rule, though with the opposite sign: stagnation -> explore).
+      ``adaptive_cal``: the same stagnation logic, calibrated: the target
+      is the control's measured rate of children that improve the run's
+      best (0.049 MA-BBOB, 0.062 Bragg, 0.040 packing in step 5c/5d), so
+      a run progressing at the usual pace sits near dose 0, a stagnating
+      one drifts to explore, a fast one to exploit.
 
     ``prompt`` (a key of ``ELICIT``, e.g. ``explore``) appends that
     instruction (``ELICIT_TEMPLATE``) to the prompt of every generated
@@ -254,9 +261,11 @@ class LLaMEAArm:
     dial: str = ""
     dose: float = 0.3
     prompt: str = ""
+    step: float = 0.1  # adaptive: dose change after a success
+    target: float = 0.2  # adaptive: success rate at which the dose is stationary
 
 
-ADAPTIVE_STEP = 0.1  # 1/5th success rule: -step on success, +step/4 else
+ADAPTIVE_CAL_TARGET = 0.05  # control's success rate (step 5c/5d, all problems)
 
 
 @dataclass
@@ -336,6 +345,18 @@ LLAMEA_CAMPAIGNS["llamea-stage1-smoke"] = LLaMEACampaign(
 LLAMEA_CAMPAIGNS["llamea-stage1"] = LLaMEACampaign(
     tag="llamea-stage1",
     arms=STAGE1_ARMS,
+    seeds=list(range(300, 308)),  # as llamea-dial
+    traced=True,
+    extra_deps=True,
+)
+# The calibrated stagnation dial (decided 2026-11-14): replaces
+# ``adaptive`` on later problems if it does better.
+ADAPTIVE_CAL_ARM = LLaMEAArm(
+    "adaptive_cal", dial="adaptive", step=0.15, target=ADAPTIVE_CAL_TARGET
+)
+LLAMEA_CAMPAIGNS["llamea-stage1-cal"] = LLaMEACampaign(
+    tag="llamea-stage1-cal",
+    arms=[ADAPTIVE_CAL_ARM],
     seeds=list(range(300, 308)),  # as llamea-dial
     traced=True,
     extra_deps=True,

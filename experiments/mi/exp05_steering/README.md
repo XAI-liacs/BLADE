@@ -158,6 +158,18 @@ packing, more MA-BBOB seeds, more Bragg screen samples. E4 done (below).
   child that improves the run's best and +0.025 after any other child,
   clipped to [−0.3, +0.3], so it is stationary at a success rate of 1/5.
   It explores while the run stagnates and exploits after progress.
+  Note: this is the 1/5th rule's arithmetic with the opposite sign
+  (Rechenberg: success -> larger steps), i.e. stagnation-triggered
+  exploration. On MA-BBOB the success rate is far below 1/5, so the dose
+  saturates near +0.3 (see the result below).
+* `adaptive_cal` (`llamea-stage1-cal`, MA-BBOB seeds 300–307, started
+  2026-11-14): the same stagnation logic, calibrated. The control's rate
+  of children that improve the run's best is 0.049 on MA-BBOB, 0.062 on
+  Bragg and 0.040 on packing, so the target is 0.05: −0.15 after an
+  improving child, +0.0079 after any other (about 38 non-improving
+  children, three generations, from 0 to +0.3). A run that progresses at
+  the usual pace stays near 0. If it does better than `adaptive`, it
+  replaces `adaptive` on later problems (stage 2).
 
 Campaigns: `llamea-stage1` (MA-BBOB, seeds 300–307, pairs with
 `llamea-dial`), `llamea-stage1-{bragg,packing}` (seeds 400–405, pair with

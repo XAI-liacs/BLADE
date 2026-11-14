@@ -43,7 +43,6 @@ from common.paths import data_dir
 from common.problems import BudgetEnforcedMABBOB, TracedMABBOB
 from common.runs import fitness_scalar
 from exp_config import (
-    ADAPTIVE_STEP,
     CORPUS,
     ELICIT,
     ELICIT_TEMPLATE,
@@ -93,11 +92,12 @@ class OperatorSteeredLLM(HookedLLM):
         self.adaptive_dose = 0.0  # adaptive dial, updated by the algorithm
 
     def update_adaptive(self, success: bool):
-        """1/5th success rule for the ``adaptive`` dial's dose."""
+        """Success rule for the ``adaptive`` dial's dose (see ``LLaMEAArm``)."""
         d = self.dial
         if not d or d.get("mode") != "adaptive":
             return
-        step = -ADAPTIVE_STEP if success else ADAPTIVE_STEP / 4
+        s, p = d["step"], d["target"]
+        step = -s if success else s * p / (1 - p)
         self.adaptive_dose = float(
             np.clip(self.adaptive_dose + step, -d["dose"], d["dose"])
         )
@@ -237,6 +237,8 @@ def dial_config(camp, arm) -> dict | None:
     return {
         "mode": arm.dial,
         "dose": arm.dose,
+        "step": arm.step,
+        "target": arm.target,
         "layer": info["layer"],
         "unit": unit / np.linalg.norm(unit),
         "scale": info["residual_norm"],
