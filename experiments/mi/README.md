@@ -374,3 +374,11 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   - E4: the frozen MA-BBOB failure probe ranks failing code on Bragg
     (AUROC 0.79) and packing (0.72) almost as well as a refit probe
     (0.82, 0.73); its threshold has to be recalibrated per problem.
+- 2026-11-14: stage 1 MA-BBOB arms done (`exp05_steering/results/llamea-stage1`).
+  No arm improves best AOCC significantly vs control (adaptive +0.07,
+  prompt_explore +0.05, CIs include 0). The explore prompt moves
+  exploration as much as the dial (+15.9 vs +13.0 points) but narrows the
+  search (−8.5 families) and imprints its wording on the code; the
+  adaptive dial is the only arm that widens it (+7.9 families, +0.08
+  concept diversity, +7 points failures). Its 1/5th rule saturates near
+  the +0.3 cap (success rate ≪ 1/5).
