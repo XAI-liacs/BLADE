@@ -927,3 +927,13 @@ errors. 32 prompts × 2 replicates per condition, init and refine.
   +0.062), carried by a few algorithms. With this window LLaMEA would
   get almost no fitness signal on f2.
 
+Window widened to [1e-8, 1e8] for f2 (2026-11-15, user decision;
+`10_transfer.BBOB_AOCC_UPPER`), screen re-scored with `10_transfer.py
+--reevaluate` (generations unchanged; the 1e3 data and report are in
+`$MI_CACHE/backups/transfer-bbob-f2-aocc1e3/`).
+
+**f2 LLaMEA campaign (`llamea-bbob-f2`, started 2026-11-15 ~13:30Z on GPU
+3).** Same design as f20 (6 arms, seeds 500–509, budget 100), AOCC window
+[1e-8, 1e8]; `scripts/run_stage2_llamea.sh f2 3` (the second argument
+restricts the GPUs).
+
