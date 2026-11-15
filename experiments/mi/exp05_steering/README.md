@@ -905,3 +905,7 @@ The first start (about 5 minutes, AOCC up to 1e2) is in
 window (generations unchanged): working-code AOCC is now 0.05 to 0.12
 (unsteered 0.086 init, 0.081 refine), the dose slope on AOCC +0.023
 (−0.024 to +0.066), still n.s.; behaviour slopes unchanged.
+
+**f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
+design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an
+ill-conditioned ellipsoid with large initial regret).
