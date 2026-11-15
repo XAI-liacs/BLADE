@@ -246,8 +246,10 @@ class TracedBBOB(BBOB_SBOX):
 
     The prompt is the generic one (no ``specific_fid`` description): the
     model sees a black box, so differences between functions come from
-    the feedback and selection only. AOCC on log regret in [1e-8, 1e2]
-    (``aoc_logger``), budget ``budget_factor * dim``.
+    the feedback and selection only. AOCC on log regret in
+    [1e-8, ``aocc_upper``] (``aoc_logger``; BLADE's default upper bound is
+    1e2, f20 in 20-D uses 1e3 because most working code never gets below
+    1e2), budget ``budget_factor * dim``.
     """
 
     def __init__(
@@ -258,6 +260,7 @@ class TracedBBOB(BBOB_SBOX):
         test_iids=range(15, 31),
         eval_timeout: int = 600,
         dependencies=None,
+        aocc_upper: float = 1e2,
         **kwargs,
     ):
         super().__init__(
@@ -271,6 +274,7 @@ class TracedBBOB(BBOB_SBOX):
             **kwargs,
         )
         self.fid = fid
+        self.aocc_upper = aocc_upper
 
     def evaluate(self, solution: Solution, test=False):
         name = solution.name
@@ -296,7 +300,9 @@ class TracedBBOB(BBOB_SBOX):
                 f = get_problem(
                     fid, instance=iid, dimension=dim, problem_class=self.problem_type
                 )
-                l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+                l2 = aoc_logger(
+                    budget, upper=self.aocc_upper, triggers=[ioh_logger.trigger.ALWAYS]
+                )
                 f.attach_logger(l2)
                 target = _Recorder(f)
                 np.random.seed(iid)

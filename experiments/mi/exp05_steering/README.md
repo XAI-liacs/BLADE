@@ -837,3 +837,9 @@ control, explore, exploit (dial ±0.3), adaptive, prompt_explore,
 prompt_exploit; seeds 500–509; budget 100 (4 + 8 × 12). 5 shards of 2
 seeds (`scripts/run_stage2_llamea.sh f20`), started on GPU 2 or 3 as
 memory frees up. Smoke run (`llamea-bbob-smoke`) passes.
+Restarted 2026-11-15 00:02Z with the AOCC window on f20 widened to
+[1e-8, 1e3] (`10_transfer.BBOB_AOCC_UPPER`; user decision): with BLADE's
+1e2 many working algorithms scored exactly 0, a weak signal for LLaMEA.
+The first start (about 5 minutes, AOCC up to 1e2) is in
+`$MI_CACHE/backups/discarded/`. The f20 screen is re-scored with the same
+window (generations unchanged).

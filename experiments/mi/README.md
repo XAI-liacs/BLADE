@@ -414,3 +414,5 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   MA-BBOB (population +0.84, DE +0.23, gradient −0.35 per unit dose;
   exploration +20, CI touches 0); AOCC low (≈0.05) and flat. f20 LLaMEA
   campaign (`llamea-bbob-f20`, 6 arms × 10 seeds) launched.
+  Restarted with the AOCC log-regret window on f20 widened to [1e-8, 1e3]
+  (was 1e2: many working algorithms scored 0); screen re-scored.

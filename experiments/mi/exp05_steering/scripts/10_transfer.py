@@ -59,6 +59,11 @@ REFINE = "Refine the strategy of the selected solution to improve it."
 TEMPERATURE, TOP_P = 0.8, 0.95  # experiment 1's sampling settings
 
 
+# Upper bound of the AOCC log-regret window per BBOB function (default
+# 1e2 as BLADE): f20 in 20-D starts far above 1e2 (decided 2026-11-15).
+BBOB_AOCC_UPPER = {20: 1e3}
+
+
 def make_problem(name: str):
     from common.transfer_problems import SandboxedUnitSquarePacking, TracedPhotonics
 
@@ -71,8 +76,10 @@ def make_problem(name: str):
     if name.startswith("bbob-f"):  # stage 2: one BBOB function, 20-D
         from common.problems import TracedBBOB
 
+        fid = int(name[len("bbob-f") :])
         return TracedBBOB(
-            int(name[len("bbob-f") :]),
+            fid,
+            aocc_upper=BBOB_AOCC_UPPER.get(fid, 1e2),
             dependencies=["pandas==2.2.3", "ioh==0.3.22", "configspace==1.2.1"]
             + EXTRA_EVAL_DEPENDENCIES,
         )
