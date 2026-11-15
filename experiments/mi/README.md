@@ -422,3 +422,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   `adaptive` − control gap holds but does not grow (best +0.07 at 100,
   +0.06 at 200, CI includes 0; 5/8 seeds). `adaptive_cal` catches up with
   control but stays behind `adaptive` (best −0.05 at 200).
+- 2026-11-15: stage 1 done, including the budget-200 runs. `llamea-stage1-seeds` (seeds 308–315) replicates the first 8
+  seeds; pooled over 16 MA-BBOB seeds (`exp05_steering/results/
+  llamea-stage1-pooled/paired.txt`): `adaptive` best +0.06 (−0.01 to
+  +0.15), +6 families, +6 points failures; explore dial +0.02 (n.s.,
+  exploration +8 points); exploit dial −0.24 (significant); prompts
+  −0.02/−0.05 with −7 to −12 families.

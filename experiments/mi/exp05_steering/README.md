@@ -208,6 +208,38 @@ over the 8 seeds with 95% bootstrap CIs:
   cap). In practice it is "explore after an unsteered start", with short
   exploit dips after improvements.
 
+**New seeds and pooled MA-BBOB result (`llamea-stage1-seeds`, seeds
+308–315, finished 2026-11-15; `results/llamea-stage1-seeds/paired.txt`
+with control in the campaign, and `results/llamea-stage1-pooled/paired.txt`
+= `07_paired.py llamea-stage1-seeds --with llamea-dial llamea-stage1`,
+16 seeds 300–315).** Paired differences against control, 95% bootstrap
+CIs over seeds:
+
+| arm | best AOCC, seeds 308–315 | best AOCC, 16 seeds | auc_best, 16 seeds | failed, 16 seeds | families, 16 seeds | exploration %, 16 seeds |
+|---|---|---|---|---|---|---|
+| adaptive | +0.06 (−0.03 to +0.16) | +0.06 (−0.01 to +0.15) | +0.04 (−0.04 to +0.11) | +0.06 (+0.02 to +0.09) | +6.4 (+1.6 to +10.9) | +5.7 (−0.7 to +12.0) |
+| explore (dial) | −0.00 (−0.15 to +0.14) | +0.02 (−0.08 to +0.12) | +0.04 (−0.06 to +0.13) | +0.01 (−0.04 to +0.05) | +1.7 (−4.1 to +7.3) | +8.4 (+3.7 to +13.1) |
+| exploit (dial) | −0.30 (−0.43 to −0.14) | −0.24 (−0.35 to −0.12) | −0.22 (−0.31 to −0.14) | −0.01 (−0.06 to +0.04) | −8.5 (−13.8 to −3.5) | +11.4 (−0.2 to +23.5) |
+| prompt_explore | −0.09 (−0.22 to +0.04) | −0.02 (−0.12 to +0.08) | −0.04 (−0.12 to +0.03) | +0.02 (−0.04 to +0.07) | −12.3 (−17.3 to −7.3) | +19.3 (+12.3 to +26.1) |
+| prompt_exploit | −0.09 (−0.20 to +0.04) | −0.05 (−0.13 to +0.04) | −0.03 (−0.11 to +0.05) | −0.03 (−0.08 to +0.01) | −7.1 (−11.8 to −2.3) | +0.2 (−5.7 to +6.2) |
+
+Control means: best 0.64, auc_best 0.54 (16 seeds; 0.67 and 0.54 on the
+new seeds).
+
+* The new seeds replicate the first eight: `adaptive` is the only arm
+  with a positive best-AOCC difference on both seed sets (+0.07, +0.06),
+  and it again widens the search (families, concept diversity +0.08,
+  CI excludes 0) at a cost in failures. With 16 seeds the best-AOCC CI
+  just touches 0 (−0.01); not significant.
+* The exploit dial is reliably harmful (−0.24 best, −0.22 auc), the
+  explore dial is neutral on fitness but does raise the measured
+  exploration (+8 points). Both prompts move the behaviour (explore
+  prompt +19 points exploration) but narrow the search hard (−7 to −12
+  families) and do not help fitness.
+* So on MA-BBOB the order is adaptive ≥ explore ≈ control > prompts >
+  exploit. The dial changes behaviour as intended in both directions;
+  only the exploit side hurts fitness.
+
 **Bragg and packing (`results/llamea-stage1-{bragg,packing}`, finished
 2026-11-14; `07_paired.py llamea-stage1-<p> --with llamea-dial-<p>`).**
 Differences against control, 6 seeds, 95% bootstrap CIs; the step 5d dial
