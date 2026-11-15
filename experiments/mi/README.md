@@ -428,3 +428,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   +0.15), +6 families, +6 points failures; explore dial +0.02 (n.s.,
   exploration +8 points); exploit dial −0.24 (significant); prompts
   −0.02/−0.05 with −7 to −12 families.
+- 2026-11-15: f2 screen done (`exp05_steering/results/transfer-bbob-f2`):
+  the dial changes the code as on f20 (population +0.66, DE +0.38,
+  gradient −0.41 per unit dose); exploration +11.5 (n.s.). AOCC with
+  window [1e-8, 1e3] is nearly flat (93% of working algorithms < 0.01;
+  median final regret 10^5.7), so the window needs widening before the f2
+  LLaMEA campaign.
+

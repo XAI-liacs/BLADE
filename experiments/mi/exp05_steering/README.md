@@ -909,3 +909,21 @@ window (generations unchanged): working-code AOCC is now 0.05 to 0.12
 **f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
 design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an
 ill-conditioned ellipsoid with large initial regret).
+Finished 2026-11-15 08:53Z (`results/transfer-bbob-f2/summary.md`), no
+errors. 32 prompts × 2 replicates per condition, init and refine.
+
+* The dial changes the code on f2 as on f20 and MA-BBOB. Pooled slopes
+  per unit dose: population +0.66 (+0.52 to +0.82), DE +0.38 (+0.25 to
+  +0.53), gradient −0.41 (−0.56 to −0.27), simulated annealing −0.23
+  (−0.35 to −0.12); f20: population +0.84, DE +0.23, gradient −0.35.
+* Measured exploration: slope +11.5 (−4.0 to +28.0), not significant
+  (f20: +20.8, CI touching 0); last improvement −0.22 (−0.38 to −0.06).
+  Failures do not rise with the dose (slope −0.13, −0.30 to +0.03); worst
+  at −0.4 (38% init, 31% refine vs 25%/22% unsteered).
+* AOCC is nearly flat: even with the window widened to 1e3, 93% of the
+  working algorithms score below 0.01 (f20: median 0.09). Mean final
+  regret over the 5 training instances: median 10^5.7, only 6% below
+  1e3 and 37% below 1e5. The dose slope on AOCC is +0.024 (+0.000 to
+  +0.062), carried by a few algorithms. With this window LLaMEA would
+  get almost no fitness signal on f2.
+
