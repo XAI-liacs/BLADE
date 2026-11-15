@@ -434,4 +434,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   window [1e-8, 1e3] is nearly flat (93% of working algorithms < 0.01;
   median final regret 10^5.7), so the window needs widening before the f2
   LLaMEA campaign.
+- 2026-11-15: f2 AOCC window widened to [1e-8, 1e8] (user decision) and
+  the screen re-scored: AOCC dose slope +0.083 (+0.043 to +0.126), the
+  explore side scores higher in a single generation (prediction for f2
+  was the opposite). f2 LLaMEA campaign (`llamea-bbob-f2`) running on
+  GPU 3 (5 shards, started 12:29–12:41Z).
 

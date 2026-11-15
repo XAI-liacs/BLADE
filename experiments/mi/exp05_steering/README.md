@@ -931,6 +931,15 @@ Window widened to [1e-8, 1e8] for f2 (2026-11-15, user decision;
 `10_transfer.BBOB_AOCC_UPPER`), screen re-scored with `10_transfer.py
 --reevaluate` (generations unchanged; the 1e3 data and report are in
 `$MI_CACHE/backups/transfer-bbob-f2-aocc1e3/`).
+Re-scored result (failures unchanged: 43 init, 45 refine): working AOCC
+now spreads out (none at 0; quartiles 0.09 / 0.14 / 0.21; unsteered 0.16
+init, 0.18 refine). The dose slope on AOCC becomes significant and
+positive: +0.083 per unit dose (+0.043 to +0.126; init +0.058, refine
++0.106); paired against unsteered, −0.4 is worse (−0.06, −0.11 to
+−0.01) and +0.4 slightly better (+0.02, n.s.). Behaviour and concept
+slopes as above. So in a single generation on f2 the explore side of the
+dial scores higher, against the pre-registered prediction for f2
+(exploit ≥ control > explore). The LLaMEA campaign is the actual test.
 
 **f2 LLaMEA campaign (`llamea-bbob-f2`, started 2026-11-15 ~13:30Z on GPU
 3).** Same design as f20 (6 arms, seeds 500–509, budget 100), AOCC window
