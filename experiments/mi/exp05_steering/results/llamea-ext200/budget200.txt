@@ -1,0 +1,25 @@
+mean over seeds
+              auc100  auc200  best100  best200  best_gain  auc_gain
+arm                                                                
+adaptive       0.566   0.631    0.673    0.726      0.053     0.066
+adaptive_cal   0.491   0.569    0.594    0.673      0.079     0.078
+control        0.546   0.592    0.606    0.667      0.061     0.047
+
+gain 100 -> 200 per arm
+adaptive best +0.053 [+0.021, +0.090] auc +0.066 [+0.050, +0.081] improved on 6/8 seeds
+adaptive_cal best +0.079 [+0.041, +0.123] auc +0.078 [+0.056, +0.103] improved on 8/8 seeds
+control best +0.061 [+0.014, +0.126] auc +0.047 [+0.027, +0.067] improved on 6/8 seeds
+
+paired diff vs control
+adaptive best100 +0.067 [-0.057, +0.194]
+adaptive best200 +0.059 [-0.026, +0.134]
+adaptive auc100 +0.020 [-0.099, +0.137]
+adaptive auc200 +0.039 [-0.069, +0.146]
+adaptive best_gain -0.008 [-0.074, +0.049]
+adaptive wins best@200 on 5 / 8
+adaptive_cal best100 -0.011 [-0.171, +0.139]
+adaptive_cal best200 +0.006 [-0.124, +0.120]
+adaptive_cal auc100 -0.055 [-0.197, +0.089]
+adaptive_cal auc200 -0.023 [-0.162, +0.107]
+adaptive_cal best_gain +0.018 [-0.046, +0.083]
+adaptive_cal wins best@200 on 6 / 8

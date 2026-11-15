@@ -282,6 +282,34 @@ stays for stage 2 and `adaptive_cal` is dropped.
 also extended to 200 (warm start from `llamea-stage1`, same seeds), so the
 budget-200 comparison covers control, `adaptive` and `adaptive_cal`.
 
+**Budget 200, results (2026-11-15; `scripts/13_budget200.py`, output in
+`results/llamea-ext200/budget200.txt`).** MA-BBOB, 8 seeds (300–307),
+warm-started, so the first 100 evaluations are the budget-100 runs.
+auc_best is the mean of the best-so-far curve (failed algorithms count as
+the run's worst), so auc200 covers all 200 evaluations.
+
+| arm | best@100 | best@200 | auc@100 | auc@200 | failed (101–200) | dose (101–200) |
+|---|---|---|---|---|---|---|
+| control | 0.61 | 0.67 | 0.55 | 0.59 | 0.10 | – |
+| adaptive | 0.67 | 0.73 | 0.57 | 0.63 | 0.22 | +0.29 |
+| adaptive_cal | 0.59 | 0.67 | 0.49 | 0.57 | 0.13 | −0.01 |
+
+* Every arm keeps improving after 100. Best gain from 100 to 200:
+  control +0.06 (+0.01 to +0.13; 6/8 seeds improve), adaptive +0.05
+  (+0.02 to +0.09; 6/8), adaptive_cal +0.08 (+0.04 to +0.12; 8/8).
+* The adaptive − control gap holds but does not grow: best +0.07 at 100,
+  +0.06 at 200 (−0.03 to +0.13; 5/8 seeds); auc +0.02 → +0.04 (CIs
+  include 0). Gain difference vs control −0.01 (−0.07 to +0.05).
+  `adaptive` stays at the positive cap (+0.29) and fails twice as often
+  as control (22% vs 10%), but still reaches the higher best.
+* `adaptive_cal` catches up with control at 200 (best +0.01, auc −0.02;
+  CIs wide). It is still behind `adaptive` (best −0.05, −0.13 to +0.03;
+  auc −0.06, −0.12 to +0.01; 5/8 seeds), so the decision to drop it
+  stands.
+* Reading: with 8 seeds the steering gain is not a "faster start" effect
+  that more budget erases, but it is also not shown to compound. The best
+  of a run is still rising at 200 for all arms, so 100 is not saturated.
+
 **Budget 200 (`llamea-ext200`, `scripts/run_ext200.sh`).** Control and
 `adaptive_cal` on MA-BBOB seeds 300–307 continue from their 100-evaluation
 state to 200 evaluations. BLADE's LLaMEA has no usable warm start (the

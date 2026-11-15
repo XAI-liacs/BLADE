@@ -416,3 +416,9 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   campaign (`llamea-bbob-f20`, 6 arms × 10 seeds) launched.
   Restarted with the AOCC log-regret window on f20 widened to [1e-8, 1e3]
   (was 1e2: many working algorithms scored 0); screen re-scored.
+- 2026-11-15: budget-200 extension done (`llamea-ext200`,
+  `llamea-ext200-adaptive`; `exp05_steering/scripts/13_budget200.py`).
+  All arms keep improving from 100 to 200 (best +0.05 to +0.08). The
+  `adaptive` − control gap holds but does not grow (best +0.07 at 100,
+  +0.06 at 200, CI includes 0; 5/8 seeds). `adaptive_cal` catches up with
+  control but stays behind `adaptive` (best −0.05 at 200).
