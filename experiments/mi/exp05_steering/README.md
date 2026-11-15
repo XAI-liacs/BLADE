@@ -842,4 +842,6 @@ Restarted 2026-11-15 00:02Z with the AOCC window on f20 widened to
 1e2 many working algorithms scored exactly 0, a weak signal for LLaMEA.
 The first start (about 5 minutes, AOCC up to 1e2) is in
 `$MI_CACHE/backups/discarded/`. The f20 screen is re-scored with the same
-window (generations unchanged).
+window (generations unchanged): working-code AOCC is now 0.05 to 0.12
+(unsteered 0.086 init, 0.081 refine), the dose slope on AOCC +0.023
+(−0.024 to +0.066), still n.s.; behaviour slopes unchanged.
