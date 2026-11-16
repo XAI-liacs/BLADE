@@ -452,4 +452,11 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   measured exploration (+4.0, n.s.); AOCC rises with the dose (+0.058,
   +0.014 to +0.102), as on f2, against the prediction. f9 LLaMEA campaign
   (`llamea-bbob-f9`) running on GPU 2.
+- 2026-11-16: f2 LLaMEA campaign done (`exp05_steering/results/llamea-bbob-f2`).
+  Prediction exploit ≥ control > explore not supported: control ≈
+  adaptive (0.59–0.60) ≥ explore (0.54) > exploit (0.38) on best AOCC;
+  control − exploit +0.21 (−0.00 to +0.40), explore − exploit +0.16
+  (n.s.). Runs are bimodal (plateau 0.27 or 0.6–0.9); breakthroughs are
+  population DE with crossover, which the exploit dial and prompt nearly
+  remove. Test gap ≤ 0.021. Budget-200 MA-BBOB extension started on GPU 3.
 

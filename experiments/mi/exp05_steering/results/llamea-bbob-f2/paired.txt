@@ -1,0 +1,41 @@
+per-arm mean over seeds
+                best_aocc  auc_best  failed  n_families  div_concepts  exploration_pct  intensification  exploration_pct_final
+arm                                                                                                                           
+adaptive            0.598     0.491   0.214        32.6         0.560           42.253            0.336                 18.714
+control             0.593     0.477   0.179        29.8         0.560           38.090            0.368                 16.177
+exploit             0.381     0.321   0.174        20.7         0.606           29.823            0.333                 15.905
+explore             0.537     0.401   0.219        25.6         0.500           49.959            0.296                 24.087
+prompt_exploit      0.359     0.315   0.143        22.2         0.569           26.039            0.432                 10.885
+prompt_explore      0.352     0.278   0.186        14.2         0.522           47.366            0.241                 27.354
+paired diff vs control (mean, 95% bootstrap CI over seeds)
+adaptive (n=10) best_aocc=+0.005 [-0.205,+0.205]; auc_best=+0.014 [-0.187,+0.188]; failed=+0.035 [-0.026,+0.083]; n_families=+2.800 [-3.400,+9.100]; div_concepts=-0.000 [-0.050,+0.053]; exploration_pct=+4.162 [-2.088,+11.949]; intensification=-0.033 [-0.151,+0.067]; exploration_pct_final=+2.536 [-11.608,+15.697]
+exploit (n=10) best_aocc=-0.212 [-0.394,+0.005]; auc_best=-0.157 [-0.312,+0.013]; failed=-0.005 [-0.032,+0.021]; n_families=-9.100 [-13.902,-3.800]; div_concepts=+0.046 [-0.034,+0.132]; exploration_pct=-8.267 [-19.453,+4.920]; intensification=-0.035 [-0.148,+0.066]; exploration_pct_final=-0.272 [-18.707,+18.748]
+explore (n=10) best_aocc=-0.056 [-0.165,+0.047]; auc_best=-0.076 [-0.201,+0.041]; failed=+0.040 [+0.003,+0.085]; n_families=-4.200 [-7.200,-1.300]; div_concepts=-0.060 [-0.147,+0.026]; exploration_pct=+11.868 [-1.344,+26.621]; intensification=-0.073 [-0.187,+0.042]; exploration_pct_final=+7.910 [-14.353,+25.455]
+prompt_exploit (n=10) best_aocc=-0.234 [-0.419,+0.004]; auc_best=-0.162 [-0.327,+0.025]; failed=-0.036 [-0.074,+0.008]; n_families=-7.600 [-12.400,-2.300]; div_concepts=+0.009 [-0.047,+0.070]; exploration_pct=-12.051 [-25.223,+2.306]; intensification=+0.064 [-0.095,+0.205]; exploration_pct_final=-5.292 [-25.202,+10.365]
+prompt_explore (n=10) best_aocc=-0.241 [-0.442,-0.013]; auc_best=-0.199 [-0.346,-0.051]; failed=+0.007 [-0.054,+0.073]; n_families=-15.600 [-20.200,-10.400]; div_concepts=-0.038 [-0.166,+0.086]; exploration_pct=+9.276 [-1.716,+21.532]; intensification=-0.127 [-0.252,+0.017]; exploration_pct_final=+11.177 [-5.847,+27.801]
+explore-exploit {'best_aocc': 0.156, 'auc_best': 0.08, 'failed': 0.045, 'n_families': 4.9, 'div_concepts': -0.106, 'exploration_pct': 20.135, 'intensification': -0.037, 'exploration_pct_final': 8.182}
+prompt_explore-exploit {'best_aocc': -0.007, 'auc_best': -0.036, 'failed': 0.043, 'n_families': -8.0, 'div_concepts': -0.047, 'exploration_pct': 21.327, 'intensification': -0.191, 'exploration_pct_final': 16.469}
+                population  elitism  gradient  differential_evolution  step_size_adaptation  crossover  adaptive_parameters  particle_swarm  local_search  covariance  simulated_annealing  surrogate
+arm                                                                                                                                                                                                  
+adaptive              0.85     0.58      0.24                    0.60                  0.27       0.54                 0.06            0.10          0.11        0.08                 0.02       0.01
+control               0.79     0.31      0.52                    0.37                  0.29       0.31                 0.22            0.16          0.06        0.04                 0.01       0.01
+exploit               0.32     0.00      0.52                    0.05                  0.34       0.05                 0.29            0.10          0.08        0.04                 0.26       0.04
+explore               0.86     0.59      0.13                    0.54                  0.10       0.57                 0.05            0.07          0.03        0.01                 0.00       0.11
+prompt_exploit        0.29     0.25      0.34                    0.08                  0.49       0.04                 0.13            0.22          0.14        0.18                 0.01       0.00
+prompt_explore        0.66     0.21      0.07                    0.22                  0.22       0.02                 0.08            0.00          0.14        0.00                 0.02       0.00
+operator        init   new  refine  simplify
+arm                                         
+adaptive        63.5  45.0    46.1      33.4
+control         49.9  40.5    39.8      33.9
+exploit         53.5  31.2    28.0      27.4
+explore         68.4  43.7    56.6      46.3
+prompt_exploit  28.0  26.0    26.7      24.3
+prompt_explore  53.8  51.0    47.7      45.5
+arm
+adaptive          41.9
+control           38.4
+exploit           29.7
+explore           49.5
+prompt_exploit    25.7
+prompt_explore    48.1
+Name: b_exploration_pct, dtype: float64

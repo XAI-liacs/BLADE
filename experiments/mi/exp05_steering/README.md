@@ -1035,3 +1035,46 @@ dial scores higher, against the pre-registered prediction for f2
 [1e-8, 1e8]; `scripts/run_stage2_llamea.sh f2 3` (the second argument
 restricts the GPUs).
 
+**f2 LLaMEA result (finished 2026-11-16 13:41Z; `results/llamea-bbob-f2`:
+`paired.txt`, `test.md`).** 10 seeds per arm, no infrastructure errors.
+
+| arm | best AOCC | auc_best | runs with best > 0.5 | failed | families | exploration % | test AOCC |
+|---|---|---|---|---|---|---|---|
+| control | 0.593 | 0.477 | 6/10 | 0.18 | 29.8 | 38.1 | 0.578 |
+| adaptive | 0.598 | 0.491 | 6/10 | 0.21 | 32.6 | 42.3 | 0.577 |
+| explore | 0.537 | 0.401 | 6/10 | 0.22 | 25.6 | 50.0 | 0.541 |
+| exploit | 0.381 | 0.321 | 2/10 | 0.17 | 20.7 | 29.8 | 0.381 |
+| prompt_explore | 0.352 | 0.278 | 2/10 | 0.19 | 14.2 | 47.4 | 0.344 |
+| prompt_exploit | 0.359 | 0.315 | 1/10 | 0.14 | 22.2 | 26.0 | 0.356 |
+
+* **Prediction exploit ≥ control > explore: not supported.** The order
+  is control ≈ adaptive ≥ explore > exploit. Paired (95% bootstrap CI,
+  wins out of 10): best AOCC control − exploit +0.212 (−0.003 to +0.395;
+  8/10), explore − exploit +0.156 (−0.039 to +0.333; 8/10), control −
+  explore +0.056 (−0.053 to +0.170; 5/10); auc_best control − exploit
+  +0.157 (−0.010 to +0.313), explore − exploit +0.080 (−0.047 to
+  +0.198), control − explore +0.076 (−0.050 to +0.198). None of the
+  steering contrasts is significant at 10 seeds, but the exploit side is
+  the worst, as the one-generation screen suggested (AOCC slope +0.083).
+  The prompt arms are both worse than control (prompt_explore −0.241,
+  −0.442 to −0.013, significant).
+* **f2 is bimodal per run.** A run either stays on the ~0.27 plateau or
+  breaks through to 0.6–0.9 (23 of 60 runs, median first breakthrough at
+  evaluation 29). The best algorithm of every breakthrough run is
+  population-based; 87% use DE, 78% crossover, 74% elitism (stuck runs:
+  16%, 14%, 24%). The exploit dial and the exploit prompt nearly remove
+  DE (5% and 8% of the working algorithms vs 37% in control) and the
+  families drop by 9 (−13.9 to −3.8, significant), so those runs rarely
+  find the family that works. The explore dial does raise exploration
+  (+11.9, −1.3 to +26.6) and keeps DE (54%), but has fewer families
+  (−4.2, significant) and more failures (+0.04, significant).
+* Reading: the dial steers *which algorithm family* LLaMEA writes, and on
+  f2 the explore-side family (population DE) is the one that solves it.
+  The "exploit for unimodal functions" intuition behind the prediction
+  is about the optimiser's behaviour, but the dial acts on the design
+  space: exploit-steered code is single-point local search that stalls
+  on the ill-conditioned ellipsoid.
+* Generalisation: train − test gap ≤ 0.021 per arm, no run fails on the
+  16 test instances; the test differences vs control repeat the
+  training ones.
+
