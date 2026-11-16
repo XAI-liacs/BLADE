@@ -906,6 +906,44 @@ window (generations unchanged): working-code AOCC is now 0.05 to 0.12
 (unsteered 0.086 init, 0.081 refine), the dose slope on AOCC +0.023
 (−0.024 to +0.066), still n.s.; behaviour slopes unchanged.
 
+**f20 LLaMEA result (finished 2026-11-16 ~00:30Z; `results/llamea-bbob-f20`:
+`paired.txt` from `07_paired.py`, `test.md` from `scripts/14_bbob_test.py`).**
+10 seeds (500–509), paired by seed, 95% bootstrap CIs. Differences vs
+control:
+
+| arm | best AOCC | auc_best | failed | families | exploration % | test AOCC (inst. 15–30) |
+|---|---|---|---|---|---|---|
+| control (mean) | 0.240 | 0.222 | 0.16 | 27.4 | 39.5 | 0.236 |
+| adaptive | +0.019 (−0.001 to +0.054) | +0.009 (−0.025 to +0.051) | +0.07 (+0.01 to +0.14) | +2.9 | +4.7 | +0.022 (+0.001 to +0.057) |
+| explore | +0.018 (−0.001 to +0.050) | +0.025 (+0.004 to +0.056) | +0.03 | −2.5 | −2.8 (−12.8 to +7.9) | +0.016 (−0.006 to +0.050) |
+| exploit | +0.014 (−0.005 to +0.047) | −0.001 (−0.035 to +0.040) | −0.05 (−0.09 to −0.02) | −11.5 (−16.3 to −7.6) | −20.6 (−29.1 to −12.2) | +0.011 (−0.009 to +0.044) |
+| prompt_explore | +0.014 (−0.005 to +0.048) | −0.004 | +0.05 (+0.01 to +0.08) | −15.3 (−20.2 to −11.2) | +6.6 (−6.2 to +18.8) | +0.015 (−0.004 to +0.048) |
+| prompt_exploit | +0.018 (−0.002 to +0.050) | +0.025 (−0.000 to +0.058) | −0.07 (−0.11 to −0.03) | −10.4 (−15.0 to −6.6) | −19.2 (−28.9 to −10.0) | +0.016 (−0.004 to +0.049) |
+
+* Pre-registered prediction explore > control > exploit: **not
+  supported on the final best**. All arms end at nearly the same best
+  AOCC (0.24–0.26); explore − exploit +0.004 (−0.003 to +0.010; 7/10
+  seeds), control − exploit −0.014 (−0.047 to +0.005). The positive
+  differences vs control are carried by one control run (seed 506, best
+  0.10; every other run reaches 0.24–0.28).
+* **Partly supported on anytime performance:** explore has the highest
+  auc_best: +0.025 vs control (+0.004 to +0.057; 7/10) and +0.026 vs
+  exploit (+0.005 to +0.053; 7/10). control vs exploit +0.001 (n.s.).
+* The dial still steers the search behaviour in LLaMEA on f20, but
+  asymmetrically: the exploit side lowers measured exploration by 21
+  points and halves the number of families (as the exploit prompt does),
+  while the explore side does not raise exploration (−2.8, n.s.) and
+  raises intensification (+0.13). The final best is not sensitive to
+  either.
+* Generalisation: the best of each run loses almost nothing on the 16
+  test instances (gap train − test +0.002 to +0.008 per arm, none fails),
+  so the f20 instances 10–14 are representative; the test differences
+  vs control repeat the training ones (driven by the same seed).
+* Reading: with AOCC on [1e-8, 1e3] the best f20 algorithms plateau near
+  0.26 within 100 evaluations in every arm, so f20 discriminates little
+  between arms on the final best; the steering effect shows in the
+  anytime curve and in behaviour, not in the endpoint.
+
 **f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
 design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an
 ill-conditioned ellipsoid with large initial regret).

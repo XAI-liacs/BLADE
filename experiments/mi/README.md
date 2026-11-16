@@ -439,4 +439,11 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   explore side scores higher in a single generation (prediction for f2
   was the opposite). f2 LLaMEA campaign (`llamea-bbob-f2`) running on
   GPU 3 (5 shards, started 12:29–12:41Z).
+- 2026-11-16: f20 LLaMEA campaign done (`exp05_steering/results/llamea-bbob-f20`).
+  Prediction explore > control > exploit not supported on the final best
+  (all arms 0.24–0.26; explore − exploit +0.004, n.s.); partly on
+  auc_best (explore +0.025 vs control and +0.026 vs exploit, CIs exclude
+  0, 7/10 seeds). The exploit dial cuts exploration by 21 points and
+  families by 11.5, the explore dial does not raise exploration. Test
+  instances 15–30: gap ≤ 0.008 in every arm (`scripts/14_bbob_test.py`).
 
