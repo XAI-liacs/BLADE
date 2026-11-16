@@ -363,8 +363,12 @@ in `$MI_CACHE/backups/` first.
 2026-11-16).** Same warm start: explore, exploit, prompt_explore and
 prompt_exploit on seeds 300–307 (from `llamea-dial` / `llamea-stage1`), and
 all six stage-2 arms on seeds 308–315 (from `llamea-stage1-seeds`); 80 runs.
-With the earlier extension, all six arms then have 16 seeds at budget 200
-(adaptive_cal 8; anneal and randomdir are not extended). Queued behind the
+anneal and randomdir (seeds 300–307, from `llamea-dial`) added on
+request, so 96 runs. With the earlier extension, all six stage-2 arms then
+have 16 seeds at budget 200 (adaptive_cal, anneal, randomdir 8). anneal
+keeps its original 100-evaluation schedule (+dose → −dose), so it stays
+at −dose over evaluations 101–200 (progress is measured against the
+source run's length; otherwise the dose would jump back to 0). Queued behind the
 f2 campaign: starts when it exits, after backing up the source raw data,
 on GPU 3 (and GPU 2 once the f9 campaign frees it).
 

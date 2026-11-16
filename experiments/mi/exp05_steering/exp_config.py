@@ -233,7 +233,8 @@ class LLaMEAArm:
 
     * ``explore``: +``dose``; ``exploit``: -``dose``;
     * ``anneal``: from +``dose`` to -``dose``, linear in the share of the
-      budget used (explore early, exploit late);
+      budget used (explore early, exploit late); a warm-started run
+      keeps the source run's schedule, so it stays at -``dose``;
     * ``random``: a random direction of the same norm (one of 8 fixed
       ones, random sign) per algorithm;
     * ``adaptive``: no steering of the initial population; afterwards a
@@ -386,11 +387,11 @@ LLAMEA_CAMPAIGNS["llamea-ext200-adaptive"] = LLaMEACampaign(
     warm_from={"adaptive": "llamea-stage1"},
 )
 # Budget 100 -> 200 for the remaining MA-BBOB arms and seeds (decided
-# 2026-11-16, after the f2 campaign): explore, exploit and the prompt arms
-# on seeds 300-307, and all six stage-2 arms on seeds 308-315.
+# 2026-11-16, after the f2 campaign): explore, exploit, anneal, randomdir
+# and the prompt arms on seeds 300-307, and all six stage-2 arms on seeds 308-315.
 LLAMEA_CAMPAIGNS["llamea-ext200-rest"] = LLaMEACampaign(
     tag="llamea-ext200-rest",
-    arms=[a for a in DIAL_ARMS if a.name in ("explore", "exploit")]
+    arms=[a for a in DIAL_ARMS if a.name != "control"]
     + [a for a in STAGE1_ARMS if a.name.startswith("prompt_")],
     seeds=list(range(300, 308)),
     budget=200,
@@ -399,6 +400,8 @@ LLAMEA_CAMPAIGNS["llamea-ext200-rest"] = LLaMEACampaign(
     warm_from={
         "explore": "llamea-dial",
         "exploit": "llamea-dial",
+        "anneal": "llamea-dial",
+        "randomdir": "llamea-dial",
         "prompt_explore": "llamea-stage1",
         "prompt_exploit": "llamea-stage1",
     },
