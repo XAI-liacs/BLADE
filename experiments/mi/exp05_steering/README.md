@@ -944,10 +944,38 @@ control:
   between arms on the final best; the steering effect shows in the
   anytime curve and in behaviour, not in the endpoint.
 
-**f9 screen (`transfer-bbob-f9`, started 2026-11-16 ~07:40Z on GPU 2).**
-Same design as f20/f2, AOCC window [1e-8, 1e6] to start with (user
-decision); if the working algorithms' AOCC is too compressed, the window
-is changed and the screen re-scored (`10_transfer.py --reevaluate`).
+**f9 screen (`transfer-bbob-f9`, 2026-11-16 09:19–10:47Z on GPU 2).**
+Same design as f20/f2, AOCC window [1e-8, 1e6] (user decision). Report:
+`results/transfer-bbob-f9/summary.md`; 32 prompts × 2 replicates per
+condition, init and refine, no errors.
+
+* The window gives enough signal (checked on the init phase first): 1% of
+  the working algorithms score below 0.01, AOCC quartiles 0.07 / 0.11 /
+  0.22, 99% of final regrets below 1e6 (77% below 1e5). Kept at 1e6.
+* The dial changes the code as on f20 and f2. Pooled slopes per unit
+  dose: population +0.58 (+0.40 to +0.75), DE +0.23 (+0.12 to +0.36),
+  simulated annealing −0.13 (−0.21 to −0.06), gradient −0.16 (−0.36 to
+  +0.03).
+* Measured exploration does not follow the dial: pooled slope +4.0
+  (−17.6 to +24.7); the phases disagree (init −14.9, n.s.; refine +25.1,
+  +0.9 to +47.6). Failures do not rise significantly (+0.09, −0.07 to
+  +0.25), highest at +0.4 (31% init, 41% refine vs 19% unsteered).
+* AOCC rises with the dose: pooled slope +0.058 (+0.014 to +0.102),
+  carried by the init phase (+0.115, +0.062 to +0.173; refine −0.007,
+  n.s.). Paired vs unsteered: +0.2 +0.048 (+0.011 to +0.082), +0.4
+  +0.038 (−0.008 to +0.082), −0.4 −0.012 (n.s.); random direction at 0.4
+  +0.016 (n.s.).
+* Compared with f2 (+0.083) and f20 (+0.023, n.s.): on both unimodal
+  functions the explore side of the dial writes better first algorithms,
+  against the prediction exploit ≥ control > explore. In a single
+  generation the explore side mainly means population-based DE-like code,
+  which these functions reward; whether this survives selection in
+  LLaMEA is what the f2 and f9 campaigns test.
+
+**f9 LLaMEA campaign (`llamea-bbob-f9`, started 2026-11-16 11:11Z on
+GPU 2; user OK given in advance).** Same design as f20/f2
+(`scripts/run_stage2_llamea.sh f9 2`): 6 arms × seeds 500–509, budget
+100.
 
 **f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
 design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an

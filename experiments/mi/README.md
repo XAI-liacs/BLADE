@@ -446,4 +446,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   0, 7/10 seeds). The exploit dial cuts exploration by 21 points and
   families by 11.5, the explore dial does not raise exploration. Test
   instances 15–30: gap ≤ 0.008 in every arm (`scripts/14_bbob_test.py`).
+- 2026-11-16: f9 screen done (`exp05_steering/results/transfer-bbob-f9`),
+  AOCC window [1e-8, 1e6] gives enough signal. The dial changes the code
+  as on f20/f2 (population +0.58, DE +0.23 per unit dose) but not the
+  measured exploration (+4.0, n.s.); AOCC rises with the dose (+0.058,
+  +0.014 to +0.102), as on f2, against the prediction. f9 LLaMEA campaign
+  (`llamea-bbob-f9`) running on GPU 2.
 
