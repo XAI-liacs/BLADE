@@ -206,10 +206,7 @@ class _Algorithm(LLaMEAAlgorithm):
 
     def _evolve_solution(self, individual, operator):
         self.llm.next_operator = operator.name
-        # a warm-started run continues the source run's schedule (anneal
-        # ends at -dose at the source budget and stays there)
-        horizon = len(self.warm) if self.warm else self.budget
-        self.llm.progress = len(self.run_history) / horizon
+        self.llm.progress = len(self.run_history) / self.budget
         if self._best is None:  # initial population
             scores = [self._score(p) for p in self.run_history]
             self._best = max(scores, default=-np.inf)

@@ -233,8 +233,7 @@ class LLaMEAArm:
 
     * ``explore``: +``dose``; ``exploit``: -``dose``;
     * ``anneal``: from +``dose`` to -``dose``, linear in the share of the
-      budget used (explore early, exploit late); a warm-started run
-      keeps the source run's schedule, so it stays at -``dose``;
+      budget used (explore early, exploit late);
     * ``random``: a random direction of the same norm (one of 8 fixed
       ones, random sign) per algorithm;
     * ``adaptive``: no steering of the initial population; afterwards a
@@ -387,11 +386,11 @@ LLAMEA_CAMPAIGNS["llamea-ext200-adaptive"] = LLaMEACampaign(
     warm_from={"adaptive": "llamea-stage1"},
 )
 # Budget 100 -> 200 for the remaining MA-BBOB arms and seeds (decided
-# 2026-11-16, after the f2 campaign): explore, exploit, anneal, randomdir
-# and the prompt arms on seeds 300-307, and all six stage-2 arms on seeds 308-315.
+# 2026-11-16, after the f2 campaign): explore, exploit, randomdir and the
+# prompt arms on seeds 300-307, and all six stage-2 arms on seeds 308-315.
 LLAMEA_CAMPAIGNS["llamea-ext200-rest"] = LLaMEACampaign(
     tag="llamea-ext200-rest",
-    arms=[a for a in DIAL_ARMS if a.name != "control"]
+    arms=[a for a in DIAL_ARMS if a.name in ("explore", "exploit", "randomdir")]
     + [a for a in STAGE1_ARMS if a.name.startswith("prompt_")],
     seeds=list(range(300, 308)),
     budget=200,
@@ -400,11 +399,30 @@ LLAMEA_CAMPAIGNS["llamea-ext200-rest"] = LLaMEACampaign(
     warm_from={
         "explore": "llamea-dial",
         "exploit": "llamea-dial",
-        "anneal": "llamea-dial",
         "randomdir": "llamea-dial",
         "prompt_explore": "llamea-stage1",
         "prompt_exploit": "llamea-stage1",
     },
+)
+# Budget 200 from scratch (decided 2026-11-16): anneal's dose depends on
+# the share of the budget used, so it is not warm-started but rerun with
+# its schedule over 200 evaluations (seeds 300-315); randomdir on the new
+# seeds 308-315 (300-307 are warm-started in llamea-ext200-rest).
+LLAMEA_CAMPAIGNS["llamea-anneal200"] = LLaMEACampaign(
+    tag="llamea-anneal200",
+    arms=[a for a in DIAL_ARMS if a.name == "anneal"],
+    seeds=list(range(300, 316)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-randomdir200"] = LLaMEACampaign(
+    tag="llamea-randomdir200",
+    arms=[a for a in DIAL_ARMS if a.name == "randomdir"],
+    seeds=list(range(308, 316)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
 )
 LLAMEA_CAMPAIGNS["llamea-ext-smoke"] = LLaMEACampaign(
     tag="llamea-ext-smoke",

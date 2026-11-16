@@ -1,11 +1,13 @@
 #!/bin/bash
-# Budget 100 -> 200 for the remaining MA-BBOB arms and seeds:
-# llamea-ext200-rest (explore, exploit, prompt arms; seeds 300-307) and
-# llamea-ext200-seeds (all six arms; seeds 308-315), warm-started from the
-# finished 100-evaluation runs. Waits until the given pids (the f2
-# campaign) have exited, backs up the source raw data, then starts 10
-# shards (5 per campaign), each on an allowed GPU (default "2 3") as soon
-# as one has >= 25 GB free. Re-running resumes (finished runs are skipped).
+# Budget 200 for the remaining MA-BBOB arms and seeds:
+# llamea-ext200-seeds (all six arms; seeds 308-315) and llamea-ext200-rest
+# (explore, exploit, randomdir, prompt arms; seeds 300-307), warm-started
+# from the finished 100-evaluation runs; llamea-anneal200 (seeds 300-315)
+# and llamea-randomdir200 (308-315) from scratch. Waits until the given
+# pids (the f2 campaign) have exited, backs up the warm-start sources, then
+# starts the shards one by one, each on an allowed GPU (default "2 3") as
+# soon as one has >= 25 GB free. Re-running resumes (finished runs are
+# skipped).
 #   setsid nohup bash scripts/run_ext200_rest.sh "<pids>" \
 #     > $MI_CACHE/logs/exp05_ext200_rest.log 2>&1 &
 set -u
@@ -16,7 +18,7 @@ export MI_CACHE=${MI_CACHE:-/local/steinnvan/cache}
 source experiments/mi/env.sh >/dev/null 2>&1
 export MLFLOW_DISABLE_AGENT_HINT=1
 S=experiments/mi/exp05_steering/scripts
-N=5
+JOBS="llamea-ext200-seeds:5 llamea-ext200-rest:5 llamea-anneal200:4 llamea-randomdir200:2"
 free_gpu() {  # prints an allowed GPU with >= 25 GB free, or nothing
   nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits |
     awk -F', ' -v ok=" $GPUS " 'index(ok, " " $1 " ") && $2 >= 25000 {print $1; exit}'
@@ -27,7 +29,9 @@ echo "$(date -u) waited pids exited"
   $MI_CACHE/backups/exp05_raw_llamea-dial-stage1-seeds_$(date -u +%F).zip \
   raw/llamea-dial raw/llamea-stage1 raw/llamea-stage1-seeds)
 echo "$(date -u) backup done"
-for TAG in llamea-ext200-seeds llamea-ext200-rest; do
+for job in $JOBS; do
+  TAG=${job%%:*}
+  N=${job##*:}
   for k in $(seq 0 $((N - 1))); do
     until g=$(free_gpu) && [ -n "$g" ]; do sleep 120; done
     echo "$(date -u) $TAG shard $k on GPU $g"
@@ -37,4 +41,4 @@ for TAG in llamea-ext200-seeds llamea-ext200-rest; do
   done
 done
 wait
-echo "$(date -u) llamea-ext200-rest and -seeds done"
+echo "$(date -u) budget-200 MA-BBOB campaigns done"
