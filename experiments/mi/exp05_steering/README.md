@@ -944,6 +944,11 @@ control:
   between arms on the final best; the steering effect shows in the
   anytime curve and in behaviour, not in the endpoint.
 
+**f9 screen (`transfer-bbob-f9`, started 2026-11-16 ~07:40Z on GPU 2).**
+Same design as f20/f2, AOCC window [1e-8, 1e6] to start with (user
+decision); if the working algorithms' AOCC is too compressed, the window
+is changed and the screen re-scored (`10_transfer.py --reevaluate`).
+
 **f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
 design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an
 ill-conditioned ellipsoid with large initial regret).

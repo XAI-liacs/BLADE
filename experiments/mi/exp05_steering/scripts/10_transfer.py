@@ -61,7 +61,7 @@ TEMPERATURE, TOP_P = 0.8, 0.95  # experiment 1's sampling settings
 
 # Upper bound of the AOCC log-regret window per BBOB function (default
 # 1e2 as BLADE): f20 in 20-D starts far above 1e2 (decided 2026-11-15).
-BBOB_AOCC_UPPER = {20: 1e3, 2: 1e8}
+BBOB_AOCC_UPPER = {20: 1e3, 2: 1e8, 9: 1e6}
 
 
 def make_problem(name: str):
