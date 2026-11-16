@@ -385,6 +385,24 @@ LLAMEA_CAMPAIGNS["llamea-ext200-adaptive"] = LLaMEACampaign(
     extra_deps=True,
     warm_from={"adaptive": "llamea-stage1"},
 )
+# Budget 100 -> 200 for the remaining MA-BBOB arms and seeds (decided
+# 2026-11-16, after the f2 campaign): explore, exploit and the prompt arms
+# on seeds 300-307, and all six stage-2 arms on seeds 308-315.
+LLAMEA_CAMPAIGNS["llamea-ext200-rest"] = LLaMEACampaign(
+    tag="llamea-ext200-rest",
+    arms=[a for a in DIAL_ARMS if a.name in ("explore", "exploit")]
+    + [a for a in STAGE1_ARMS if a.name.startswith("prompt_")],
+    seeds=list(range(300, 308)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+    warm_from={
+        "explore": "llamea-dial",
+        "exploit": "llamea-dial",
+        "prompt_explore": "llamea-stage1",
+        "prompt_exploit": "llamea-stage1",
+    },
+)
 LLAMEA_CAMPAIGNS["llamea-ext-smoke"] = LLaMEACampaign(
     tag="llamea-ext-smoke",
     arms=[LLaMEAArm("adaptive", dial="adaptive")],
@@ -404,6 +422,18 @@ LLAMEA_CAMPAIGNS["llamea-stage1-seeds"] = LLaMEACampaign(
     extra_deps=True,
 )
 
+LLAMEA_CAMPAIGNS["llamea-ext200-seeds"] = LLaMEACampaign(
+    tag="llamea-ext200-seeds",
+    arms=LLAMEA_CAMPAIGNS["llamea-stage1-seeds"].arms,
+    seeds=list(range(308, 316)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+    warm_from={
+        a.name: "llamea-stage1-seeds"
+        for a in LLAMEA_CAMPAIGNS["llamea-stage1-seeds"].arms
+    },
+)
 
 # Step 5b: contrastive levers. A labelled corpus of code (natural: every
 # algorithm of experiment 1's main campaign and of the `llamea` campaign;

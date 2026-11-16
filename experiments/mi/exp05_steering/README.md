@@ -358,6 +358,16 @@ valid run but not bit-identical to a 200-evaluation run from scratch.
 Starts on GPU 2 when `llamea-stage1-cal` finishes; raw data are backed up
 in `$MI_CACHE/backups/` first.
 
+**Budget 200 for the remaining MA-BBOB arms and seeds (`llamea-ext200-rest`,
+`llamea-ext200-seeds`, `scripts/run_ext200_rest.sh`; user decision
+2026-11-16).** Same warm start: explore, exploit, prompt_explore and
+prompt_exploit on seeds 300–307 (from `llamea-dial` / `llamea-stage1`), and
+all six stage-2 arms on seeds 308–315 (from `llamea-stage1-seeds`); 80 runs.
+With the earlier extension, all six arms then have 16 seeds at budget 200
+(adaptive_cal 8; anneal and randomdir are not extended). Queued behind the
+f2 campaign: starts when it exits, after backing up the source raw data,
+on GPU 3 (and GPU 2 once the f9 campaign frees it).
+
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
 MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on
