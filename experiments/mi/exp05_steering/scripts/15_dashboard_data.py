@@ -12,7 +12,7 @@ Problems and their campaigns (arms paired with control by seed):
   (308-315), llamea-stage1-cal (adaptive_cal, 300-307);
 * MA-BBOB, budget 200: llamea-ext200 + llamea-ext200-adaptive (300-307);
 * Bragg / packing: llamea-dial-<p> + llamea-stage1-<p> (400-405);
-* BBOB f20 20-D: llamea-bbob-f20 (500-509).
+* BBOB f20 / f2 / f9 20-D: llamea-bbob-f<fid> (500-509).
 
 Usage (from exp05_steering): python scripts/15_dashboard_data.py
 """
@@ -41,6 +41,8 @@ PROBLEMS = {
     "Bragg": ["llamea-dial-bragg", "llamea-stage1-bragg"],
     "Packing": ["llamea-dial-packing", "llamea-stage1-packing"],
     "BBOB f20 (20-D)": ["llamea-bbob-f20"],
+    "BBOB f2 (20-D)": ["llamea-bbob-f2"],
+    "BBOB f9 (20-D)": ["llamea-bbob-f9"],
 }
 METRICS = {
     "best": "best fitness",
@@ -70,6 +72,7 @@ SCREENS = {
     "Packing": "transfer-packing",
     "BBOB f20 (20-D)": "transfer-bbob-f20",
     "BBOB f2 (20-D)": "transfer-bbob-f2",
+    "BBOB f9 (20-D)": "transfer-bbob-f9",
 }
 CODE = Path(__file__).read_text()
 
@@ -190,19 +193,23 @@ def main():
                     )
         print(problem, len(runs), "runs", flush=True)
 
-    # f20: final best on the test instances
-    t = pd.read_csv(RES / "llamea-bbob-f20/test.csv")
-    test_rows = [
-        {
-            "problem": "BBOB f20 (20-D)",
-            "arm": x.arm,
-            "seed": int(x.seed),
-            "train": r(x.train),
-            "test": r(x.test),
-            "gap": r(x.gap),
-        }
-        for _, x in t.iterrows()
-    ]
+    # BBOB: final best on the test instances
+    test_rows = []
+    for problem, tags in PROBLEMS.items():
+        f = RES / tags[0] / "test.csv"
+        if not problem.startswith("BBOB") or not f.exists():
+            continue
+        test_rows += [
+            {
+                "problem": problem,
+                "arm": x.arm,
+                "seed": int(x.seed),
+                "train": r(x.train),
+                "test": r(x.test),
+                "gap": r(x.gap),
+            }
+            for _, x in pd.read_csv(f).iterrows()
+        ]
 
     # mechanism: dial dose response on MA-BBOB (step 5c screen)
     d = pd.read_csv(RES / "dial/summary.csv")
@@ -272,7 +279,7 @@ def main():
         "curves": "results/<campaign>/solutions.csv",
         "paired": "results/<campaign>/runs.csv, solutions.csv",
         "concepts": "results/<campaign>/solutions.csv",
-        "test": "results/llamea-bbob-f20/test.csv",
+        "test": "results/llamea-bbob-f<fid>/test.csv",
         "dose": "results/dial/summary.csv",
         "slopes": "results/dial/slopes.csv, results/transfer-*/slopes.csv",
         "probes": "exp01_probing/results/main/probe_scores.csv",
