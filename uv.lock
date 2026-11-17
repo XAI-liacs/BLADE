@@ -2232,6 +2232,7 @@ dependencies = [
     { name = "jsonschema" },
     { name = "lizard" },
     { name = "llamea" },
+    { name = "llm-prices", extra = ["tokencost"] },
     { name = "mlflow" },
     { name = "networkx" },
     { name = "numpy" },
@@ -2244,7 +2245,6 @@ dependencies = [
     { name = "seaborn" },
     { name = "smac" },
     { name = "streamlit" },
-    { name = "tokencost" },
     { name = "virtualenv" },
     { name = "xmltodict" },
 ]
@@ -2305,6 +2305,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
     { name = "llamea", specifier = ">=1.4.2,<2" },
+    { name = "llm-prices", extras = ["tokencost"], specifier = ">=1.5.0,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2317,7 +2318,6 @@ requires-dist = [
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "smac", specifier = ">=2.3.1" },
     { name = "streamlit", specifier = ">=1.35.0,<2" },
-    { name = "tokencost", specifier = ">=0.1.26,<0.2" },
     { name = "virtualenv", specifier = ">=20.34.0" },
     { name = "xmltodict", specifier = ">=0.14.2,<0.15" },
 ]
@@ -3039,6 +3039,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/64/15/4d091ff3b79c41ef8585458950cb13567fd072aa053600487b89814dfd8c/llamea-1.4.2.tar.gz", hash = "sha256:0d3a41009d190901d85e6bc87f112f94b03cf5365c787f4627e8e102d305644f", size = 8372736, upload-time = "2026-10-23T07:53:09.622Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/78/fa0ac1dd2e2434c6f2a82edbe9fb3fbd2cddb7ee705f2e5451df08f28ba6/llamea-1.4.2-py3-none-any.whl", hash = "sha256:00ae02d67282e3550dda3c45a02352a7f9463e3ac584c5336e408e23b1b0c0eb", size = 51671, upload-time = "2026-10-23T07:53:07.635Z" },
+]
+
+[[package]]
+name = "llm-prices"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/e8/67cabc35c904958bb2db4255e3a2f6f782d826d6d4da76217caf5367526d/llm_prices-1.5.0.tar.gz", hash = "sha256:a76e4c1eceb51fbedaaad748e7238cdd90e45e10ae185f80976583ecc5878047", size = 55942, upload-time = "2026-11-17T05:04:46.395Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/37/2c/64d7ea05e46a6aec80f04f46a29ae2ee5d4280bbe12ad31b2c85fbb75f56/llm_prices-1.5.0-py3-none-any.whl", hash = "sha256:63fac70b41147fb463f768cca43974ab18de70811ab0af4e150187ec0b7e8bb8", size = 45864, upload-time = "2026-11-17T05:04:45.079Z" },
+]
+
+[package.optional-dependencies]
+tokencost = [
+    { name = "tiktoken" },
 ]
 
 [[package]]
@@ -6577,20 +6591,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a3/ae/2ca4913e5c0f09781d75482874c3a95db9105462a92ddd303c7d285d3df2/tinycss2-1.5.1.tar.gz", hash = "sha256:d339d2b616ba90ccce58da8495a78f46e55d4d25f9fd71dfd526f07e7d53f957", size = 88195, upload-time = "2025-11-23T10:29:10.082Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/60/45/c7b5c3168458db837e8ceab06dc77824e18202679d0463f0e8f002143a97/tinycss2-1.5.1-py3-none-any.whl", hash = "sha256:3415ba0f5839c062696996998176c4a3751d18b7edaaeeb658c9ce21ec150661", size = 28404, upload-time = "2025-11-23T10:29:08.676Z" },
-]
-
-[[package]]
-name = "tokencost"
-version = "0.1.26"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "anthropic" },
-    { name = "tiktoken" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/c3/a1a0f81ce095abc7d86542bc20218cb49946625bf360317c27f7f1b18646/tokencost-0.1.26.tar.gz", hash = "sha256:a16592a7a701cc021009c4d6fcb1eb7b2c8d6cd7befd50775ae65e2609a25070", size = 107422, upload-time = "2025-08-13T06:28:39.687Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/f8/ca/ffd64a090df0660a6546d004f98e3f762057b37cc31b218d97d52128b4c8/tokencost-0.1.26-py3-none-any.whl", hash = "sha256:f84803c4cc1449447d5f85a0d7269e660e10102e92e8c259763398702151d69e", size = 68901, upload-time = "2025-08-13T06:28:37.492Z" },
 ]
 
 [[package]]

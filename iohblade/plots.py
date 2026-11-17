@@ -20,7 +20,7 @@ from .loggers import ExperimentLogger
 from .misc.ast import analyse_complexity, process_code
 
 try:
-    from tokencost import (
+    from llm_prices.compat.tokencost import (
         calculate_completion_cost,
         calculate_prompt_cost,
         count_message_tokens,

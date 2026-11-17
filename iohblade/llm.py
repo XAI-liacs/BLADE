@@ -43,7 +43,7 @@ except:
     generate = None
 
 try:
-    from tokencost import (
+    from llm_prices.compat.tokencost import (
         calculate_completion_cost,
         calculate_prompt_cost,
         count_message_tokens,
@@ -241,8 +241,8 @@ class LLM(ABC):
             if cs_pattern != None
             else r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
         )
-        # Mute tokecost logging
-        logging.getLogger("tokencost").setLevel(logging.ERROR)
+        # Mute llm-prices logging
+        logging.getLogger("llm_prices").setLevel(logging.ERROR)
 
     @abstractmethod
     def _query(self, session: list, **kwargs):

@@ -395,6 +395,23 @@ def test_dummy_llm():
     )
 
 
+@pytest.mark.parametrize("model", ["gpt-5.4", "gpt-6-luna"])
+def test_query_logs_cost_for_current_models(model):
+    class _Logger:
+        def __init__(self):
+            self.calls = []
+
+        def log_conversation(self, role, content, cost, tokens):
+            self.calls.append((role, cost, tokens))
+
+    llm = Dummy_LLM(model=model)
+    logger = _Logger()
+    llm.set_logger(logger)
+    llm.query([{"role": "user", "content": "Write a random search."}])
+    assert len(logger.calls) == 2
+    assert all(cost > 0 for _, cost, _ in logger.calls)
+
+
 def test_ollama_llm_query_forwards_kwargs(monkeypatch):
     llm = Ollama_LLM(model="llama-test")
 
