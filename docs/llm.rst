@@ -59,8 +59,8 @@ Behaviour worth knowing:
 - ``get_config()`` (written to the experiment logs) never contains the API
   key.
 - The token counts and costs BLADE logs per call are estimates from
-  ``tokencost``. They do not include thinking tokens and are 0 for models
-  ``tokencost`` does not know; check the Claude Console for actual usage.
+  ``llm-prices``. They do not include thinking tokens and are 0 for models
+  ``llm-prices`` does not list; check the Claude Console for actual usage.
 
 API reference
 -------------
