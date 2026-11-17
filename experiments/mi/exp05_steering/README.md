@@ -995,6 +995,46 @@ GPU 2; user OK given in advance).** Same design as f20/f2
 (`scripts/run_stage2_llamea.sh f9 2`): 6 arms × seeds 500–509, budget
 100.
 
+**f9 LLaMEA result (finished 2026-11-17 13:37Z; `results/llamea-bbob-f9`:
+`paired.txt`, `test.md`).** 10 seeds per arm, no infrastructure errors.
+
+| arm | best AOCC | auc_best | failed | families | exploration % | test AOCC |
+|---|---|---|---|---|---|---|
+| control | 0.333 | 0.305 | 0.19 | 31.4 | 36.6 | 0.328 |
+| adaptive | 0.331 | 0.304 | 0.18 | 27.9 | 33.6 | 0.327 |
+| explore | 0.347 | 0.322 | 0.18 | 29.0 | 36.2 | 0.336 |
+| exploit | 0.337 | 0.303 | 0.13 | 18.0 | 25.8 | 0.331 |
+| prompt_explore | 0.333 | 0.316 | 0.20 | 13.5 | 35.9 | 0.327 |
+| prompt_exploit | 0.340 | 0.325 | 0.11 | 21.6 | 16.5 | 0.333 |
+
+* **Prediction exploit ≥ control > explore: not supported; the explore
+  dial is the best arm.** Paired best AOCC: explore − control +0.013
+  (+0.007 to +0.020; 10/10 seeds), explore − exploit +0.009 (−0.001 to
+  +0.018; 8/10), exploit − control +0.004 (−0.004 to +0.013). auc_best:
+  explore − control +0.017 (+0.000 to +0.034), explore − exploit +0.019
+  (−0.001 to +0.039), control − exploit +0.001 (n.s.).
+* The differences are small in absolute terms: the best of every run lies
+  in 0.30–0.38 (window [1e-8, 1e6]), so f9 discriminates little, but the
+  explore effect is consistent across seeds.
+* Behaviour: the exploit dial cuts families by 13.4 (−17.7 to −9.4) and
+  failures by 5 points (−10.2 to −0.8) and lowers exploration by 10.8
+  (n.s.) without changing the best. The exploit prompt is the only arm
+  that significantly lowers exploration (−20.1) and raises
+  intensification (+0.13); its auc_best is higher than control's
+  (+0.020, +0.004 to +0.037). As on f2, the exploit dial nearly removes
+  DE and crossover from the best algorithms (DE 1/10 vs 7/10 in control).
+* Generalisation: train − test gap ≤ 0.011 per arm, no run fails on the 16
+  test instances; explore − control on test +0.008 (−0.000 to +0.018).
+
+**Stage 2 E1 summary (f20, f2, f9).** The pre-registered
+function-dependent prediction fails on all three functions: on f20
+(multimodal) the explore dial helps only the anytime curve; on f2 and f9
+(unimodal) exploit is not better than control, and explore is equal (f2)
+or better (f9). Consistent across functions: the exploit dial narrows
+the design space (fewer families, little DE/crossover), the explore
+dial does not hurt, and the effect on the endpoint depends on whether
+the narrowed space still contains the family that solves the function.
+
 **f2 screen (`transfer-bbob-f2`, started 2026-11-15 on GPU 3).** Same
 design as f20, AOCC window [1e-8, 1e3] (user decision; f2 is an
 ill-conditioned ellipsoid with large initial regret).

@@ -459,4 +459,11 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   (n.s.). Runs are bimodal (plateau 0.27 or 0.6–0.9); breakthroughs are
   population DE with crossover, which the exploit dial and prompt nearly
   remove. Test gap ≤ 0.021. Budget-200 MA-BBOB extension started on GPU 3.
+- 2026-11-17: f9 LLaMEA campaign done (`exp05_steering/results/llamea-bbob-f9`).
+  Prediction exploit ≥ control > explore not supported: the explore dial
+  is best (best AOCC +0.013 vs control, +0.007 to +0.020, 10/10 seeds;
+  auc_best +0.017), exploit ≈ control; all runs lie in 0.30–0.38, so the
+  effects are small. Test gap ≤ 0.011. E1 on f20/f2/f9: the
+  function-dependent prediction fails on all three; the exploit dial
+  narrows the design space, the explore dial never hurts.
 
