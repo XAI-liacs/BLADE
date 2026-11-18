@@ -466,4 +466,10 @@ Installed now (`mi` group): `torch`, `transformers`, `accelerate`,
   effects are small. Test gap ≤ 0.011. E1 on f20/f2/f9: the
   function-dependent prediction fails on all three; the exploit dial
   narrows the design space, the explore dial never hurts.
-
+- 2026-11-18: MA-BBOB budget-200 extension done for all arms, 16 seeds
+  (adaptive_cal 8; `exp05_steering/results/budget200`). Every arm still
+  improves from 100 to 200 (+0.04 to +0.09). At 200: adaptive − control
+  best +0.076 (+0.022 to +0.135, 12/16 seeds), now significant; exploit −
+  control −0.193 and explore − exploit +0.241 (both significant, as at
+  100); explore, anneal, randomdir and the prompt arms vs control n.s.
+  Last four shards ran on GPU 0 (user permission); GPU 0 released.

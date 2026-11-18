@@ -10,7 +10,9 @@ Problems and their campaigns (arms paired with control by seed):
 
 * MA-BBOB: llamea-dial + llamea-stage1 (seeds 300-307), llamea-stage1-seeds
   (308-315), llamea-stage1-cal (adaptive_cal, 300-307);
-* MA-BBOB, budget 200: llamea-ext200 + llamea-ext200-adaptive (300-307);
+* MA-BBOB, budget 200: llamea-ext200 + llamea-ext200-adaptive +
+  llamea-ext200-rest (300-307), llamea-ext200-seeds (308-315),
+  llamea-anneal200 (300-315), llamea-randomdir200 (308-315);
 * Bragg / packing: llamea-dial-<p> + llamea-stage1-<p> (400-405);
 * BBOB f20 / f2 / f9 20-D: llamea-bbob-f<fid> (500-509).
 
@@ -37,7 +39,14 @@ PROBLEMS = {
         "llamea-stage1-seeds",
         "llamea-stage1-cal",
     ],
-    "MA-BBOB (budget 200)": ["llamea-ext200", "llamea-ext200-adaptive"],
+    "MA-BBOB (budget 200)": [
+        "llamea-ext200",
+        "llamea-ext200-adaptive",
+        "llamea-ext200-rest",
+        "llamea-ext200-seeds",
+        "llamea-anneal200",
+        "llamea-randomdir200",
+    ],
     "Bragg": ["llamea-dial-bragg", "llamea-stage1-bragg"],
     "Packing": ["llamea-dial-packing", "llamea-stage1-packing"],
     "BBOB f20 (20-D)": ["llamea-bbob-f20"],

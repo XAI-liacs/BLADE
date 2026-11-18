@@ -1,0 +1,91 @@
+mean over seeds
+                auc100  auc200  best100  best200  best_gain  auc_gain  seeds
+arm                                                                         
+adaptive         0.576   0.654    0.699    0.754      0.055     0.078     16
+adaptive_cal     0.491   0.569    0.594    0.673      0.079     0.078      8
+anneal           0.524   0.597    0.622    0.703      0.080     0.073     16
+control          0.541   0.600    0.637    0.678      0.042     0.059     16
+exploit          0.318   0.385    0.399    0.485      0.087     0.068     16
+explore          0.581   0.641    0.659    0.727      0.068     0.060     16
+prompt_exploit   0.508   0.560    0.588    0.630      0.042     0.052     16
+prompt_explore   0.500   0.576    0.616    0.686      0.070     0.076     16
+randomdir        0.469   0.546    0.577    0.660      0.082     0.077     16
+
+gain 100 -> 200 per arm
+adaptive best +0.055 [+0.030, +0.084] auc +0.078 [+0.063, +0.093] improved on 13/16 seeds
+adaptive_cal best +0.079 [+0.040, +0.121] auc +0.078 [+0.056, +0.104] improved on 8/8 seeds
+anneal best +0.080 [+0.054, +0.110] auc +0.073 [+0.057, +0.088] improved on 15/16 seeds
+control best +0.042 [+0.016, +0.078] auc +0.059 [+0.043, +0.075] improved on 13/16 seeds
+exploit best +0.087 [+0.049, +0.130] auc +0.068 [+0.050, +0.089] improved on 15/16 seeds
+explore best +0.068 [+0.041, +0.100] auc +0.060 [+0.048, +0.072] improved on 15/16 seeds
+prompt_exploit best +0.042 [+0.024, +0.060] auc +0.052 [+0.043, +0.062] improved on 12/16 seeds
+prompt_explore best +0.070 [+0.030, +0.127] auc +0.076 [+0.060, +0.092] improved on 15/16 seeds
+randomdir best +0.082 [+0.045, +0.128] auc +0.077 [+0.055, +0.100] improved on 12/16 seeds
+
+paired differences (mean [95% CI], seeds, wins)
+adaptive - control best100 +0.063 [-0.012, +0.144] n=16 wins=11
+adaptive - control best200 +0.076 [+0.022, +0.135] n=16 wins=12
+adaptive - control auc100 +0.035 [-0.043, +0.116] n=16 wins=9
+adaptive - control auc200 +0.054 [-0.016, +0.124] n=16 wins=10
+adaptive - control best_gain +0.014 [-0.028, +0.052] n=16 wins=11
+adaptive - control auc_gain +0.019 [+0.002, +0.033] n=16 wins=11
+adaptive_cal - control best100 -0.011 [-0.164, +0.141] n=8 wins=4
+adaptive_cal - control best200 +0.006 [-0.120, +0.124] n=8 wins=6
+adaptive_cal - control auc100 -0.055 [-0.198, +0.090] n=8 wins=3
+adaptive_cal - control auc200 -0.023 [-0.156, +0.110] n=8 wins=3
+adaptive_cal - control best_gain +0.018 [-0.047, +0.083] n=8 wins=4
+adaptive_cal - control auc_gain +0.031 [-0.000, +0.063] n=8 wins=7
+anneal - control best100 -0.015 [-0.128, +0.103] n=16 wins=6
+anneal - control best200 +0.024 [-0.066, +0.112] n=16 wins=6
+anneal - control auc100 -0.017 [-0.116, +0.080] n=16 wins=8
+anneal - control auc200 -0.003 [-0.098, +0.092] n=16 wins=6
+anneal - control best_gain +0.039 [-0.014, +0.086] n=16 wins=12
+anneal - control auc_gain +0.013 [-0.011, +0.038] n=16 wins=9
+exploit - control best100 -0.238 [-0.349, -0.121] n=16 wins=3
+exploit - control best200 -0.193 [-0.299, -0.073] n=16 wins=2
+exploit - control auc100 -0.223 [-0.310, -0.136] n=16 wins=3
+exploit - control auc200 -0.215 [-0.308, -0.114] n=16 wins=3
+exploit - control best_gain +0.045 [-0.009, +0.099] n=16 wins=10
+exploit - control auc_gain +0.009 [-0.013, +0.034] n=16 wins=7
+explore - control best100 +0.022 [-0.082, +0.122] n=16 wins=8
+explore - control best200 +0.049 [-0.043, +0.132] n=16 wins=10
+explore - control auc100 +0.040 [-0.054, +0.126] n=16 wins=10
+explore - control auc200 +0.041 [-0.052, +0.127] n=16 wins=10
+explore - control best_gain +0.027 [-0.020, +0.064] n=16 wins=11
+explore - control auc_gain +0.000 [-0.022, +0.021] n=16 wins=11
+prompt_exploit - control best100 -0.049 [-0.133, +0.037] n=16 wins=6
+prompt_exploit - control best200 -0.048 [-0.121, +0.032] n=16 wins=5
+prompt_exploit - control auc100 -0.033 [-0.112, +0.047] n=16 wins=7
+prompt_exploit - control auc200 -0.040 [-0.114, +0.039] n=16 wins=6
+prompt_exploit - control best_gain +0.000 [-0.038, +0.033] n=16 wins=9
+prompt_exploit - control auc_gain -0.007 [-0.028, +0.011] n=16 wins=8
+prompt_explore - control best100 -0.021 [-0.124, +0.082] n=16 wins=7
+prompt_explore - control best200 +0.008 [-0.067, +0.081] n=16 wins=7
+prompt_explore - control auc100 -0.041 [-0.115, +0.031] n=16 wins=8
+prompt_explore - control auc200 -0.024 [-0.103, +0.053] n=16 wins=7
+prompt_explore - control best_gain +0.028 [-0.025, +0.088] n=16 wins=10
+prompt_explore - control auc_gain +0.017 [-0.005, +0.037] n=16 wins=12
+randomdir - control best100 -0.059 [-0.159, +0.043] n=16 wins=6
+randomdir - control best200 -0.019 [-0.109, +0.065] n=16 wins=8
+randomdir - control auc100 -0.071 [-0.180, +0.030] n=16 wins=6
+randomdir - control auc200 -0.054 [-0.153, +0.040] n=16 wins=6
+randomdir - control best_gain +0.041 [-0.013, +0.098] n=16 wins=8
+randomdir - control auc_gain +0.018 [-0.009, +0.044] n=16 wins=9
+explore - exploit best100 +0.260 [+0.168, +0.342] n=16 wins=15
+explore - exploit best200 +0.241 [+0.159, +0.315] n=16 wins=14
+explore - exploit auc100 +0.263 [+0.186, +0.335] n=16 wins=15
+explore - exploit auc200 +0.255 [+0.178, +0.326] n=16 wins=15
+explore - exploit best_gain -0.019 [-0.073, +0.032] n=16 wins=7
+explore - exploit auc_gain -0.008 [-0.032, +0.012] n=16 wins=8
+prompt_explore - prompt_exploit best100 +0.028 [-0.042, +0.098] n=16 wins=10
+prompt_explore - prompt_exploit best200 +0.056 [-0.003, +0.116] n=16 wins=11
+prompt_explore - prompt_exploit auc100 -0.008 [-0.065, +0.057] n=16 wins=7
+prompt_explore - prompt_exploit auc200 +0.016 [-0.038, +0.077] n=16 wins=8
+prompt_explore - prompt_exploit best_gain +0.028 [-0.016, +0.086] n=16 wins=9
+prompt_explore - prompt_exploit auc_gain +0.024 [+0.010, +0.039] n=16 wins=14
+adaptive_cal - adaptive best100 -0.078 [-0.152, -0.000] n=8 wins=2
+adaptive_cal - adaptive best200 -0.053 [-0.134, +0.028] n=8 wins=3
+adaptive_cal - adaptive auc100 -0.075 [-0.135, -0.009] n=8 wins=2
+adaptive_cal - adaptive auc200 -0.062 [-0.123, +0.003] n=8 wins=3
+adaptive_cal - adaptive best_gain +0.026 [-0.028, +0.077] n=8 wins=5
+adaptive_cal - adaptive auc_gain +0.012 [-0.003, +0.030] n=8 wins=5

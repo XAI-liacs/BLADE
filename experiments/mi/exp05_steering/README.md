@@ -376,6 +376,60 @@ schedule. Queued behind the
 f2 campaign: starts when it exits, after backing up the source raw data,
 on GPU 3 (and GPU 2 once the f9 campaign frees it).
 
+**Budget 200, all arms, 16 seeds (finished 2026-11-18; `scripts/13_budget200.py
+llamea-ext200 llamea-ext200-adaptive llamea-ext200-rest llamea-ext200-seeds
+llamea-anneal200 llamea-randomdir200`, output in `results/budget200/`
+(`budget200.txt`, `per_run.csv`, `paired.csv`)).** MA-BBOB, seeds 300–315
+(adaptive_cal 300–307). The last four shards (anneal200 2–3, randomdir200)
+ran on GPU 0 with the user's permission. "@100" is the first 100 evaluations
+of the 200 run; for the warm-started arms that is the budget-100 run, for
+anneal200 it is mid-schedule (dose near 0, so it is not the old budget-100
+anneal) and for randomdir 308–315 it is a fresh run. failed is the share of
+failed algorithms in evaluations 101–200.
+
+| arm | best@100 | best@200 | gain | auc@100 | auc@200 | failed (101–200) | seeds |
+|---|---|---|---|---|---|---|---|
+| adaptive | 0.70 | 0.75 | +0.06 | 0.58 | 0.65 | 0.20 | 16 |
+| explore | 0.66 | 0.73 | +0.07 | 0.58 | 0.64 | 0.17 | 16 |
+| anneal | 0.62 | 0.70 | +0.08 | 0.52 | 0.60 | 0.16 | 16 |
+| prompt_explore | 0.62 | 0.69 | +0.07 | 0.50 | 0.58 | 0.12 | 16 |
+| control | 0.64 | 0.68 | +0.04 | 0.54 | 0.60 | 0.10 | 16 |
+| adaptive_cal | 0.59 | 0.67 | +0.08 | 0.49 | 0.57 | 0.13 | 8 |
+| randomdir | 0.58 | 0.66 | +0.08 | 0.47 | 0.55 | 0.17 | 16 |
+| prompt_exploit | 0.59 | 0.63 | +0.04 | 0.51 | 0.56 | 0.13 | 16 |
+| exploit | 0.40 | 0.49 | +0.09 | 0.32 | 0.39 | 0.14 | 16 |
+
+* Every arm keeps improving: the best gain from 100 to 200 is positive with
+  a CI above 0 for all nine arms (+0.04 to +0.09; 12–15 of 16 seeds
+  improve), so 100 evaluations is not saturated on MA-BBOB.
+* adaptive − control: best +0.063 (−0.012 to +0.144) at 100 and +0.076
+  (+0.022 to +0.135; 12/16 seeds) at 200, so with 16 seeds the
+  adaptive gain is significant at 200. auc +0.054 (−0.016 to +0.124); the
+  auc gain is larger than control's (+0.019, +0.002 to +0.033). The gap
+  holds and grows slightly with budget; it is not a faster-start effect.
+* exploit − control: best −0.238 (−0.349 to −0.121) at 100 and −0.193
+  (−0.299 to −0.073; 2/16 seeds) at 200; auc −0.215 at 200 (significant).
+  Exploit gains the most (+0.09) but stays far behind.
+* explore − exploit: best +0.260 (+0.168 to +0.342) at 100 and +0.241
+  (+0.159 to +0.315; 14/16) at 200; auc +0.255 at 200 (significant). The
+  dial's ordering is stable over budget.
+* explore − control: best +0.022 at 100 and +0.049 (−0.043 to +0.132;
+  10/16) at 200, n.s.; anneal − control +0.024 (n.s.) at 200 (anneal's
+  second half, dose < 0, is not harmful after an explore phase: gain +0.08,
+  15/16 seeds); randomdir − control −0.019 (n.s.). explore vs control is
+  not significant either, so a random direction of the same norm cannot be
+  separated from the explore direction on the final best at 16 seeds.
+* Prompt arms: prompt_explore − control +0.008, prompt_exploit − control
+  −0.048 at 200 (both n.s.); prompt_explore − prompt_exploit +0.056
+  (−0.003 to +0.116). The prompt has the same sign as the dial but a much
+  smaller effect, as at 100.
+* adaptive_cal − adaptive (8 seeds) best −0.053 (−0.134 to +0.028) at 200,
+  as before.
+* Reading: at budget 200 the ranking is adaptive > explore > anneal >
+  prompt_explore > control > adaptive_cal > randomdir > prompt_exploit >
+  exploit. The two significant findings at 100 (exploit hurts, explore >
+  exploit) hold at 200, and adaptive becomes significant with 16 seeds.
+
 **E4: the failure pre-screen on new problems
 (`results/prescreen-transfer`, `12_prescreen_transfer.py`).** The frozen
 MA-BBOB child-failure probe (`child_failed_gen_mean_L21`, experiment 1) on
