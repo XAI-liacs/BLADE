@@ -109,6 +109,8 @@ class OperatorSteeredLLM(HookedLLM):
         d = self.dial
         if not d or not d.get("mode"):
             return None
+        if not d.get("steer", True):
+            return None
         if d["mode"] == "adaptive":
             if op == "init" or self.adaptive_dose == 0.0:
                 return None
@@ -138,10 +140,11 @@ class OperatorSteeredLLM(HookedLLM):
             lever = options[np.random.randint(len(options))]
         else:
             lever = self._dial_lever(op)
-        if self.prompt_suffix:
+        suffix = self.prompt_suffix or self._adaptive_suffix(op)
+        if suffix:
             session_messages = [dict(m) for m in session_messages]
             last = max(i for i, m in enumerate(session_messages) if m["role"] == "user")
-            session_messages[last]["content"] += self.prompt_suffix
+            session_messages[last]["content"] += suffix
         if lever is not None:
             self.set_steering({lever["layer"]: lever["vector"]})
         try:
@@ -156,9 +159,27 @@ class OperatorSteeredLLM(HookedLLM):
         )
         solution.add_metadata("steer_dose", lever.get("dose") if lever else None)
         solution.add_metadata("progress", float(self.progress))
-        if self.prompt_suffix:
-            solution.add_metadata("prompt_suffix", self.prompt_suffix.strip())
+        if suffix:
+            solution.add_metadata("prompt_suffix", suffix.strip())
+        if self.dial and self.dial.get("mode") == "adaptive":
+            solution.add_metadata("adaptive_dose", float(self.adaptive_dose))
         return solution
+
+    def _adaptive_suffix(self, op: str) -> str:
+        """``adaptive_prompt``: the adaptive dial's schedule, with the
+        prompt sentence instead of the vector. After the (unsteered) initial
+        population, the explore sentence (dose > 0) or the exploit sentence
+        (dose < 0) is appended with probability |dose| / max dose, so the
+        expected push follows the same dose as the adaptive dial."""
+        d = self.dial
+        if not d or d.get("steer", True) or d.get("mode") != "adaptive":
+            return ""
+        if op == "init" or self.adaptive_dose == 0.0:
+            return ""
+        if np.random.rand() >= abs(self.adaptive_dose) / d["dose"]:
+            return ""
+        key = "explore" if self.adaptive_dose > 0 else "exploit"
+        return ELICIT_TEMPLATE.format(ELICIT[key])
 
 
 class _Algorithm(LLaMEAAlgorithm):
@@ -290,6 +311,8 @@ def dial_config(camp, arm) -> dict | None:
         "scale": info["residual_norm"],
         "name": camp.dial_direction,
         "random": random,
+        # adaptive_prompt: the dose schedule drives the prompt, not a vector
+        "steer": not arm.adaptive_prompt,
     }
 
 
@@ -363,6 +386,8 @@ def main():
         if arm.extra in plans:
             llm.plans = {f"x_{arm.extra}": plans[arm.extra]}
         llm.dial = dial_config(camp, arm)
+        if arm.temperature is not None:
+            llm.temperature = arm.temperature
         llm.prompt_suffix = (
             ELICIT_TEMPLATE.format(ELICIT[arm.prompt]) if arm.prompt else ""
         )

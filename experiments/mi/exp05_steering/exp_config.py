@@ -263,6 +263,11 @@ class LLaMEAArm:
     prompt: str = ""
     step: float = 0.1  # adaptive: dose change after a success
     target: float = 0.2  # adaptive: success rate at which the dose is stationary
+    # adaptive_prompt (with dial="adaptive"): the adaptive dial's dose
+    # schedule drives the prompt sentence of ``ELICIT`` instead of a vector
+    # (see ``05_llamea._adaptive_suffix``)
+    adaptive_prompt: bool = False
+    temperature: float | None = None  # sampling temperature (None: 0.8)
 
 
 ADAPTIVE_CAL_TARGET = 0.05  # control's success rate (step 5c/5d, all problems)
@@ -454,6 +459,35 @@ LLAMEA_CAMPAIGNS["llamea-ext200-seeds"] = LLaMEACampaign(
         a.name: "llamea-stage1-seeds"
         for a in LLAMEA_CAMPAIGNS["llamea-stage1-seeds"].arms
     },
+)
+
+# Review follow-up (paper_gecco2027/PREREG_confirm.md, registered
+# 2026-11-19 before the runs): a confirmation of adaptive vs control on 24
+# new seeds (316-339) at budget 200, with two baselines for the adaptive dial: the
+# same dose schedule driving the prompt sentence (adaptive_prompt), and a
+# higher sampling temperature (temp11: 1.1 instead of 0.8).
+CONFIRM_ARMS = [
+    LLaMEAArm("control"),
+    LLaMEAArm("adaptive", dial="adaptive"),
+    LLaMEAArm("adaptive_prompt", dial="adaptive", adaptive_prompt=True),
+    LLaMEAArm("temp11", temperature=1.1),
+]
+LLAMEA_CAMPAIGNS["llamea-confirm-smoke"] = LLaMEACampaign(
+    tag="llamea-confirm-smoke",
+    arms=CONFIRM_ARMS,
+    seeds=[995],
+    budget=16,
+    n_offspring=2,
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-confirm"] = LLaMEACampaign(
+    tag="llamea-confirm",
+    arms=CONFIRM_ARMS,
+    seeds=list(range(316, 340)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
 )
 
 # Step 5b: contrastive levers. A labelled corpus of code (natural: every
