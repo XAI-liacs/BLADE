@@ -386,3 +386,16 @@ and the fitness labels are nearly degenerate. Cause: MA-BBOB's feedback says
 README), so the model cannot learn the fix. **Decision:** `main` uses
 `BudgetEnforcedMABBOB`. Re-scored with it, the pilot's over-budget evolution
 strategy goes from AOCC 0.000 to 0.411.
+
+## Smoke-test baseline (2026-11-19, review follow-up)
+
+`scripts/10_smoke_test.py` re-evaluates the 3,600 children of the 36
+unscreened runs of the pre-registered test (labels reproduce for 99.9%).
+Evaluations are cheap: median 4.7 s (failing 2.7 s, working 4.9 s, about
+2.5 s of it sandbox start-up), and failing children use only 12% of the
+evaluation time; generating a child takes about 157 s (median latency in
+the loop). A smoke test with one instance and 100 function evaluations
+catches 85% of the failures and loses no working child (one instance,
+full budget: 97%); the probe at its threshold catches 71% and loses 16%
+of the working children. As a crash filter on MA-BBOB, a smoke test
+dominates the probe. Results in `results/smoke-baseline/summary.md`.

@@ -1172,3 +1172,24 @@ restricts the GPUs).
   16 test instances; the test differences vs control repeat the
   training ones.
 
+
+## Review follow-ups (2026-11-19)
+
+* **Confirmation campaign** (`llamea-confirm`, pre-registered in
+  `paper_gecco2027/PREREG_confirm.md`, commit c291e32): control,
+  adaptive, adaptive_prompt and temp11 on seeds 316–339, budget 200,
+  launched with `scripts/run_confirm.sh`. Infrastructure restart: the
+  first launch put five of six shards on GPU 2; after 13 minutes (no run
+  finished, no result looked at) all shards were stopped, the partial
+  output deleted, and the campaign relaunched with the shards spread over
+  GPUs 2 and 3 (same seeds and arms).
+* **Queued after it** (`scripts/run_review_queue.sh`): #5, the failure
+  pre-screen inside LLaMEA on Bragg (`17_prescreen_loop.py`, 12 seeds,
+  shadow vs screened, running-quantile threshold), and #6, the
+  exploration dial on Qwen3-14B (`EXP05_MODEL=qwen3-14b`: corpus
+  activations at layers 10/17/23/30/37, directions in
+  `processed/corpus-qwen3-14b`, screen `dial-qwen3-14b`).
+* **Multiplicity** (`16_review_stats.py`, `results/review/`): Holm over
+  all 43 arm-vs-control comparisons: none survives. Within problems: the
+  exploit dial on MA-BBOB (100: Holm 0.017; 200: 0.049) and explore on f9
+  (0.010). The adaptive dial at 200: p = 0.021, Holm 0.13.

@@ -71,6 +71,25 @@ skipping its top 21\% would be 92\% and 79\% precise
 since failure rates differ (70\% and 51\%), and must be recalibrated, for
 instance as a fixed share of skipped children.
 
+\paragraph{Is the pre-screen worth it?}
+Skipped evaluations are not saved time, and the probe is not the only
+cheap filter. We re-evaluated all 3,600 children of the unscreened runs
+and timed them (Table~\ref{tab:smoke}). On MA-BBOB, a failing child
+costs 2.7\,s (median, mostly sandbox start-up) and a working one
+4.9\,s, so even an oracle that skips exactly the failures saves only
+12\% of the evaluation time, and evaluation is a small part of the
+loop: generating a child takes about 157\,s here (median latency with
+the model shared by concurrent runs). A smoke test, one instance with
+100 function evaluations, catches 85\% of the failures and loses no
+working child; one instance with the full budget catches 97\%. As a
+filter for crashes on a cheap problem, a smoke test dominates the
+probe. The probe's value is elsewhere: it shows that the failure is
+represented while the code is written, it ranks failures on new
+problems without running any code, and it pays off where a single
+evaluation is expensive and cannot be truncated.\todo{decide the
+framing of C1 in the abstract and introduction; add the Bragg
+evaluation times from \#5}
+
 \begin{table}[t]
   \caption{Pre-screen with a frozen failure probe, \llamea on MA-BBOB,
     36 new seeds paired with unscreened runs.}

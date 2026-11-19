@@ -932,6 +932,48 @@ def tab_multiplicity():
     )
 
 
+def tab_smoke():
+    """Probe pre-screen vs smoke tests (exp01 10_smoke_test.py)."""
+    d = pd.read_csv(E1 / "smoke-baseline/summary.csv").set_index("screen")
+    names = [
+        ("probe (fixed threshold)", "probe, fixed threshold"),
+        ("smoke test, 100 evaluations", "smoke test: 1 instance, 100 evals"),
+        ("smoke test, 1 instance", "smoke test: 1 instance, full budget"),
+        ("probe, then smoke 100", "probe, then smoke test (100)"),
+        ("oracle (skip exactly the failures)", "oracle"),
+    ]
+    rows = []
+    for k, lab in names:
+        x = d.loc[k]
+        rows.append(
+            " & ".join(
+                [lab]
+                + [
+                    f"{100 * x[c]:.0f}\\%"
+                    for c in ("flagged", "failures_caught", "working_lost", "precision")
+                ]
+                + [f"{100 * x.time_screen:.0f}\\%"]
+            )
+        )
+    write(
+        "smoke",
+        table(
+            r"The probe pre-screen against smoke tests, on the 3,600 children"
+            r" of the 36 unscreened runs (16.5\% fail), every child"
+            r" re-evaluated in the original sandbox. Flagged children are"
+            r" not evaluated in full. Cost: time spent on the screen as a"
+            r" share of the time of all full evaluations, with the sandbox"
+            r" started separately for the smoke test (about 2.6\,s of the"
+            r" 2.7\,s per smoke test is start-up; run inside the full"
+            r" evaluation's sandbox it costs little).",
+            "tab:smoke",
+            "lrrrrr",
+            r"Screen & flagged & caught & working lost & precision & cost",
+            rows,
+        ),
+    )
+
+
 def counts():
     """Print numbers quoted in the text (campaign table, Table 3 note)."""
     tot = 0
@@ -963,4 +1005,5 @@ if __name__ == "__main__":
     tab_bbob()
     tab_cf_models()
     tab_multiplicity()
+    tab_smoke()
     counts()

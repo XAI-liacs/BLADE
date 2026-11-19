@@ -15,8 +15,8 @@ sandbox (``ProbeConfig`` of those campaigns):
 * ``smoke100``: one instance, 100 function evaluations, timeout 30 s;
 * ``smoke1i``: one instance, the full budget, timeout 120 s.
 
-Writes ``results/smoke/evals.csv`` (one row per child and variant).
-``--analyze`` writes ``results/smoke/summary.csv``/``.md``: for each
+Writes ``results/smoke-baseline/evals.csv`` (one row per child and variant).
+``--analyze`` writes ``results/smoke-baseline/summary.csv``/``.md``: for each
 screen (probe at its fixed threshold, the two smoke tests, and the probe
 followed by a smoke test), the share of failures caught, of working
 children lost, and the evaluation time spent and saved.
@@ -122,7 +122,7 @@ def evaluate(problem, row) -> dict:
 
 
 def run(workers: int, limit: int = 0):
-    out = results_dir(EXPERIMENT, "smoke" + ("-test" if limit else ""))
+    out = results_dir(EXPERIMENT, "smoke-baseline" + ("-test" if limit else ""))
     out.mkdir(parents=True, exist_ok=True)
     df = load_children()
     if limit:
@@ -161,7 +161,7 @@ def run(workers: int, limit: int = 0):
 
 
 def analyze():
-    out = results_dir(EXPERIMENT, "smoke")
+    out = results_dir(EXPERIMENT, "smoke-baseline")
     ch = pd.read_csv(out / "children.csv")
     ev = pd.read_csv(out / "evals.csv")
     w = ev.pivot_table(index="id", columns="variant", values=["seconds", "failed"])

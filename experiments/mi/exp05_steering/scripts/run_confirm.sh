@@ -14,9 +14,10 @@ source experiments/mi/env.sh >/dev/null 2>&1
 export MLFLOW_DISABLE_AGENT_HINT=1
 S=experiments/mi/exp05_steering/scripts
 JOBS="llamea-confirm:6"
-free_gpu() {  # prints an allowed GPU with >= 25 GB free, or nothing
+free_gpu() {  # the allowed GPU with the most free memory, if >= 25 GB
   nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits |
-    awk -F', ' -v ok=" $GPUS " 'index(ok, " " $1 " ") && $2 >= 25000 {print $1; exit}'
+    awk -F', ' -v ok=" $GPUS " 'index(ok, " " $1 " ") && $2 >= 25000' |
+    sort -t, -k2 -nr | head -1 | cut -d, -f1
 }
 for job in $JOBS; do
   TAG=${job%%:*}
