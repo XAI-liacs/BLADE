@@ -2,18 +2,38 @@
 \pages{0.5}
 
 \begin{itemize}
-  \item \plan{Reading is ready to use (pre-screen); writing is a weak
-    but real control: behaviour moves in single generations, selection
-    dilutes it in the loop. Implication: steer the selection or the
-    population composition, or combine the dial with
-    behaviour-aware selection.}
-  \item \plan{Steering at one dose for every token perturbs the code
-    unspecifically (random directions raise exploration too); report
-    random-direction controls.}
-  \item \plan{Limitations: open-weight models of 8--14B parameters;
-    one main benchmark (MA-BBOB 5-D); high failure rates on the transfer
-    problems; concept labels from code patterns; non-inferiority margin
-    of 0.10 \aocc.}
+  \item \plan{Reading is ready to use (pre-screen), and its ranking
+    transfers across problems; only the threshold needs recalibration.}
+  \item \plan{Writing is a real but blunt control. In one generation
+    the dial moves the measured exploration and, on every problem, the
+    algorithm families written (more population-based and DE code on
+    the explore side). In the loop, selection keeps what scores, so the
+    endpoint depends on whether the steered design space contains the
+    family that solves the problem (f2: population DE). Steering towards
+    exploitation narrows the space and never helps; steering towards
+    exploration rarely hurts.}
+  \item \plan{What to steer and when matters more than the direction:
+    steering the initial population breaks it (Bragg), anneal and the
+    stagnation-adaptive dial are the safe settings, and the adaptive
+    dial is the only arm that widens the search. EC-native control of
+    the dose (success rules, bandits) is the natural next step; our rule
+    saturates because improvements are rare.}
+  \item \plan{Steering vs.\ prompting: the prompt moves the measured
+    behaviour more, but narrows the families and imprints its wording;
+    neither beats control at a fixed setting. Report random-direction
+    controls: steering at one dose for every token perturbs the code
+    unspecifically.}
+  \item \plan{The landscape intuition (exploit on unimodal functions)
+    describes the optimiser's run-time behaviour; the dial changes the
+    designed algorithm, and exploit-steered code is single-point local
+    search that stalls on an ill-conditioned ellipsoid.}
+  \item \plan{Limitations: open-weight models of 8--14B parameters and
+    the dial on one model; 6--16 seeds per arm, so effects below
+    0.05 \aocc are not resolved; f20 and f9 discriminate little between
+    arms (all runs within 0.30--0.38 on f9); high failure rates on the
+    transfer problems; concept labels from code patterns;
+    non-inferiority margin of 0.10 \aocc; anneal's budget-200 schedule
+    is not the budget-100 one.}
   \item \plan{Benchmarks: the sandbox issues change failure statistics
     that AAD papers report.}
 \end{itemize}

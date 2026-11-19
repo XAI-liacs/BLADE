@@ -23,8 +23,9 @@ variation operator?
 
 \plan{Approach (1 paragraph).} Instrumented open-weight model
 (Qwen3-8B; replication on Qwen3-14B and Gemma-3-12B) inside \llamea on
-MA-BBOB, all via the \blade benchmark suite~\cite{blade2025}. Thousands
-of generated algorithms with their full activation traces, evaluation
+MA-BBOB, with transfer to photonics, circle packing and three BBOB
+functions in 20-D, all via the \blade benchmark suite~\cite{blade2025}.
+More than 75,000 generated algorithms with their activations, evaluation
 outcomes and traced search behaviour.
 
 \plan{Contributions (itemised list).}
@@ -33,7 +34,8 @@ outcomes and traced search behaviour.
     linearly decodable from the generator's state while it writes the
     code, beyond code text, output uncertainty and metadata; a frozen
     probe used as a pre-screen saves 21\% of evaluations with
-    non-inferior search quality (pre-registered test, 36 seeds).
+    non-inferior search quality (pre-registered test, 36 seeds); its
+    ranking transfers to new problems.
   \item \textbf{C2, what drives the edit.} The model represents parent
     fitness but does not use the written score; edits are driven by the
     parent code and by error traces (counterfactual prompts).
@@ -42,8 +44,13 @@ outcomes and traced search behaviour.
     undefined names (a source of crashes).
   \item \textbf{C4, writing.} Steering vectors as variation operators:
     concept levers that insert an algorithm family, and an exploration
-    dial that shifts measured search behaviour and transfers to a new
-    problem (mini-Bragg photonics); its effect in the closed loop.
+    dial that shifts measured search behaviour and the algorithm
+    families written on five new problems. In the closed loop, against
+    prompt instructions and a random direction: the exploit side is
+    harmful, a stagnation-adaptive dial is the best arm on MA-BBOB
+    (significant at 200 evaluations, 16 seeds), and a pre-registered
+    landscape test on BBOB 20-D fails: the dial acts on the design
+    space, not on the optimiser's behaviour.
   \item \textbf{C5, practice.} Sandbox and scoring issues in widely used
     AAD benchmarks that inflate failure rates or compress scores, and
     their fixes \todo{decide: contribution or setup paragraph}.

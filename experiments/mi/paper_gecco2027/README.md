@@ -18,18 +18,32 @@ paper due 25 Jan 2027. Limit: 8 pages without references; double-blind.
 ## Build
 
 `acmart.cls` and `ACM-Reference-Format.bst` ship with TeX Live and
-Overleaf, so they are not vendored here. Use the official ACM package
-from CTAN or the ACM template page.
+Overleaf, so they are not vendored here. Figures are made from the
+committed exp05 results:
 
 ```bash
+python figures/make_figures.py   # dial.pdf, budget200.pdf
 latexmk -pdf main.tex
 ```
 
+On the experiment machine (TeX Live 2026 in `/usr/local/texlive/2026`)
+`latexmk` and the format build fail because the system Perl lacks
+`File::Copy`/`File::Find`. Build the format once without Perl and run
+pdflatex/bibtex directly:
+
+```bash
+export PATH=/usr/local/texlive/2026/bin/x86_64-linux:$PATH
+export TEXFORMATS=$MI_CACHE/texfmt:
+(mkdir -p $MI_CACHE/texfmt && cd $MI_CACHE/texfmt && pdftex -ini -jobname=pdflatex -progname=pdflatex -etex pdflatex.ini)
+pdflatex main && bibtex main && pdflatex main && pdflatex main
+```
+
+Last compiled 2026-11-19: 6 pages including references, no errors or
+overfull lines. The `.gitignore` keeps `main.pdf` and the LaTeX aux
+files out of git.
+
 On Overleaf: upload this folder (or start from the ACM "Primary Article
 Template" and replace `main.tex`).
-
-The draft has not been compiled yet (no TeX installation on the
-experiment machine).
 
 ## Open decisions
 

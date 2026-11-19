@@ -45,8 +45,14 @@ $t$-test, 36 seeds (82\% power).}
     $p=0.25$).
   \item Adaptive thresholds (per operator, calibrated risk, running
     quantile) do not beat the fixed one.
+  \item The ranking transfers to new problems without retraining: the
+    frozen MA-BBOB probe reaches AUROC 0.77 on Bragg (refit 0.84) and
+    0.72 on packing (refit 0.73), far above code length (0.56--0.57);
+    skipping its top 21\% would be 92\% and 79\% precise. The threshold
+    does not transfer and must be recalibrated (e.g.\ a fixed skip
+    share).
 \end{itemize}
-\src{exp01\_probing/results/prescreen}
+\src{exp01\_probing/results/prescreen; exp05\_steering/results/prescreen-transfer}
 
 \begin{table}[t]
   \caption{Pre-screen on 36 new seeds. \todo{final layout}}

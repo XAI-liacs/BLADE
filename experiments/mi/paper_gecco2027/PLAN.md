@@ -1,5 +1,12 @@
 # Plan: experiments to complete the GECCO 2027 story
 
+**Status 2026-11-19.** Stage 1 (E2, E3, E4, E5 on MA-BBOB, Bragg and
+packing) and stage 2 (E1 on f20, f2, f9) are done, plus the MA-BBOB
+budget-200 extension of every arm (16 seeds). The results are in
+`sections/06_steering.tex` and `../exp05_steering/README.md`. E1's
+pre-registered prediction failed on all three functions. Stage 3 (E6)
+is open.
+
 Deadline: abstract 18 Jan 2027, paper 25 Jan 2027 (L4EC track). Compute:
 GPUs 2 and 3 only. Throughput so far: about 500 generated and evaluated
 algorithms per hour with 8 LLaMEA processes on the two GPUs (MA-BBOB

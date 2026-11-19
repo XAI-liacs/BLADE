@@ -10,6 +10,18 @@ overspends with 0; 84\% of the algorithms in our pilot did so, which
 degenerates the fitness labels).}
 \src{exp01\_probing, REPORT.md}
 
+\paragraph{Transfer problems.}
+\plan{Mini-Bragg photonics (10 layers) and unit-square circle packing
+($n=26$, sum of radii after repair), from \blade with our sandbox fixes;
+and BBOB~\cite{hansen2009bbob} f2 (separable ellipsoid), f9 (rotated
+Rosenbrock) and f20 (Schwefel) in 20-D, one function per campaign,
+budget $2000\cdot D$, \aocc on log regret (upper bound widened per
+function so that working code is not scored 0: $10^3$, $10^8$ and
+$10^6$ for f20, f2 and f9), trained on instances 10--14 and validated on
+16 held-out instances (15--30). The prompt does not describe the
+function: the model sees a black box.}
+\src{common/problems.py, common/transfer\_problems.py}
+
 \paragraph{Generator and instrumentation.}
 \plan{Qwen3-8B~\cite{qwen3} (thinking off, $T=0.8$); replication on
 Qwen3-14B and Gemma-3-12B-it. A hooked LLM wrapper (part of the released
@@ -41,19 +53,27 @@ initialisation code from 100\% to 29\%.}
 cite the fix (anonymously)}
 
 \begin{table}[t]
-  \caption{Campaigns. \todo{fill from the run configs}}
+  \caption{Campaigns with Qwen3-8B unless noted. Runs are \llamea runs of
+    100 evaluated algorithms; screens generate one generation.}
   \label{tab:campaigns}
   \small
+  \setlength{\tabcolsep}{3pt}
   \begin{tabular}{llrr}
     \toprule
     Campaign & Purpose & Runs & Algorithms\\
     \midrule
-    probing (main) & probes, C1--C2 & 12 & 1200\\
-    pre-screen & non-inferiority test & 36 $\times$ 2 & \todo{}\\
-    replication & 14B, Gemma & \todo{} & \todo{}\\
-    steering screens & levers, dial, C4 & -- & \todo{}\\
-    steered \llamea & closed loop & 5 arms $\times$ 8 & 4000\\
-    transfer & Bragg, packing & \todo{} & \todo{}\\
+    probing (main) & probes, C1--C2 & 12 & 1,200\\
+    pre-screen & non-inferiority test & 36 $\times$ 2 & 7,200\\
+    replication & 14B, Gemma, C1--C2 & 2 $\times$ 24 & 4,800\\
+    corpus & contrastive directions & -- & 4,712\\
+    steering screens & levers, dial & -- & \todo{}\\
+    transfer screens & 5 problems & -- & $\approx$2,000\\
+    \llamea, MA-BBOB & 9 arms, 16 seeds, & 136 & 28,000\\
+      & budget 100 and 200 & & \\
+    \llamea, Bragg/packing & 8 arms, 6 seeds & 2 $\times$ 48 &
+      9,600\\
+    \llamea, BBOB 20-D & 6 arms, 10 seeds & 3 $\times$ 60 &
+      18,000\\
     \bottomrule
   \end{tabular}
 \end{table}
