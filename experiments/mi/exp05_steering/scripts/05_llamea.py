@@ -293,7 +293,7 @@ def dial_config(camp, arm) -> dict | None:
     """The dial of an arm: unit direction, layer and scale from the corpus."""
     if not arm.dial:
         return None
-    proc = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    proc = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     info = json.loads((proc / "info.json").read_text())[camp.dial_direction]
     unit = np.load(proc / "directions.npz")[camp.dial_direction].astype(np.float32)
     rng = np.random.default_rng(54321)

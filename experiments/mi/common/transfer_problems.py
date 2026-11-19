@@ -324,6 +324,68 @@ class TracedPhotonics(Photonics):
         return solution
 
 
+REJECTED_MSG = "The algorithm was rejected before evaluation: it is predicted to fail."
+
+
+class PreScreenedPhotonics(TracedPhotonics):
+    """``TracedPhotonics`` with the probe pre-screen of experiment 1, and a
+    threshold that needs no calibration on the problem: a running quantile.
+
+    The solution carries ``metadata["prescreen_score"]`` (set by
+    ``common.prescreen.ScreenedHookedLLM``). A child is flagged if its score
+    is above the ``1 - share`` quantile of the last ``window`` scores of the
+    same run; nothing is flagged before ``warmup`` scores are seen (the
+    initial population). The problem is deep-copied per run by BLADE's
+    ``Experiment``, so the score history is per run.
+
+    * ``act=False`` (shadow): LLaMEA sees the true result; the flag is
+      logged.
+    * ``act=True`` (screened): a flagged child is shown to LLaMEA as failed.
+
+    Every child is still evaluated, so ``metadata`` holds the true result
+    (``true_fitness``, ``true_error``, ``true_feedback``) and the
+    evaluation time (``eval_seconds``).
+    """
+
+    def __init__(self, *args, act: bool, share=0.21, window=24, warmup=12, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.act, self.share, self.window, self.warmup = act, share, window, warmup
+        self.scores: list[float] = []
+        self.name = f"{self.name}_{'screened' if act else 'shadow'}"
+
+    def __call__(self, solution: Solution, logger=None):
+        run_logger, self.logger = self.logger, None  # log once, below
+        t0 = time.perf_counter()
+        try:
+            if run_logger is not None and run_logger.budget_exhausted():
+                self.logger = run_logger
+                return super().__call__(solution)
+            solution = super().__call__(solution)
+        finally:
+            self.logger = run_logger
+        seconds = time.perf_counter() - t0
+        score = solution.metadata.get("prescreen_score")
+        flagged = False
+        if score is not None:
+            hist = self.scores[-self.window :]
+            if len(hist) >= self.warmup:
+                flagged = bool(score > np.quantile(hist, 1 - self.share))
+            self.scores.append(float(score))
+        fit = solution.fitness
+        fit = float(fit) if isinstance(fit, (int, float)) and np.isfinite(fit) else None
+        solution.add_metadata("prescreen_flagged", flagged)
+        solution.add_metadata("prescreen_act", bool(self.act))
+        solution.add_metadata("true_fitness", fit)
+        solution.add_metadata("true_error", solution.error or "")
+        solution.add_metadata("true_feedback", solution.feedback)
+        solution.add_metadata("eval_seconds", seconds)
+        if flagged and self.act:
+            solution.set_scores(-np.inf, feedback=REJECTED_MSG, error=REJECTED_MSG)
+        if self.logger is not None:
+            self.logger.log_individual(solution)
+        return solution
+
+
 # The evaluation sandbox only has BLADE's repo root on its path; ship this
 # module inside the pickle so the subclasses can be loaded there.
 cloudpickle.register_pickle_by_value(_sys.modules[__name__])

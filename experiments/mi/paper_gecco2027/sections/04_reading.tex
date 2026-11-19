@@ -101,6 +101,15 @@ in 14 of 16 pairs. For a working parent, rewriting its score from 0.01
 to 0.90, or deleting the feedback, changes neither the child's failure
 rate nor its fitness, and the internal fitness readout moves by only
 $\pm0.04$. Steering along the fitness representation changes how much
-of the parent is rewritten, not the outcome. For this model class, the
-score in the feedback is decorative; the error trace and the parent code
-drive the edit.
+of the parent is rewritten, not the outcome.
+
+The replication on Qwen3-14B and Gemma-3-12B
+(Table~\ref{tab:cf-models}) confirms the main point and
+qualifies the rest. No model uses the written score (Gemma's failures
+rise slightly with a low score, +0.08, one of many effects tested).
+Qwen3-14B uses the error trace as Qwen3-8B does (+0.24 failures
+without it), but Gemma does not: it reads the trace (it repeats the
+same exception more often without it), yet its failure rate does not
+change. The effect of steering along fitness does not replicate. For
+these models, the score in the feedback is decorative; the parent code
+and, model-dependently, the error trace drive the edit.

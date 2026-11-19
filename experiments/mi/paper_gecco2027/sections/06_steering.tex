@@ -102,7 +102,17 @@ to $+0.14$) at 100 evaluations and becomes significant at 200: +0.08
 calibrated to the actual success rate is not better ($-0.05$, CI $-0.13$
 to $+0.03$, 8 seeds). Every arm still improves from 100 to 200
 evaluations (+0.04 to +0.09, all CIs above 0), so the gap between the
-arms is not just a faster start.
+arms is not just a faster start. We compared many arms on several
+problems, so we also report every arm-versus-control test with Holm's
+correction (Table~\ref{tab:multiplicity}). Within MA-BBOB, the harm of
+the exploit dial survives the correction at both budgets; the gain of
+the adaptive dial does not ($p=0.021$, Holm 0.13), so it is
+exploratory, and so is the choice of 200 evaluations, which we made
+after the analysis at 100. We therefore test it on 24 new seeds in a
+pre-registered confirmation, together with two baselines for its
+schedule: the same dose schedule driving the prompt sentence instead of
+the vector, and a higher sampling temperature.\todo{confirmation
+results (llamea-confirm, PREREG\_confirm.md)}
 
 The fixed explore dial, anneal, the random direction and both prompts
 cannot be distinguished from control ($|\Delta|\le0.05$ at 200). The
@@ -173,11 +183,14 @@ the prediction that on the multimodal f20 explore $>$ control $>$
 exploit, and on the unimodal f2 and f9 exploit $\ge$ control $>$
 explore (6 arms, 10 seeds, 100 evaluations; Table~\ref{tab:bbob}).
 
-The prediction fails on all three functions. On f20 all arms end at
-0.24--0.26; explore has the best anytime curve (area +0.025, CI +0.004
-to +0.057). On f2, control $\approx$ adaptive $\ge$ explore $>$ exploit
-(control $-$ exploit +0.21, CI $-0.00$ to $+0.40$). On f9, explore is
-best (+0.013, CI +0.007 to +0.020, 10 of 10 seeds). The explanation is
+The data support the prediction on none of the three functions. On
+f20 all arms end at 0.24--0.26, within $\pm0.05$ of control (90\% CI,
+equivalence bound); explore has the best anytime curve (area +0.025, CI
++0.004 to +0.057). On f2, control $\approx$ adaptive $\ge$ explore $>$ exploit
+(control $-$ exploit +0.21, CI $-0.00$ to $+0.40$). On f9, every arm is
+within $\pm0.02$ of control, and explore is best, the opposite of the
+prediction (+0.013, CI +0.007 to +0.020, 10 of 10 seeds; it survives
+Holm's correction within the problem). The explanation is
 in the design space, not in the behaviour. The exploit dial cuts the
 families written by 9 to 13 on every function (all significant) and
 nearly removes DE and crossover (Table~\ref{tab:bbob-full}). On f2 the

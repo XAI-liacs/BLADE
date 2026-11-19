@@ -106,7 +106,7 @@ def stage_acts(args):
             tok_norm[i, j] = h.norm(dim=-1).mean().item()
         if (i + 1) % 200 == 0:
             print(f"acts: {i + 1}/{len(df)}", flush=True)
-    out = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    out = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     out.mkdir(parents=True, exist_ok=True)
     np.savez(out / "acts.npz", acts=acts, tok_norm=tok_norm, layers=CONTRAST_LAYERS)
     df.drop(columns=["code", "behaviour"]).to_csv(out / "rows.csv", index=False)
@@ -158,7 +158,7 @@ def residualise(X_fit, C_fit, X_apply, C_apply):
 def stage_directions(args):
     from scipy.stats import spearmanr
 
-    proc = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    proc = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     z = np.load(proc / "acts.npz")
     acts, tok_norm, layers = z["acts"].astype(np.float32), z["tok_norm"], z["layers"]
     df = pd.read_csv(proc / "rows.csv")
@@ -223,7 +223,7 @@ def stage_directions(args):
 
 
 def report(df, vecs, info, layers):
-    out = results_dir(EXPERIMENT, CORPUS["tag"])
+    out = results_dir(EXPERIMENT, CORPUS["processed_tag"])
     out.mkdir(parents=True, exist_ok=True)
     lines = [f"# Contrastive directions (`{CORPUS['tag']}`)", ""]
     # corpus: concept rate per elicited target, behaviour per source

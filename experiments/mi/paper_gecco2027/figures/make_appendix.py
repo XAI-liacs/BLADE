@@ -834,6 +834,104 @@ def tab_bbob():
     )
 
 
+def tab_cf_models():
+    """Counterfactual effects on the child's failure rate, three models."""
+    models = [
+        ("cf", "Qwen3-8B"),
+        ("cf-qwen3-14b", "Qwen3-14B"),
+        ("cf-gemma-3-12b", "Gemma-3-12B"),
+    ]
+    variants = [
+        ("error", "no_error", "error trace deleted"),
+        ("error", "error_generic", "generic error message"),
+        ("scored", "no_feedback", "feedback deleted"),
+        ("scored", "score_low", "score set to 0.01"),
+        ("scored", "score_high", "score set to 0.90"),
+    ]
+    effs = {k: pd.read_csv(E2 / k / "cf_effects.csv") for k, _ in models}
+    rows = []
+    for st, v, lab in variants:
+        cells = [lab]
+        for k, _ in models:
+            e = effs[k]
+            x = e[(e.stratum == st) & (e.variant == v) & (e.metric == "failed")]
+            cells.append(
+                ci(*x.iloc[0][["effect", "ci_low", "ci_high"]]) if len(x) else "--"
+            )
+        rows.append(" & ".join(cells))
+    base = []
+    for k, _ in models:
+        e = effs[k]
+        base.append(
+            f(e[(e.stratum == "error") & (e.metric == "failed")].full.iloc[0])
+            + "/"
+            + f(e[(e.stratum == "scored") & (e.metric == "failed")].full.iloc[0])
+        )
+    write(
+        "cf_models",
+        table(
+            r"Counterfactual prompts in three models: change in the child's"
+            r" failure rate (95\% bootstrap CI; bold: excludes 0). Upper"
+            r" rows: parents that crashed; lower rows: working parents."
+            r" Unchanged-prompt failure rates (crashed/working parent): "
+            + ", ".join(f"{n} {b}" for (_, n), b in zip(models, base))
+            + ".",
+            "tab:cf-models",
+            "llll",
+            "Variant & " + " & ".join(n for _, n in models),
+            rows,
+        ),
+    )
+
+
+def tab_multiplicity():
+    """Arm-vs-control tests with Holm's correction (16_review_stats.py)."""
+    m = pd.read_csv(E5 / "review/multiplicity.csv")
+    rows = []
+    for prob, g in m.groupby("problem", sort=False):
+        first = True
+        for _, x in g.iterrows():
+            p = f"{x.p:.3f}"
+            ph = f"{x.p_holm_problem:.3f}"
+            if x.p_holm_problem < 0.05:
+                ph = r"\textbf{" + ph + "}"
+            rows.append(
+                " & ".join(
+                    [
+                        prob if first else "",
+                        ARM_TEX[x.arm],
+                        str(int(x.seeds)),
+                        ci(x["diff"], x.lo95, x.hi95, 3, bold=False),
+                        f(x.equiv_bound, 3),
+                        p,
+                        ph,
+                        f"{x.p_holm_all:.2f}",
+                    ]
+                )
+            )
+            first = False
+        rows.append(r"\midrule")
+    rows = rows[:-1]
+    write(
+        "multiplicity",
+        table(
+            r"Every arm compared with control on the best score of the run,"
+            r" paired by seed: mean difference with 95\% bootstrap CI;"
+            r" equivalence bound (largest $|\Delta|$ inside the 90\% CI,"
+            r" TOST at $\alpha=0.05$); exact two-sided sign-flip $p$; Holm's"
+            r" correction within the problem and over all"
+            f" {len(m)} comparisons. Bold: Holm within the problem $<0.05$."
+            r" With 6 seeds the smallest attainable $p$ is 1/32.",
+            "tab:multiplicity",
+            "lllllrrr",
+            r"Problem & Arm & seeds & $\Delta$ [95\% CI] & equiv. & $p$ &"
+            r" Holm (prob.) & Holm (all)",
+            rows,
+            size="footnotesize",
+        ),
+    )
+
+
 def counts():
     """Print numbers quoted in the text (campaign table, Table 3 note)."""
     tot = 0
@@ -863,4 +961,6 @@ if __name__ == "__main__":
     tab_mabbob()
     tab_bragg_packing()
     tab_bbob()
+    tab_cf_models()
+    tab_multiplicity()
     counts()

@@ -134,7 +134,7 @@ def corpus_probe(layer: int):
     from sklearn.pipeline import make_pipeline
     from sklearn.preprocessing import StandardScaler
 
-    proc = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    proc = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     a = np.load(proc / "acts.npz")
     rows = pd.read_csv(proc / "rows.csv")
     keep = (rows.exploration_pct.notna() & ~rows.failed.astype(bool)).to_numpy()

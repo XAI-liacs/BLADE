@@ -41,10 +41,9 @@ traced search behaviour. Our contributions are:
     search metadata. A frozen probe used as a pre-screen skips 21\% of
     the evaluations with non-inferior search quality (pre-registered
     test, 36 seeds), and its ranking transfers to new problems.
-  \item \textbf{C2, what drives the edit (Sec.~\ref{sec:reading}).} The
-    model represents the parent's fitness but does not use the score
-    written in the prompt; its edits follow the parent code and the
-    error trace.
+  \item \textbf{C2, what drives the edit (Sec.~\ref{sec:reading}).} None of
+    three models uses the score written in the feedback; the edits
+    follow the parent code and, in the Qwen models, the error trace.
   \item \textbf{C3, concepts (Sec.~\ref{sec:concepts}).}
     Sparse-autoencoder features detect metaheuristic building blocks
     beyond their keywords, and one feature fires on undefined names, a
@@ -56,9 +55,12 @@ traced search behaviour. Our contributions are:
     derived from, the algorithm families written. In the closed loop,
     compared with prompt instructions and a random direction, steering
     towards exploitation is harmful, and a stagnation-adaptive dial is
-    the best arm on MA-BBOB (significant at 200 evaluations, 16 seeds).
-    A pre-registered landscape test on BBOB 20-D fails: the dial acts on
-    the design space, not on the optimiser's behaviour.
+    the best arm on MA-BBOB (+0.08 \aocc at 200 evaluations; tested on
+    new seeds in a pre-registered confirmation).\todo{update with the
+    confirmation result}
+    A pre-registered landscape test on BBOB 20-D finds no support for
+    the intuition that unimodal functions call for exploitation: the
+    dial acts on the design space, not on the optimiser's behaviour.
 \end{itemize}
 Along the way we found sandbox and scoring issues in widely used AAD
 benchmarks that inflate failure rates or compress scores

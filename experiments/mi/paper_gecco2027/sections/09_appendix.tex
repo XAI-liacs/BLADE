@@ -66,6 +66,13 @@ reminder that any perturbation at every token has a cost.
 
 \input{sections/gen/counterfactual}
 
+Table~\ref{tab:cf-models} repeats the main variants in Qwen3-14B and
+Gemma-3-12B. The score is ignored in all three. The error trace matters
+for both Qwen models. Gemma's failure rate is high whatever the prompt
+(72\% after a crashed parent), and the trace does not lower it.
+
+\input{sections/gen/cf_models}
+
 \section{Concept Features}\label{app:concepts}
 
 Table~\ref{tab:keyword} shows, per concept, the SAE feature that best
@@ -145,5 +152,17 @@ fitness.
   \label{fig:curves-transfer}
 \end{figure*}
 
+\paragraph{Multiple comparisons.}
+Table~\ref{tab:multiplicity} lists every arm-versus-control comparison of
+the closed-loop campaigns, with exact sign-flip tests and Holm's
+correction. Over all 43 comparisons, none survives. Within a problem,
+three do: the exploit dial on MA-BBOB at 100 and at 200 evaluations,
+and the explore dial on f9. With 6 seeds (Bragg, packing) no comparison
+can survive any correction, so those campaigns can only show large,
+consistent effects; their equivalence bounds (0.27--0.82) are wide.
+On f20 and f9 the bounds are small (at most 0.05 and 0.02): there,
+the arms are practically equivalent.
+
+\input{sections/gen/multiplicity}
 \input{sections/gen/bragg_packing}
 \input{sections/gen/bbob}

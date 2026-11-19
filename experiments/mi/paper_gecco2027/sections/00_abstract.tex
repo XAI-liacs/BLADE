@@ -6,13 +6,13 @@ writes optimisation heuristics in \llamea. \emph{Reading:} a
 linear probe on the residual stream predicts, during writing, whether the new algorithm will crash (AUROC 0.85, +0.08 over
 code text, output uncertainty and search metadata). As a free
 pre-screen, it skips 21\% of evaluations with non-inferior
-quality, and its ranking transfers to new problems. The model represents
-the parent's fitness, but its edits ignore the written score and follow
-the parent code and error traces. \emph{Writing:} a contrastive
+quality, and its ranking transfers to new problems. In three models, the
+edits ignore the score written in the feedback and follow the parent
+code and error traces. \emph{Writing:} a contrastive
 activation direction acts as a dial for the measured exploration of the
 code and, on five unseen problems, for the algorithm families written. In the closed loop, steering towards exploitation
 narrows the design space and costs up to 0.24 \aocc; a dial adapted to
 stagnation is the best arm on MA-BBOB (+0.08 \aocc at 200 evaluations).
-A pre-registered test on BBOB 20-D rejects the intuition ``exploit on
-unimodal, explore on multimodal functions'': the dial acts on the design
-space, not on the optimiser's behaviour.
+A pre-registered test on BBOB 20-D finds no support for the intuition
+``exploit on unimodal, explore on multimodal functions'': the dial acts
+on the design space, not on the optimiser's behaviour.

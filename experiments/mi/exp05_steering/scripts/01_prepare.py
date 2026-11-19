@@ -147,7 +147,7 @@ def prepare_contrast(camp, rng, out):
     (``"diff"``, as in contrastive activation addition)."""
     from exp_config import CORPUS
 
-    src = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    src = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     vecs = np.load(src / "directions.npz")
     all_info = json.loads((src / "info.json").read_text())
     arrays, info = {}, {}

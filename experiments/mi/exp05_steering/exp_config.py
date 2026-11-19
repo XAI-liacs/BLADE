@@ -9,6 +9,7 @@ directions get the median scale of the features at their layer. Negative
 doses subtract the direction.
 """
 
+import os
 from dataclasses import dataclass, field
 
 EXPERIMENT = "exp05_steering"
@@ -17,7 +18,13 @@ CONCEPT_EXPERIMENT = "exp03_concept_features"  # features and their scales
 SOURCE_TAGS = ("main", "prescreen", "prescreen2")
 CONCEPT_TAG = "k100"
 
-MODEL = "qwen3-8b"
+# The generator. ``EXP05_MODEL=qwen3-14b`` switches the corpus activations,
+# the contrastive directions (``CORPUS["processed_tag"]``) and the
+# single-generation screens to Qwen3-14B (review follow-up #6: does the
+# exploration dial replicate on a second model?). Everything else in this
+# experiment uses Qwen3-8B.
+MODEL = os.environ.get("EXP05_MODEL", "qwen3-8b")
+_MODEL_SUFFIX = "" if MODEL == "qwen3-8b" else f"-{MODEL}"
 SAE = "Qwen/SAE-Res-Qwen3-8B-Base-W64K-L0_100"
 
 # name -> (layer, feature, concept label it should add or None)
@@ -199,6 +206,21 @@ CAMPAIGNS = {
         tag="dial",
         directions=[f"b_exploration_pct_resid@L{l}" for l in (15, 27)],
         random_layers=[15, 27],
+        doses=[-0.4, -0.2, 0.2, 0.4],
+        dose_unit="residual",
+        direction_source="contrast",
+        traced=True,
+        n_init=8,
+        n_mut=24,
+        k=2,
+        seed=2,
+    ),
+    # Review follow-up #6 (EXP05_MODEL=qwen3-14b): the dial screen of
+    # Qwen3-14B, at the layers of 8B's L15 and L27 (relative depth).
+    "dial-qwen3-14b": Campaign(
+        tag="dial-qwen3-14b",
+        directions=[f"b_exploration_pct_resid@L{l}" for l in (17, 30)],
+        random_layers=[17, 30],
         doses=[-0.4, -0.2, 0.2, 0.4],
         dose_unit="residual",
         direction_source="contrast",
@@ -524,12 +546,16 @@ ELICIT = {
 }
 ELICIT_TEMPLATE = "\nThe algorithm must use {}."
 CORPUS = {
-    "tag": "corpus",
+    "tag": "corpus",  # raw corpus (code and behaviour labels), any model
+    "processed_tag": f"corpus{_MODEL_SUFFIX}",  # activations and directions
     "n_per_target": 24,
     "natural": {"exp01_probing": "main", "exp05_steering": "llamea"},
     "trace_instances": list(range(10)),  # all of experiment 1's instances
 }
-CONTRAST_LAYERS = [9, 15, 21, 27, 33]
+CONTRAST_LAYERS = {
+    "qwen3-8b": [9, 15, 21, 27, 33],  # of 36 layers
+    "qwen3-14b": [10, 17, 23, 30, 37],  # of 40: the same relative depths
+}[MODEL]
 BEHAVIOUR_METRICS = [
     "exploration_pct",
     "dist_to_best",

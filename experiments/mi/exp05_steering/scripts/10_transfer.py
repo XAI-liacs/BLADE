@@ -89,7 +89,7 @@ def make_problem(name: str):
 def dial(camp) -> dict:
     """Unit dial direction, its layer and scale, and the 8 random units
     (same generator as ``05_llamea.dial_config``)."""
-    proc = data_dir(EXPERIMENT, "processed", CORPUS["tag"])
+    proc = data_dir(EXPERIMENT, "processed", CORPUS["processed_tag"])
     info = json.loads((proc / "info.json").read_text())[camp.direction]
     unit = np.load(proc / "directions.npz")[camp.direction].astype(np.float32)
     rng = np.random.default_rng(54321)
