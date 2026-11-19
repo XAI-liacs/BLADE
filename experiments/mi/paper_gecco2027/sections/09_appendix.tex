@@ -1,0 +1,149 @@
+%% Appendix. For the GECCO submission this part goes into the
+%% (anonymised) supplementary material; it is compiled after the
+%% references so the main paper stays within 8 pages.
+\clearpage
+\appendix
+
+\section{Reading the Generator: Details}\label{app:reading}
+
+\paragraph{Probes per layer and position.}
+Figure~\ref{fig:probes-all} shows every probe target for the three
+models, per layer and position. Three patterns hold across models.
+First, the outcome of the child is decodable from the generated code
+(black) much better than from the prompt (blue, orange): failure is a
+property of what is written, not of what is asked. Second, parent
+fitness is decodable from the prompt in all positions, as it should be,
+since the prompt contains the parent and its score. Third, whether the
+child improves on its parent is hardly decodable, and the probe adds
+nothing to metadata and text in any model: nothing in the state
+predicts progress.
+Table~\ref{tab:incremental} gives the incremental value of the probe
+over the baselines. For the crash, the probe adds to metadata and text
+in all three models; for over-budget children it adds only in Qwen3-8B,
+because the parent's outcome already predicts most of it; for child
+fitness, it adds only in Gemma-3-12B, whose text baselines are weak.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/probes_all}
+  \caption{Probe scores per layer for all targets (columns) and models
+    (rows), at three positions: last prompt token, mean over the prompt,
+    and mean over the generated code. Grey: the generated-code probe on
+    shuffled labels. Dashed: the best single baseline (metadata, code
+    text or output uncertainty). Child-outcome probes use the generated
+    code, which the model writes itself; parent fitness is in the prompt.}
+  \Description{A grid of 15 line plots. The generated-code probe is
+    highest for crashes and over-budget children in all three models;
+    no probe exceeds the baseline for child improvement.}
+  \label{fig:probes-all}
+\end{figure*}
+
+\input{sections/gen/incremental}
+
+\paragraph{Pre-screen.}
+Table~\ref{tab:prescreen-rules} compares threshold rules offline on the
+unscreened runs of the pre-registered test. All rules flag about a
+quarter of the children and catch about 70\% of the failures, at a cost
+of 15--17\% of the working children and 11--14\% of the top decile. The
+calibrated rules gain nothing over a fixed threshold, so we kept the
+simplest. Table~\ref{tab:prescreen-transfer} shows the transfer of the
+frozen probe to the transfer screens of Sec.~\ref{sec:steering}: the
+MA-BBOB threshold flags almost every child on Bragg and packing, whose
+failure rates are 70\% and 51\%, but ranking by the frozen score is
+nearly as good as a probe fit on the problem itself.
+
+\input{sections/gen/prescreen_rules}
+\input{sections/gen/prescreen_transfer}
+
+\paragraph{Counterfactual prompts.}
+Table~\ref{tab:counterfactual} lists every variant. Only changes to the
+error trace of a crashed parent change the outcome; changes to the
+score, the feedback or a budget message do not. Steering along the
+probe direction for parent fitness shifts the similarity of the child
+to its parent in opposite directions ($-0.03$ up, $+0.03$ down), but
+changes neither its failure rate nor its fitness. A random direction at the same norm raises failures, a
+reminder that any perturbation at every token has a cost.
+
+\input{sections/gen/counterfactual}
+
+\section{Concept Features}\label{app:concepts}
+
+Table~\ref{tab:keyword} shows, per concept, the SAE feature that best
+survives masking the lines that contain the concept's keywords. Most
+features drop sharply under line masking, which shows that they read
+the keywords themselves (elitism, restart, step-size adaptation). The
+features for surrogate, covariance, gradient, population, particle
+swarm, adaptive parameters and local search stay well above what the
+other concepts and the code length predict. The crossover and DE
+features also survive masking, but the other concepts predict DE
+almost as well (0.95): they read the DE family as a whole.
+
+\input{sections/gen/keyword}
+
+\section{Steering: Screens and Transfer}\label{app:steering}
+
+\paragraph{Contrastive concept levers.}
+Table~\ref{tab:levers} lists the ten contrastive directions for rare
+concepts. Four insert their concept at one of the two doses; the others
+change failures but not the concept. Even the working levers raise
+failures, and at a dose of 0.5 most directions raise the failure rate
+by 0.25 or more.
+
+\input{sections/gen/levers}
+
+\paragraph{Transfer screens.}
+Table~\ref{tab:transfer} gives the slopes per unit dose of the dial on
+each transfer problem. The design-space columns (population, DE, local
+search, gradient) move on every problem, while the behaviour columns
+(exploration, intensification) move only on Bragg and, weakly, f20.
+The quality of the generated code rises with the dose on f2 and f9.
+
+\input{sections/gen/transfer}
+
+\section{Steered \llamea: Full Results}\label{app:loop}
+
+\paragraph{MA-BBOB\@.}
+Table~\ref{tab:mabbob-b200} gives the paired comparisons at 100 and 200
+evaluations, including the area under the best-so-far curve, the number
+of seeds on which each arm beats control, and three contrasts between
+arms. Table~\ref{tab:mabbob-search} gives the search statistics of the
+first 100 evaluations. The exploit dial lowers intensification and
+raises the measured exploration of the final algorithms: its code moves
+widely without intensifying. The
+prompts move exploration in the intended direction, but they write the
+fewest families. Table~\ref{tab:mabbob-concepts} shows which concepts
+each arm writes: the explore dial and anneal write population-based DE
+with crossover; the exploit dial removes DE, crossover and elitism
+almost entirely; the exploit prompt writes step-size adaptation and
+covariance learning, the words of its instruction.
+
+\input{sections/gen/mabbob_b200}
+\input{sections/gen/mabbob_search}
+\input{sections/gen/mabbob_concepts}
+
+\paragraph{Bragg, packing and BBOB\@.}
+Table~\ref{tab:bragg-packing} gives the paired results on Bragg and
+packing, Table~\ref{tab:bbob-full} those on the three BBOB functions,
+and Fig.~\ref{fig:curves-transfer} the best-so-far curves. On BBOB the
+picture is consistent across functions: the exploit dial and both
+prompts cut the families written by 8 to 18, the exploit side removes
+DE, and only on f2, where DE is the winning family, does this cost
+fitness.
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/curves_transfer}
+  \caption{Best-so-far score of the steered \llamea arms on the transfer
+    problems, mean over seeds (Bragg and BBOB: \aocc; packing: sum of
+    radii). Anneal and the random direction were run on Bragg and
+    packing only.}
+  \Description{Five line plots over 100 evaluations. On Bragg, control
+    ends highest at about 0.58 and the dial arms lower; on packing, all
+    arms end between 1.8 and 2.3; on f20 and f9 all arms end close
+    together; on f2, control and the adaptive dial reach about 0.6, the
+    explore dial 0.54 and the exploit and prompt arms below 0.4.}
+  \label{fig:curves-transfer}
+\end{figure*}
+
+\input{sections/gen/bragg_packing}
+\input{sections/gen/bbob}

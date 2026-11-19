@@ -1,41 +1,41 @@
 \section{Steering as a Variation Operator}\label{sec:steering}
-\pages{2.5}
 
-\plan{Steering vector $c\cdot a\cdot d$ added to the residual stream at
-every generated token: unit direction $d$, dose $c$, scale $a$ (typical
-feature activation or residual norm). Controls: random unit directions
-at the same norm, and a resample with a new seed. Directions: SAE
-decoder columns, and contrastive mean differences on a labelled corpus
-of 4,712 algorithms (concept present vs.\ absent; most vs.\ least
-exploratory), the exploration direction residualised on the concept
-labels.}
+Steering adds a vector $c\,a\,d$ to the residual stream at every
+generated token: a unit direction $d$, a dose $c$ and a scale $a$ (the
+typical activation of an SAE feature, or the residual norm of the
+layer). We take directions from two sources: SAE decoder columns, and
+contrastive mean differences on a labelled corpus of 4,712 algorithms
+that we elicited with prompts asking for a concept or for strong
+exploration or exploitation (concept present vs.\ absent; most vs.\ least
+exploratory). Every screen has two controls: a random unit direction at
+the same norm, and a resample with a new seed, which measures how much
+the output changes by chance.
 
 \subsection{Concept levers}
-\begin{itemize}
-  \item Of the SAE features, only swarm and gradient steer their concept
-    cleanly (at $0.5\times$); most do nothing or break the code.
-  \item Of ten contrastive rare-concept directions, four insert their
-    concept (covariance, local search, simulated annealing, surrogate:
-    +0.31 to +0.44), at a failure cost; a direction that \emph{reads} a
-    concept well is often not one that \emph{writes} it.
-  \item In \llamea (4 arms $\times$ 8 seeds $\times$ 100): the swarm
-    lever puts a PSO in 99\% of its children (control 15\%), as novel as
-    the \emph{new} prompt with fewer failures, but these children are
-    selected away; run-level diversity and best \aocc unchanged.
-\end{itemize}
-\src{exp05\_steering: screen, contrast-c, llamea}
+Of the SAE concept features, only the swarm and gradient features
+insert their concept cleanly; most do nothing at small doses and break
+the code at large ones. Of ten contrastive directions for rare concepts,
+four insert their concept (covariance, local search, simulated annealing
+and surrogate; +0.31 to +0.44 in rate, Table~\ref{tab:levers}), at a
+cost of 0.19 to 0.56 more failures. A direction that reads a concept
+well is often not one that writes it. In \llamea (4 arms, 8 seeds), the
+swarm lever puts a particle swarm in 99\% of its children (control
+15\%). These children are as novel as those of the \emph{new} prompt
+and fail less often, but selection removes them: run-level diversity and
+the best \aocc do not change. A lever can force a family into the
+population, but it does not make the family competitive.
 
 \subsection{An exploration dial}
-\begin{itemize}
-  \item Residualised exploration direction at layer 27: the children's
-    measured exploration rises by 20 points per unit dose (95\% CI 6 to
-    36) and intensification falls, replicated on new prompts (1,152
-    children); a random direction at the same norm does not move it
-    ($-3$, CI $-15$ to 7; Fig.~\ref{fig:dial}).
-  \item Fine but small: $\pm0.4$ spans about 19 points; a prompt
-    instruction spans 59.
-\end{itemize}
-\src{exp05\_steering: contrast-b, dial}
+A dial for search behaviour is more useful than a lever for a family.
+We take the contrastive exploration direction at layer 27, residualised
+on the concept labels so that it does not simply encode ``write a
+population''. In single-generation screens on new MA-BBOB prompts (1,152
+children), the measured exploration of the generated algorithms rises by
+20 points per unit dose (95\% CI 6 to 36) and their intensification
+falls; a random direction at the same norm does not move it ($-3$, CI
+$-15$ to 7; Fig.~\ref{fig:dial}). The dial is fine but small: doses
+between $-0.4$ and $+0.4$ span about 19 points, while a prompt
+instruction to explore or exploit spans 59.
 
 \begin{figure}[t]
   \centering
@@ -55,60 +55,63 @@ labels.}
 \end{figure}
 
 \subsection{Transfer to new problems}
-\plan{The dial derived from MA-BBOB code, applied unchanged to \llamea
-prompts for mini-Bragg photonics (10 layers), unit-square circle packing
-($n=26$) and three BBOB functions in 20-D (Sec.~\ref{sec:setup}); 32
-initial and 32 refine samples per dose ($\pm0.2$, $\pm0.4$, none,
-random direction).}
-\begin{itemize}
-  \item The design-space effect transfers everywhere: per unit dose the
-    share of population-based code rises by 0.35 (Bragg) to 0.84 (f20),
-    DE rises and local search or gradient code falls
-    (Fig.~\ref{fig:dial}, right).
-  \item The behaviour effect is weaker: measured exploration +30 per unit
-    dose on Bragg (CI 2 to 55), +21 on f20 ($-1$ to 42), +12 on f2 and
-    +4 on f9 (n.s.).
-  \item Code quality in one generation: higher \aocc with the dose on
-    f2 (+0.083, CI 0.043 to 0.126) and f9 (+0.058, 0.014 to 0.102),
-    flat on f20, Bragg (+0.04 at +0.4, n.s., 64 samples) and packing;
-    on packing the explore side cuts failures ($-0.37$ per unit dose).
-  \item A probe of exploration trained on MA-BBOB code does not transfer
-    (Spearman $-0.08$ with measured exploration on Bragg): the dial
-    transfers, its readout does not.
-\end{itemize}
-\src{exp05\_steering: transfer-\{bragg,packing,bbob-f20,bbob-f2,bbob-f9\}}
+We applied the MA-BBOB dial unchanged to \llamea prompts for Bragg,
+packing and the three BBOB functions (32 initial and 32 refine prompts
+per dose; doses $\pm0.2$, $\pm0.4$, none and a random direction;
+Table~\ref{tab:transfer}). The effect on the design space transfers
+everywhere: per unit dose, the share of population-based code rises by
+0.34 (Bragg) to 0.84 (f20), DE code rises, and local search or gradient
+code falls (Fig.~\ref{fig:dial}, right). The effect on measured
+behaviour is weaker: +30 points per unit dose on Bragg (CI 2 to 55), +21
+on f20 ($-1$ to 42), and +12 and +4 (n.s.) on f2 and f9. In a single
+generation, the explore side writes better code on f2 (+0.083 \aocc per
+unit dose, CI 0.043 to 0.126) and f9 (+0.058, CI 0.014 to 0.102), is
+flat on f20, Bragg and packing, and cuts failures on packing ($-0.37$
+per unit dose). A probe of exploration trained on MA-BBOB code, by
+contrast, does not transfer (Spearman $-0.08$ with measured exploration
+on Bragg): the dial transfers, its readout does not.
 
 \subsection{The dial in the closed loop}
-\plan{\llamea arms (Sec.~\ref{sec:setup}): control; the dial at fixed
-dose $+0.3$ (explore) or $-0.3$ (exploit); anneal ($+0.3\to-0.3$ over
-the budget); a random direction; an \emph{adaptive dial}, unsteered
-initial population and then a stagnation rule (dose $-0.1$ after a child
-that improves the best, $+0.025$ otherwise, clipped to $\pm0.3$); and
-the obvious alternative, a \emph{prompt} sentence asking for strong
-exploration or exploitation (the sentence that elicited the corpus).
-Differences are paired by seed, 95\% bootstrap CIs.}
+A one-generation effect need not survive selection. We compare eight
+\llamea arms: \emph{control}; the dial at a fixed dose of $+0.3$
+(\emph{explore}) or $-0.3$ (\emph{exploit}); \emph{anneal}, from $+0.3$
+to $-0.3$ over the budget; a \emph{random direction} at the same norm;
+an \emph{adaptive dial}; and the obvious alternative to steering, a
+\emph{prompt} sentence asking for strong exploration or exploitation
+(the sentence that elicited the corpus). The adaptive dial leaves the
+initial population unsteered and then adapts the dose like a success
+rule~\cite{rechenberg1973} with the opposite sign: $-0.1$ after a child
+that improves the run's best, $+0.025$ after any other child, clipped
+to $\pm0.3$. It explores while the run stagnates and exploits after
+progress.
 
-\paragraph{MA-BBOB (Table~\ref{tab:mabbob}, Fig.~\ref{fig:budget200}).}
-\begin{itemize}
-  \item Exploit is reliably harmful: best \aocc $-0.24$ (CI $-0.35$ to
-    $-0.12$) at 100 evaluations and $-0.19$ ($-0.30$ to $-0.07$) at 200;
-    explore $-$ exploit $+0.24$ ($+0.16$ to $+0.32$, 14/16 seeds) at 200;
-    exploit writes 18 algorithm families per run, control 26.
-  \item The adaptive dial is the best arm and the only one that widens
-    the search (+6.4 families, CI 1.6 to 10.9; more failures, +0.06).
-    Its gain over control is +0.06 ($-0.01$ to $+0.14$) at 100 and
-    becomes significant at 200: +0.08 (+0.02 to +0.14, 12/16 seeds).
-    The success rate stays far below the rule's target, so in practice
-    it is ``explore after an unsteered start'' (mean dose +0.25).
-  \item Every arm still improves from 100 to 200 evaluations (+0.04 to
-    +0.09, all CIs above 0): the steering gap is not a faster start.
-  \item The fixed explore dial, anneal, the random direction and both
-    prompts are not distinguishable from control ($|\Delta|\le0.05$ at
-    200). The prompts move the measured exploration more than the dial
-    (+19 vs.\ +8 points) but cut 7--12 families and leave a lexical
-    imprint (83\% step-size adaptation under the exploit prompt vs.\ 21\%).
-\end{itemize}
-\src{exp05\_steering: llamea-dial, llamea-stage1(-seeds), budget200}
+\paragraph{MA-BBOB\@.}
+Table~\ref{tab:mabbob} and Fig.~\ref{fig:budget200} show the 16-seed
+results, with every run continued to 200 evaluations. Steering towards
+exploitation is reliably harmful: $-0.24$ \aocc (CI $-0.35$ to $-0.12$)
+at 100 evaluations and $-0.19$ ($-0.30$ to $-0.07$) at 200, and explore
+beats exploit by +0.24 (CI +0.16 to +0.32, 14 of 16 seeds). The
+exploit side narrows the search: it writes 18 algorithm families per run
+against 26 for control. The adaptive dial is the best arm and the only
+one that widens the search (+6.4 families, CI 1.6 to 10.9), at a cost
+of six more points of failures. Its gain over control is +0.06 ($-0.01$
+to $+0.14$) at 100 evaluations and becomes significant at 200: +0.08
+(+0.02 to +0.14, 12 of 16 seeds). Because improvements are rare (about
+5\% of children), the rule saturates: in practice the adaptive dial is
+``explore after an unsteered start'' (mean dose +0.25). A version
+calibrated to the actual success rate is not better ($-0.05$, CI $-0.13$
+to $+0.03$, 8 seeds). Every arm still improves from 100 to 200
+evaluations (+0.04 to +0.09, all CIs above 0), so the gap between the
+arms is not just a faster start.
+
+The fixed explore dial, anneal, the random direction and both prompts
+cannot be distinguished from control ($|\Delta|\le0.05$ at 200). The
+prompts move the measured exploration of the generated code more than
+the dial (+19 against +8 points), but they cut 7 to 12 families and
+leave a lexical imprint: under the exploit prompt, 84\% of the
+algorithms use step-size adaptation (control 35\%;
+Table~\ref{tab:mabbob-concepts}). More search statistics are in
+Appendix~\ref{app:loop}.
 
 \begin{table}[t]
   \caption{Steered \llamea on MA-BBOB: best \aocc at 100 and 200
@@ -133,8 +136,9 @@ Differences are paired by seed, 95\% bootstrap CIs.}
     \bottomrule
   \end{tabular}\\[2pt]
   \raggedright\footnotesize $^*$anneal is run at budget 200, so its @100
-  is mid-schedule; 8 of the 16 random-direction runs too.
-  \todo{families for anneal/random on 16 seeds}
+  is mid-schedule; 8 of the 16 random-direction runs too. Families
+  over the first 100 evaluations; for anneal and the random direction
+  from the 8 seeds run at budget 100 (27.8 and 23.1).
 \end{table}
 
 \begin{figure}[t]
@@ -150,46 +154,40 @@ Differences are paired by seed, 95\% bootstrap CIs.}
   \label{fig:budget200}
 \end{figure}
 
-\paragraph{Bragg and packing (6 seeds).}
-\begin{itemize}
-  \item Nothing beats the unsteered control. Steering the initial
-    population breaks it (Bragg: 96--100\% of steered initial
-    algorithms fail vs.\ 71\%), and Bragg runs are bimodal (control
-    finds the quarter-wave stack in 4/6 runs, exploit and explore in
-    1/6). The adaptive dial, which leaves the initial population alone,
-    does not rescue Bragg ($-0.29$, CI $-0.50$ to $-0.05$).
-  \item On packing every push of the behaviour costs constraint
-    handling, steering or prompt alike: strictly feasible packings fall
-    from 0.37 to about 0.1 (dial) and by 0.16--0.23 (prompts). Anneal is
-    the only neutral arm.
-\end{itemize}
-\src{exp05\_steering: llamea-dial-\{bragg,packing\},
-llamea-stage1-\{bragg,packing\}}
+\paragraph{Bragg and packing (6 seeds, Table~\ref{tab:bragg-packing}).}
+Nothing beats the unsteered control. Steering the initial population
+breaks it: on Bragg, 96--100\% of the steered initial algorithms fail
+(control 71\%). Bragg runs are bimodal: control finds the quarter-wave
+stack in 4 of 6 runs, the explore and exploit dials in 1 of 6. The
+adaptive dial, which leaves the initial population alone, does not
+rescue Bragg either ($-0.29$, CI $-0.50$ to $-0.05$). On packing, every
+push of the behaviour, by steering or by prompt, costs constraint
+handling: the share of strictly feasible packings falls from 0.37 to
+about 0.1 under the dial and by 0.16 to 0.23 under the prompts. Anneal
+is the only neutral arm.
 
-\paragraph{BBOB 20-D: a pre-registered landscape test
-(Table~\ref{tab:bbob}).}
-\plan{Prediction registered before the runs: on the multimodal f20,
-explore $>$ control $>$ exploit; on the unimodal f2 and f9, exploit
-$\ge$ control $>$ explore. 6 arms $\times$ 10 seeds $\times$ 100;
-final best validated on 16 held-out instances.}
-\begin{itemize}
-  \item The prediction fails on all three functions. f20: all arms end
-    at 0.24--0.26; explore has the best anytime curve (area +0.025, CI
-    +0.004 to +0.057). f2: control $\approx$ adaptive $\ge$ explore $>$
-    exploit (control $-$ exploit +0.21, CI $-0.00$ to $+0.40$). f9:
-    explore is best (+0.013, CI +0.007 to +0.020, 10/10 seeds).
-  \item The dial acts on the design space, not on the optimiser's
-    behaviour: exploit cuts the families written by 9--13 (all
-    significant) and nearly removes DE and crossover. On f2 runs are
-    bimodal, and 87\% of the breakthrough runs' best algorithms use DE
-    (stuck runs: 16\%); exploit-steered runs rarely find them (2/10 vs.\
-    6/10).
-  \item Exploit lowers the measured exploration on f20 ($-21$ points)
-    but not the best; the explore side never hurts.
-  \item The final algorithms generalise: train $-$ test gap $\le0.021$
-    \aocc, no failures on the held-out instances.
-\end{itemize}
-\src{exp05\_steering: llamea-bbob-\{f20,f2,f9\}}
+\paragraph{BBOB 20-D: a pre-registered landscape test.}
+The common intuition is that a search should exploit on unimodal
+functions and explore on multimodal ones. Before running, we registered
+the prediction that on the multimodal f20 explore $>$ control $>$
+exploit, and on the unimodal f2 and f9 exploit $\ge$ control $>$
+explore (6 arms, 10 seeds, 100 evaluations; Table~\ref{tab:bbob}).
+
+The prediction fails on all three functions. On f20 all arms end at
+0.24--0.26; explore has the best anytime curve (area +0.025, CI +0.004
+to +0.057). On f2, control $\approx$ adaptive $\ge$ explore $>$ exploit
+(control $-$ exploit +0.21, CI $-0.00$ to $+0.40$). On f9, explore is
+best (+0.013, CI +0.007 to +0.020, 10 of 10 seeds). The explanation is
+in the design space, not in the behaviour. The exploit dial cuts the
+families written by 9 to 13 on every function (all significant) and
+nearly removes DE and crossover (Table~\ref{tab:bbob-full}). On f2 the
+runs are bimodal, and 87\% of the best algorithms of the runs that break
+through use DE (stuck runs: 16\%); exploit-steered runs rarely find
+them (2 of 10 against 6 of 10). On f20, exploit lowers the measured
+exploration of the generated code by 21 points, but not the best
+fitness. The final algorithms generalise to the held-out instances
+(train $-$ test gap $\le0.021$ \aocc, no failures). Curves for all
+transfer problems are in Fig.~\ref{fig:curves-transfer}.
 
 \begin{table}[t]
   \caption{BBOB 20-D, best \aocc of the run (training instances 10--14)

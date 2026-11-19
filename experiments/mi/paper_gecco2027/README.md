@@ -1,16 +1,17 @@
 # GECCO 2027 paper draft (L4EC track)
 
-Outline draft of a full paper for the *Learning for Evolutionary
+Prose draft of a full paper for the *Learning for Evolutionary
 Computation* track of GECCO 2027. Abstract (200 words) due 18 Jan 2027,
 paper due 25 Jan 2027. Limit: 8 pages without references; double-blind.
 
 * `main.tex`: ACM `acmart` with the class options from the GECCO 2027
   call for papers:
   `\documentclass[dvipsnames, format=sigconf, anonymous=true, review=true]{acmart}`.
-* `sections/`: one file per section. Each section lists the planned
-  content (blue), the supporting numbers, their source in
-  `experiments/mi` (grey) and a page budget; `\todo{}` (red) marks open
-  items.
+* `sections/`: one file per section; `\todo{}` (red) marks open items.
+  `09_appendix.tex` holds the appendices (compiled after the
+  references; for submission they become the supplementary material).
+* `sections/gen/`: appendix tables, generated from the committed
+  results by `figures/make_appendix.py`. Do not edit by hand.
 * `refs.bib`: entries marked `VERIFY` were written from memory and must
   be checked against the publisher.
 * `PLAN.md`: experiments to complete the story before the deadline.
@@ -22,7 +23,8 @@ Overleaf, so they are not vendored here. Figures are made from the
 committed exp05 results:
 
 ```bash
-python figures/make_figures.py   # dial.pdf, budget200.pdf
+python figures/make_figures.py    # dial.pdf, budget200.pdf
+python figures/make_appendix.py   # probes*.pdf, curves_transfer.pdf, sections/gen/*.tex
 latexmk -pdf main.tex
 ```
 
@@ -38,7 +40,7 @@ export TEXFORMATS=$MI_CACHE/texfmt:
 pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
-Last compiled 2026-11-19: 6 pages including references, no errors or
+Last compiled 2026-11-19: main text 5.6 pages, references to page 6, appendix pages 7-12.
 overfull lines. The `.gitignore` keeps `main.pdf` and the LaTeX aux
 files out of git.
 

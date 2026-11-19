@@ -1,39 +1,54 @@
 \section{Discussion and Limitations}\label{sec:discussion}
-\pages{0.5}
 
-\begin{itemize}
-  \item \plan{Reading is ready to use (pre-screen), and its ranking
-    transfers across problems; only the threshold needs recalibration.}
-  \item \plan{Writing is a real but blunt control. In one generation
-    the dial moves the measured exploration and, on every problem, the
-    algorithm families written (more population-based and DE code on
-    the explore side). In the loop, selection keeps what scores, so the
-    endpoint depends on whether the steered design space contains the
-    family that solves the problem (f2: population DE). Steering towards
-    exploitation narrows the space and never helps; steering towards
-    exploration rarely hurts.}
-  \item \plan{What to steer and when matters more than the direction:
-    steering the initial population breaks it (Bragg), anneal and the
-    stagnation-adaptive dial are the safe settings, and the adaptive
-    dial is the only arm that widens the search. EC-native control of
-    the dose (success rules, bandits) is the natural next step; our rule
-    saturates because improvements are rare.}
-  \item \plan{Steering vs.\ prompting: the prompt moves the measured
-    behaviour more, but narrows the families and imprints its wording;
-    neither beats control at a fixed setting. Report random-direction
-    controls: steering at one dose for every token perturbs the code
-    unspecifically.}
-  \item \plan{The landscape intuition (exploit on unimodal functions)
-    describes the optimiser's run-time behaviour; the dial changes the
-    designed algorithm, and exploit-steered code is single-point local
-    search that stalls on an ill-conditioned ellipsoid.}
-  \item \plan{Limitations: open-weight models of 8--14B parameters and
-    the dial on one model; 6--16 seeds per arm, so effects below
-    0.05 \aocc are not resolved; f20 and f9 discriminate little between
-    arms (all runs within 0.30--0.38 on f9); high failure rates on the
-    transfer problems; concept labels from code patterns;
-    non-inferiority margin of 0.10 \aocc; anneal's budget-200 schedule
-    is not the budget-100 one.}
-  \item \plan{Benchmarks: the sandbox issues change failure statistics
-    that AAD papers report.}
-\end{itemize}
+\paragraph{Reading is ready to use.}
+The failure probe is a free surrogate: it costs one dot product per
+generated algorithm, saves a fifth of the evaluations without a
+detectable loss in quality, and ranks failures on new problems without
+retraining. Only its threshold is problem-specific. The counterfactuals
+also hold a lesson for the design of AAD prompts: the model reads the
+error trace and the parent code, not the score, so feedback is useful
+where it carries information the model can act on.
+
+\paragraph{Writing is real but blunt.}
+In one generation the exploration dial moves the measured exploration
+of the code and, on every problem we tried, the algorithm families the
+model writes. In the loop, selection keeps what scores, so the endpoint
+depends on whether the steered design space still contains the family
+that solves the problem. On f2 that family is population-based DE, and
+the exploit side removes it. Steering towards exploitation narrows the
+design space and never helped; steering towards exploration rarely
+hurt.
+
+\paragraph{When to steer matters more than the direction.}
+Steering the initial population breaks it (Bragg); anneal and the
+stagnation-adaptive dial are the safe settings, and the adaptive dial
+is the only arm that widens the search and the best one on MA-BBOB. EC
+already has the right tools for such control, such as success rules
+and bandits over operators. Our rule saturates because improvements are
+rare, so better dose control is an open problem.
+
+\paragraph{Steering versus prompting.}
+The prompt moves the measured behaviour more than the dial, but it
+narrows the families and imprints its wording on the code; at a fixed
+setting neither beats control. A random direction at the same norm is a
+necessary control: a perturbation at every token changes the code
+unspecifically, and some of what looks like a steering effect is that.
+
+\paragraph{The landscape intuition.}
+``Exploit on unimodal functions'' describes the run-time behaviour of an
+optimiser. The dial changes the designed algorithm, and the code it
+writes on the exploit side is single-point local search, which stalls
+on an ill-conditioned ellipsoid. An AAD operator acts on the design
+space, and the intuitions of parameter control do not carry over to it
+directly.
+
+\paragraph{Limitations.}
+We use open-weight models of 8--14B parameters, and the dial on one
+model. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
+not resolved. f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
+0.30--0.38), and the transfer problems have high
+failure rates. Concepts are labelled from code patterns. The
+non-inferiority margin of 0.10 \aocc is wide, and anneal's schedule at
+budget 200 differs from the one at 100. Finally, the sandbox issues we
+found change the failure statistics that AAD papers report, including
+ours before the fixes.

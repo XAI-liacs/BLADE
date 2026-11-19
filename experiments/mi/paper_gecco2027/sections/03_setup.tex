@@ -1,60 +1,79 @@
 \section{Experimental Setup}\label{sec:setup}
-\pages{1.0}
 
-\paragraph{Loop and problem.}
-\plan{\llamea (4 parents, 12 offspring, elitist; operators
-\emph{refine}, \emph{new}, \emph{simplify}) on MA-BBOB~\cite{vermetten2025mabbob}
-5-D, 10 training instances, fitness \aocc of the best-so-far curve.
-Budget enforced by truncation (BLADE's MA-BBOB scores a run that
-overspends with 0; 84\% of the algorithms in our pilot did so, which
-degenerates the fitness labels).}
-\src{exp01\_probing, REPORT.md}
+\paragraph{Loop and main problem.}
+We run \llamea with 4 parents and 12 offspring per generation, elitist
+selection, and its three mutation prompts (\emph{refine} a parent,
+write a \emph{new} algorithm, \emph{simplify} a parent). A run evaluates
+100 generated algorithms unless stated otherwise. The main problem is
+MA-BBOB~\cite{vermetten2025mabbob} in 5-D on 10 training instances, with
+a budget of $2000\cdot D$ function evaluations; the fitness is the area
+over the convergence curve (\aocc) of the best-so-far log-precision in
+$[10^{-8},10^{2}]$, averaged over instances. \blade's MA-BBOB scores a
+generated algorithm that overspends its budget with 0; in a pilot, 84\%
+of the algorithms did so, which collapses the fitness labels. We
+therefore truncate the run at the budget instead.
 
 \paragraph{Transfer problems.}
-\plan{Mini-Bragg photonics (10 layers) and unit-square circle packing
-($n=26$, sum of radii after repair), from \blade with our sandbox fixes;
-and BBOB~\cite{hansen2009bbob} f2 (separable ellipsoid), f9 (rotated
-Rosenbrock) and f20 (Schwefel) in 20-D, one function per campaign,
-budget $2000\cdot D$, \aocc on log regret (upper bound widened per
-function so that working code is not scored 0: $10^3$, $10^8$ and
-$10^6$ for f20, f2 and f9), trained on instances 10--14 and validated on
-16 held-out instances (15--30). The prompt does not describe the
-function: the model sees a black box.}
-\src{common/problems.py, common/transfer\_problems.py}
+To test transfer we use four problems that the probes and directions
+were not derived from. Mini-Bragg is a 10-layer photonic reflector from
+\blade; circle packing places $n=26$ circles in the unit square and
+scores the sum of radii after a feasibility repair. Three BBOB
+functions~\cite{hansen2009bbob} in 20-D cover different landscapes: f2
+(separable ill-conditioned ellipsoid), f9 (rotated Rosenbrock) and f20
+(Schwefel, multimodal with weak global structure). Each function is its
+own campaign with budget $2000\cdot D$ and \aocc on the log regret. We
+widen the upper bound of the \aocc window per function ($10^{3}$,
+$10^{8}$ and $10^{6}$ for f20, f2 and f9) so that working code is not
+scored 0. Runs train on instances 10--14, and the final best algorithm
+of each run is validated on 16 held-out instances (15--30). The prompt
+does not describe the function: the model sees a black box.
 
 \paragraph{Generator and instrumentation.}
-\plan{Qwen3-8B~\cite{qwen3} (thinking off, $T=0.8$); replication on
-Qwen3-14B and Gemma-3-12B-it. A hooked LLM wrapper (part of the released
-code) records residual-stream activations at every layer for the prompt
-and the generated code and adds steering vectors at chosen layers. All
-generations are seeded; counterfactual and steering comparisons use
-common random numbers.}
+The generator is Qwen3-8B~\cite{qwen3} with thinking disabled and
+temperature 0.8; we replicate the reading results with Qwen3-14B and
+Gemma-3-12B-it~\cite{gemma3}. A hooked wrapper around the model records
+the residual-stream activations at every layer, for the prompt and for
+the generated code, and can add steering vectors at chosen layers. All
+generations are seeded, so counterfactual and steered generations are
+compared with common random numbers.
 
 \paragraph{Labels.}
-\plan{Per generated algorithm: crash (and exception type),
-over-budget, fitness, improvement over the parent; algorithm concepts
-from code patterns (population, DE, PSO, CMA-style covariance, local
-search, restart, surrogate, \dots); search behaviour from traced
-evaluations (exploration \%, intensification, last improvement); code
-diversity (CodeBLEU~\cite{ren2020codebleu}, AST distance, concept-set
-Jaccard).}
+For every generated algorithm we record whether it crashes (and the
+exception type), whether it exceeds its budget, its fitness and whether
+it improves on its parent. Algorithmic concepts (population, differential
+evolution (DE), particle swarm, crossover, CMA-style covariance,
+gradient, local search, restart, surrogate, elitism, step-size and
+parameter adaptation, \dots) are labelled from code patterns; the set of
+concepts of an algorithm defines its \emph{family}. Search behaviour is
+measured from the traced evaluations of the generated
+algorithm~\cite{blade2025}: exploration~\% (share of evaluations far from
+the best so far), intensification and the time of the last improvement.
+Code diversity is measured with CodeBLEU~\cite{ren2020codebleu}, AST
+distance and the Jaccard distance of concept sets.
 
-\paragraph{Sandbox fixes (lessons for benchmarks).}
-\plan{Short paragraph or box. Generated code is executed with
-separate globals and locals, which hides module-level imports and
-helpers from the class (\texttt{NameError}); missing packages
-(scipy/sklearn for MA-BBOB, \texttt{six} for the photonics problem);
-a photonics AOCC window that compresses every score to 0.20--0.28;
-problem descriptions dropped from the \llamea prompt. Fixing the
-namespace and packages cuts the failure rate of quasi-random
-initialisation code from 100\% to 29\%.}
-\src{exp05\_steering README, steps 5c/5d}
-\todo{report these to the benchmark maintainers before submission and
-cite the fix (anonymously)}
+\paragraph{Sandbox fixes.}
+While building the transfer problems we found issues that change the
+failure statistics AAD papers report. \blade executes generated code with
+separate global and local namespaces, which hides module-level imports
+and helper functions from the algorithm's class (a \texttt{NameError}
+at run time); some packages the prompts allow were missing (scipy and
+scikit-learn for MA-BBOB, \texttt{six} for the photonics simulator); the
+photonics \aocc window compressed every score into 0.20--0.28; and the
+problem description was dropped from the \llamea prompt. Fixing the
+namespace and the packages alone cuts the failure rate of one family of
+generated initialisation code from 100\% to 29\%. All experiments use
+the fixed sandbox.\todo{report to the benchmark maintainers and cite the
+fix anonymously}
+
+\paragraph{Campaigns and statistics.}
+Table~\ref{tab:campaigns} lists the campaigns. Differences between arms
+are paired by seed (the arms of a seed share the initial random state),
+with 95\% bootstrap confidence intervals over seeds; probes are evaluated
+with nested leave-one-run-out cross-validation.
 
 \begin{table}[t]
-  \caption{Campaigns with Qwen3-8B unless noted. Runs are \llamea runs of
-    100 evaluated algorithms; screens generate one generation.}
+  \caption{Campaigns (Qwen3-8B unless noted). Runs are \llamea runs;
+    screens sample one generation per prompt and dose.}
   \label{tab:campaigns}
   \small
   \setlength{\tabcolsep}{3pt}
@@ -62,18 +81,18 @@ cite the fix (anonymously)}
     \toprule
     Campaign & Purpose & Runs & Algorithms\\
     \midrule
-    probing (main) & probes, C1--C2 & 12 & 1,200\\
+    probing & probes, C1--C2 & 12 & 1,200\\
     pre-screen & non-inferiority test & 36 $\times$ 2 & 7,200\\
-    replication & 14B, Gemma, C1--C2 & 2 $\times$ 24 & 4,800\\
+    replication & 14B, Gemma & 2 $\times$ 24 & 4,800\\
+    counterfactuals & C2 & -- & 4,180\\
     corpus & contrastive directions & -- & 4,712\\
-    steering screens & levers, dial & -- & \todo{}\\
-    transfer screens & 5 problems & -- & $\approx$2,000\\
-    \llamea, MA-BBOB & 9 arms, 16 seeds, & 136 & 28,000\\
-      & budget 100 and 200 & & \\
-    \llamea, Bragg/packing & 8 arms, 6 seeds & 2 $\times$ 48 &
-      9,600\\
-    \llamea, BBOB 20-D & 6 arms, 10 seeds & 3 $\times$ 60 &
-      18,000\\
+    steering screens & levers, dial & -- & 5,920\\
+    transfer screens & 5 problems & -- & 1,944\\
+    \llamea, levers & 4 arms, 8 seeds & 32 & 3,200\\
+    \llamea, MA-BBOB & 8 arms, 16 seeds, & 136 & 27,200\\
+      & 200 evaluations & & \\
+    \llamea, Bragg/packing & 8 arms, 6 seeds & 2 $\times$ 48 & 9,600\\
+    \llamea, BBOB 20-D & 6 arms, 10 seeds & 3 $\times$ 60 & 18,000\\
     \bottomrule
   \end{tabular}
 \end{table}

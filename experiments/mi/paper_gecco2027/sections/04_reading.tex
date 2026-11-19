@@ -1,61 +1,79 @@
 \section{Reading the Generator}\label{sec:reading}
-\pages{1.75}
 
-\subsection{What the model knows while it writes (C1)}
-\plan{Ridge/logistic probes per layer and position (last prompt
-token; mean over the generated code), nested leave-one-run-out, against
-stacked baselines: search metadata, code text (TF-IDF), output
-uncertainty (mean log-probability, entropy). Shuffled-label controls
-$\le 0.53$ AUROC.}
-\begin{itemize}
-  \item Child crash: AUROC 0.85 from the code state (layers 21--23);
-    best text/uncertainty baseline 0.71; +0.08 [0.05, 0.11] on top of
-    metadata and text.
-  \item Over-budget child: AUROC 0.93 vs 0.75; the signal before writing
-    is inherited from the parent, the signal while writing is not.
-  \item Parent fitness: $\rho\approx0.8$ from layer $\sim$20.
-    Improvement and child fitness: not decodable beyond metadata.
-  \item Replication: the failure probe adds to metadata and text in all
-    three models.
-\end{itemize}
-\src{exp01\_probing; REPORT.md; REPORT\_replication.md}
+\subsection{What the model knows while it writes}
+We fit linear probes (logistic or ridge regression) on the residual
+stream of every layer at three positions: the last prompt token (before
+the model writes), the mean over the prompt, and the mean over the
+generated code. Each probe is compared with stacked baselines that use
+what an AAD method could know without opening the model: search
+metadata (operator, generation, parent fitness and outcome), the code
+text (TF-IDF) and the model's output uncertainty (mean log-probability
+and entropy of the generated tokens). Layers are selected inside nested
+leave-one-run-out folds, and probes on shuffled labels stay at AUROC
+$\le0.53$.
+
+Figure~\ref{fig:probes} and Table~\ref{tab:incremental} summarise the
+results. Whether the child will crash is decodable from the state
+during writing with AUROC 0.85 (Qwen3-8B, layers 15--25), against 0.71
+for the best single baseline and 0.77 for metadata and text combined;
+the probe adds +0.08 (95\% CI 0.05 to 0.11) on top of both. Before the
+model writes, at the last prompt token, the crash is barely predictable
+(0.69): the failure arises while the code is written, not in the plan.
+The same holds in Qwen3-14B (+0.06) and Gemma-3-12B (+0.02, with a
+stronger text baseline). Whether the child will exceed its budget is
+decodable with AUROC 0.93, but mostly because it is inherited: metadata
+on the parent already reaches 0.91, and the probe adds only +0.03. The
+parent's fitness is represented from the middle layers on (Spearman
+$\rho\approx0.8$), but whether the child will improve on its parent, and
+its fitness, are not decodable beyond metadata in any of the three
+models (Appendix~\ref{app:reading}, Fig.~\ref{fig:probes-all}).
 
 \begin{figure}[t]
   \centering
-  \fbox{\parbox{0.9\columnwidth}{\centering\vspace{2.5em}
-    AUROC per layer: code-state probe vs.\ baselines (crash,
-    over-budget); three models.\vspace{2.5em}}}
-  \caption{Decodability of the child's outcome while the code is
-    written. \todo{figure}}
-  \Description{Placeholder for a line plot of probe AUROC per layer.}
+  \includegraphics[width=\columnwidth]{figures/probes}
+  \caption{Decodability of the child's outcome from the generator's
+    state while it writes the code (mean over the generated tokens), per
+    relative layer, three models. Dashed: metadata and code text
+    combined, per model. Grey: Qwen3-8B probe on shuffled labels.}
+  \Description{Two line plots of probe AUROC against relative layer.
+    Left, crashes: the Qwen3-8B probe rises from 0.75 to 0.85 in the
+    middle layers, above its baseline at 0.77; Qwen3-14B reaches 0.79
+    against 0.70; Gemma-3-12B 0.87 against 0.84. Right, over budget: the
+    probes reach 0.93 (Qwen3-8B) and 0.98 (Gemma) and the baselines are
+    almost as high; the Qwen3-14B probe stays below its baseline.}
   \label{fig:probes}
 \end{figure}
 
-\subsection{A free pre-screen (C1)}
-\plan{Frozen probe, fixed threshold; a flagged child is not evaluated
-and gets a rejection message. Pre-registered non-inferiority test after
-a power analysis on 12 seeds: margin 0.10 \aocc, one-sided paired
-$t$-test, 36 seeds (82\% power).}
-\begin{itemize}
-  \item Probe AUROC on new seeds 0.84--0.86; flags 23.5\% of the
-    evaluations and catches 69\% of the failures.
-  \item Skips 20.8\% of the evaluations; best fitness 0.591 vs 0.628
-    (mean difference $-0.037$, 90\% CI $[-0.096, 0.023]$, $p=0.041$):
-    non-inferior, narrowly; no two-sided difference (Wilcoxon
-    $p=0.25$).
-  \item Adaptive thresholds (per operator, calibrated risk, running
-    quantile) do not beat the fixed one.
-  \item The ranking transfers to new problems without retraining: the
-    frozen MA-BBOB probe reaches AUROC 0.77 on Bragg (refit 0.84) and
-    0.72 on packing (refit 0.73), far above code length (0.56--0.57);
-    skipping its top 21\% would be 92\% and 79\% precise. The threshold
-    does not transfer and must be recalibrated (e.g.\ a fixed skip
-    share).
-\end{itemize}
-\src{exp01\_probing/results/prescreen; exp05\_steering/results/prescreen-transfer}
+\subsection{A free pre-screen}
+A probe that predicts failure can save evaluations. We froze the
+Qwen3-8B failure probe and a fixed threshold, and ran \llamea with a
+pre-screen: a child whose score exceeds the threshold is not evaluated
+and returns to the loop with a rejection message. After a power
+analysis on 12 seeds, we pre-registered a non-inferiority test on the
+best fitness of the run (margin 0.10 \aocc, one-sided paired $t$-test)
+with 36 new seeds, each run once with and once without the screen.
+
+On the new seeds the probe reaches AUROC 0.84--0.86; it flags 23.5\% of
+the children and catches 69\% of the failures (Table~\ref{tab:prescreen}).
+The screen skips 20.8\% of the evaluations. The best \aocc is 0.591 with
+the screen and 0.628 without (difference $-0.037$, 90\% CI $-0.096$ to
+$0.023$, $p=0.041$): non-inferior, narrowly, with no two-sided
+difference (Wilcoxon $p=0.25$). Per-operator thresholds, a calibrated
+risk and a running quantile do not beat the fixed threshold
+(Table~\ref{tab:prescreen-rules}).
+
+The probe's ranking also transfers to new problems without retraining.
+On the Bragg and packing screens (Sec.~\ref{sec:steering}), the frozen
+MA-BBOB probe reaches AUROC 0.77 and 0.72, close to probes refit on the
+problem itself (0.84 and 0.73) and far above code length (0.55--0.57);
+skipping its top 21\% would be 92\% and 79\% precise
+(Table~\ref{tab:prescreen-transfer}). The threshold does not transfer,
+since failure rates differ (70\% and 51\%), and must be recalibrated, for
+instance as a fixed share of skipped children.
 
 \begin{table}[t]
-  \caption{Pre-screen on 36 new seeds. \todo{final layout}}
+  \caption{Pre-screen with a frozen failure probe, \llamea on MA-BBOB,
+    36 new seeds paired with unscreened runs.}
   \label{tab:prescreen}
   \small
   \begin{tabular}{lrr}
@@ -63,27 +81,26 @@ $t$-test, 36 seeds (82\% power).}
     & no screen & pre-screen\\
     \midrule
     Best \aocc, mean (median) & 0.628 (0.583) & 0.591 (0.575)\\
-    True failure rate & 16.5\% & 17.1\%\\
+    Failure rate of evaluated children & 16.5\% & 17.1\%\\
     Evaluations skipped & 0 & 20.8\%\\
     \bottomrule
   \end{tabular}
 \end{table}
 
-\subsection{What drives the edit (C2)}
-\plan{Counterfactual prompts with common random numbers (192 queries
-$\times$ variants $\times$ 4 replicates, 4180 evaluated children) and
-attribution graphs~\cite{ameisen2025circuits} for Qwen3-8B.}
-\begin{itemize}
-  \item Deleting the error trace of a crashed parent: child failures
-    43\% $\to$ 66\%; error text gains 61\% influence share at the edit
-    token (14/16 pairs).
-  \item Rewriting the score in the feedback (0.01 vs 0.90): no effect on
-    the child; the internal fitness readout moves by only $\pm0.04$.
-  \item Steering along the fitness representation changes the size of
-    the rewrite, not the outcome.
-\end{itemize}
-\plan{Message for EC: feedback design matters only where the model
-reads it; the score in the prompt is decorative for this model class.}
-\src{exp02\_feedback\_attribution; REPORT\_exp02.md}
-\todo{decide whether C2 stays in the main text or moves to the
-supplement if space is short}
+\subsection{What drives the edit}
+To see which parts of the prompt the model uses, we rewrote the
+feedback of 192 parent prompts and generated four children per variant
+with common random numbers (4,180 evaluated children,
+Table~\ref{tab:counterfactual}), and traced attribution
+graphs~\cite{ameisen2025circuits} from the first edited token back to
+the prompt. For a crashed parent, deleting the error trace raises the
+child's failure rate from 43\% to 66\% (+0.22, CI 0.14 to 0.33), and a
+generic error message recovers only part of it; in the attribution
+graphs, the error text carries 61\% of the influence on the edit token
+in 14 of 16 pairs. For a working parent, rewriting its score from 0.01
+to 0.90, or deleting the feedback, changes neither the child's failure
+rate nor its fitness, and the internal fitness readout moves by only
+$\pm0.04$. Steering along the fitness representation changes how much
+of the parent is rewritten, not the outcome. For this model class, the
+score in the feedback is decorative; the error trace and the parent code
+drive the edit.
