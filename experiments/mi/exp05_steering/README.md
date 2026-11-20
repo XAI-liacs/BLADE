@@ -1193,3 +1193,9 @@ restricts the GPUs).
   all 43 arm-vs-control comparisons: none survives. Within problems: the
   exploit dial on MA-BBOB (100: Holm 0.017; 200: 0.049) and explore on f9
   (0.010). The adaptive dial at 200: p = 0.021, Holm 0.13.
+
+* 2026-11-20 12:05 UTC: confirmation at 6,737/19,200 algorithms. The 4
+  shards on GPU 2 run at ~70 algorithms/h each, the 2 on GPU 3 at ~118/h,
+  so GPU 3 frees ~18 h earlier. `run_review_queue.sh` now takes separate
+  wait pids per job; relaunched so #6 (dial on Qwen3-14B) starts on GPU 3
+  when its confirmation shards exit, and #5 on GPU 2 after the campaign.
