@@ -49,8 +49,11 @@ Template" and replace `main.tex`).
 
 ## Open decisions
 
-* Title. Alternatives: "Reading and Steering the Generator in LLM-driven
-  Algorithm Design"; "What an LLM Knows While It Designs Optimisers".
-* Whether the counterfactual analysis (C2) stays in the main text.
+* Title. Working title "Opening the Black-Box Operator: Mechanistic
+  Interpretability for LLM-Driven Algorithm Design" (story: what the
+  operator knows, what it listens to, how to control it). Decide after
+  the confirmation: if it holds, "A Step Size for the LLM: Mechanistic
+  Control of Variation in Automated Algorithm Design" is an option.
+  Earlier: "What Does the Generator Know? Reading and Steering ...".
 * Whether the benchmark fixes are a contribution or a setup paragraph.
 * The CCS concepts (check the ids with the ACM CCS tool).

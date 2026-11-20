@@ -21,6 +21,8 @@
 %% ---- Packages and macros ----------------------------------------------
 \usepackage{multirow}
 \usepackage{xspace}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
 \newcommand{\todo}[1]{\textcolor{BrickRed}{[\textbf{TODO:} #1]}}
 \newcommand{\plan}[1]{\textcolor{NavyBlue}{\emph{#1}}}
 \newcommand{\pages}[1]{\noindent\textcolor{Gray}{\footnotesize[page
@@ -35,8 +37,8 @@
 \begin{document}
 
 %% Working title; alternatives in README.md.
-\title{What Does the Generator Know? Reading and Steering the Language
-  Model inside LLM-driven Algorithm Design}
+\title{Opening the Black-Box Operator: Mechanistic Interpretability for
+  LLM-Driven Algorithm Design}
 
 \author{Anonymous Author(s)}
 \affiliation{\institution{Anonymous Institution}\country{}}
@@ -71,9 +73,9 @@
 \input{sections/01_introduction}
 \input{sections/02_background}
 \input{sections/03_setup}
-\input{sections/04_reading}
-\input{sections/05_concepts}
-\input{sections/06_steering}
+\input{sections/04_knows}
+\input{sections/05_listens}
+\input{sections/06_control}
 \input{sections/07_discussion}
 \input{sections/08_conclusion}
 

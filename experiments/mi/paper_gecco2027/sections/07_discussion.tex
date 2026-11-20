@@ -1,6 +1,6 @@
 \section{Discussion and Limitations}\label{sec:discussion}
 
-\paragraph{The generator knows; cheap problems do not need it to.}
+\paragraph{An operator that knows.}
 The failure is represented in the generator's state while it writes,
 and a frozen probe ranks failures on new problems without retraining;
 only its threshold is problem-specific. As an efficiency tool, however,
@@ -9,12 +9,18 @@ evaluation costs seconds and generation dominates the loop. The probe
 pays off where one evaluation is expensive and cannot be truncated
 (simulations, training runs), and the larger saving may lie in
 generation itself: a probe on the partial code could stop a doomed
-generation early, which we leave for future work. The counterfactuals
-also hold a lesson for the design of AAD prompts: the model reads the
-error trace and the parent code, not the score, so feedback is useful
-where it carries information the model can act on.
+generation early, which we leave for future work.
 
-\paragraph{Writing is real but blunt.}
+\paragraph{An operator that listens selectively.}
+The model reads the error trace and the parent code, not the score. AAD
+prompts could drop the score of a single parent without loss in one
+generation,
+and should spend their tokens on what the model acts on: the code to
+change and what went wrong with it. Since the counterfactuals are
+cheap to run, they are a test that any new prompt design can pass
+before it is used in a loop.
+
+\paragraph{An operator with a parameter.}
 In one generation the exploration dial moves the measured exploration
 of the code and, on every problem we tried, the algorithm families the
 model writes. In the loop, selection keeps what scores, so the endpoint
@@ -22,9 +28,7 @@ depends on whether the steered design space still contains the family
 that solves the problem. On f2 that family is population-based DE, and
 the exploit side removes it. Steering towards exploitation narrows the
 design space and never helped; steering towards exploration rarely
-hurt.
-
-\paragraph{When to steer matters more than the direction.}
+hurt. When to steer matters more than the direction.
 Steering the initial population breaks it (Bragg); anneal and the
 stagnation-adaptive dial are the safe settings, and the adaptive dial
 is the only arm that widens the search and the best one on MA-BBOB. EC
@@ -35,9 +39,8 @@ rare, so better dose control is an open problem.
 \paragraph{Steering versus prompting.}
 The prompt moves the measured behaviour more than the dial, but it
 narrows the families and imprints its wording on the code; at a fixed
-setting neither beats control. A random direction at the same norm is a
-necessary control: a perturbation at every token changes the code
-unspecifically, and some of what looks like a steering effect is that.
+setting neither beats control. Steering is the finer and wording-free
+channel, the prompt the stronger one.
 
 \paragraph{The landscape intuition.}
 ``Exploit on unimodal functions'' describes the run-time behaviour of an
@@ -47,10 +50,19 @@ on an ill-conditioned ellipsoid. An AAD operator acts on the design
 space, and the intuitions of parameter control do not carry over to it
 directly.
 
+\paragraph{Reading is not writing.}
+Three lessons apply to any use of these tools in EC. A direction that
+reads a concept well often does not write it (Sec.~\ref{sec:steering}).
+The exploration dial transfers to new problems while a probe for the
+same quantity does not. And a random direction at the same norm is a
+necessary control: a perturbation at every token changes the code
+unspecifically, and some of what looks like a steering effect is that.
+
 \paragraph{Limitations.}
 We use open-weight models of 8--14B parameters, and the dial on one
 model. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
-not resolved. f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
+not resolved, and the gain of the adaptive dial rests on its
+pre-registered confirmation. f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
 0.30--0.38), and the transfer problems have high
 failure rates. Concepts are labelled from code patterns. The
 non-inferiority margin of 0.10 \aocc is wide, and anneal's schedule at

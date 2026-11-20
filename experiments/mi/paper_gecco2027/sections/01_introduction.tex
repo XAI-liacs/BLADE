@@ -5,26 +5,58 @@ optimisation heuristics with a large language model as the variation
 operator~\cite{vanstein2025llamea,liu2024eoh,romeraparedes2024funsearch,
 ye2024reevo,novikov2025alphaevolve}. The model receives one or more
 parent algorithms with their feedback and writes a child, which is
-evaluated on a benchmark and selected like any other individual. Methods
-differ in their prompts, populations and selection, but all of them
-treat the model itself as a black box. We do not know why it writes
-what it writes, a sizable fraction of its algorithms crash
-(16--25\% in our runs, far more on harder problems), and the only way to
-change what the model writes is to change the words it reads.
+evaluated on a benchmark and selected like any other individual.
 
-Mechanistic interpretability offers tools to look inside the model. Linear
+For a classical variation operator, an EC researcher knows three
+things: what it knows about its offspring (nothing, before they are
+evaluated), what information it uses (the parent and a few parameters),
+and how to control it (a step size or a rate, with decades of methods
+to adapt them~\cite{rechenberg1973}). For the LLM operator we know none
+of these. Its input is a prompt of thousands of tokens, and we do not
+know which parts it uses; 16--25\% of its children crash in our runs,
+far more on harder problems; and the only way to control it is the
+wording of the prompt. AAD methods differ in their prompts,
+populations and selection, but all of them treat the operator as a
+black box.
+
+Mechanistic interpretability offers tools to open it. Linear
 probes~\cite{alain2016probes} and sparse
 autoencoders~\cite{bricken2023monosemanticity,cunningham2024sae}
-\emph{read} what is represented in the internal activations, and
-activation steering~\cite{turner2023actadd,rimsky2024caa,zou2023repe}
-\emph{writes} to them, shifting the behaviour of the model without
-changing its prompt. These tools have not been applied to the generator
-of an evolutionary loop. For the EC community, they raise four
-questions. Does the model know, while it writes, whether its offspring
-will work? Which parts of the prompt does it actually use when it
-mutates a parent? Does it represent algorithmic concepts in a form we
-can find? And can its internal state serve as a more controllable
-variation operator?
+\emph{read} what is represented in the internal activations of a model,
+counterfactual inputs and attribution graphs~\cite{ameisen2025circuits}
+show which inputs drive an output, and activation
+steering~\cite{turner2023actadd,rimsky2024caa,zou2023repe} \emph{writes}
+to the activations, shifting the behaviour of the model without changing
+its prompt. These tools have not been applied to the operator of an
+evolutionary loop. We use them to ask the three questions above, each
+building on the previous one (Fig.~\ref{fig:overview}):
+\begin{enumerate}
+  \item \textbf{What does the operator know} while it writes a child?
+    (Sec.~\ref{sec:reading})
+  \item \textbf{What does it listen to} in its prompt?
+    (Sec.~\ref{sec:listening})
+  \item \textbf{Can it be controlled from inside}, with a parameter
+    found by reading its state? (Sec.~\ref{sec:steering})
+\end{enumerate}
+
+\begin{figure*}[t]
+  \centering
+  \input{figures/overview}
+  \caption{Opening the LLM operator of an AAD loop (\llamea). We
+    \emph{read} the residual stream while the model writes a child
+    (Sec.~\ref{sec:reading}), edit the \emph{prompt} counterfactually to
+    see what drives the edit (Sec.~\ref{sec:listening}), and
+    \emph{write} a direction found by reading into the residual stream,
+    with a dose that can be adapted to the success of the offspring
+    like a step size (Sec.~\ref{sec:steering}).}
+  \Description{Diagram of the LLaMEA loop: population, prompt, language
+    model drawn as a stack of layers, child code, evaluation and
+    selection, with an arrow back to the population. A probe reads from
+    a middle layer and predicts crashes and concepts; counterfactual
+    edits act on the prompt; a steering vector is added to a layer with
+    a dose controlled by the success of the evaluated offspring.}
+  \label{fig:overview}
+\end{figure*}
 
 We study these questions with an instrumented open-weight model
 (Qwen3-8B, with replications on Qwen3-14B and Gemma-3-12B) inside
@@ -33,38 +65,39 @@ and, for transfer, on a photonics problem, circle packing and three BBOB
 functions in 20-D, all through the \blade benchmark
 suite~\cite{blade2025}. In total we generated and evaluated more than
 80,000 algorithms, with their activations, evaluation outcomes and
-traced search behaviour. Our contributions are:
+traced search behaviour.\todo{update the count after the confirmation
+and the queued campaigns} Our contributions are:
 \begin{itemize}
-  \item \textbf{C1, the generator knows (Sec.~\ref{sec:reading}).}
-    The child's failure is linearly decodable from the generator's state
-    while it writes the code, beyond code text, output uncertainty and
-    search metadata; before writing it is barely predictable. A frozen
-    probe ranks failures on new problems without retraining. As a
-    pre-screen it skips 21\% of the evaluations with non-inferior search
-    quality (pre-registered test, 36 seeds), but on problems as cheap as
-    ours a smoke test catches more failures and loses no working
-    algorithm; the probe pays off only where an evaluation is expensive
-    and cannot be truncated.
-  \item \textbf{C2, what drives the edit (Sec.~\ref{sec:reading}).} None of
-    three models uses the score written in the feedback; the edits
-    follow the parent code and, in the Qwen models, the error trace.
-  \item \textbf{C3, concepts (Sec.~\ref{sec:concepts}).}
-    Sparse-autoencoder features detect metaheuristic building blocks
-    beyond their keywords, and one feature fires on undefined names, a
-    common cause of crashes.
-  \item \textbf{C4, writing (Sec.~\ref{sec:steering}).} Steering vectors
-    as variation operators: concept levers that insert an algorithm
-    family, and an exploration dial that shifts the measured search
-    behaviour of the generated code and, on five problems it was not
-    derived from, the algorithm families written. In the closed loop,
-    compared with prompt instructions and a random direction, steering
-    towards exploitation is harmful, and a stagnation-adaptive dial is
-    the best arm on MA-BBOB (+0.08 \aocc at 200 evaluations; tested on
-    new seeds in a pre-registered confirmation).\todo{update with the
-    confirmation result}
-    A pre-registered landscape test on BBOB 20-D finds no support for
-    the intuition that unimodal functions call for exploitation: the
-    dial acts on the design space, not on the optimiser's behaviour.
+  \item \textbf{A mechanistic study of the operator of an EC loop}, with
+    controls that make the results usable by AAD methods: probes
+    compared with what a method can know without opening the model,
+    counterfactuals with common random numbers, random directions for
+    every steering effect, and pre-registered closed-loop tests.
+  \item \textbf{The operator knows} (Sec.~\ref{sec:reading}). Whether the
+    child will crash is linearly decodable from the model's state while
+    it writes, beyond code text, output uncertainty and search metadata,
+    but barely before it starts; a frozen probe ranks failures on new
+    problems without retraining. Sparse-autoencoder features represent
+    metaheuristic concepts beyond their keywords. As a pre-screen the
+    probe skips 21\% of the evaluations with non-inferior search quality
+    (pre-registered, 36 seeds), but on problems as cheap as ours a smoke
+    test is the better filter.
+  \item \textbf{The operator listens selectively}
+    (Sec.~\ref{sec:listening}). None of three models uses the score
+    written in the feedback; the edits follow the parent code and, in the
+    Qwen models, the error trace.
+  \item \textbf{The operator can be given a parameter}
+    (Sec.~\ref{sec:steering}). A direction read from its activations
+    acts as an exploration dial that shifts the measured search behaviour
+    of the generated code and, on five problems it was not derived from,
+    the algorithm families written. In the closed loop, steering towards
+    exploitation narrows the design space and is harmful, while a dose
+    adapted to the success of the offspring, like an ES step size, is the
+    best arm on MA-BBOB (+0.08 \aocc at 200 evaluations; tested on new
+    seeds in a pre-registered confirmation).\todo{update with the
+    confirmation result} A pre-registered landscape test on BBOB 20-D
+    shows that the dial acts on the design space, not on the optimiser's
+    behaviour.
 \end{itemize}
 Along the way we found sandbox and scoring issues in widely used AAD
 benchmarks that inflate failure rates or compress scores

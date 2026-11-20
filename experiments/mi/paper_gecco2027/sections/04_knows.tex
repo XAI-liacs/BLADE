@@ -1,6 +1,11 @@
-\section{Reading the Generator}\label{sec:reading}
+\section{What the Operator Knows}\label{sec:reading}
 
-\subsection{What the model knows while it writes}
+A classical operator knows nothing about its offspring before they are
+evaluated. We ask whether the LLM operator does: whether the outcome of
+the child, and the algorithmic concepts it contains, are represented in
+the model's state while it writes the code.
+
+\subsection{The outcome of the child}
 We fit linear probes (logistic or ridge regression) on the residual
 stream of every layer at three positions: the last prompt token (before
 the model writes), the mean over the prompt, and the mean over the
@@ -105,29 +110,39 @@ evaluation times from \#5}
   \end{tabular}
 \end{table}
 
-\subsection{What drives the edit}
-To see which parts of the prompt the model uses, we rewrote the
-feedback of 192 parent prompts and generated four children per variant
-with common random numbers (4,180 evaluated children,
-Table~\ref{tab:counterfactual}), and traced attribution
-graphs~\cite{ameisen2025circuits} from the first edited token back to
-the prompt. For a crashed parent, deleting the error trace raises the
-child's failure rate from 43\% to 66\% (+0.22, CI 0.14 to 0.33), and a
-generic error message recovers only part of it; in the attribution
-graphs, the error text carries 61\% of the influence on the edit token
-in 14 of 16 pairs. For a working parent, rewriting its score from 0.01
-to 0.90, or deleting the feedback, changes neither the child's failure
-rate nor its fitness, and the internal fitness readout moves by only
-$\pm0.04$. Steering along the fitness representation changes how much
-of the parent is rewritten, not the outcome.
+\subsection{The concepts of the algorithm}\label{sec:concepts}
+The probes predict outcomes; sparse autoencoders (SAEs) can tell us
+what the operator represents about the algorithm it writes. We use public TopK SAEs
+for the Qwen3-8B base model (Qwen-Scope, 65,536 features,
+$k=100$)~\cite{qwenscope}, which transfer to the post-trained generator
+(21--31\% unexplained variance on generated code, over 99\% of the loss
+recovered when spliced in). Each feature is summarised per algorithm by
+its maximum over the code tokens and matched to the concept labels on
+one half of the runs; it is validated on the other half.
 
-The replication on Qwen3-14B and Gemma-3-12B
-(Table~\ref{tab:cf-models}) confirms the main point and
-qualifies the rest. No model uses the written score (Gemma's failures
-rise slightly with a low score, +0.08, one of many effects tested).
-Qwen3-14B uses the error trace as Qwen3-8B does (+0.24 failures
-without it), but Gemma does not: it reads the trace (it repeats the
-same exception more often without it), yet its failure rate does not
-change. The effect of steering along fitness does not replicate. For
-these models, the score in the feedback is decorative; the parent code
-and, model-dependently, the error trace drive the edit.
+Every concept has a feature that detects it (validation AUROC 0.89 to
+1.00; step-size adaptation 0.72--0.77), but most of the best features
+read keywords (\texttt{mutant}, \texttt{restart}, \texttt{.velocity}). To
+separate concept detectors from keyword detectors, we mask every line
+that contains a concept keyword (Table~\ref{tab:keyword}). Features for
+covariance learning, gradients, particle swarms, surrogates, local
+search and adaptive parameters still detect their concept far beyond
+what the co-occurring concepts predict (e.g.\ swarm 0.92 against 0.60);
+elitism and restart features are keyword detectors, and the crossover
+and DE features read the DE family as a whole. At the last prompt token,
+the SAE code adds almost nothing to the parent's concepts for predicting
+the child's: the concept is not visibly planned before writing.
+
+The concept features say what is implemented, not whether it works:
+they add nothing to failure prediction once the code text is known. The
+whole SAE code does (+0.074 AUROC), most for \texttt{NameError} (+0.19)
+and \texttt{AttributeError} (+0.18). One layer-21 feature fires on about
+half of all undefined names and on 0.3\% of valid ones, for instance the
+objective function used outside its scope. Steering on it raises the
+rate of undefined names from 5\% to 30\%, so it is causal for this
+error class.
+
+The operator thus knows more than it is asked: whether its child will
+crash, the fitness of the parent, and the building blocks it writes. What
+it does not reveal is which parts of its input it uses to produce the
+child, which we turn to next.

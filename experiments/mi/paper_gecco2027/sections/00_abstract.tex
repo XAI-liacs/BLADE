@@ -1,20 +1,19 @@
 %% Abstract (limit 200 words, also submitted on 18 Jan 2027).
-LLM-driven algorithm design methods
-treat the language model as a black-box variation operator. We open the
-box: we read and edit the model's internal activations while it
-writes optimisation heuristics in \llamea. \emph{Reading:} the
-model knows, while it writes, whether the new algorithm will crash: a
-linear probe on the residual stream predicts it (AUROC 0.85, +0.08 over
-code text, output uncertainty and search metadata), also on new
-problems. As a pre-screen it skips 21\% of evaluations with
-non-inferior quality, but on cheap problems a smoke test filters
-better. In three models, the
-edits ignore the score written in the feedback and follow the parent
-code and error traces. \emph{Writing:} a contrastive
-direction acts as a dial for the measured exploration of the code and,
-on five unseen problems, for the algorithm families written. In the closed loop, steering towards exploitation
-narrows the design space and costs up to 0.24 \aocc; a dial adapted to
-stagnation is the best arm on MA-BBOB (+0.08 \aocc at 200 evaluations).
-A pre-registered test on BBOB 20-D finds no support for the intuition
-``exploit on unimodal, explore on multimodal functions'': the dial acts
-on the design space, not on the optimiser's behaviour.
+LLM-driven algorithm design uses a language model as a black-box
+variation operator: unlike for a classical operator, we do not know what
+it knows, what it uses, or how to control it. We open this operator with mechanistic interpretability,
+reading and editing the model's activations while it writes optimisation
+heuristics in \llamea. \emph{What it knows:} whether the new algorithm
+will crash is decodable while the code is written (AUROC 0.85, +0.08
+over code text, output uncertainty and search metadata), also on new
+problems, and sparse-autoencoder features represent metaheuristic
+concepts beyond their keywords. \emph{What it listens to:} in three
+models, the edits ignore the score in the feedback and follow the parent
+code and error traces. \emph{How to control it:} a direction read from
+the activations acts as an exploration dial that changes the measured
+search behaviour and, on five unseen problems, the algorithm families
+written. In the loop, steering towards exploitation narrows the design
+space and costs up to 0.24 \aocc; a dose adapted to the success of the
+offspring, like a step size, is the best arm on MA-BBOB. A pre-registered
+test on BBOB 20-D shows that the dial acts on the design space, not on
+the optimiser's behaviour.

@@ -1,0 +1,50 @@
+%% Overview figure (Fig. 1), TikZ; \input in the introduction.
+\begin{tikzpicture}[
+  font=\footnotesize, >=Stealth, thick,
+  box/.style={draw, rounded corners=2pt, align=center, inner sep=4pt,
+    minimum height=1.0cm},
+  tap/.style={draw, rounded corners=2pt, align=left, inner sep=3pt,
+    text width=4.1cm, font=\scriptsize},
+  flow/.style={->, black!70},
+  lab/.style={font=\scriptsize\itshape, black!60}]
+  % the loop
+  \node[box, text width=1.6cm] (pop) at (0,0) {population\\(parents)};
+  \node[box, text width=2.3cm] (prompt) at (3.0,0)
+    {prompt: task, parent code, score, error trace, instruction};
+  % the LLM as a stack of layers
+  \node[box, minimum width=2.2cm, minimum height=1.9cm] (llm) at (6.4,0) {};
+  \node[font=\footnotesize\bfseries, anchor=north] at (llm.north) {LLM};
+  \foreach \y/\n in {-0.55/1, -0.2/2, 0.15/3, 0.5/4}
+    \draw[black!45, fill=black!8] (5.55,\y-0.12) rectangle (7.25,\y+0.12);
+  \node[box, text width=1.5cm] (child) at (9.5,0) {child\\code};
+  \node[box, text width=1.6cm] (eval) at (12.1,0) {evaluate\\(fitness, error)};
+  \node[box, text width=1.3cm] (sel) at (14.8,0) {select};
+  \draw[flow] (pop) -- (prompt);
+  \draw[flow] (prompt) -- (llm);
+  \draw[flow] (llm) -- node[lab, above] {writes} (child);
+  \draw[flow] (child) -- (eval);
+  \draw[flow] (eval) -- (sel);
+  \draw[flow] (sel.south) -- ++(0,-2.1) -| (pop.south);
+  % read tap
+  \draw[->, NavyBlue, very thick] (7.25,0.15) -- ++(0.4,0) |- (9.0,1.75);
+  \node[tap, draw=NavyBlue, anchor=west] (read) at (9.0,1.75)
+    {\textbf{\color{NavyBlue}Knows (Sec.~\ref{sec:reading})}: probes read
+     whether the child will crash (AUROC 0.85) and SAE features read its
+     concepts, while it is written};
+  % listen tap
+  \node[tap, draw=OliveGreen, anchor=south] (listen) at (3.0,1.0)
+    {\textbf{\color{OliveGreen}Listens (Sec.~\ref{sec:listening})}:
+     counterfactual prompts; the score is ignored, parent code and error
+     trace drive the edit};
+  \draw[->, OliveGreen, very thick] (listen.south) -- (prompt.north);
+  % write tap
+  \node[tap, draw=BrickRed, anchor=north, text width=4.6cm] (write) at (6.4,-1.3)
+    {\textbf{\color{BrickRed}Control (Sec.~\ref{sec:steering})}: add
+     $c\,a\,d$ to the residual stream: a direction $d$ found by reading,
+     a dose $c$ (the dial)};
+  \draw[->, BrickRed, very thick] (write.north) -- (6.4,-0.67);
+  % dose adaptation from offspring success
+  \draw[->, BrickRed, dashed] (eval.south) |- node[lab, pos=0.7, above,
+    align=center] {dose adapted to offspring\\success, like a step size}
+    (write.east);
+\end{tikzpicture}

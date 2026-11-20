@@ -1,0 +1,41 @@
+\section{What the Operator Listens To}\label{sec:listening}
+
+The input of a classical operator is fixed: a parent and a few
+parameters. The input of the LLM operator is a prompt of thousands of
+tokens: the task, the parent code, its score, its error trace and the
+mutation instruction. AAD methods engineer this prompt on the
+assumption that the model uses all of it.
+To see which parts of the prompt the model uses, we rewrote the
+feedback of 192 parent prompts and generated four children per variant
+with common random numbers (4,180 evaluated children,
+Table~\ref{tab:counterfactual}), and traced attribution
+graphs~\cite{ameisen2025circuits} from the first edited token back to
+the prompt. For a crashed parent, deleting the error trace raises the
+child's failure rate from 43\% to 66\% (+0.22, CI 0.14 to 0.33), and a
+generic error message recovers only part of it; in the attribution
+graphs, the error text carries 61\% of the influence on the edit token
+in 14 of 16 pairs. For a working parent, rewriting its score from 0.01
+to 0.90, or deleting the feedback, changes neither the child's failure
+rate nor its fitness, and the internal fitness readout moves by only
+$\pm0.04$. Steering along the fitness representation changes how much
+of the parent is rewritten, not the outcome.
+
+The replication on Qwen3-14B and Gemma-3-12B
+(Table~\ref{tab:cf-models}) confirms the main point and
+qualifies the rest. No model uses the written score (Gemma's failures
+rise slightly with a low score, +0.08, one of many effects tested).
+Qwen3-14B uses the error trace as Qwen3-8B does (+0.24 failures
+without it), but Gemma does not: it reads the trace (it repeats the
+same exception more often without it), yet its failure rate does not
+change. The effect of steering along fitness does not replicate. For
+these models, the score in the feedback is decorative; the parent code
+and, model-dependently, the error trace drive the edit.
+
+For the design of AAD methods this has two consequences. Feedback is
+useful where it carries information the model can act on: the error
+trace tells it what to fix, while the score tells it nothing it uses,
+so the selection pressure of the loop lies in which parents are shown,
+not in what is said about them. And the prompt is a coarse control
+channel: parts of it are ignored, and an explicit instruction, as we
+show in Sec.~\ref{sec:loop}, moves the code but also imprints its
+wording on it. This motivates controlling the operator from inside.

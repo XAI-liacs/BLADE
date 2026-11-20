@@ -1,13 +1,15 @@
 \section{Conclusion}\label{sec:conclusion}
 
-The generator of an LLM-driven algorithm design loop knows more than it
-is asked: whether its offspring will crash, the fitness of the parent,
-and the algorithmic concepts it writes. Reading this state
-reveals failures before any code runs, also on new problems, although
-on cheap problems a smoke test is the better filter. Writing it gives a dial that
-transfers across problems and changes which algorithms the model
-designs. In the loop, the gain comes from when the dial is turned
-(adapted to stagnation, never at initialisation), not from a fixed
-setting per landscape. Future work includes dose control with bandits,
-steering the selection of parents as well as their variation, and
-larger models.
+The LLM operator of an algorithm design loop need not be a black box.
+Opened with mechanistic interpretability, it knows more than it is
+asked: whether its offspring will crash, the fitness of the parent, and
+the algorithmic concepts it writes. It listens selectively: to the
+parent code and the error trace, not to the score. And it can be given
+a parameter: a direction read from its own state, with a dose that
+transfers across problems, changes which algorithms the model designs,
+and in the loop works best when adapted to the success of the
+offspring, like the step size of an evolution strategy. EC has the
+methods to control such parameters; future work includes dose control
+with bandits, steering the selection of parents as well as their
+variation, stopping doomed generations early from the model's state,
+and larger models.

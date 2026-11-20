@@ -1,6 +1,11 @@
-\section{Steering as a Variation Operator}\label{sec:steering}
+\section{Controlling the Operator}\label{sec:steering}
 
-Steering adds a vector $c\,a\,d$ to the residual stream at every
+A classical operator has parameters, such as a mutation step size, and
+EC has decades of methods to adapt them. The LLM operator has a
+sampling temperature and its prompt. We give it a parameter inside the
+model, built from what we can read there: a direction in the residual
+stream along which a concept or a search behaviour is represented, and
+a dose along that direction. Steering adds a vector $c\,a\,d$ to the residual stream at every
 generated token: a unit direction $d$, a dose $c$ and a scale $a$ (the
 typical activation of an SAE feature, or the residual norm of the
 layer). We take directions from two sources: SAE decoder columns, and
@@ -12,6 +17,7 @@ the same norm, and a resample with a new seed, which measures how much
 the output changes by chance.
 
 \subsection{Concept levers}
+The concept features of Sec.~\ref{sec:concepts} are natural candidates.
 Of the SAE concept features, only the swarm and gradient features
 insert their concept cleanly; most do nothing at small doses and break
 the code at large ones. Of ten contrastive directions for rare concepts,
@@ -71,16 +77,18 @@ per unit dose). A probe of exploration trained on MA-BBOB code, by
 contrast, does not transfer (Spearman $-0.08$ with measured exploration
 on Bragg): the dial transfers, its readout does not.
 
-\subsection{The dial in the closed loop}
+\subsection{The dial in the closed loop}\label{sec:loop}
 A one-generation effect need not survive selection. We compare eight
 \llamea arms: \emph{control}; the dial at a fixed dose of $+0.3$
 (\emph{explore}) or $-0.3$ (\emph{exploit}); \emph{anneal}, from $+0.3$
 to $-0.3$ over the budget; a \emph{random direction} at the same norm;
 an \emph{adaptive dial}; and the obvious alternative to steering, a
 \emph{prompt} sentence asking for strong exploration or exploitation
-(the sentence that elicited the corpus). The adaptive dial leaves the
-initial population unsteered and then adapts the dose like a success
-rule~\cite{rechenberg1973} with the opposite sign: $-0.1$ after a child
+(the sentence that elicited the corpus). The adaptive dial treats the dose as
+an operator parameter and adapts it like the step size of an evolution
+strategy under a success rule~\cite{rechenberg1973}, with the opposite
+sign; it leaves the initial population unsteered and then moves the
+dose by $-0.1$ after a child
 that improves the run's best, $+0.025$ after any other child, clipped
 to $\pm0.3$. It explores while the run stagnates and exploits after
 progress.
