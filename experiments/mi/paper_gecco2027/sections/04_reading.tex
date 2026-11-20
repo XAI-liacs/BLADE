@@ -44,8 +44,8 @@ models (Appendix~\ref{app:reading}, Fig.~\ref{fig:probes-all}).
   \label{fig:probes}
 \end{figure}
 
-\subsection{A free pre-screen}
-A probe that predicts failure can save evaluations. We froze the
+\subsection{Using what the model knows: a pre-screen}
+A probe that predicts failure could save evaluations. We froze the
 Qwen3-8B failure probe and a fixed threshold, and ran \llamea with a
 pre-screen: a child whose score exceeds the threshold is not evaluated
 and returns to the loop with a rejection message. After a power
@@ -86,8 +86,7 @@ filter for crashes on a cheap problem, a smoke test dominates the
 probe. The probe's value is elsewhere: it shows that the failure is
 represented while the code is written, it ranks failures on new
 problems without running any code, and it pays off where a single
-evaluation is expensive and cannot be truncated.\todo{decide the
-framing of C1 in the abstract and introduction; add the Bragg
+evaluation is expensive and cannot be truncated.\todo{add the Bragg
 evaluation times from \#5}
 
 \begin{table}[t]

@@ -17,9 +17,10 @@ algorithms. None look inside the generator.
 \paragraph{Learning for EC\@.}
 Surrogate models and offspring pre-selection save expensive evaluations
 by predicting fitness before evaluation~\cite{jin2011surrogate}. Our
-pre-screen is a surrogate of a different kind: it is free, because it
-reads the generator's own state while the offspring is written, and it
-predicts failure rather than fitness. Our adaptive dial borrows from
+pre-screen is a surrogate of a different kind: it needs no model of
+its own and no execution, because it reads the generator's own state
+while the offspring is written, and it predicts failure rather than
+fitness. Our adaptive dial borrows from
 step-size control in evolution strategies~\cite{rechenberg1973}: the
 dose is adapted to the success of recent offspring.
 

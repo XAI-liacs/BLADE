@@ -7,8 +7,8 @@ ye2024reevo,novikov2025alphaevolve}. The model receives one or more
 parent algorithms with their feedback and writes a child, which is
 evaluated on a benchmark and selected like any other individual. Methods
 differ in their prompts, populations and selection, but all of them
-treat the model itself as a black box. This is costly: every generated
-algorithm needs a full benchmark run, a sizable fraction of them crash
+treat the model itself as a black box. We do not know why it writes
+what it writes, a sizable fraction of its algorithms crash
 (16--25\% in our runs, far more on harder problems), and the only way to
 change what the model writes is to change the words it reads.
 
@@ -23,8 +23,8 @@ of an evolutionary loop. For the EC community, they raise four
 questions. Does the model know, while it writes, whether its offspring
 will work? Which parts of the prompt does it actually use when it
 mutates a parent? Does it represent algorithmic concepts in a form we
-can find? And can its internal state serve as a cheaper or more
-controllable variation operator?
+can find? And can its internal state serve as a more controllable
+variation operator?
 
 We study these questions with an instrumented open-weight model
 (Qwen3-8B, with replications on Qwen3-14B and Gemma-3-12B) inside
@@ -35,12 +35,16 @@ suite~\cite{blade2025}. In total we generated and evaluated more than
 80,000 algorithms, with their activations, evaluation outcomes and
 traced search behaviour. Our contributions are:
 \begin{itemize}
-  \item \textbf{C1, reading for efficiency (Sec.~\ref{sec:reading}).} The
-    child's failure is linearly decodable from the generator's state
+  \item \textbf{C1, the generator knows (Sec.~\ref{sec:reading}).}
+    The child's failure is linearly decodable from the generator's state
     while it writes the code, beyond code text, output uncertainty and
-    search metadata. A frozen probe used as a pre-screen skips 21\% of
-    the evaluations with non-inferior search quality (pre-registered
-    test, 36 seeds), and its ranking transfers to new problems.
+    search metadata; before writing it is barely predictable. A frozen
+    probe ranks failures on new problems without retraining. As a
+    pre-screen it skips 21\% of the evaluations with non-inferior search
+    quality (pre-registered test, 36 seeds), but on problems as cheap as
+    ours a smoke test catches more failures and loses no working
+    algorithm; the probe pays off only where an evaluation is expensive
+    and cannot be truncated.
   \item \textbf{C2, what drives the edit (Sec.~\ref{sec:reading}).} None of
     three models uses the score written in the feedback; the edits
     follow the parent code and, in the Qwen models, the error trace.

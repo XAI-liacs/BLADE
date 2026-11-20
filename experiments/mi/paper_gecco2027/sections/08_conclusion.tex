@@ -2,8 +2,9 @@
 
 The generator of an LLM-driven algorithm design loop knows more than it
 is asked: whether its offspring will crash, the fitness of the parent,
-and the algorithmic concepts it writes. Reading this state saves
-evaluations for free, also on new problems. Writing it gives a dial that
+and the algorithmic concepts it writes. Reading this state
+reveals failures before any code runs, also on new problems, although
+on cheap problems a smoke test is the better filter. Writing it gives a dial that
 transfers across problems and changes which algorithms the model
 designs. In the loop, the gain comes from when the dial is turned
 (adapted to stagnation, never at initialisation), not from a fixed

@@ -1,16 +1,18 @@
 %% Abstract (limit 200 words, also submitted on 18 Jan 2027).
-LLM-driven algorithm design methods such as \llamea, EoH and FunSearch
+LLM-driven algorithm design methods
 treat the language model as a black-box variation operator. We open the
-box: we read and edit the internal activations of the model while it
-writes optimisation heuristics in \llamea. \emph{Reading:} a
-linear probe on the residual stream predicts, during writing, whether the new algorithm will crash (AUROC 0.85, +0.08 over
-code text, output uncertainty and search metadata). As a free
-pre-screen, it skips 21\% of evaluations with non-inferior
-quality, and its ranking transfers to new problems. In three models, the
+box: we read and edit the model's internal activations while it
+writes optimisation heuristics in \llamea. \emph{Reading:} the
+model knows, while it writes, whether the new algorithm will crash: a
+linear probe on the residual stream predicts it (AUROC 0.85, +0.08 over
+code text, output uncertainty and search metadata), also on new
+problems. As a pre-screen it skips 21\% of evaluations with
+non-inferior quality, but on cheap problems a smoke test filters
+better. In three models, the
 edits ignore the score written in the feedback and follow the parent
 code and error traces. \emph{Writing:} a contrastive
-activation direction acts as a dial for the measured exploration of the
-code and, on five unseen problems, for the algorithm families written. In the closed loop, steering towards exploitation
+direction acts as a dial for the measured exploration of the code and,
+on five unseen problems, for the algorithm families written. In the closed loop, steering towards exploitation
 narrows the design space and costs up to 0.24 \aocc; a dial adapted to
 stagnation is the best arm on MA-BBOB (+0.08 \aocc at 200 evaluations).
 A pre-registered test on BBOB 20-D finds no support for the intuition

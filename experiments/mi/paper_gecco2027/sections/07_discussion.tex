@@ -1,10 +1,15 @@
 \section{Discussion and Limitations}\label{sec:discussion}
 
-\paragraph{Reading is ready to use.}
-The failure probe is a free surrogate: it costs one dot product per
-generated algorithm, saves a fifth of the evaluations without a
-detectable loss in quality, and ranks failures on new problems without
-retraining. Only its threshold is problem-specific. The counterfactuals
+\paragraph{The generator knows; cheap problems do not need it to.}
+The failure is represented in the generator's state while it writes,
+and a frozen probe ranks failures on new problems without retraining;
+only its threshold is problem-specific. As an efficiency tool, however,
+it is dominated on our problems by a smoke test, because a failing
+evaluation costs seconds and generation dominates the loop. The probe
+pays off where one evaluation is expensive and cannot be truncated
+(simulations, training runs), and the larger saving may lie in
+generation itself: a probe on the partial code could stop a doomed
+generation early, which we leave for future work. The counterfactuals
 also hold a lesson for the design of AAD prompts: the model reads the
 error trace and the parent code, not the score, so feedback is useful
 where it carries information the model can act on.
