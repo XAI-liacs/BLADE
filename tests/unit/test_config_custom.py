@@ -258,6 +258,33 @@ def test_missing_third_party_import_has_install_hint(tmp_path):
     assert "uv add not_installed_pkg_xyz" in issues
 
 
+@pytest.mark.parametrize("where", ["yaml", "requirements"])
+def test_evaluation_dependency_imported_at_load_time(tmp_path, where):
+    mod = unique("prob")
+    (tmp_path / f"{mod}.py").write_text("import not_installed_eval_dep\n")
+    problem = {"type": "custom", "source": f"{mod}.py", "class": "P"}
+    if where == "yaml":
+        problem["dependencies"] = ["Not_Installed.Eval-Dep>=1.0"]
+    else:
+        (tmp_path / "requirements.txt").write_text("not-installed-eval-dep\n")
+    issues = issues_of(write_config(tmp_path, base_config(problems=[problem])))
+    assert "only listed as a dependency of the evaluation environment" in issues
+    assert "move the import into the method that needs it" in issues
+
+
+def test_single_file_requirements_are_hashed_and_copied(tmp_path):
+    mod = unique("prob")
+    write_file(tmp_path, mod, PROBLEM_CODE, "P")
+    loaded = load_source(f"{mod}.py", tmp_path)
+    (tmp_path / "requirements.txt").write_text("scipy\n")
+    with_req = hash_source(tmp_path / f"{mod}.py")
+    assert with_req != loaded.sha256
+    (tmp_path / "requirements.txt").write_text("scipy>=1.12\n")
+    assert hash_source(tmp_path / f"{mod}.py") != with_req
+    copy = load_source(f"{mod}.py", tmp_path).snapshot(tmp_path / "snap")
+    assert sorted(p.name for p in copy.iterdir()) == [f"{mod}.py", "requirements.txt"]
+
+
 def test_syntax_error_in_source(tmp_path):
     mod = unique("prob")
     (tmp_path / f"{mod}.py").write_text("def broken(:\n")
@@ -403,7 +430,7 @@ def test_record_is_written_and_secrets_redacted(tmp_path, capsys):
     assert f"# from: {config_path}" in text
     hashes = json.loads((record / "sources.json").read_text())
     assert hashes[mod]["sha256"] == plan.sources[0].sha256
-    assert (record / "sources" / f"{mod}.py").read_text() == (
+    assert (record / "sources" / mod / f"{mod}.py").read_text() == (
         tmp_path / f"{mod}.py"
     ).read_text()
     assert plan.warnings == []

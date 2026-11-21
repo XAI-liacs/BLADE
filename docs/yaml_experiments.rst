@@ -124,6 +124,10 @@ How it works:
   data files next to the code work. Packages the problem needs during
   evaluation go in ``dependencies``, or in a ``requirements.txt`` next to
   the file / in the package, or in the package's ``pyproject.toml``.
+  The problem object itself is created in BLADE's process, so its module
+  must import there: import evaluation-only packages inside ``evaluate()``
+  (as the built-in benchmarks do), or install them in BLADE's environment
+  too. ``validate`` says which applies.
 * Methods and LLMs run in BLADE's own environment; install what they import
   there (``validate`` names the missing package).
 

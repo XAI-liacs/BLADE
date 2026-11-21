@@ -20,6 +20,7 @@ import hashlib
 import importlib
 import importlib.util
 import inspect
+import re
 import shutil
 import sys
 from dataclasses import dataclass, field
@@ -69,11 +70,22 @@ class LoadedSource:
         return _source_files(self.path)
 
     def snapshot(self, target_dir: Path) -> Path:
-        """Copy the source into ``target_dir`` (returns the copy's path)."""
+        """Copy the source into ``target_dir/<module name>/``.
+
+        A single file is copied together with its ``requirements.txt``, if
+        any; a package folder is copied as a whole.
+
+        Returns:
+            Path: The folder holding the copy.
+        """
         target_dir.mkdir(parents=True, exist_ok=True)
         if self.path.is_file():
-            dest = target_dir / self.path.name
-            shutil.copy2(self.path, dest)
+            dest = target_dir / self.module_name
+            if dest.exists():
+                shutil.rmtree(dest)
+            dest.mkdir()
+            for file in self.files():
+                shutil.copy2(file, dest / file.name)
             return dest
         dest = target_dir / self.path.name
         if dest.exists():
@@ -86,7 +98,10 @@ class LoadedSource:
 
 def _source_files(path: Path) -> list[Path]:
     if path.is_file():
-        return [path]
+        # A requirements.txt next to a single file belongs to it (see
+        # read_requirements), so it is hashed and copied with it.
+        sidecar = path.parent / "requirements.txt"
+        return [path, sidecar] if sidecar.is_file() else [path]
     return sorted(
         p
         for p in path.rglob("*")
@@ -153,12 +168,22 @@ def _module_origin(name: str) -> Path | None:
     return Path(spec.origin).resolve()
 
 
-def load_source(source: str | Path, base_dir: Path) -> LoadedSource:
+def _requirement_name(requirement: str) -> str:
+    """Normalised project name of a requirement (``scikit_learn>=1`` -> ``scikit-learn``)."""
+    name = re.split(r"[\s<>=!~;\[@]", requirement.strip(), maxsplit=1)[0]
+    return name.lower().replace("_", "-").replace(".", "-")
+
+
+def load_source(
+    source: str | Path, base_dir: Path, declared: list[str] | None = None
+) -> LoadedSource:
     """Import a custom ``.py`` file or package folder.
 
     Args:
         source: Path to the file or folder, relative to ``base_dir``.
         base_dir: Directory of the configuration file.
+        declared: Requirements declared in the configuration for the
+            evaluation environment (used to explain a failing import).
 
     Returns:
         LoadedSource: The imported module with its provenance.
@@ -207,12 +232,23 @@ def load_source(source: str | Path, base_dir: Path) -> LoadedSource:
         module = importlib.import_module(module_name)
     except ModuleNotFoundError as e:
         missing = e.name or str(e)
-        if missing.split(".")[0] == module_name:
+        top = missing.split(".")[0]
+        if top == module_name:
             raise UserCodeError(f"Importing '{source}' failed: {e}") from e
+        evaluation_deps = list(declared or []) + read_requirements(path)
+        if _requirement_name(top) in {_requirement_name(r) for r in evaluation_deps}:
+            raise UserCodeError(
+                f"'{source}' imports '{top}' when it is loaded, but '{top}' is "
+                "only listed as a dependency of the evaluation environment. "
+                "BLADE creates the problem in its own process, so either move "
+                f"the import into the method that needs it (e.g. evaluate()), "
+                f"or also install it where BLADE runs (`uv add {top}`)."
+            ) from e
         raise UserCodeError(
             f"'{source}' imports '{missing}', which is not installed where BLADE "
-            f"runs. Install it (e.g. `uv add {missing.split('.')[0]}` or "
-            f"`uv pip install {missing.split('.')[0]}`)."
+            f"runs. Install it (e.g. `uv add {top}` or `uv pip install {top}`); "
+            "if the problem only needs it while evaluating, import it inside "
+            "evaluate() and list it under 'dependencies'."
         ) from e
     except SyntaxError as e:
         raise UserCodeError(

@@ -371,7 +371,7 @@ class _Builder:
 
         base = {"problem": Problem, "method": Method, "llm": LLM}[kind]
         try:
-            loaded = self._load(spec.source)
+            loaded = self._load(spec.source, getattr(spec, "dependencies", None))
         except UserCodeError as e:
             self.issue(path + ("source",), str(e))
             return None, None
@@ -382,12 +382,12 @@ class _Builder:
             return None, None
         return cls, loaded
 
-    def _load(self, source: str) -> LoadedSource:
+    def _load(self, source: str, declared: list[str] | None = None) -> LoadedSource:
         base_dir = self.source.base_dir
         key = Path(source) if Path(source).is_absolute() else base_dir / source
         key = key.resolve()
         if key not in self.sources:
-            self.sources[key] = load_source(source, base_dir)
+            self.sources[key] = load_source(source, base_dir, declared)
         return self.sources[key]
 
     def check_kwargs(
