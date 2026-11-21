@@ -87,6 +87,23 @@ def test_failing_import_block_is_a_harness_error(shared_env):
     assert "package_that_does_not_exist" in sol.error
 
 
+def test_syntax_error_in_import_block_is_a_harness_error(shared_env):
+    problem = _use_env(GoodProblem(), shared_env)
+    problem.imports = "import numpy as np\nimport (broken\n"
+    sol = problem(_solution("x = 1"))
+    assert sol.error.startswith(HARNESS_ERROR_PREFIX), sol.error
+    assert "SyntaxError" in sol.error
+
+
+def test_import_block_names_are_global(shared_env):
+    problem = _use_env(GoodProblem(), shared_env)
+    problem.imports = "import math\nimport numpy as np\n"
+    script = _build_eval_script(problem.imports, "p", "s", "r", "m")
+    namespace = {}
+    exec(script.split("import cloudpickle as cp")[0], namespace)
+    assert "math" in namespace and "np" in namespace
+
+
 def test_success_resets_harness_counter(shared_env):
     problem = _use_env(GoodProblem(), shared_env)
     problem._consecutive_harness_errors = 2

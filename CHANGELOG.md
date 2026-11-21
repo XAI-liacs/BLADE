@@ -18,13 +18,15 @@
 - **Harness errors** (#189): an evaluation that fails before the problem has
   read `solution.code` (failing `imports` block, a problem class that cannot
   be unpickled, a missing dependency, a bug in `evaluate` before the code is
-  used, a failing environment setup) is no longer reported to the LLM as an
+  used, an environment setup failure inside `Problem.__call__`) is no
+  longer reported to the LLM as an
   error in its code. Its feedback starts with "Evaluation harness error", and
   after `Problem.max_harness_errors` (default 3) consecutive harness errors
   the run is stopped with `HarnessError` and recorded as failed, instead of
   spending the remaining budget. Set `problem.max_harness_errors = None` to
   restore the previous behaviour. Errors raised after the code was read are
-  handled as before.
+  handled as before. (`Experiment` still builds each problem's environment
+  before starting any run and stops right away if that fails.)
 
 ## v1.1.1 (2026-10-22)
 

@@ -125,7 +125,8 @@ def _build_eval_script(
 
     ``from __future__`` imports in ``imports_block`` are moved to the top,
     the rest of the block runs after the harness error tracker is installed
-    so that failing imports are reported as harness errors.
+    so that failing imports (and syntax errors in the block) are reported as
+    harness errors.
     """
     future_lines, other_lines = [], []
     for line in (imports_block or "").splitlines():
@@ -139,7 +140,11 @@ def _build_eval_script(
     parts.append(f"_blade_harness_marker = {json.dumps(str(marker_path))}")
     parts.append(_HARNESS_TRACKER)
     if other_lines:
-        parts.append("\n".join(other_lines))
+        # Compiled separately so that a syntax error in the block is raised
+        # at run time, after the tracker is installed (a syntax error in the
+        # script itself would stop Python before any line runs).
+        block = "\n".join(other_lines)
+        parts.append(f"exec(compile({block!r}, '<problem.imports>', 'exec'))")
     parts.append(
         "import cloudpickle as cp\n"
         + "import os, json\n"
