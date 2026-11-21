@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# YAML version of run_benchmarks/hexagon_packing.py, extended to compare
+# LLaMEA and random search with two LLMs on the whole hexagon packing suite.
+#   GOOGLE_API_KEY=... uv run iohblade run examples/configs/hexagon_packing.yml
+version: 1
+
+experiment:
+  output_dir: ../../results/HexagonPacking
+  runs: 3
+  budget: 10
+  n_jobs: 2
+
+llms:
+  gemma:
+    provider: ollama
+    model: "gemma3:12b"
+  gemini:
+    provider: gemini
+    model: gemini-2.0-flash
+    api_key: ${env:GOOGLE_API_KEY}   # read from the environment or a .env file
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: [gemma, gemini]          # one method per LLM
+    params:
+      n_parents: 2
+      n_offspring: 2
+      operators:                # llamea.Operator objects; weights set how often
+        - name: refine          # each operator is picked
+          prompt: "Refine the strategy of the selected solution to improve it."
+          weight: 0.6
+          number_of_parents: 1
+        - name: simplify
+          prompt: "Refine and simplify the selected solution to improve it."
+          weight: 0.2
+          number_of_parents: 1
+        - name: crossover
+          prompt: "Combine the ideas of the two selected solutions into a new, better one."
+          weight: 0.2
+          number_of_parents: 2  # at most n_parents
+  - type: random_search
+    name: "RS-{llm}"
+    llm: gemma
+
+problems:
+  - suite: hexagon_packing        # expands into one problem per instance
+    params: {get_best: false}
+  # A single instance instead:
+  # - type: hexagon_packing
+  #   params: {n_hex: 11}

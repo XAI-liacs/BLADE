@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# YAML version of run_benchmarks/circle_packing.py
+#   uv run iohblade validate examples/configs/circle_packing.yml
+#   uv run iohblade run examples/configs/circle_packing.yml
+version: 1
+
+experiment:
+  output_dir: ../../results/CirclePacking   # relative to this file
+  runs: 1
+  budget: 10
+  show_stdout: true
+
+llms:
+  gpt-oss:
+    provider: ollama
+    model: "gpt-oss:20b"
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: gpt-oss
+    params:
+      n_parents: 1
+      n_offspring: 1
+
+problems:
+  - type: circle_packing

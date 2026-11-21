@@ -66,7 +66,7 @@ problems:
       dims: [5]
       budget_factor: 2000
       specific_fid: 2
-  - type: suite.hexagon_packing          # factory => several problems
+  - suite: hexagon_packing               # factory => several problems
     params: {get_best: false}
   - type: custom
     name: MyProblem
@@ -82,9 +82,12 @@ Notes:
 - Relative paths are resolved against the YAML file, not the CWD.
 - `${env:VAR}` and `${env:VAR:-default}` interpolation; a `.env` next to the
   YAML is loaded if present.
-- CLI overrides: `iohblade run exp.yml --set experiment.runs=1 --only method=MyMethod`.
-- Lists of lists become tuples where the target signature needs them (BBOB
-  instances are `(fid, iid)` tuples).
+- CLI overrides: `iohblade run exp.yml --set experiment.runs=1`
+  (`--only method=MyMethod` is still open).
+- YAML lists are passed as lists. No tuple conversion is needed: the
+  benchmarks unpack `(fid, iid)` pairs, which works for lists too. Strings are
+  converted to enum values where a parameter expects an enum
+  (`problem_type: BBOB`).
 
 ## 3. What the current code requires (findings)
 

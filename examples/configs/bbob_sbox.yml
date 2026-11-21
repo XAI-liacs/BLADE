@@ -1,0 +1,52 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# YAML version of examples/run-sbox.py (one function and one function group).
+#   GEMINI_API_KEY=... uv run iohblade run examples/configs/bbob_sbox.yml
+version: 1
+
+experiment:
+  output_dir: ../../results/SBOX
+  runs: 2
+  budget: 10
+  n_jobs: 3
+  show_stdout: true
+
+llms:
+  flash:
+    provider: gemini
+    model: gemini-2.0-flash
+    api_key: ${env:GEMINI_API_KEY}
+  codestral:
+    provider: ollama
+    model: codestral
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: [flash, codestral]
+    params:
+      n_parents: 1
+      n_offspring: 1
+      elitism: true
+      operators:                  # llamea.Operator objects (llamea >= 1.4)
+        - name: simplify
+          prompt: "Refine and simplify the selected algorithm to improve it."
+          weight: 1.0
+          number_of_parents: 1
+
+problems:
+  - type: bbob_sbox
+    name: SBOX_COST_fid2
+    params:
+      training_instances: [[2, 1], [2, 2], [2, 3], [2, 4], [2, 5]]
+      test_instances: [[2, 5], [2, 6], [2, 7], [2, 8], [2, 9], [2, 10]]
+      dims: [5]
+      budget_factor: 2000
+      specific_fid: 2
+  - type: bbob_sbox
+    name: SBOX_COST_group1          # separable functions
+    params:
+      training_instances: [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
+      test_instances: [[1, 5], [2, 5], [3, 5], [4, 5], [5, 5]]
+      dims: [5]
+      budget_factor: 2000
+      specific_group: 1

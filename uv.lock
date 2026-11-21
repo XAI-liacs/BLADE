@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.11, <4"
 resolution-markers = [
     "python_full_version >= '3.14'",
@@ -2221,7 +2221,6 @@ wheels = [
 name = "iohblade"
 version = "1.1.1"
 source = { editable = "." }
-default-groups = ["methods"]
 dependencies = [
     { name = "anthropic" },
     { name = "feedparser" },
@@ -2240,7 +2239,9 @@ dependencies = [
     { name = "pandas" },
     { name = "plotly" },
     { name = "py-cpuinfo" },
+    { name = "pydantic" },
     { name = "python-constraint2" },
+    { name = "pyyaml" },
     { name = "seaborn" },
     { name = "smac" },
     { name = "streamlit" },
@@ -2313,7 +2314,9 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3,<3" },
     { name = "plotly", specifier = ">=6.2.0" },
     { name = "py-cpuinfo" },
+    { name = "pydantic", specifier = ">=2.7,<3" },
     { name = "python-constraint2", specifier = ">=2.2.3,<3" },
+    { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "seaborn", specifier = ">=0.13.2" },
     { name = "smac", specifier = ">=2.3.1" },
     { name = "streamlit", specifier = ">=1.35.0,<2" },

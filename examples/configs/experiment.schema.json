@@ -1,0 +1,402 @@
+{
+  "$defs": {
+    "ExperimentSection": {
+      "additionalProperties": false,
+      "description": "Settings of the experiment as a whole.",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the experiment.",
+          "title": "Name"
+        },
+        "output_dir": {
+          "description": "Results directory, relative to the configuration file. An existing directory is resumed.",
+          "title": "Output Dir",
+          "type": "string"
+        },
+        "runs": {
+          "default": 5,
+          "description": "Independent runs per method/problem.",
+          "exclusiveMinimum": 0,
+          "title": "Runs",
+          "type": "integer"
+        },
+        "seeds": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Explicit seeds; overrides 'runs' when given.",
+          "title": "Seeds"
+        },
+        "budget": {
+          "default": 100,
+          "description": "Evaluations per run. Also the default budget of every method.",
+          "exclusiveMinimum": 0,
+          "title": "Budget",
+          "type": "integer"
+        },
+        "n_jobs": {
+          "default": 1,
+          "description": "Runs executed in parallel.",
+          "exclusiveMinimum": 0,
+          "title": "N Jobs",
+          "type": "integer"
+        },
+        "show_stdout": {
+          "default": false,
+          "description": "Show output of the runs.",
+          "title": "Show Stdout",
+          "type": "boolean"
+        },
+        "log_stdout": {
+          "default": false,
+          "description": "Capture output of the runs to log files.",
+          "title": "Log Stdout",
+          "type": "boolean"
+        },
+        "logger": {
+          "$ref": "#/$defs/LoggerSpec"
+        }
+      },
+      "required": [
+        "output_dir"
+      ],
+      "title": "ExperimentSection",
+      "type": "object"
+    },
+    "LLMSpec": {
+      "additionalProperties": false,
+      "description": "A named LLM that methods refer to.",
+      "properties": {
+        "provider": {
+          "description": "LLM provider key: openai, deepseek, gemini, ollama, claude, lmstudio, mlx_lm, dummy, multi",
+          "examples": [
+            "openai",
+            "deepseek",
+            "gemini",
+            "ollama",
+            "claude",
+            "lmstudio",
+            "mlx_lm",
+            "dummy",
+            "multi"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Model name of the provider.",
+          "title": "Model"
+        },
+        "api_key": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "API key. Use ${env:NAME} instead of writing the key here.",
+          "title": "Api Key"
+        },
+        "llms": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "For provider 'multi': names of the LLMs to combine.",
+          "title": "Llms"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Extra constructor arguments.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "title": "LLMSpec",
+      "type": "object"
+    },
+    "LoggerSpec": {
+      "additionalProperties": false,
+      "description": "Where and how results are logged.",
+      "properties": {
+        "type": {
+          "default": "file",
+          "description": "Logger key: file, mlflow, trackio",
+          "examples": [
+            "file",
+            "mlflow",
+            "trackio"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Extra constructor arguments, e.g. mlflow_tracking_uri.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "title": "LoggerSpec",
+      "type": "object"
+    },
+    "MethodSpec": {
+      "additionalProperties": false,
+      "description": "A search method; one method instance is created per LLM.",
+      "properties": {
+        "type": {
+          "description": "Method key: llamea, random_search, eoh, reevo, funsearch, lhns, mcts_ahd, moeh",
+          "examples": [
+            "llamea",
+            "random_search",
+            "eoh",
+            "reevo",
+            "funsearch",
+            "lhns",
+            "mcts_ahd",
+            "moeh"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Display name. '{llm}' is replaced by the LLM name, e.g. 'LLaMEA-{llm}'.",
+          "title": "Name"
+        },
+        "llm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "description": "Name (or list of names) of LLMs from 'llms'.",
+          "title": "Llm"
+        },
+        "budget": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Method budget; defaults to experiment.budget.",
+          "title": "Budget"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Extra constructor arguments.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "required": [
+        "type",
+        "llm"
+      ],
+      "title": "MethodSpec",
+      "type": "object"
+    },
+    "ProblemSpec": {
+      "additionalProperties": false,
+      "description": "A problem (``type``) or a suite of problems (``suite``).",
+      "properties": {
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Problem key: bbob_sbox, ma_bbob, automl, kerneltuner, photonics, toy_multiobjective, auto_correlation_ineq1, auto_correlation_ineq2, auto_correlation_ineq3, erdos_min_overlap, euclidian_steiner_tree, graph_coloring, uncertainty_inequality, circle_packing, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, spherical_code, sum_vs_difference, matrix_multiplication, tsp, vrp",
+          "examples": [
+            "bbob_sbox",
+            "ma_bbob",
+            "automl",
+            "kerneltuner",
+            "photonics",
+            "toy_multiobjective",
+            "auto_correlation_ineq1",
+            "auto_correlation_ineq2",
+            "auto_correlation_ineq3",
+            "erdos_min_overlap",
+            "euclidian_steiner_tree",
+            "graph_coloring",
+            "uncertainty_inequality",
+            "circle_packing",
+            "hexagon_packing",
+            "rectangle_packing",
+            "unit_square_packing",
+            "heilbronn_triangle",
+            "heilbronn_convex_region",
+            "kissing_number_11d",
+            "min_max_distance_ratio",
+            "spherical_code",
+            "sum_vs_difference",
+            "matrix_multiplication",
+            "tsp",
+            "vrp"
+          ],
+          "title": "Type"
+        },
+        "suite": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Suite key (expands into several problems): auto_correlation, erdos_min_overlap, uncertainty_inequality, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, sum_vs_difference, matrix_multiplication",
+          "examples": [
+            "auto_correlation",
+            "erdos_min_overlap",
+            "uncertainty_inequality",
+            "hexagon_packing",
+            "rectangle_packing",
+            "unit_square_packing",
+            "heilbronn_triangle",
+            "heilbronn_convex_region",
+            "kissing_number_11d",
+            "min_max_distance_ratio",
+            "sum_vs_difference",
+            "matrix_multiplication"
+          ],
+          "title": "Suite"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Problem name (not for suites).",
+          "title": "Name"
+        },
+        "params": {
+          "additionalProperties": true,
+          "description": "Constructor (or suite factory) arguments.",
+          "title": "Params",
+          "type": "object"
+        }
+      },
+      "title": "ProblemSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A complete experiment: settings, LLMs, methods and problems.",
+  "properties": {
+    "version": {
+      "const": 1,
+      "default": 1,
+      "description": "Version of the configuration format.",
+      "title": "Version",
+      "type": "integer"
+    },
+    "experiment": {
+      "$ref": "#/$defs/ExperimentSection"
+    },
+    "llms": {
+      "additionalProperties": {
+        "$ref": "#/$defs/LLMSpec"
+      },
+      "minProperties": 1,
+      "title": "Llms",
+      "type": "object"
+    },
+    "methods": {
+      "items": {
+        "$ref": "#/$defs/MethodSpec"
+      },
+      "minItems": 1,
+      "title": "Methods",
+      "type": "array"
+    },
+    "problems": {
+      "items": {
+        "$ref": "#/$defs/ProblemSpec"
+      },
+      "minItems": 1,
+      "title": "Problems",
+      "type": "array"
+    }
+  },
+  "required": [
+    "experiment",
+    "llms",
+    "methods",
+    "problems"
+  ],
+  "title": "BLADE experiment configuration",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

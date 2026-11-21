@@ -106,6 +106,18 @@ def test_requires_install_hint():
         reg.resolve("problem", "ghost")
 
 
+def test_modules_are_checked():
+    reg = Registry()
+    reg.register(
+        "logger", "ghost", "math:sqrt", modules=["not_a_module_xyz"], extra="g"
+    )
+    with pytest.raises(ComponentUnavailableError, match="not_a_module_xyz"):
+        reg.resolve("logger", "ghost")
+    assert not reg.get("logger", "ghost").is_available()
+    reg.register("logger", "fine", "math:sqrt", modules=["json"])
+    assert reg.resolve("logger", "fine").__name__ == "sqrt"
+
+
 def test_missing_attribute_is_unavailable():
     reg = Registry()
     reg.register("method", "ghost", "math:not_there")
