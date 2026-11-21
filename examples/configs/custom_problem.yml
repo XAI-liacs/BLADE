@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# An experiment with your own problem class, loaded from a Python file.
+#   uv run iohblade validate examples/configs/custom_problem.yml
+#   uv run iohblade run examples/configs/custom_problem.yml
+#
+# The file (or package folder) is imported under its own name and made
+# importable in the evaluation environment, so the problem is evaluated in
+# isolation like the built-in ones. List its pip dependencies under
+# 'dependencies' (or in a requirements.txt / pyproject.toml next to it).
+# A copy of the code and the resolved configuration are stored in
+# <output_dir>/blade_config/.
+version: 1
+
+experiment:
+  output_dir: ../../results/CustomSphere
+  runs: 3
+  budget: 20
+
+llms:
+  qwen:
+    provider: ollama
+    model: "qwen2.5-coder:14b"
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: qwen
+    params:
+      n_parents: 2
+      n_offspring: 4
+      operators:
+        - name: refine
+          prompt: "Refine the strategy of the selected solution to improve it."
+          weight: 0.7
+          number_of_parents: 1
+        - name: crossover
+          prompt: "Combine the ideas of the two selected optimisers into a better one."
+          weight: 0.3
+          number_of_parents: 2
+  - type: random_search
+    name: "RS-{llm}"
+    llm: qwen
+
+problems:
+  - type: custom
+    source: custom/sphere_benchmark.py   # a .py file or a package folder
+    class: SphereProblem                 # "submodule:Class" inside a package
+    name: sphere-5d
+    params: {dim: 5, budget: 500}
+    dependencies: []                     # extra pip packages for evaluation

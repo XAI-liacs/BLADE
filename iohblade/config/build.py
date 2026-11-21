@@ -11,6 +11,7 @@ import difflib
 import enum
 import inspect
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Union, get_args, get_origin
@@ -21,6 +22,7 @@ from ..registry import ComponentKind, registry
 from ..utils import ComponentNotFoundError, ComponentUnavailableError
 from .errors import ConfigError, ConfigIssue, Path_
 from .schema import ExperimentConfig, LLMSpec
+from .user_code import LoadedSource, UserCodeError, get_class, load_source
 from .yaml_loader import LoadedConfig, load_yaml
 
 # Methods that keep **kwargs and pass them on later, when the run starts.
@@ -144,6 +146,7 @@ class ExperimentPlan:
         method_llm_names: For each method, the configuration name of its LLM.
         problems: Problem objects (suites expanded).
         seeds: Seeds of the runs.
+        sources: Custom code loaded for this experiment.
     """
 
     config: ExperimentConfig
@@ -154,6 +157,8 @@ class ExperimentPlan:
     method_llm_names: list[str] = field(default_factory=list)
     problems: list[Any] = field(default_factory=list)
     seeds: list[int] = field(default_factory=list)
+    sources: list[LoadedSource] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def n_runs(self) -> int:
@@ -167,10 +172,20 @@ class ExperimentPlan:
         return cls(name=str(self.output_dir), **spec.params)
 
     def make_experiment(self, exp_logger=None):
-        """Create the :class:`~iohblade.experiment.Experiment` to run."""
+        """Create the :class:`~iohblade.experiment.Experiment` to run.
+
+        Also records the resolved configuration and a copy of the custom
+        code in ``<output_dir>/blade_config/`` (see :mod:`.record`).
+        """
         from ..experiment import Experiment
+        from .record import write_record
 
         section = self.config.experiment
+        if exp_logger is None:
+            exp_logger = self.make_logger()
+        self.warnings = write_record(self, exp_logger.dirname)
+        for warning in self.warnings:
+            print(f"Warning: {warning}", file=sys.stderr)
         return Experiment(
             methods=self.methods,
             problems=self.problems,
@@ -179,7 +194,7 @@ class ExperimentPlan:
             seeds=list(self.seeds),
             show_stdout=section.show_stdout,
             log_stdout=section.log_stdout,
-            exp_logger=exp_logger if exp_logger is not None else self.make_logger(),
+            exp_logger=exp_logger,
             n_jobs=section.n_jobs,
         )
 
@@ -195,6 +210,12 @@ class ExperimentPlan:
             )
         lines.append(f"Problems ({len(self.problems)}):")
         lines += [f"  - {p.name}" for p in self.problems]
+        if self.sources:
+            lines.append(f"Custom code ({len(self.sources)}):")
+            lines += [
+                f"  - {s.module_name} ({s.path}, sha256 {s.sha256[:12]})"
+                for s in self.sources
+            ]
         lines.append(f"Seeds: {list(self.seeds)}")
         lines.append(
             f"Runs: {len(self.methods)} methods x {len(self.problems)} problems"
@@ -225,7 +246,11 @@ def _fields_at(loc: tuple) -> list[str]:
     tp = ExperimentConfig
     for part in loc:
         if isinstance(tp, type) and issubclass(tp, BaseModel):
-            info = tp.model_fields.get(part) if isinstance(part, str) else None
+            info = None
+            if isinstance(part, str):
+                info = tp.model_fields.get(part) or next(
+                    (f for f in tp.model_fields.values() if f.alias == part), None
+                )
             tp = _unwrap(info.annotation) if info else None
         elif get_origin(tp) is dict:
             tp = _unwrap(get_args(tp)[1])
@@ -236,7 +261,7 @@ def _fields_at(loc: tuple) -> list[str]:
         if tp is None:
             return []
     if isinstance(tp, type) and issubclass(tp, BaseModel):
-        return list(tp.model_fields)
+        return [info.alias or name for name, info in tp.model_fields.items()]
     return []
 
 
@@ -271,7 +296,7 @@ def validate_config(source: LoadedConfig) -> ExperimentConfig:
             elif err["type"] == "missing":
                 msg = f"Missing required field '{loc[-1]}'."
             else:
-                msg = err["msg"]
+                msg = err["msg"].removeprefix("Value error, ")
                 if err["type"] not in ("value_error",) and "input" in err:
                     msg += f" (got {err['input']!r})"
             # Union errors report the same location once per member type.
@@ -318,6 +343,7 @@ class _Builder:
         self.source = source
         self.config = config
         self.issues: list[ConfigIssue] = []
+        self.sources: dict[Path, LoadedSource] = {}
 
     def issue(self, path: Path_, message: str) -> None:
         self.issues.append(self.source.issue(path, message))
@@ -330,6 +356,39 @@ class _Builder:
         except ComponentUnavailableError as e:
             self.issue(path, str(e))
         return None
+
+    def resolve_spec(self, kind: str, key: str, spec, path: Path_, field: str):
+        """Resolve a registry key, or load the class of a 'custom' component.
+
+        Returns:
+            tuple: ``(class or None, LoadedSource or None)``.
+        """
+        if key != "custom":
+            return self.resolve(kind, key, path + (field,)), None
+        from ..llm import LLM
+        from ..method import Method
+        from ..problem import Problem
+
+        base = {"problem": Problem, "method": Method, "llm": LLM}[kind]
+        try:
+            loaded = self._load(spec.source)
+        except UserCodeError as e:
+            self.issue(path + ("source",), str(e))
+            return None, None
+        try:
+            cls = get_class(loaded, spec.class_, base, kind)
+        except UserCodeError as e:
+            self.issue(path + ("class",), str(e))
+            return None, None
+        return cls, loaded
+
+    def _load(self, source: str) -> LoadedSource:
+        base_dir = self.source.base_dir
+        key = Path(source) if Path(source).is_absolute() else base_dir / source
+        key = key.resolve()
+        if key not in self.sources:
+            self.sources[key] = load_source(source, base_dir)
+        return self.sources[key]
 
     def check_kwargs(
         self,
@@ -479,10 +538,14 @@ class _Builder:
         return llms
 
     def _build_llm(self, name: str, spec: LLMSpec, path: Path_, built: dict):
-        cls = self.resolve("llm", spec.provider, path + ("provider",))
+        cls, loaded = self.resolve_spec("llm", spec.provider, spec, path, "provider")
         if cls is None:
             return None
-        what = f"LLM provider '{spec.provider}'"
+        what = (
+            f"custom LLM '{spec.class_}'"
+            if loaded
+            else f"LLM provider '{spec.provider}'"
+        )
         provided = {}
         if spec.provider == "multi":
             if not spec.llms:
@@ -517,14 +580,17 @@ class _Builder:
         )
         if kwargs is None:
             return None
-        return self.construct(cls, kwargs, path, what)
+        llm = self.construct(cls, kwargs, path, what)
+        if llm is not None and loaded is not None:
+            _tag(llm, loaded, spec.class_)
+        return llm
 
     def build_methods(self, llms: dict[str, Any]):
         methods, llm_names = [], []
         default_budget = self.config.experiment.budget
         for i, spec in enumerate(self.config.methods):
             path = ("methods", i)
-            cls = self.resolve("method", spec.type, path + ("type",))
+            cls, loaded = self.resolve_spec("method", spec.type, spec, path, "type")
             unknown = [n for n in spec.llm_names if n not in self.config.llms]
             for n in unknown:
                 self.issue(
@@ -537,7 +603,9 @@ class _Builder:
                 )
             if cls is None:
                 continue
-            what = f"method '{spec.type}'"
+            what = (
+                f"custom method '{spec.class_}'" if loaded else f"method '{spec.type}'"
+            )
             sig_params = _param_names(cls)
             budget = spec.budget or default_budget
             # Check the parameters once (with a stand-in LLM), so parameter
@@ -588,6 +656,8 @@ class _Builder:
                     break  # same failure for every LLM; report once
                 if name is not None:
                     method.name = name
+                if loaded is not None:
+                    _tag(method, loaded, spec.class_)
                 methods.append(method)
                 llm_names.append(llm_name)
         # The logger identifies a run by method name and the LLM's model
@@ -638,12 +708,18 @@ class _Builder:
                 if bad:
                     self.issue(path, f"{what} returned non-Problem objects: {bad!r}")
                     continue
+                for item in items:
+                    _add_unique(item, "dependencies", spec.dependencies)
                 problems.extend(items)
                 continue
-            cls = self.resolve("problem", spec.type, path + ("type",))
+            cls, loaded = self.resolve_spec("problem", spec.type, spec, path, "type")
             if cls is None:
                 continue
-            what = f"problem '{spec.type}'"
+            what = (
+                f"custom problem '{spec.class_}'"
+                if loaded
+                else f"problem '{spec.type}'"
+            )
             provided = {}
             if spec.name is not None and "name" in _param_names(cls):
                 provided["name"] = spec.name
@@ -657,6 +733,11 @@ class _Builder:
                 continue
             if spec.name is not None:
                 problem.name = spec.name
+            if loaded is not None:
+                _tag(problem, loaded, spec.class_)
+                _add_unique(problem, "extra_pythonpath", [str(loaded.root)])
+                _add_unique(problem, "dependencies", loaded.dependencies)
+            _add_unique(problem, "dependencies", spec.dependencies)
             problems.append(problem)
         names: dict[str, int] = {}
         for problem in problems:
@@ -682,6 +763,25 @@ class _Builder:
                 provided={"name": "<output_dir>"},
                 what=f"logger '{spec.type}'",
             )
+
+
+def _tag(obj, loaded: LoadedSource, class_name: str) -> None:
+    """Record where a custom component's code came from (logged with it)."""
+    try:
+        obj._blade_source = loaded.info(class_name)
+    except Exception:  # e.g. __slots__; provenance is optional
+        pass
+
+
+def _add_unique(obj, attr: str, values) -> None:
+    """Append values to a list attribute, skipping ones already present."""
+    if not values:
+        return
+    current = list(getattr(obj, attr, None) or [])
+    for value in values:
+        if value not in current:
+            current.append(value)
+    setattr(obj, attr, current)
 
 
 def _param_names(target) -> set[str]:
@@ -720,6 +820,7 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
         method_llm_names=llm_names,
         problems=problems,
         seeds=seeds,
+        sources=list(builder.sources.values()),
     )
 
 

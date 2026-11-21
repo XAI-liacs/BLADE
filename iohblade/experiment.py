@@ -317,19 +317,27 @@ class Experiment(ABC):
         ).encode("utf-8")
         return hashlib.sha256(json_data).hexdigest()
 
+    @staticmethod
+    def _add_custom_source(obj, config):
+        """Add where a custom component's code came from (see iohblade.config)."""
+        source = getattr(obj, "_blade_source", None)
+        if source and isinstance(config, dict):
+            config["custom_source"] = source
+        return config
+
     def _log_data(self, method, problem, logger) -> bool:
         root = logger.get_log_dir()
         success = True
         # method
         method_path = os.path.join(root, "method.json")
-        method_config = method.get_config()
+        method_config = self._add_custom_source(method, method.get_config())
         method_config["hash"] = self._get_hash(method_config)
         method_success = self._export_config_data(method_config, method_path)
         success = method_success and success
 
         # problem
         problem_path = os.path.join(root, "problem.json")
-        problem_config = problem.get_config()
+        problem_config = self._add_custom_source(problem, problem.get_config())
         problem_config["hash"] = self._get_hash(problem_config)
         problem_success = self._export_config_data(problem_config, problem_path)
         success = problem_success and success
@@ -337,6 +345,8 @@ class Experiment(ABC):
         # llm
         llm_path = os.path.join(root, "llm.json")
         llm_config = method.llm.get_config()
+        if llm_config and isinstance(llm_config, list):
+            self._add_custom_source(method.llm, llm_config[0])
         for llm in llm_config:
             llm["hash"] = self._get_hash(llm)
         llm_success = self._export_config_data(llm_config, llm_path)

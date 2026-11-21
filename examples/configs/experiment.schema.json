@@ -85,8 +85,34 @@
       "additionalProperties": false,
       "description": "A named LLM that methods refer to.",
       "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': a .py file or package folder, relative to the configuration file.",
+          "title": "Source"
+        },
+        "class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': the class to use, 'Name' or 'submodule:Name' for a class in a package's submodule.",
+          "title": "Class"
+        },
         "provider": {
-          "description": "LLM provider key: openai, deepseek, gemini, ollama, claude, lmstudio, mlx_lm, dummy, multi",
+          "description": "LLM provider key ('custom' for your own class): openai, deepseek, gemini, ollama, claude, lmstudio, mlx_lm, dummy, multi",
           "examples": [
             "openai",
             "deepseek",
@@ -96,7 +122,8 @@
             "lmstudio",
             "mlx_lm",
             "dummy",
-            "multi"
+            "multi",
+            "custom"
           ],
           "title": "Provider",
           "type": "string"
@@ -185,8 +212,34 @@
       "additionalProperties": false,
       "description": "A search method; one method instance is created per LLM.",
       "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': a .py file or package folder, relative to the configuration file.",
+          "title": "Source"
+        },
+        "class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': the class to use, 'Name' or 'submodule:Name' for a class in a package's submodule.",
+          "title": "Class"
+        },
         "type": {
-          "description": "Method key: llamea, random_search, eoh, reevo, funsearch, lhns, mcts_ahd, moeh",
+          "description": "Method key ('custom' for your own class): llamea, random_search, eoh, reevo, funsearch, lhns, mcts_ahd, moeh",
           "examples": [
             "llamea",
             "random_search",
@@ -195,7 +248,8 @@
             "funsearch",
             "lhns",
             "mcts_ahd",
-            "moeh"
+            "moeh",
+            "custom"
           ],
           "title": "Type",
           "type": "string"
@@ -260,6 +314,32 @@
       "additionalProperties": false,
       "description": "A problem (``type``) or a suite of problems (``suite``).",
       "properties": {
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': a .py file or package folder, relative to the configuration file.",
+          "title": "Source"
+        },
+        "class": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "With type/provider 'custom': the class to use, 'Name' or 'submodule:Name' for a class in a package's submodule.",
+          "title": "Class"
+        },
         "type": {
           "anyOf": [
             {
@@ -270,7 +350,7 @@
             }
           ],
           "default": null,
-          "description": "Problem key: bbob_sbox, ma_bbob, automl, kerneltuner, photonics, toy_multiobjective, auto_correlation_ineq1, auto_correlation_ineq2, auto_correlation_ineq3, erdos_min_overlap, euclidian_steiner_tree, graph_coloring, uncertainty_inequality, circle_packing, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, spherical_code, sum_vs_difference, matrix_multiplication, tsp, vrp",
+          "description": "Problem key ('custom' for your own class): bbob_sbox, ma_bbob, automl, kerneltuner, photonics, toy_multiobjective, auto_correlation_ineq1, auto_correlation_ineq2, auto_correlation_ineq3, erdos_min_overlap, euclidian_steiner_tree, graph_coloring, uncertainty_inequality, circle_packing, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, spherical_code, sum_vs_difference, matrix_multiplication, tsp, vrp",
           "examples": [
             "bbob_sbox",
             "ma_bbob",
@@ -297,7 +377,8 @@
             "sum_vs_difference",
             "matrix_multiplication",
             "tsp",
-            "vrp"
+            "vrp",
+            "custom"
           ],
           "title": "Type"
         },
@@ -346,6 +427,14 @@
           "description": "Constructor (or suite factory) arguments.",
           "title": "Params",
           "type": "object"
+        },
+        "dependencies": {
+          "description": "Extra pip requirements installed in the problem's evaluation environment (added to requirements.txt / pyproject.toml found next to a custom source).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
         }
       },
       "title": "ProblemSpec",
