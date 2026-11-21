@@ -1199,3 +1199,23 @@ restricts the GPUs).
   so GPU 3 frees ~18 h earlier. `run_review_queue.sh` now takes separate
   wait pids per job; relaunched so #6 (dial on Qwen3-14B) starts on GPU 3
   when its confirmation shards exit, and #5 on GPU 2 after the campaign.
+
+### #6 result: the exploration dial on Qwen3-14B (`dial-qwen3-14b`, 2026-11-21)
+
+Directions re-derived on the same corpus with Qwen3-14B activations
+(residualised exploration, L17 and L30); 32 MA-BBOB prompts (initial and
+refine), doses ±0.2/±0.4, k=2, random directions at the same norm.
+Results in `results/dial-qwen3-14b/summary.md`.
+
+| direction | exploration %/unit dose [95% CI] | intensification | population share/unit dose |
+|---|---|---|---|
+| dial L17 | **+27.9** [12.7, 44.8] | **−0.24** [−0.37, −0.13] | **+0.17** [0.05, 0.30] |
+| dial L30 | **+14.1** [4.4, 24.3] | −0.05 [−0.14, 0.03] | **+0.26** [0.13, 0.41] |
+| random L17 | +0.7 [−13.3, 13.4] | −0.02 | −0.00 [−0.14, 0.13] |
+| random L30 | −12.4 [−26.9, 2.1] | +0.12 | −0.07 [−0.20, 0.06] |
+
+The dial replicates on the larger model: comparable to Qwen3-8B
+(+20, CI 6–36; random −3), strongest at L17 (relative depth ~0.43, as
+L15–L21 in 8B). Failure rates move within the resample noise (none
+0.09, resample 0.24), except a rise at L30 −0.4 (+0.22) and L17 +0.4
+(+0.19).
