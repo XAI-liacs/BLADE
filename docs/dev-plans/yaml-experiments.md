@@ -96,9 +96,11 @@ These constrain the design:
    unavailable. Several benchmarks are factory functions that return lists
    (`get_hexagon_packing_problems`, `get_fourier_problems`, ...).
 2. **The budget is set twice.** `Experiment(budget=...)` and
-   `Method(llm, budget)` are separate, and scripts pass both. LLaMEA also
-   needs `minimization=problem.minimisation` passed by hand
-   (`run_benchmarks/circle_packing.py`). The config layer should derive both.
+   `Method(llm, budget)` are separate, and scripts pass both. The config
+   layer (Phase 1) should default the method budget to the experiment
+   budget. (Minimisation needs no change: the methods already read
+   `problem.minimisation` when they are called; passing it in
+   `run_benchmarks/circle_packing.py` is redundant.)
 3. **Custom classes must be importable in three places.**
    - Main process: `Experiment` deep-copies methods and problems and runs
      them in threads. This is fine once the module is imported.
@@ -236,15 +238,12 @@ expects). Also write `experiment.yml` (original),
    `experiment.yml:23:7 problems[1].params.dimz: unknown parameter for BBOB_SBOX; did you mean 'dims'?`
    Exit code 2 for config errors, 3 for environment errors, 1 for run
    failures.
-2. **Separate harness errors from candidate errors.** In
-   `evaluate_in_subprocess`, write the candidate code to a named file
-   (e.g. `candidate_<token>.py`) when the problem executes it, or check the
-   traceback frames for the candidate's filename. If the innermost
-   non-candidate frame is in the problem module and no frame is in the
-   candidate, raise `HarnessError` instead of scoring `-inf`. A circuit
-   breaker aborts the run after *k* consecutive harness errors (default 3)
-   and points to the problem file and line. Candidate errors keep the
-   current feedback behaviour.
+2. **Separate harness errors from candidate errors** (done in Phase 0).
+   The evaluation script records the first access to `solution.code`. An
+   uncaught error raised before that access cannot come from the candidate,
+   so it is a harness error. Errors raised after it keep the current
+   feedback behaviour, which is conservative. A circuit breaker aborts the
+   run with `HarnessError` after *k* consecutive harness errors (default 3).
 3. **Structured logs.** Replace `logging.disable(CRITICAL)` with per-run
    `run.log` handlers (the `iohblade` logger, level set from the YAML or
    `-v`) and one `experiment.log`. Third-party noise is still hidden from
@@ -267,7 +266,7 @@ tests.
 
 | Phase | Content | Depends on | Size |
 |---|---|---|---|
-| **0. Groundwork** | Registry with lazy imports and clear "install group X" errors. `extra_pythonpath` plus the iohblade-only `PYTHONPATH` shim in `evaluate_in_subprocess`. Budget/minimisation propagation helpers. `HarnessError` classification and circuit breaker. | – | M |
+| **0. Groundwork** | Registry with lazy imports and clear "install group X" errors. `extra_pythonpath` in `evaluate_in_subprocess`. `HarnessError` classification and circuit breaker. (The iohblade-only `PYTHONPATH` shim moves to Phase 3 behind a flag, since removing the site-packages leak could break existing pip-installed setups.) | – | M |
 | **1. Built-in YAML** | `schema.py`, `yaml_loader.py` (marks, env, overrides), `build.py`, `load_experiment`, `iohblade validate/run/list/schema`. Built-ins only. Convert 3 scripts from `run_benchmarks/` to YAML as dogfooding. | 0 | L |
 | **2. Custom code** | `user_code.py` (file and folder, shadowing checks, ABC checks), dependency discovery, source snapshot and hash, resolved-config output, custom LLM providers. | 1 | L |
 | **3. Test runners and env cache** | Content-addressed venv cache with lock and uv fast path. `iohblade check`, `--dry-run`, `init` templates. | 2 | M |
