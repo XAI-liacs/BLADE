@@ -59,8 +59,9 @@ necessary control: a perturbation at every token changes the code
 unspecifically, and some of what looks like a steering effect is that.
 
 \paragraph{Limitations.}
-We use open-weight models of 8--14B parameters, and the dial on one
-model. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
+We use open-weight models of 8--14B parameters; the dial is
+replicated on a second model in single generations only, not in the
+loop. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
 not resolved, and the gain of the adaptive dial rests on its
 pre-registered confirmation. f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
 0.30--0.38), and the transfer problems have high

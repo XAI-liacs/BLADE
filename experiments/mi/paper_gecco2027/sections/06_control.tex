@@ -41,7 +41,11 @@ children), the measured exploration of the generated algorithms rises by
 falls; a random direction at the same norm does not move it ($-3$, CI
 $-15$ to 7; Fig.~\ref{fig:dial}). The dial is fine but small: doses
 between $-0.4$ and $+0.4$ span about 19 points, while a prompt
-instruction to explore or exploit spans 59.
+instruction to explore or exploit spans 59. The dial replicates on
+Qwen3-14B: the same contrastive recipe on its activations gives +28
+points per unit dose at layer 17 (CI 13 to 45) and +14 at layer 30 (4 to
+24), with random directions at $+1$ and $-12$ (both CIs include 0), and
+raises the share of population-based code by 0.17 to 0.26.
 
 \begin{figure}[t]
   \centering
