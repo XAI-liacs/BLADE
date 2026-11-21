@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Minor changes
+
+- **Component registry** (`iohblade.registry`): built-in problems, problem
+  suites, methods, LLM providers and loggers can be looked up by a short key
+  (`registry.resolve("method", "llamea")`), with `StrEnum`s such as
+  `BuiltinProblem` and `LLMProvider`. Targets are imported lazily; a missing
+  optional dependency raises `ComponentUnavailableError` with the install
+  command, and an unknown key raises `ComponentNotFoundError` with "did you
+  mean" suggestions. Custom components can be added with `register_problem`,
+  `register_method`, etc. Existing imports are unchanged (#189).
+- `Problem.extra_pythonpath`: directories added to `PYTHONPATH` of the
+  evaluation subprocess, so problems defined outside the `iohblade` package
+  can be unpickled in the evaluation environment (#189).
+- **Harness errors** (#189): an evaluation that fails before the problem has
+  read `solution.code` (failing `imports` block, a problem class that cannot
+  be unpickled, a missing dependency, a bug in `evaluate` before the code is
+  used, an environment setup failure inside `Problem.__call__`) is no
+  longer reported to the LLM as an
+  error in its code. Its feedback starts with "Evaluation harness error", and
+  after `Problem.max_harness_errors` (default 3) consecutive harness errors
+  the run is stopped with `HarnessError` and recorded as failed, instead of
+  spending the remaining budget. Set `problem.max_harness_errors = None` to
+  restore the previous behaviour. Errors raised after the code was read are
+  handled as before. (`Experiment` still builds each problem's environment
+  before starting any run and stops right away if that fails.)
+
 ## v1.1.1 (2026-10-22)
 
 Changes since [v1.1.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.0).

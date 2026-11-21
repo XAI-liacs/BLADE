@@ -12,6 +12,7 @@ BLADE API
    method
    methods
    problem
+   registry
    solution
    benchmarks
    plots
