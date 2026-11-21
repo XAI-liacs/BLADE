@@ -74,6 +74,27 @@ class Experiment(ABC):
             exp_logger = ExperimentLogger("results/experiment")
         self.exp_logger = exp_logger
 
+    @classmethod
+    def from_yaml(cls, source, *, overrides=None, env=None) -> "Experiment":
+        """Create an experiment from a YAML configuration file.
+
+        Args:
+            source: Path of the YAML file (or the configuration as a dict).
+            overrides: ``key.path=value`` overrides, e.g.
+                ``["experiment.runs=1"]``.
+            env: Variables for ``${env:...}`` placeholders (default: a
+                ``.env`` file next to the YAML file plus ``os.environ``).
+
+        Returns:
+            Experiment: The configured experiment, ready to be called.
+
+        Raises:
+            iohblade.config.ConfigError: If the configuration is invalid.
+        """
+        from .config import load_experiment
+
+        return load_experiment(source, overrides=overrides, env=env)
+
     def _clear_console(self) -> None:
         """Clear the console using ANSI escape codes."""
         print("\033c", end="")

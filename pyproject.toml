@@ -31,6 +31,8 @@ dependencies = [
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
     "py-cpuinfo",
+    "pydantic>=2.7,<3",
+    "pyyaml>=6.0,<7",
 ]
 
 [project.urls]
@@ -39,6 +41,7 @@ Repository = "https://github.com/XAI-liacs/BLADE"
 
 [project.scripts]
 iohblade-webapp = "iohblade.webapp:main"
+iohblade = "iohblade.cli:main"
 
 [dependency-groups]
 dev = [

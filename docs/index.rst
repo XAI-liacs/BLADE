@@ -273,6 +273,7 @@ If you use BLADE in your research, please consider citing the associated paper:
 
    Introduction
    Installation
+   yaml_experiments
    benchmarks
    fitness
    webapp

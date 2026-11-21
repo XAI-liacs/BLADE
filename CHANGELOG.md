@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Major changes
+
+- **Experiments from YAML** (#190): an experiment can be defined in a YAML
+  file and checked or run with the new `iohblade` command
+  (`iohblade validate|run|list|schema`) or `Experiment.from_yaml()` /
+  `iohblade.config.load_experiment()`. Components are named by registry key,
+  `params` are checked against their constructors, LLMs are defined once and
+  methods can be expanded per LLM, problem suites expand into their problems,
+  `${env:NAME}` reads secrets from the environment or a `.env` file, and
+  `--set key=value` overrides any value. All configuration errors are
+  reported together with file, line and column and "did you mean"
+  suggestions. See `docs/yaml_experiments.rst` and `examples/configs/`.
+  Existing Python scripts are unaffected. `pydantic` and `pyyaml` are now
+  explicit dependencies (they were already installed through other
+  packages).
+
 ### Minor changes
 
 - **Component registry** (`iohblade.registry`): built-in problems, problem
