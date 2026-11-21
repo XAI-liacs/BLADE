@@ -27,8 +27,8 @@ methods:
       n_parents: 1
       n_offspring: 1
       elitism: true
-      # (run-sbox.py also passes mutation_prompts, which llamea>=1.4 no
-      # longer accepts; `iohblade validate` reports such parameters.)
+      operators:                  # mutation prompts (llamea >= 1.4)
+        - "Refine and simplify the selected algorithm to improve it."
 
 problems:
   - type: bbob_sbox

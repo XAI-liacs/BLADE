@@ -16,6 +16,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     llm5 = Gemini_LLM(api_key, "gemini-1.5-flash")
     budget = 10  # short budgets
 
+    # Mutation prompts are passed to LLaMEA as `operators` (llamea >= 1.4).
     mutation_prompts = [
         "Refine and simplify the selected algorithm to improve it.",  # simplify
     ]
@@ -24,7 +25,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         llm1,
         budget=budget,
         name=f"LLaMEA-{llm1.model}",
-        mutation_prompts=mutation_prompts,
+        operators=mutation_prompts,
         n_parents=1,
         n_offspring=1,
         elitism=True,
@@ -33,7 +34,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         llm2,
         budget=budget,
         name=f"LLaMEA-{llm2.model}",
-        mutation_prompts=mutation_prompts,
+        operators=mutation_prompts,
         n_parents=1,
         n_offspring=1,
         elitism=True,
@@ -42,7 +43,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         llm5,
         budget=budget,
         name=f"LLaMEA-{llm5.model}",
-        mutation_prompts=mutation_prompts,
+        operators=mutation_prompts,
         n_parents=1,
         n_offspring=1,
         elitism=True,
