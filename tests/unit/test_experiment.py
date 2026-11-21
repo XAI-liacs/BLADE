@@ -14,6 +14,7 @@ from iohblade.loggers import ExperimentLogger
 from iohblade.method import Method
 from iohblade.problem import Problem
 from iohblade.solution import Solution
+from iohblade.utils import HarnessError
 
 
 @pytest.fixture
@@ -294,7 +295,15 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
         assert data.get('hash') is not None, "problem.json wasn't hashed, set it's 'id' as Experiment._get_hash(problem.get_config)."
 
 
-def test_failed_run_is_recorded_and_others_continue(tmp_path):
+@pytest.mark.parametrize(
+    "error",
+    [
+        ValueError("screener failed to load"),
+        # BaseException subclass raised by Problem's harness-error check.
+        HarnessError("screener failed to load"),
+    ],
+)
+def test_failed_run_is_recorded_and_others_continue(tmp_path, error):
     """A run that raises must not stop the other runs from being recorded."""
 
     class NoEnvProblem(Problem):
@@ -333,7 +342,7 @@ def test_failed_run_is_recorded_and_others_continue(tmp_path):
 
     class BrokenMethod(OkMethod):
         def __call__(self, problem):
-            raise ValueError("screener failed to load")
+            raise error
 
     class DummyLLM(LLM):
         def __init__(self, name):
@@ -365,7 +374,9 @@ def test_failed_run_is_recorded_and_others_continue(tmp_path):
         assert ok["end_time"] is not None and "error" not in ok
         # Failed runs stay pending, so a rerun retries them.
         assert broken["end_time"] is None
-        assert "ValueError: screener failed to load" in broken["error"]
+        assert (
+            f"{type(error).__name__}: screener failed to load" in broken["error"]
+        )
         with open(os.path.join(root, broken["log_dir"], "error.txt")) as f:
             trace = f.read()
         assert "Traceback" in trace and "screener failed to load" in trace

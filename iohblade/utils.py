@@ -147,6 +147,62 @@ class OverBudgetException(Exception):
     pass
 
 
+class HarnessError(BaseException):
+    """The problem's own evaluation code failed repeatedly.
+
+    Raised by :meth:`iohblade.problem.Problem.__call__` when the evaluation
+    keeps failing before any LLM-generated code has run (for example an
+    import error in a custom problem, a missing dependency in the evaluation
+    environment or a bug in ``evaluate``). Such failures cannot be fixed by
+    the LLM, so the run is aborted instead of spending the remaining budget.
+
+    It derives from ``BaseException`` (like ``KeyboardInterrupt``) so the
+    broad ``except Exception`` blocks in search methods do not swallow it;
+    :class:`iohblade.experiment.Experiment` records it as a failed run.
+    """
+
+    pass
+
+
+class ComponentNotFoundError(KeyError):
+    """No component is registered under the requested key."""
+
+    def __init__(self, kind, key, suggestions=None, known=None):
+        self.kind = str(kind)
+        self.key = key
+        self.suggestions = list(suggestions or [])
+        self.known = list(known or [])
+        msg = f"Unknown {self.kind} '{key}'."
+        if self.suggestions:
+            msg += " Did you mean " + ", ".join(f"'{s}'" for s in self.suggestions)
+            msg += "?"
+        elif self.known:
+            msg += " Known: " + ", ".join(self.known) + "."
+        self.message = msg
+        super().__init__(msg)
+
+    def __str__(self):
+        return self.message
+
+
+class ComponentUnavailableError(ImportError):
+    """A registered component cannot be imported (e.g. missing dependency)."""
+
+    def __init__(self, kind, key, target, cause, install_hint=""):
+        self.kind = str(kind)
+        self.key = key
+        self.target = target
+        self.cause = cause
+        self.install_hint = install_hint
+        msg = (
+            f"The {self.kind} '{key}' ({target}) cannot be imported: "
+            f"{type(cause).__name__}: {cause}"
+        )
+        if install_hint:
+            msg += f"\nInstall its optional dependencies with: {install_hint}"
+        super().__init__(msg)
+
+
 def cliffs_delta(a, b):
     """Compute Cliff's delta effect size for two samples.
 

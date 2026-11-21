@@ -25,7 +25,7 @@ import copy
 import re
 
 from .solution import Solution
-from .utils import TimeoutException
+from .utils import HarnessError, TimeoutException
 
 
 def simplify_subprocess_error(stderr: str, solution=None):
@@ -63,13 +63,136 @@ def simplify_subprocess_error(stderr: str, solution=None):
     return msg
 
 
-"""Evaluate a solution in a dedicated virtual environment."""
+# Prefix of the feedback given for evaluation errors that happen before the
+# generated code is touched (see ``_build_eval_script``).
+HARNESS_ERROR_PREFIX = (
+    "Evaluation harness error (raised before the generated code was used, "
+    "so it is a problem with the benchmark or its evaluation environment, "
+    "not with the generated code):\n"
+)
+
+# Code that marks an evaluation as failing in the harness. It wraps the
+# solution so that the first access to ``solution.code`` is recorded; an
+# uncaught exception raised before that access cannot have been caused by
+# the generated code.
+_HARNESS_TRACKER = """
+import sys as _blade_sys
+
+_blade_code_used = [False]
+
+
+def _blade_excepthook(exc_type, exc, tb):
+    if not _blade_code_used[0]:
+        try:
+            with open(_blade_harness_marker, "w") as _f:
+                _f.write("harness")
+        except OSError:
+            pass
+    _blade_sys.__excepthook__(exc_type, exc, tb)
+
+
+_blade_sys.excepthook = _blade_excepthook
+
+
+def _blade_track(obj):
+    base = type(obj)
+
+    class _BladeTracked(base):
+        def __getattribute__(self, name):
+            if name == "code":
+                _blade_code_used[0] = True
+            return base.__getattribute__(self, name)
+
+    try:
+        obj.__class__ = _BladeTracked
+    except TypeError:  # e.g. classes with __slots__: give up tracking
+        _blade_code_used[0] = True
+        return obj, base, None
+    return obj, base, _BladeTracked
+
+
+def _blade_untrack(obj, base, tracked):
+    if tracked is not None and type(obj) is tracked:
+        obj.__class__ = base
+    return obj
+"""
+
+
+def _build_eval_script(
+    imports_block, problem_pickle, solution_pickle, result_pickle, marker_path
+) -> str:
+    """Python source of the script that evaluates one solution in the venv.
+
+    ``from __future__`` imports in ``imports_block`` are moved to the top,
+    the rest of the block runs after the harness error tracker is installed
+    so that failing imports (and syntax errors in the block) are reported as
+    harness errors.
+    """
+    future_lines, other_lines = [], []
+    for line in (imports_block or "").splitlines():
+        if line.strip().startswith("from __future__"):
+            future_lines.append(line)
+        else:
+            other_lines.append(line)
+    parts = []
+    if future_lines:
+        parts.append("\n".join(future_lines))
+    parts.append(f"_blade_harness_marker = {json.dumps(str(marker_path))}")
+    parts.append(_HARNESS_TRACKER)
+    if other_lines:
+        # Compiled separately so that a syntax error in the block is raised
+        # at run time, after the tracker is installed (a syntax error in the
+        # script itself would stop Python before any line runs).
+        block = "\n".join(other_lines)
+        parts.append(f"exec(compile({block!r}, '<problem.imports>', 'exec'))")
+    parts.append(
+        "import cloudpickle as cp\n"
+        + "import os, json\n"
+        + f"problem_path = {json.dumps(str(problem_pickle))}\n"
+        + f"solution_path = {json.dumps(str(solution_pickle))}\n"
+        + f"result_path  = {json.dumps(str(result_pickle))}\n"
+        + "problem=cp.load(open(problem_path,'rb'))\n"
+        + "solution=cp.load(open(solution_path,'rb'))\n"
+        + "solution, _blade_base, _blade_tracked = _blade_track(solution)\n"
+        + "result=problem.evaluate(solution)\n"
+        + "_blade_untrack(solution, _blade_base, _blade_tracked)\n"
+        + "result = _blade_untrack(result, _blade_base, _blade_tracked)\n"
+        + "with open(result_path,'wb') as f:\n"
+        + "    cp.dump(result, f)\n"
+    )
+    return "\n".join(parts)
+
+
+def _eval_pythonpath(problem, existing: str = "") -> str:
+    """PYTHONPATH for the evaluation subprocess.
+
+    The directory containing the ``iohblade`` package comes first, followed
+    by the problem's ``extra_pythonpath`` entries (e.g. the folder of a custom
+    problem module) and any PYTHONPATH already set.
+    """
+    repo_root = Path(__file__).resolve().parents[1]
+    entries = [str(repo_root)]
+    for path in getattr(problem, "extra_pythonpath", None) or []:
+        path = str(Path(path).resolve())
+        if path not in entries:
+            entries.append(path)
+    if existing:
+        entries.append(existing)
+    return os.pathsep.join(entries)
+
+
+def _harness_feedback(stderr: str, max_lines: int = 20) -> str:
+    """Feedback for a harness error: the tail of the traceback."""
+    lines = (stderr or "").strip().splitlines()
+    tail = "\n".join(lines[-max_lines:]) if lines else "Unknown error."
+    return HARNESS_ERROR_PREFIX + tail
 
 
 def evaluate_in_subprocess(problem, conn, solution):
     """Evaluate a solution in a dedicated virtual environment."""
     proc = None
     temp_files = []
+    started = False  # True once the evaluation script has finished
     try:
         env_path = problem._env_path
         python_bin = problem._python_bin
@@ -82,7 +205,14 @@ def evaluate_in_subprocess(problem, conn, solution):
         solution_pickle = env_path / f"solution_{token}.pkl"
         result_pickle = Path(tempfile.gettempdir()) / f"blade_result_{token}.pkl"
         script_path = env_path / f"{token}_run_eval.py"
-        temp_files = [problem_pickle, solution_pickle, result_pickle, script_path]
+        harness_marker = Path(tempfile.gettempdir()) / f"blade_harness_{token}.txt"
+        temp_files = [
+            problem_pickle,
+            solution_pickle,
+            result_pickle,
+            script_path,
+            harness_marker,
+        ]
         problem_copy = copy.deepcopy(problem)
         problem_copy.logger = None
         # Always write the problem, its state can change between evaluations.
@@ -93,22 +223,17 @@ def evaluate_in_subprocess(problem, conn, solution):
 
         imports_block = getattr(problem, "imports", "")
         script_path.write_text(
-            (f"{imports_block}\n" if imports_block else "")
-            + "import cloudpickle as cp\n"
-            + "import os, json\n"
-            + f"problem_path = {json.dumps(str(problem_pickle))}\n"
-            + f"solution_path = {json.dumps(str(solution_pickle))}\n"
-            + f"result_path  = {json.dumps(str(result_pickle))}\n"
-            + "problem=cp.load(open(problem_path,'rb'))\n"
-            + "solution=cp.load(open(solution_path,'rb'))\n"
-            + "result=problem.evaluate(solution)\n"
-            + "with open(result_path,'wb') as f:\n"
-            + "    cp.dump(result, f)\n"
+            _build_eval_script(
+                imports_block,
+                problem_pickle,
+                solution_pickle,
+                result_pickle,
+                harness_marker,
+            )
         )
 
         env = os.environ.copy()
-        repo_root = Path(__file__).resolve().parents[1]
-        env["PYTHONPATH"] = f"{repo_root}{os.pathsep}" + env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = _eval_pythonpath(problem, env.get("PYTHONPATH", ""))
 
         proc = subprocess.Popen(
             [str(python_bin), str(script_path)],
@@ -131,7 +256,18 @@ def evaluate_in_subprocess(problem, conn, solution):
             )
             return
 
+        started = True
         if proc.returncode != 0:
+            if harness_marker.exists():
+                conn.send(
+                    {
+                        "error": _harness_feedback(stderr),
+                        "harness_error": True,
+                        "stdout": stdout,
+                        "stderr": stderr,
+                    }
+                )
+                return
             error_msg = simplify_subprocess_error(stderr, solution)
             conn.send({"error": error_msg, "stdout": stdout, "stderr": stderr})
             return
@@ -141,6 +277,18 @@ def evaluate_in_subprocess(problem, conn, solution):
         conn.send({"result": result, "stdout": stdout, "stderr": stderr})
 
     except Exception as e:
+        if not started:
+            # Preparing or launching the evaluation failed (e.g. the problem
+            # cannot be pickled, or the environment's Python is missing).
+            conn.send(
+                {
+                    "error": _harness_feedback("".join(traceback.format_exception(e))),
+                    "harness_error": True,
+                    "stdout": "",
+                    "stderr": "",
+                }
+            )
+            return
         tb = traceback.extract_tb(e.__traceback__)[-1]
         line_no = tb.lineno
         code_line = ""
@@ -220,6 +368,14 @@ class Problem(ABC):
         else:
             self.imports = imports
 
+        # Extra directories added to PYTHONPATH of the evaluation subprocess,
+        # e.g. the folder of a problem defined outside the iohblade package.
+        self.extra_pythonpath: list[str] = []
+        # Abort the run (HarnessError) after this many consecutive evaluations
+        # that failed before the generated code was used. None disables it.
+        self.max_harness_errors: int | None = 3
+        self._consecutive_harness_errors = 0
+
         # Path to the virtual environment used for evaluations
         self._env_path: Path | None = None
         self._python_bin: Path | None = None
@@ -266,8 +422,13 @@ class Problem(ABC):
         process: multiprocessing.Process | None = None
         parent_conn = None
         child_conn = None
+        harness_error = False
         try:
-            self._ensure_env()
+            try:
+                self._ensure_env()
+            except Exception:
+                harness_error = True
+                raise
             (
                 parent_conn,
                 child_conn,
@@ -300,6 +461,7 @@ class Problem(ABC):
                     stderr = result.get("stderr", "")
                     if "error" in result:
                         err = result["error"]
+                        harness_error = bool(result.get("harness_error"))
                         solution.set_scores(
                             -np.inf,
                             feedback=err,
@@ -332,10 +494,13 @@ class Problem(ABC):
             else:
                 raise Exception("Evaluation failed without an exception.")
         except Exception as e:
+            msg = f"{e}"
+            if harness_error:
+                msg = HARNESS_ERROR_PREFIX + msg
             solution.set_scores(
                 -np.inf,
-                feedback=f"{e}",
-                error=f"{e}",
+                feedback=msg,
+                error=msg,
             )
         finally:
             if process is not None:
@@ -351,7 +516,30 @@ class Problem(ABC):
         self._last_stderr = stderr
         if self.logger is not None:
             self.logger.log_individual(solution)
+        self._track_harness_error(harness_error, solution)
         return solution
+
+    def _track_harness_error(self, harness_error: bool, solution: Solution):
+        """Count consecutive harness errors and abort the run past the limit.
+
+        Raises:
+            HarnessError: After ``max_harness_errors`` consecutive evaluations
+                failed before the generated code was used.
+        """
+        if not harness_error:
+            self._consecutive_harness_errors = 0
+            return
+        count = getattr(self, "_consecutive_harness_errors", 0) + 1
+        self._consecutive_harness_errors = count
+        limit = getattr(self, "max_harness_errors", 3)
+        if limit and count >= limit:
+            raise HarnessError(
+                f"Problem '{self.name}': {count} consecutive evaluations failed "
+                "before the generated code was used, so the run is stopped. "
+                "Fix the problem's evaluation code or environment (set "
+                "problem.max_harness_errors = None to disable this check). "
+                f"Last error:\n{solution.error}"
+            )
 
     def _ensure_env(self):
         """Create the virtual environment for evaluations if it does not exist."""
