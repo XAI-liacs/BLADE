@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import difflib
 import importlib
+import importlib.util
 from dataclasses import dataclass
 from enum import StrEnum
 from threading import RLock
@@ -142,6 +143,9 @@ class ComponentInfo:
             the component's dependencies, if any.
         requires: Extra pip packages the component needs that are not in
             any dependency group.
+        modules: Modules that must be importable for the component to work,
+            for components whose module imports fine without them (the
+            optional import is guarded and fails later, at construction).
     """
 
     kind: ComponentKind
@@ -150,6 +154,7 @@ class ComponentInfo:
     description: str = ""
     extra: str | None = None
     requires: tuple[str, ...] = ()
+    modules: tuple[str, ...] = ()
 
     @property
     def target_path(self) -> str:
@@ -173,6 +178,16 @@ class ComponentInfo:
             ComponentUnavailableError: If importing the target fails, for
                 example because an optional dependency is not installed.
         """
+        for name in self.modules:
+            try:
+                found = importlib.util.find_spec(name) is not None
+            except (ImportError, ValueError):
+                found = False
+            if not found:
+                cause = ModuleNotFoundError(f"No module named '{name}'")
+                raise ComponentUnavailableError(
+                    self.kind, self.key, self.target_path, cause, self.install_hint()
+                )
         if not isinstance(self.target, str):
             return self.target
         module_name, _, attr = self.target.partition(":")
@@ -219,6 +234,7 @@ class Registry:
         description: str = "",
         extra: str | None = None,
         requires: tuple[str, ...] | list[str] = (),
+        modules: tuple[str, ...] | list[str] = (),
         overwrite: bool = False,
     ) -> ComponentInfo:
         """Register a component.
@@ -230,6 +246,7 @@ class Registry:
             description: One-line description.
             extra: Optional dependency group providing its dependencies.
             requires: Pip packages it needs that are in no dependency group.
+            modules: Modules that must be importable, see ComponentInfo.
             overwrite: Replace an existing registration with the same key.
 
         Returns:
@@ -245,7 +262,9 @@ class Registry:
             raise ValueError(
                 f"Target '{target}' must have the form 'package.module:attribute'."
             )
-        info = ComponentInfo(kind, key, target, description, extra, tuple(requires))
+        info = ComponentInfo(
+            kind, key, target, description, extra, tuple(requires), tuple(modules)
+        )
         with self._lock:
             existing = self._components[kind].get(key)
             if existing is not None and not overwrite:
@@ -748,6 +767,14 @@ _REQUIRES: dict[tuple[ComponentKind, str], tuple[str, ...]] = {
     (ComponentKind.PROBLEM, BuiltinProblem.AUTOML): ("openml",),
 }
 
+# Optional modules imported behind a guard: the component's module imports
+# without them, so check them explicitly.
+_MODULES: dict[tuple[ComponentKind, str], tuple[str, ...]] = {
+    (ComponentKind.LLM, LLMProvider.LMSTUDIO): ("lmstudio",),
+    (ComponentKind.LLM, LLMProvider.MLX_LM): ("mlx_lm",),
+    (ComponentKind.LOGGER, LoggerType.TRACKIO): ("trackio",),
+}
+
 for _kind, _key, _target, _description, _extra in _BUILTINS:
     registry.register(
         _kind,
@@ -756,6 +783,7 @@ for _kind, _key, _target, _description, _extra in _BUILTINS:
         description=_description,
         extra=_extra,
         requires=_REQUIRES.get((_kind, _key), ()),
+        modules=_MODULES.get((_kind, _key), ()),
     )
 
 __all__ = [

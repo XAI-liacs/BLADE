@@ -34,6 +34,18 @@ def test_duplicate_keys_are_reported():
     assert issue.line == 3 and "Duplicate key" in issue.message
 
 
+def test_merged_keys_can_be_overridden():
+    cfg = parse_yaml(
+        "defaults: &d {runs: 5, budget: 10}\n"
+        "exp:\n  <<: *d\n  runs: 2\n"
+        "two:\n  <<: [*d, {runs: 7}]\n"
+    )
+    assert cfg.data["exp"] == {"runs": 2, "budget": 10}
+    assert cfg.data["two"]["runs"] == 5  # first merged mapping wins
+    with pytest.raises(ConfigError, match="Duplicate key"):
+        parse_yaml("exp:\n  <<: {runs: 5}\n  runs: 2\n  runs: 3\n")
+
+
 def test_syntax_error_has_location():
     with pytest.raises(ConfigError) as exc:
         parse_yaml("a: [1, 2\nb: 3\n", "f.yml")

@@ -237,6 +237,42 @@ def test_duplicate_names():
     assert "2 problems are named 'p'" in issues
 
 
+def test_same_method_name_with_llm_aliases_of_one_model():
+    llms = {
+        "a": {"provider": "dummy", "model": "m"},
+        "b": {"provider": "dummy", "model": "m"},
+    }
+    data = config(
+        llms=llms, methods=[{"type": "random_search", "name": "rs", "llm": ["a", "b"]}]
+    )
+    issues = "\n".join(issues_of(data))
+    assert "LLMs 'a' and 'b' (both model 'm')" in issues
+
+
+def test_repeated_seeds_are_rejected():
+    data = config()
+    data["experiment"]["seeds"] = [1, 2, 1]
+    assert "Seeds must be unique; repeated: [1]" in "\n".join(issues_of(data))
+    data["experiment"]["seeds"] = []
+    assert "'seeds' must not be empty" in "\n".join(issues_of(data))
+
+
+def test_unavailable_logger_is_reported(monkeypatch):
+    import importlib.util
+
+    real = importlib.util.find_spec
+    monkeypatch.setattr(
+        importlib.util,
+        "find_spec",
+        lambda name, *a: None if name == "trackio" else real(name, *a),
+    )
+    data = config()
+    data["experiment"]["logger"] = {"type": "trackio"}
+    issues = "\n".join(issues_of(data))
+    assert "experiment.logger.type: The logger 'trackio'" in issues
+    assert "uv sync --group trackio" in issues
+
+
 def test_same_method_name_with_different_llms_is_fine():
     data = config(methods=[{"type": "random_search", "name": "rs", "llm": ["a", "b"]}])
     assert len(load_plan(data, env={}).methods) == 2

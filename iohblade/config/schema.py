@@ -23,7 +23,14 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, PositiveInt, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    PositiveInt,
+    field_validator,
+    model_validator,
+)
 
 from ..registry import (
     BuiltinMethod,
@@ -79,6 +86,21 @@ class ExperimentSection(_Strict):
         False, description="Capture output of the runs to log files."
     )
     logger: LoggerSpec = Field(default_factory=LoggerSpec)
+
+    @field_validator("seeds")
+    @classmethod
+    def _unique_seeds(cls, seeds):
+        if seeds is not None:
+            if not seeds:
+                raise ValueError("'seeds' must not be empty (or leave it out).")
+            repeated = sorted({s for s in seeds if seeds.count(s) > 1})
+            if repeated:
+                raise ValueError(
+                    f"Seeds must be unique; repeated: {repeated}. A run is "
+                    "identified by method, LLM, problem and seed, so repeated "
+                    "seeds would share (and overwrite) their results."
+                )
+        return seeds
 
 
 class LLMSpec(_Strict):

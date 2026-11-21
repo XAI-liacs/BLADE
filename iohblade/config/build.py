@@ -490,17 +490,28 @@ class _Builder:
                     method.name = name
                 methods.append(method)
                 llm_names.append(llm_name)
-        seen: dict[tuple[str, str], int] = {}
+        # The logger identifies a run by method name and the LLM's model
+        # name (not the YAML alias), so check uniqueness on those.
+        from ..loggers.base import ExperimentLogger
+
+        seen: dict[tuple[str, str], str] = {}
         for method, llm_name in zip(methods, llm_names):
-            key = (method.name, llm_name)
+            model = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
+            key = (method.name, model)
             if key in seen:
+                other = seen[key]
+                via = (
+                    f"LLMs '{other}' and '{llm_name}' (both model '{model}')"
+                    if other != llm_name
+                    else f"LLM '{llm_name}'"
+                )
                 self.issue(
                     ("methods",),
-                    f"Two methods are named '{method.name}' with LLM "
-                    f"'{llm_name}'; give them different 'name's (results of "
-                    "one would overwrite the other).",
+                    f"Two methods are named '{method.name}' with {via}; give "
+                    "them different 'name's (e.g. with '{llm}'), or the results "
+                    "of one would overwrite the other.",
                 )
-            seen[key] = 1
+            seen[key] = llm_name
         return methods, llm_names
 
     def build_problems(self):

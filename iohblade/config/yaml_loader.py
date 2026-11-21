@@ -70,8 +70,11 @@ def _to_python(loader, node, path, marks, issues, file):
     """Convert a composed YAML node into Python objects, recording marks."""
     marks[path] = (node.start_mark.line + 1, node.start_mark.column + 1)
     if isinstance(node, yaml.MappingNode):
+        # Keys written in this mapping itself (not inherited through '<<').
+        explicit = {id(k) for k, _ in node.value if k.tag != "tag:yaml.org,2002:merge"}
         loader.flatten_mapping(node)  # resolve '<<' merge keys
         result = {}
+        explicit_keys: set[str] = set()
         for key_node, value_node in node.value:
             key = loader.construct_object(key_node, deep=True)
             if not isinstance(key, (str, int, float, bool)) or key is None:
@@ -87,7 +90,11 @@ def _to_python(loader, node, path, marks, issues, file):
                 continue
             key = str(key) if not isinstance(key, str) else key
             child = path + (key,)
-            if key in result:
+            is_explicit = id(key_node) in explicit
+            # flatten_mapping puts inherited pairs first, so a key written
+            # here overrides a merged one (YAML merge semantics); only a key
+            # written twice in the same mapping is a duplicate.
+            if is_explicit and key in explicit_keys:
                 issues.append(
                     ConfigIssue(
                         child,
@@ -97,6 +104,8 @@ def _to_python(loader, node, path, marks, issues, file):
                         key_node.start_mark.column + 1,
                     )
                 )
+            if is_explicit:
+                explicit_keys.add(key)
             result[key] = _to_python(loader, value_node, child, marks, issues, file)
             # Point at the key rather than the value.
             marks[child] = (
