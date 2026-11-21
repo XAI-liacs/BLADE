@@ -23,7 +23,22 @@ methods:
   - type: llamea
     name: "LLaMEA-{llm}"
     llm: [gemma, gemini]          # one method per LLM
-    params: {n_parents: 1, n_offspring: 1}
+    params:
+      n_parents: 2
+      n_offspring: 2
+      operators:                # llamea.Operator objects; weights set how often
+        - name: refine          # each operator is picked
+          prompt: "Refine the strategy of the selected solution to improve it."
+          weight: 0.6
+          number_of_parents: 1
+        - name: simplify
+          prompt: "Refine and simplify the selected solution to improve it."
+          weight: 0.2
+          number_of_parents: 1
+        - name: crossover
+          prompt: "Combine the ideas of the two selected solutions into a new, better one."
+          weight: 0.2
+          number_of_parents: 2  # at most n_parents
   - type: random_search
     name: "RS-{llm}"
     llm: gemma

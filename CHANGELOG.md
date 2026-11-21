@@ -16,7 +16,16 @@
   suggestions. See `docs/yaml_experiments.rst` and `examples/configs/`.
   Existing Python scripts are unaffected. `pydantic` and `pyyaml` are now
   explicit dependencies (they were already installed through other
-  packages).
+  packages). LLaMEA `operators` can be given as mappings with the fields
+  of `llamea.Operator` (`prompt`, `name`, `weight`, `number_of_parents`).
+
+### Bug fixes
+
+- The example scripts `run-sbox.py`, `run-mabbob.py`, `run-bbob-logging.py`,
+  `run-kerneltuner.py`, `run-kerneltuner-info.py`, `minimal_example.py` and
+  `minimal_example_trackio.py` passed `mutation_prompts` to LLaMEA, which
+  `llamea>=1.4` no longer accepts, so they failed when a run started. They now
+  pass `llamea.Operator` objects as `operators`.
 
 ### Minor changes
 

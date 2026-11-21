@@ -46,6 +46,88 @@ _KWARGS_TARGETS: dict[tuple[str, str], tuple[str, set[str]]] = {
 }
 
 
+def _llamea_operators(value, path, params, issue):
+    """Turn LLaMEA ``operators`` from YAML into ``llamea.Operator`` objects.
+
+    Each item is a mapping with ``prompt`` and optionally ``name``,
+    ``weight`` and ``number_of_parents`` (the fields of ``llamea.Operator``);
+    a plain string is accepted too and becomes a mutation operator.
+    LLaMEA's own checks (``number_of_parents <= n_parents``, ``weight >= 0``)
+    are done here, so they are reported before the run starts.
+    """
+    import dataclasses
+
+    from llamea import LLaMEA as LLAMEA_Algorithm
+    from llamea import Operator
+
+    fields = {f.name: f for f in dataclasses.fields(Operator)}
+    n_parents = params.get(
+        "n_parents",
+        inspect.signature(LLAMEA_Algorithm).parameters["n_parents"].default,
+    )
+    items = value if isinstance(value, list) else [value]
+    if not items:
+        issue(path, "'operators' is empty; leave it out to use the default mutation.")
+        return None
+    result, ok = [], True
+    for i, item in enumerate(items):
+        p = path + (i,) if isinstance(value, list) else path
+        if isinstance(item, str):
+            result.append(item)
+            continue
+        if not isinstance(item, dict):
+            issue(
+                p,
+                "An operator is a mapping with 'prompt' and optionally 'name', "
+                f"'weight' and 'number_of_parents' (got {item!r}).",
+            )
+            ok = False
+            continue
+        unknown = [k for k in item if k not in fields]
+        for key in unknown:
+            issue(
+                p + (key,),
+                f"Unknown operator field '{key}'."
+                + (_did_you_mean(key, fields) or " Fields: " + ", ".join(fields) + "."),
+            )
+        if "prompt" not in item:
+            issue(p, "An operator needs a 'prompt'.")
+        weight = item.get("weight", fields["weight"].default)
+        if (
+            not isinstance(weight, (int, float))
+            or isinstance(weight, bool)
+            or weight < 0
+        ):
+            issue(p + ("weight",), f"'weight' must be a number >= 0 (got {weight!r}).")
+            weight = None
+        parents = item.get("number_of_parents", fields["number_of_parents"].default)
+        if not isinstance(parents, int) or isinstance(parents, bool) or parents < 1:
+            issue(
+                p + ("number_of_parents",),
+                f"'number_of_parents' must be an integer >= 1 (got {parents!r}).",
+            )
+            parents = None
+        elif isinstance(n_parents, int) and parents > n_parents:
+            issue(
+                p + ("number_of_parents",),
+                f"An operator cannot use more parents ({parents}) than "
+                f"n_parents ({n_parents}).",
+            )
+            parents = None
+        if unknown or "prompt" not in item or weight is None or parents is None:
+            ok = False
+            continue
+        result.append(Operator(**item))
+    return result if ok else None
+
+
+# Converters for parameters that need Python objects instead of plain YAML
+# values: (kind, key) -> {param: converter(value, path, params, issue)}.
+_PARAM_CONVERTERS: dict[tuple[str, str], dict[str, Any]] = {
+    ("method", "llamea"): {"operators": _llamea_operators},
+}
+
+
 @dataclass
 class ExperimentPlan:
     """Everything built from a configuration, before anything runs.
@@ -471,6 +553,19 @@ class _Builder:
                 kwargs_target=_KWARGS_TARGETS.get(("method", spec.type)),
                 what=what,
             )
+            converters = _PARAM_CONVERTERS.get(("method", spec.type), {})
+            if kwargs is not None:
+                for param, convert in converters.items():
+                    if param in kwargs:
+                        converted = convert(
+                            kwargs[param],
+                            path + ("params", param),
+                            kwargs,
+                            self.issue,
+                        )
+                        if converted is None:
+                            kwargs = None
+                            break
             if kwargs is None or unknown:
                 continue
             for llm_name in spec.llm_names:
@@ -478,6 +573,11 @@ class _Builder:
                 if llm is None:  # its own error was reported under 'llms'
                     continue
                 call = {**kwargs, "llm": llm}
+                for param, convert in converters.items():
+                    if param in spec.params:  # fresh objects per method
+                        call[param] = convert(
+                            spec.params[param], (), kwargs, lambda *a: None
+                        )
                 name = None
                 if spec.name is not None:
                     name = spec.name.replace("{llm}", llm_name)

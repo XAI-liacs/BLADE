@@ -27,8 +27,11 @@ methods:
       n_parents: 1
       n_offspring: 1
       elitism: true
-      operators:                  # mutation prompts (llamea >= 1.4)
-        - "Refine and simplify the selected algorithm to improve it."
+      operators:                  # llamea.Operator objects (llamea >= 1.4)
+        - name: simplify
+          prompt: "Refine and simplify the selected algorithm to improve it."
+          weight: 1.0
+          number_of_parents: 1
 
 problems:
   - type: bbob_sbox

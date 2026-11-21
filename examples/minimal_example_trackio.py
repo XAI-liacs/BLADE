@@ -1,3 +1,5 @@
+from llamea import Operator
+
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM, Dummy_LLM
 from iohblade.methods import LLaMEA, RandomSearch
@@ -82,10 +84,15 @@ if __name__ == "__main__": # Because we call stuff in parallel, make sure the ex
     budget = 4 # a test budget for 10 evaluations (normally you should use 100+)
 
     # Set up the LLaMEA algorithm
-    mutation_prompts = [
-        "Refine the strategy of the selected solution to improve it.", 
+    operators = [
+        Operator(
+            prompt="Refine the strategy of the selected solution to improve it.",
+            name="refine",
+            weight=1.0,
+            number_of_parents=1,
+        ),
     ]
-    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", mutation_prompts=mutation_prompts, n_parents=2, n_offspring=2, elitism=True)
+    LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", operators=operators, n_parents=2, n_offspring=2, elitism=True)
     
     # Set up a random search baseline
     RS = RandomSearch(llm, budget=budget, name="RS")

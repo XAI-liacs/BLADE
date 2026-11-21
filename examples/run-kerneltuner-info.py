@@ -1,3 +1,5 @@
+from llamea import Operator
+
 from iohblade.experiment import Experiment
 from iohblade.llm import Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from iohblade.methods import LLaMEA, RandomSearch
@@ -15,14 +17,30 @@ if __name__ == "__main__": # prevents weird restarting behaviour
     llm5 = OpenAI_LLM(api_key,"o4-mini-2025-04-16", temperature=1.0) #Done
     budget = 100
 
-    mutation_prompts = [
-        "Refine the strategy of the selected solution to improve it.",  # small mutation
-        "Generate a new algorithm that is different from the algorithms you have tried before.", #new random solution
-        "Refine and simplify the selected algorithm to improve it.", #simplify
+    # Mutation operators (llamea >= 1.4); equal weights pick each one equally often.
+    operators = [
+        Operator(
+            prompt="Refine the strategy of the selected solution to improve it.",
+            name="refine",
+            weight=1.0,
+            number_of_parents=1,
+        ),
+        Operator(
+            prompt="Generate a new algorithm that is different from the algorithms you have tried before.",
+            name="new_random",
+            weight=1.0,
+            number_of_parents=1,
+        ),
+        Operator(
+            prompt="Refine and simplify the selected algorithm to improve it.",
+            name="simplify",
+            weight=1.0,
+            number_of_parents=1,
+        ),
     ]
 
     for llm in [llm1]: #, llm1
-        LLaMEA_method = LLaMEA(llm, budget=budget, name="gemini-2.0", mutation_prompts=mutation_prompts, n_parents=4, n_offspring=12, elitism=True)
+        LLaMEA_method = LLaMEA(llm, budget=budget, name="gemini-2.0", operators=operators, n_parents=4, n_offspring=12, elitism=True)
 
         methods = [LLaMEA_method]
         logger = ExperimentLogger("results/kerneltuner-gemini-2.0")

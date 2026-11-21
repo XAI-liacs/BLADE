@@ -360,3 +360,98 @@ def test_checked_in_schema_is_up_to_date():
         "Regenerate with: uv run iohblade schema -o "
         "examples/configs/experiment.schema.json"
     )
+
+
+def _llamea(params, llm="a"):
+    return config(
+        methods=[{"type": "llamea", "name": "L-{llm}", "llm": llm, "params": params}]
+    )
+
+
+def test_llamea_operators_become_operator_objects():
+    from llamea import Operator
+
+    params = {
+        "n_parents": 2,
+        "operators": [
+            {"name": "refine", "prompt": "Refine it.", "weight": 0.7},
+            {
+                "name": "cx",
+                "prompt": "Combine them.",
+                "weight": 0.3,
+                "number_of_parents": 2,
+            },
+            "A plain mutation prompt.",
+        ],
+    }
+    plan = load_plan(_llamea(params, llm=["a", "b"]), env={})
+    ops_a = plan.methods[0].kwargs["operators"]
+    ops_b = plan.methods[1].kwargs["operators"]
+    assert isinstance(ops_a[0], Operator)
+    assert (
+        ops_a[0].name,
+        ops_a[0].prompt,
+        ops_a[0].weight,
+        ops_a[0].number_of_parents,
+    ) == ("refine", "Refine it.", 0.7, 1)
+    assert ops_a[1].number_of_parents == 2 and ops_a[1].weight == 0.3
+    assert ops_a[2] == "A plain mutation prompt."  # llamea turns it into a mutation
+    # Each method gets its own Operator objects (they keep per-run state).
+    assert ops_a[0].id != ops_b[0].id
+
+
+def test_llamea_operators_are_accepted_by_llamea():
+    from llamea import LLaMEA as LLAMEA_Algorithm
+
+    from iohblade.llm import Dummy_LLM
+
+    params = {
+        "n_parents": 2,
+        "operators": [{"prompt": "Refine it.", "number_of_parents": 2}],
+    }
+    plan = load_plan(_llamea(params), env={})
+    algo = LLAMEA_Algorithm(
+        f=lambda *a: None, llm=Dummy_LLM(), log=False, **plan.methods[0].kwargs
+    )
+    assert [o.prompt for o in algo.operators] == ["Refine it."]
+
+
+def test_llamea_operator_errors():
+    params = {
+        "n_parents": 1,
+        "operators": [
+            {"name": "a", "promt": "typo"},
+            {"prompt": "x", "weight": -1},
+            {"prompt": "x", "number_of_parents": 2},
+            {"prompt": "x", "number_of_parents": 0},
+            42,
+        ],
+    }
+    issues = "\n".join(issues_of(_llamea(params)))
+    p = "methods[0].params.operators"
+    assert (
+        f"{p}[0].promt: Unknown operator field 'promt'. Did you mean 'prompt'?"
+        in issues
+    )
+    assert f"{p}[0]: An operator needs a 'prompt'." in issues
+    assert f"{p}[1].weight: 'weight' must be a number >= 0" in issues
+    assert (
+        f"{p}[2].number_of_parents: An operator cannot use more parents (2) than "
+        "n_parents (1)." in issues
+    )
+    assert (
+        f"{p}[3].number_of_parents: 'number_of_parents' must be an integer >= 1"
+        in issues
+    )
+    assert f"{p}[4]: An operator is a mapping" in issues
+
+
+def test_llamea_operator_parents_default_n_parents():
+    # llamea's default n_parents (5) applies when n_parents is not given.
+    params = {"operators": [{"prompt": "x", "number_of_parents": 6}]}
+    assert "than n_parents (5)" in "\n".join(issues_of(_llamea(params)))
+
+
+def test_llamea_empty_operators():
+    issues = "\n".join(issues_of(_llamea({"operators": []})))
+    assert "'operators' is empty" in issues

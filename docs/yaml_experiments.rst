@@ -82,6 +82,48 @@ constructor of the component, so misspelled or missing parameters are
 reported before anything runs. Strings are converted to enum values where a
 parameter expects an enum (e.g. ``problem_type: BBOB``).
 
+LLaMEA operators
+----------------
+
+LLaMEA's mutation and crossover prompts are ``llamea.Operator`` objects. In
+YAML each operator is a mapping with the fields of ``llamea.Operator``:
+
+.. code-block:: yaml
+
+    methods:
+      - type: llamea
+        llm: gemma
+        params:
+          n_parents: 2
+          n_offspring: 2
+          operators:
+            - name: refine                 # identifies the operator in the logs
+              prompt: "Refine the strategy of the selected solution to improve it."
+              weight: 0.8                  # relative probability of being picked
+              number_of_parents: 1
+            - name: crossover
+              prompt: "Combine the two selected solutions into a better one."
+              weight: 0.2
+              number_of_parents: 2         # at most n_parents
+
+``prompt`` is required; ``name`` (default ``mutation``), ``weight`` (default
+0.5) and ``number_of_parents`` (default 1) are optional. BLADE creates the
+``Operator`` objects and checks the fields, the weights and that no operator
+needs more parents than ``n_parents``. In Python:
+
+.. code-block:: python
+
+    from llamea import Operator
+    from iohblade.methods import LLaMEA
+
+    operators = [
+        Operator(prompt="Refine the strategy of the selected solution to improve it.",
+                 name="refine", weight=0.8, number_of_parents=1),
+        Operator(prompt="Combine the two selected solutions into a better one.",
+                 name="crossover", weight=0.2, number_of_parents=2),
+    ]
+    method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
+
 Secrets and environment variables
 ---------------------------------
 
