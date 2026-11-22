@@ -19,6 +19,7 @@ from .schema import (
     ProblemSpec,
     json_schema,
 )
+from .user_code import LoadedSource, UserCodeError
 from .yaml_loader import LoadedConfig, load_yaml
 
 __all__ = [
@@ -29,9 +30,11 @@ __all__ = [
     "ExperimentSection",
     "LLMSpec",
     "LoadedConfig",
+    "LoadedSource",
     "LoggerSpec",
     "MethodSpec",
     "ProblemSpec",
+    "UserCodeError",
     "build_plan",
     "json_schema",
     "load_experiment",

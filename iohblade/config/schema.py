@@ -21,7 +21,7 @@ arguments to the component's constructor (or the suite's factory).
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import (
     BaseModel,
@@ -103,13 +103,62 @@ class ExperimentSection(_Strict):
         return seeds
 
 
-class LLMSpec(_Strict):
+class _CustomSource(_Strict):
+    """Fields for a component loaded from the user's own Python code."""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    _kind_field: ClassVar[str] = "type"
+
+    source: str | None = Field(
+        None,
+        description=(
+            "With type/provider 'custom': a .py file or package folder, "
+            "relative to the configuration file."
+        ),
+    )
+    class_: str | None = Field(
+        None,
+        alias="class",
+        description=(
+            "With type/provider 'custom': the class to use, 'Name' or "
+            "'submodule:Name' for a class in a package's submodule."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _custom_fields(self):
+        kind = getattr(self, self._kind_field)
+        if kind == "custom":
+            missing = [
+                name
+                for name, value in (("source", self.source), ("class", self.class_))
+                if not value
+            ]
+            if missing:
+                raise ValueError(
+                    f"{self._kind_field} 'custom' needs "
+                    + " and ".join(f"'{m}'" for m in missing)
+                    + "."
+                )
+        elif self.source is not None or self.class_ is not None:
+            raise ValueError(
+                f"'source' and 'class' are only used with {self._kind_field}: custom."
+            )
+        return self
+
+
+class LLMSpec(_CustomSource):
     """A named LLM that methods refer to."""
+
+    _kind_field: ClassVar[str] = "provider"
 
     provider: str = Field(
         ...,
-        description="LLM provider key: " + ", ".join(m.value for m in LLMProvider),
-        examples=[m.value for m in LLMProvider],
+        description=(
+            "LLM provider key ('custom' for your own class): "
+            + ", ".join(m.value for m in LLMProvider)
+        ),
+        examples=[m.value for m in LLMProvider] + ["custom"],
     )
     model: str | None = Field(None, description="Model name of the provider.")
     api_key: str | None = Field(
@@ -124,13 +173,16 @@ class LLMSpec(_Strict):
     )
 
 
-class MethodSpec(_Strict):
+class MethodSpec(_CustomSource):
     """A search method; one method instance is created per LLM."""
 
     type: str = Field(
         ...,
-        description="Method key: " + ", ".join(m.value for m in BuiltinMethod),
-        examples=[m.value for m in BuiltinMethod],
+        description=(
+            "Method key ('custom' for your own class): "
+            + ", ".join(m.value for m in BuiltinMethod)
+        ),
+        examples=[m.value for m in BuiltinMethod] + ["custom"],
     )
     name: str | None = Field(
         None,
@@ -154,13 +206,16 @@ class MethodSpec(_Strict):
         return [self.llm] if isinstance(self.llm, str) else list(self.llm)
 
 
-class ProblemSpec(_Strict):
+class ProblemSpec(_CustomSource):
     """A problem (``type``) or a suite of problems (``suite``)."""
 
     type: str | None = Field(
         None,
-        description="Problem key: " + ", ".join(m.value for m in BuiltinProblem),
-        examples=[m.value for m in BuiltinProblem],
+        description=(
+            "Problem key ('custom' for your own class): "
+            + ", ".join(m.value for m in BuiltinProblem)
+        ),
+        examples=[m.value for m in BuiltinProblem] + ["custom"],
     )
     suite: str | None = Field(
         None,
@@ -174,6 +229,15 @@ class ProblemSpec(_Strict):
     params: dict[str, Any] = Field(
         default_factory=dict,
         description="Constructor (or suite factory) arguments.",
+    )
+
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Extra pip requirements installed in the problem's evaluation "
+            "environment (added to requirements.txt / pyproject.toml found "
+            "next to a custom source)."
+        ),
     )
 
     @model_validator(mode="after")

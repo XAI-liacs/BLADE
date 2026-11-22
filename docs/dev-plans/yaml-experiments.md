@@ -164,7 +164,9 @@ exp()
 - *Folder* `pkg/`: add the parent directory to `sys.path` and import `pkg`,
   so relative imports and data files work.
 - If the name shadows an installed module or a stdlib module, raise an
-  error, unless the user sets `module_name:`.
+  error asking the user to rename the file. (A `module_name:` override was
+  dropped in Phase 2: spawned evaluation processes import the class by its
+  module name, so the name must match the file.)
 - Check that `class` exists and is a subclass of `Problem` / `Method` / `LLM`,
   and that its abstract methods are implemented (`to_dict`, `get_config`,
   `test`, ...). Report the missing ones by name.

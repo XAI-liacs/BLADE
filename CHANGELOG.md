@@ -4,6 +4,18 @@
 
 ### Major changes
 
+- **Custom code in YAML experiments** (#191): problems, methods and LLMs
+  can be loaded from your own `.py` file or package with `type: custom`
+  (`provider: custom`), `source` and `class`. The module is imported under
+  its real name, its folder is added to the evaluation environment's
+  `PYTHONPATH`, and dependencies come from `dependencies`, a
+  `requirements.txt` or a package's `pyproject.toml`. `validate` reports
+  missing files, name clashes with installed modules, missing third-party
+  imports (with the install command), syntax errors, wrong base classes and
+  unimplemented abstract methods. Runs record the resolved configuration
+  (secrets redacted) and a copy of the custom code in
+  `<output_dir>/blade_config/`, and the source hash in each run's
+  `problem.json` / `method.json` / `llm.json`.
 - **Experiments from YAML** (#190): an experiment can be defined in a YAML
   file and checked or run with the new `iohblade` command
   (`iohblade validate|run|list|schema`) or `Experiment.from_yaml()` /

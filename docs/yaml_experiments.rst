@@ -82,6 +82,73 @@ constructor of the component, so misspelled or missing parameters are
 reported before anything runs. Strings are converted to enum values where a
 parameter expects an enum (e.g. ``problem_type: BBOB``).
 
+Your own problems, methods and LLMs
+-----------------------------------
+
+Use ``type: custom`` (``provider: custom`` for an LLM) with a ``source``
+(a ``.py`` file or a package folder, relative to the YAML file) and a
+``class``:
+
+.. code-block:: yaml
+
+    problems:
+      - type: custom
+        source: custom/sphere_benchmark.py   # or a package folder: my_bench/
+        class: SphereProblem                 # "submodule:Class" inside a package
+        params: {dim: 5}
+        dependencies: [scipy>=1.11]          # pip packages for the evaluation
+    methods:
+      - type: custom
+        source: my_method.py
+        class: MyMethod                      # a subclass of iohblade.method.Method
+        llm: qwen
+    llms:
+      local:
+        provider: custom
+        source: my_llm.py
+        class: MyLLM                         # a subclass of iohblade.llm.LLM
+
+How it works:
+
+* The file is imported under its own name (``sphere_benchmark``), a package
+  under its folder name, with the parent folder added to ``sys.path``. Rename
+  the file if that name clashes with an installed module; ``validate`` tells
+  you when it does.
+* The class must subclass :class:`~iohblade.problem.Problem`,
+  :class:`~iohblade.method.Method` or :class:`~iohblade.llm.LLM` and
+  implement all their abstract methods; ``params`` are checked against its
+  constructor like for built-in components.
+* Problems are evaluated in their own virtual environment, like built-in
+  ones. The folder of the source is added to that environment's
+  ``PYTHONPATH`` (``Problem.extra_pythonpath``), so relative imports and
+  data files next to the code work. Packages the problem needs during
+  evaluation go in ``dependencies``, or in a ``requirements.txt`` next to
+  the file / in the package, or in the package's ``pyproject.toml``.
+  The problem object itself is created in BLADE's process, so its module
+  must import there: import evaluation-only packages inside ``evaluate()``
+  (as the built-in benchmarks do), or install them in BLADE's environment
+  too. ``validate`` says which applies.
+* Methods and LLMs run in BLADE's own environment; install what they import
+  there (``validate`` names the missing package).
+
+Reproducibility
+---------------
+
+``iohblade run`` (and :meth:`ExperimentPlan.make_experiment`) records in
+``<output_dir>/blade_config/``:
+
+* ``resolved.yml``: the configuration after ``${env:...}`` substitution and
+  ``--set`` overrides, with API keys, tokens and values read from the
+  environment replaced by ``<redacted>``;
+* ``sources/``: a copy of every custom source, and ``sources.json`` with
+  their SHA-256 hashes.
+
+Each run's ``problem.json`` / ``method.json`` / ``llm.json`` of a custom
+component contains a ``custom_source`` entry with the source path, class
+and hash. If you resume an experiment after changing its configuration or
+custom code, the previous record is kept as ``blade_config-<timestamp>/``
+and a warning is printed.
+
 LLaMEA operators
 ----------------
 
