@@ -14,8 +14,9 @@ environment, across runs and across experiments.
   or ``experiment.env_cache: false`` in YAML; problems then get a temporary
   environment that :meth:`~iohblade.problem.Problem.cleanup` deletes, as
   before.
-* Dependencies that are local paths are never cached (their content can
-  change without the requirement string changing).
+* Dependencies that are local paths, or pip options such as ``-e ./pkg``,
+  are never cached (their content can change without the requirement
+  string changing).
 * Packages are installed with ``uv pip`` when ``uv`` is available (much
   faster), falling back to ``pip``.
 * ``iohblade cache list`` / ``iohblade cache clear`` show and remove cached
@@ -83,6 +84,10 @@ def cache_enabled() -> bool:
 
 def _is_local_path(requirement: str) -> bool:
     req = requirement.strip()
+    # pip options (-e/--editable, -r, --find-links, ...) can refer to local
+    # paths, relative to wherever the experiment runs: never cache them.
+    if req.startswith("-"):
+        return True
     if "file:" in req or req.startswith((".", "/", "~", "\\")):
         return True
     return os.path.exists(req)

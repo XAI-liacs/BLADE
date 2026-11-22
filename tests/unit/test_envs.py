@@ -47,6 +47,9 @@ def test_local_path_dependencies_are_not_cached(tmp_path):
     assert not envs.cacheable([str(tmp_path / "pkg")])
     assert not envs.cacheable(["./pkg"])
     assert not envs.cacheable(["mypkg @ file:///x/y"])
+    assert not envs.cacheable(["-e ./pkg"])
+    assert not envs.cacheable(["--editable=pkg"])
+    assert not envs.cacheable(["numpy", "-r requirements.txt"])
 
 
 def test_cached_env_is_reused(cache_dir):
