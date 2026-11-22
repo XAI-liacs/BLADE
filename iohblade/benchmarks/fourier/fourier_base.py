@@ -64,28 +64,34 @@ K = {self.n_terms}."
         )
 
     def make_example_prompt(self, class_name: str) -> str:
-        accept_best_configuration = """
-        def __init__(self, n_terms: int):
-            # Accepts number of terms K for the problem.
-
-
-        """
-        if self.best_known_configuration is not None:
-            accept_best_configuration = """
-    def __init__(self, n_terms: int, best_known_configuration: list[float] | None):
-        # Accepts a mumber of terms K and best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
+        initialiser = """
+    def __init__(self, n_terms: int):
+        # Accepts number of terms K for the problem.
+        self.n_terms = n_terms
 """
-        return textwrap.dedent(f"""
+        if self.best_known_configuration is not None:
+            initialiser = """
+    def __init__(self, n_terms: int, best_known_configuration=None):
+        # Accepts a number of terms K and best known configuration (if
+        # available) for the problem, as an initial configuration, which
+        # can then be optimised further.
+        self.n_terms = n_terms
+        self.best_known_configuration = best_known_configuration
+"""
+        return f"""
 Here is an example template of program to solve the problem:
 ```python
-class {class_name}:
-    {accept_best_configuration}
+class {class_name}:{initialiser}
     def __call__(self):
         # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...
-        return [...., 0.33, -0.01, -9e-05][: {self.n_terms}]
+        # Simple baseline: P(x) = -H_0(x) + 1e-4 * H_{{4(K-1)}}(x), so that
+        # P(0) < 0 and the leading coefficient is positive.
+        c = [0.0] * self.n_terms
+        c[0] = -1.0
+        c[-1] = 1e-4
+        return c
 ```
-""")
+"""
 
     def make_format_prompt(self) -> str:
         return textwrap.dedent("""

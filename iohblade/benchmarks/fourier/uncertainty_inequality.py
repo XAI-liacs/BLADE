@@ -58,6 +58,11 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
     def _P(self, x: np.ndarray, hcoef: np.ndarray) -> np.ndarray:
         return hermval(x, hcoef)
 
+    def _P_at(self, x: float, hcoef: np.ndarray) -> float:
+        """P at a single point. (float() of a 1-element array is an error in
+        recent NumPy versions, which the evaluation environment installs.)"""
+        return float(hermval(float(x), hcoef))
+
     def _largest_positive_root(self, hcoef: np.ndarray) -> float:
         """
         Scan [0, x_max] to find last sign change then refine with bisection.
@@ -65,11 +70,11 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
         """
         eps = 1e-12
         x_prev = 0.0
-        y_prev = float(self._P(np.array([eps]), hcoef))  # avoid exact zero at 0
+        y_prev = self._P_at(eps, hcoef)  # avoid exact zero at 0
         bracket = None
         x = self.grid_step
         while x <= self.x_max + 1e-12:
-            y = float(self._P(np.array([x]), hcoef))
+            y = self._P_at(x, hcoef)
             if y_prev <= 0.0 and y >= 0.0:
                 bracket = (x_prev, x)
             x_prev, y_prev = x, y
@@ -81,15 +86,15 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
             )
 
         a, b = bracket
-        fa = float(self._P(np.array([a]), hcoef))
-        fb = float(self._P(np.array([b]), hcoef))
+        fa = self._P_at(a, hcoef)
+        fb = self._P_at(b, hcoef)
         if fa > 0 or fb < 0:
             raise ValueError("Invalid bracket for bisection.")
 
         # Bisection
         for _ in range(80):
             m = 0.5 * (a + b)
-            fm = float(self._P(np.array([m]), hcoef))
+            fm = self._P_at(m, hcoef)
             if fm >= 0.0:
                 b, fb = m, fm
             else:
@@ -151,12 +156,12 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
 
             hcoef = self._build_hcoef(c)
 
-            p0 = float(self._P(np.array([0.0]), hcoef))
+            p0 = self._P_at(0.0, hcoef)
             if not np.isfinite(p0) or p0 >= 0.0:
                 raise ValueError("Constraint P(0) < 0 failed.")
 
             # ensure eventual positivity at far right
-            p_far = float(self._P(np.array([self.x_max]), hcoef))
+            p_far = self._P_at(self.x_max, hcoef)
             if p_far < 0.0:
                 raise ValueError("P(x_max) < 0; not positive for large |x|.")
 
