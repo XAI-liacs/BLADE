@@ -1,12 +1,18 @@
 """The ``iohblade`` command line interface.
 
 Commands:
+    iohblade init [dir]                Create a starter experiment.
     iohblade validate experiment.yml   Check a configuration without running it.
+    iohblade check experiment.yml      Smoke test: environments, evaluation,
+                                       methods (no LLM calls unless --llm).
     iohblade run experiment.yml        Run (or resume) an experiment.
     iohblade list [kind]               List built-in components.
     iohblade schema [-o file]          Print the JSON schema of the YAML format.
+    iohblade cache list|clear          Show or delete cached evaluation
+                                       environments.
 
-Exit codes: 0 success, 1 runs failed, 2 invalid configuration or usage.
+Exit codes: 0 success, 1 runs or checks failed, 2 invalid configuration or
+usage.
 """
 
 from __future__ import annotations
@@ -69,6 +75,38 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only show the planned runs; do not run anything.",
     )
 
+    p = sub.add_parser(
+        "check",
+        help="Smoke test an experiment without calling LLMs (unless --llm).",
+    )
+    _add_config_args(p)
+    p.add_argument(
+        "--llm",
+        action="store_true",
+        help="Also send one short prompt to every configured LLM.",
+    )
+    p.add_argument(
+        "--no-methods",
+        action="store_true",
+        help="Only check the problems, not the methods.",
+    )
+
+    p = sub.add_parser("init", help="Create a starter experiment.")
+    p.add_argument(
+        "directory", nargs="?", default=".", help="Folder to create (default: .)."
+    )
+    p.add_argument(
+        "--template",
+        "-t",
+        default="builtin",
+        choices=["builtin", "custom-problem", "custom-method"],
+        help="What to start from (default: builtin).",
+    )
+    p.add_argument("--force", action="store_true", help="Overwrite existing files.")
+
+    p = sub.add_parser("cache", help="Show or delete cached evaluation environments.")
+    p.add_argument("action", choices=["list", "clear"])
+
     p = sub.add_parser("list", help="List the built-in components.")
     p.add_argument(
         "kind",
@@ -105,10 +143,56 @@ def _cmd_validate(args) -> int:
     return EXIT_OK
 
 
+def _resume_status(plan) -> list[str]:
+    """Lines describing what resuming in ``plan.output_dir`` would do."""
+    from .loggers.base import ExperimentLogger
+
+    path = plan.output_dir / "progress.json"
+    if not path.is_file():
+        return ["Output directory is new: all runs will start."]
+    try:
+        runs = json.loads(path.read_text()).get("runs", [])
+    except (OSError, ValueError):
+        return [f"Could not read {path}; resuming may fail."]
+    planned = {
+        (m.name, p.name, int(s))
+        for m in plan.methods
+        for p in plan.problems
+        for s in plan.seeds
+    }
+    existing = {(r["method_name"], r["problem_name"], r["seed"]) for r in runs}
+    lines = []
+    if existing and existing != planned:
+        lines.append(
+            "Warning: the runs recorded in this output directory differ from "
+            "the planned ones (methods, problems or seeds changed); resuming "
+            "will fail. Use a new output_dir."
+        )
+    finished = 0
+    for method in plan.methods:
+        llm = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
+        for problem in plan.problems:
+            for seed in plan.seeds:
+                finished += any(
+                    r.get("method_name") == method.name
+                    and r.get("problem_name") == problem.name
+                    and r.get("llm_name") == llm
+                    and r.get("seed") == int(seed)
+                    and r.get("end_time")
+                    for r in runs
+                )
+    lines.append(
+        f"Resuming: {finished} of {plan.n_runs} runs already finished and "
+        f"will be skipped; {plan.n_runs - finished} will run."
+    )
+    return lines
+
+
 def _cmd_run(args) -> int:
     plan = _load_plan(args)
     if args.dry_run:
         print(plan.summary())
+        print("\n".join(_resume_status(plan)))
         return EXIT_OK
     experiment = plan.make_experiment()
     try:
@@ -117,6 +201,77 @@ def _cmd_run(args) -> int:
         print(f"\n{e}", file=sys.stderr)
         return EXIT_RUN_FAILED
     print(f"\nResults: {plan.output_dir}")
+    return EXIT_OK
+
+
+def _cmd_check(args) -> int:
+    from .config.check import FAIL, run_checks
+
+    plan = _load_plan(args)
+    print(f"Checking {plan.config.experiment.name or args.config} ...\n")
+    results = run_checks(
+        plan,
+        methods=not args.no_methods,
+        llms=args.llm,
+        report=lambda r: print(r, flush=True),
+        verbose=args.verbose,
+    )
+    failed = sum(r.status == FAIL for r in results)
+    counts = {
+        s: sum(r.status == s for r in results) for s in ("ok", "warn", "fail", "skip")
+    }
+    print(
+        "\n"
+        + ", ".join(f"{n} {s}" for s, n in counts.items() if n)
+        + (" - fix the failures before running." if failed else " - ready to run.")
+    )
+    if not args.llm:
+        print("(LLMs were not contacted; add --llm to test them.)")
+    return EXIT_RUN_FAILED if failed else EXIT_OK
+
+
+def _cmd_init(args) -> int:
+    from .config.templates import write_template
+
+    try:
+        files = write_template(args.template, args.directory, force=args.force)
+    except FileExistsError as e:
+        print(str(e), file=sys.stderr)
+        return EXIT_CONFIG
+    print(f"Created a '{args.template}' experiment:")
+    for path in files:
+        print(f"  {path}")
+    config = files[0]
+    print(
+        f"\nNext: edit the TODOs, then\n"
+        f"  uv run iohblade check {config}\n"
+        f"  uv run iohblade run {config}"
+    )
+    return EXIT_OK
+
+
+def _cmd_cache(args) -> int:
+    from .envs import cache_root, clear_cache, list_envs
+
+    if args.action == "clear":
+        count = clear_cache()
+        print(f"Removed {count} cached environment(s) from {cache_root()}.")
+        return EXIT_OK
+    envs = list_envs()
+    print(f"Cached evaluation environments in {cache_root()}:")
+    if not envs:
+        print("  (none)")
+    total = 0
+    for env in envs:
+        total += env["size"]
+        deps = ", ".join(env.get("dependencies", [])) or "-"
+        state = "" if env["complete"] else " [incomplete]"
+        print(
+            f"  {env['key']}  {env['size'] / 1e6:7.1f} MB  "
+            f"last used {env.get('last_used', '?')}{state}\n      {deps}"
+        )
+    if envs:
+        print(f"Total: {total / 1e6:.1f} MB. Remove with: iohblade cache clear")
     return EXIT_OK
 
 
@@ -153,6 +308,9 @@ def _cmd_schema(args) -> int:
 
 
 _COMMANDS = {
+    "check": _cmd_check,
+    "init": _cmd_init,
+    "cache": _cmd_cache,
     "validate": _cmd_validate,
     "run": _cmd_run,
     "list": _cmd_list,

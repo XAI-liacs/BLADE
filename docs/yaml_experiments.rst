@@ -7,8 +7,10 @@ runs the experiment:
 
 .. code-block:: bash
 
-    uv run iohblade validate experiment.yml   # check it, nothing is run
-    uv run iohblade run experiment.yml        # run (or resume) it
+    uv run iohblade init my-exp -t custom-problem   # optional: a starter project
+    uv run iohblade validate my-exp/experiment.yml  # check it, nothing is run
+    uv run iohblade check my-exp/experiment.yml     # smoke test, no LLM calls
+    uv run iohblade run my-exp/experiment.yml       # run (or resume) it
 
 Python scripts keep working as before; the YAML file is another way to
 create the same :class:`~iohblade.experiment.Experiment`.
@@ -130,6 +132,74 @@ How it works:
   too. ``validate`` says which applies.
 * Methods and LLMs run in BLADE's own environment; install what they import
   there (``validate`` names the missing package).
+
+Starting a new experiment
+-------------------------
+
+``iohblade init <folder> --template <name>`` writes an ``experiment.yml``,
+the JSON schema for editor completion and, depending on the template, stub
+code with TODOs:
+
+* ``builtin``: LLaMEA and random search on a built-in problem;
+* ``custom-problem``: your own problem class (``my_problem.py``) with a
+  reference solution;
+* ``custom-method``: your own search method (``my_method.py``) next to a
+  random-search baseline.
+
+Every template passes ``iohblade check`` as generated.
+
+Checking an experiment
+----------------------
+
+``iohblade check experiment.yml`` tries every part of an experiment before
+you spend LLM time on it:
+
+* **problems**: the evaluation environment is built (or taken from the
+  cache) and a known-good *reference solution* is evaluated through the real
+  pipeline. The reference is the problem's ``smoke_test_solution`` (a ``.py``
+  file next to the YAML file) or else the code block in its example prompt.
+  Errors in the harness or in the reference fail the check; non-finite
+  scores or evaluations taking over half of ``eval_timeout`` give a warning.
+* **methods**: each method runs with a budget of 2 and an offline LLM that
+  answers with the reference solution.
+* **LLMs**, only with ``--llm``: each LLM gets one short prompt, which tests
+  API keys, model names and connectivity.
+
+.. code-block:: text
+
+    [OK  ] problem circle_packing_n40: evaluated smoke_test_solution reference_solution.py in 1.8s, fitness 579.05
+    [OK  ] method LLaMEA-local: ran on 'circle_packing_n40' with budget 2
+    [FAIL] problem bbob: building the evaluation environment failed: Failed to install the dependencies [...]
+        error: command 'swig' failed: No such file or directory
+
+The exit code is 1 if a check failed. ``-v`` shows the full output of a
+failed package installation. ``iohblade run --dry-run`` lists the planned
+runs and, for an existing output directory, how many are already finished
+(and whether resuming is possible).
+
+Evaluation environments
+-----------------------
+
+Problems evaluate solutions in a virtual environment with their
+``dependencies``. These environments are cached and shared between problems
+with the same dependencies, across runs and experiments, so only the first
+run pays for the installation. Packages are installed with ``uv`` when it
+is available, otherwise with ``pip``.
+
+* ``iohblade cache list`` shows the cached environments and their size;
+  ``iohblade cache clear`` removes them.
+* The cache lives in ``~/.cache/iohblade/envs`` (on Windows
+  ``%LOCALAPPDATA%\iohblade\Cache\envs``); set ``IOHBLADE_CACHE_DIR`` to
+  move it.
+* ``experiment.env_cache: false`` (or ``IOHBLADE_ENV_CACHE=0``, or
+  ``problem.env_cache = False`` in Python) gives each problem a temporary
+  environment that is deleted afterwards, as before. Dependencies that are
+  local paths are never cached.
+* ``experiment.isolated_pythonpath: true`` makes only ``iohblade`` itself
+  (plus the problem's dependencies and custom code) importable during
+  evaluation. By default the folder containing ``iohblade`` is on the path,
+  which for a pip installation is the whole ``site-packages`` of BLADE's
+  environment, so undeclared packages may be importable by accident.
 
 Reproducibility
 ---------------

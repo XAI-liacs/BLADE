@@ -86,6 +86,21 @@ class ExperimentSection(_Strict):
         False, description="Capture output of the runs to log files."
     )
     logger: LoggerSpec = Field(default_factory=LoggerSpec)
+    env_cache: bool = Field(
+        True,
+        description=(
+            "Reuse cached evaluation environments between problems with the "
+            "same dependencies (also across experiments). False: a fresh "
+            "temporary environment per problem."
+        ),
+    )
+    isolated_pythonpath: bool = Field(
+        False,
+        description=(
+            "Evaluate with only iohblade importable from BLADE's own "
+            "environment (plus the problem's dependencies and custom code)."
+        ),
+    )
 
     @field_validator("seeds")
     @classmethod
@@ -231,6 +246,14 @@ class ProblemSpec(_CustomSource):
         description="Constructor (or suite factory) arguments.",
     )
 
+    smoke_test_solution: str | None = Field(
+        None,
+        description=(
+            "A .py file with a known-good solution, evaluated by "
+            "`iohblade check` (default: the code in the problem's example "
+            "prompt)."
+        ),
+    )
     dependencies: list[str] = Field(
         default_factory=list,
         description=(
