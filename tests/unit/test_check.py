@@ -158,17 +158,20 @@ def test_replay_llm_returns_code():
 
 
 def test_run_checks_skips_methods_without_reference_and_pings(tmp_path):
-    data = {
-        "experiment": {"output_dir": "out", "runs": 1, "budget": 2},
-        "llms": {"d": {"provider": "dummy"}},
-        "methods": [{"type": "random_search", "llm": "d"}],
-        "problems": [{"type": "toy_multiobjective"}],
-    }
-    plan = load_plan(data, env={})
+    from types import SimpleNamespace
+
+    from iohblade.methods import RandomSearch
+
+    problem = GoodProblem()  # its example prompt has no code block
+    plan = SimpleNamespace(
+        problems=[problem],
+        smoke_tests=[None],
+        methods=[RandomSearch(_LLM("x"), budget=1)],
+        llms={"d": _LLM("OK")},
+    )
     results = run_checks(plan, llms=True)
     statuses = [(r.kind, r.status) for r in results]
     assert statuses == [("problem", WARN), ("method", SKIP), ("llm", OK)]
-    assert "LLM" not in str(results[1]) or True
 
 
 def test_check_cli_exit_code_on_failure(tmp_path, capsys):

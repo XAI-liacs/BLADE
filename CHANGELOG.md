@@ -55,6 +55,21 @@
 
 ### Bug fixes
 
+- **Built-in example solutions work again** (#192). The example code that
+  the built-in problems show the LLM was broken or a skeleton for 17 of 26
+  problems: wrong indentation, hyphens in class names, wrong output lengths,
+  degenerate points or typos. ToyMultiObjective showed no example at all,
+  because the placeholder prompts set by `Problem.__init__` hid its
+  class-level prompts. All examples are now simple, valid baselines that
+  evaluate to a finite fitness. A test (`test_benchmark_examples.py`) keeps
+  it that way, and `iohblade check` can use them as reference solutions.
+- `UncertaintyInequality` called `float()` on one-element arrays, which
+  NumPy >= 2.5 (installed in the evaluation environment) rejects, so no
+  solution could be scored. It now evaluates the polynomial at scalars.
+- Evaluation environments of the smac-based benchmarks (BBOB-SBOX, MA-BBOB,
+  Kerneltuner, AutoML) could not be built without a system `swig`, needed
+  to build `pyrfr`. `swig` is now installed from PyPI first, and the
+  environment's scripts folder is on `PATH` while installing.
 - The example scripts `run-sbox.py`, `run-mabbob.py`, `run-bbob-logging.py`,
   `run-kerneltuner.py`, `run-kerneltuner-info.py`, `minimal_example.py` and
   `minimal_example_trackio.py` passed `mutation_prompts` to LLaMEA, which

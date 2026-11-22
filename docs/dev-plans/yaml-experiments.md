@@ -269,11 +269,11 @@ expects). Also write `experiment.yml` (original),
    overview and the webapp. Planned runs should carry `llm_name` and match
    the entries `open_run` looks up.
 
-Also found in Phase 3: the example code that several built-in problems show
-the LLM is a skeleton or invalid. For instance, `circle_packing`'s example
-has an unindented `__call__` body, so `iohblade check` cannot use it as a
-reference solution. The templates bring their own `smoke_test_solution`.
-Fixing the prompts belongs with the benchmarks, not this epic.
+Also found in Phase 3 and fixed in the same PR: the example code that 17
+built-in problems showed the LLM was broken. The examples were rewritten as
+valid baselines, `tests/unit/test_benchmark_examples.py` guards them, and
+`swig` is now installed into the evaluation environments that build `pyrfr`
+for smac.
 
 ## 8. Phased roadmap
 
