@@ -101,13 +101,12 @@ class ToyMultiObjective(Problem):
         grid search, gradient-free optimisation, etc.).
         """)
 
-    example_prompt = textwrap.dedent(f"""\
-        Here is a simple reference implementation:
-
-        ```python
-        {_REFERENCE_CODE}
-        ```
-        """)
+    # Built by concatenation (not a dedented f-string) so the code block is
+    # not indented and its fences start at column 0.
+    example_prompt = (
+        "Here is a simple reference implementation:\n\n"
+        "```python\n" + _REFERENCE_CODE.rstrip("\n") + "\n```\n"
+    )
 
     format_prompt = textwrap.dedent("""\
         Your solution must be a Python class named `BiSphereSearcher` with a
@@ -122,6 +121,11 @@ class ToyMultiObjective(Problem):
 
     def __init__(self, budget: int = 100, name: str = "ToyMultiObjective"):
         super().__init__(name=name)
+        # Problem.__init__ sets placeholder prompts on the instance, which
+        # would shadow the class-level prompts defined above.
+        self.task_prompt = ToyMultiObjective.task_prompt
+        self.example_prompt = ToyMultiObjective.example_prompt
+        self.format_prompt = ToyMultiObjective.format_prompt
         self.eval_budget = budget
 
     def get_prompt(self) -> str:  # pragma: no cover
