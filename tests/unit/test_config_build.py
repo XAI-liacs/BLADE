@@ -373,6 +373,7 @@ def test_llamea_operators_become_operator_objects():
 
     params = {
         "n_parents": 2,
+        "parent_selection": "tournament",
         "operators": [
             {"name": "refine", "prompt": "Refine it.", "weight": 0.7},
             {
@@ -407,6 +408,7 @@ def test_llamea_operators_are_accepted_by_llamea():
 
     params = {
         "n_parents": 2,
+        "parent_selection": "tournament",
         "operators": [{"prompt": "Refine it.", "number_of_parents": 2}],
     }
     plan = load_plan(_llamea(params), env={})

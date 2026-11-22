@@ -263,7 +263,7 @@ expects). Also write `experiment.yml` (original),
    the tail of the pip output and the full log path.
 6. **Webapp.** Show the resolved config, the source snapshot and the error
    categories per run.
-7. **Duplicate progress entries** (found in Phase 3). `start_progress` creates
+7. **Duplicate progress entries** (found in Phase 3, fixed in Phase 4). `start_progress` creates
    run entries without `llm_name`, but `open_run` matches on `llm_name`, so
    every run gets a second entry. The first stays "pending" forever in the
    overview and the webapp. Planned runs should carry `llm_name` and match

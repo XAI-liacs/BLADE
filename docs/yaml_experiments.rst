@@ -201,6 +201,39 @@ is available, otherwise with ``pip``.
   which for a pip installation is the whole ``site-packages`` of BLADE's
   environment, so undeclared packages may be importable by accident.
 
+Logs and error reports
+----------------------
+
+While an experiment runs, the console shows an overview of every run:
+
+.. code-block:: text
+
+    Method        LLM    Problem    Seed  Evals  Best    Errors
+    ------------------------------------------------------------
+    LLaMEA-local  qwen   MyProblem  0     20/20  -3.12   4c      ✅
+    LLaMEA-local  qwen   MyProblem  1     12/20  -4.80   2c 1t   🔄
+
+``Errors`` counts the evaluations that failed in the generated code (``c``),
+in the evaluation harness (``h``, a problem with the benchmark rather than the
+LLM's code) or by timeout (``t``). At the end, a summary lists the failed runs
+grouped by exception type with the path to each ``error.txt``, and the error
+totals.
+
+Everything that is logged, by BLADE and by libraries (including Python
+warnings), goes to ``<output_dir>/experiment.log``. Each run's folder also gets
+a ``run.log`` with the messages of that run. ``experiment.log_level`` (DEBUG,
+INFO, WARNING, ERROR; default INFO) sets how much is written. With
+``show_stdout: false`` (the default), log output is kept out of the terminal.
+
+If an evaluation environment cannot be built, no run starts. Every failing
+problem is listed, and the installer output is saved in
+``<output_dir>/env-errors/``. ``iohblade run`` exits with code 0 on success,
+1 if runs failed, 2 for an invalid configuration and 3 if an environment
+could not be built.
+
+The web app (``uv run iohblade-webapp``) shows the same run table, the
+resolved configuration, the custom code and the end of ``experiment.log``.
+
 Reproducibility
 ---------------
 
@@ -232,6 +265,7 @@ YAML each operator is a mapping with the fields of ``llamea.Operator``:
         llm: gemma
         params:
           n_parents: 2
+          parent_selection: tournament   # needed for crossover (see docs)
           n_offspring: 2
           operators:
             - name: refine                 # identifies the operator in the logs
@@ -246,7 +280,10 @@ YAML each operator is a mapping with the fields of ``llamea.Operator``:
 ``prompt`` is required; ``name`` (default ``mutation``), ``weight`` (default
 0.5) and ``number_of_parents`` (default 1) are optional. BLADE creates the
 ``Operator`` objects and checks the fields, the weights and that no operator
-needs more parents than ``n_parents``. In Python:
+needs more parents than ``n_parents``. With llamea 1.4.2, operators with
+more than one parent (crossover) crash when ``parent_selection`` is
+``random``, the default; ``validate`` reports this, and
+``parent_selection: tournament`` (or ``roulette``) avoids it. In Python:
 
 .. code-block:: python
 
@@ -259,7 +296,8 @@ needs more parents than ``n_parents``. In Python:
         Operator(prompt="Combine the two selected solutions into a better one.",
                  name="crossover", weight=0.2, number_of_parents=2),
     ]
-    method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
+    method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2,
+                    parent_selection="tournament")
 
 Secrets and environment variables
 ---------------------------------

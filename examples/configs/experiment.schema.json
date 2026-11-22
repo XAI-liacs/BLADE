@@ -74,6 +74,18 @@
         "logger": {
           "$ref": "#/$defs/LoggerSpec"
         },
+        "log_level": {
+          "default": "INFO",
+          "description": "Minimum level of the messages in experiment.log and each run's run.log.",
+          "enum": [
+            "DEBUG",
+            "INFO",
+            "WARNING",
+            "ERROR"
+          ],
+          "title": "Log Level",
+          "type": "string"
+        },
         "env_cache": {
           "default": true,
           "description": "Reuse cached evaluation environments between problems with the same dependencies (also across experiments). False: a fresh temporary environment per problem.",

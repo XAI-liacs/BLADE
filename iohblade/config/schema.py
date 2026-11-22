@@ -86,6 +86,12 @@ class ExperimentSection(_Strict):
         False, description="Capture output of the runs to log files."
     )
     logger: LoggerSpec = Field(default_factory=LoggerSpec)
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
+        "INFO",
+        description=(
+            "Minimum level of the messages in experiment.log and each run's " "run.log."
+        ),
+    )
     env_cache: bool = Field(
         True,
         description=(

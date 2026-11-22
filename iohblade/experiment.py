@@ -5,6 +5,7 @@ import copy
 import logging
 import sys
 import json
+import time
 import traceback
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -15,6 +16,8 @@ from tqdm import tqdm
 
 from .loggers import ExperimentLogger
 from .benchmarks import MA_BBOB
+from .envs import EnvironmentSetupError
+from .runlog import experiment_logging, log
 
 BLADE_ASCII = r"""
     ____  __    ___    ____  ______
@@ -23,6 +26,13 @@ BLADE_ASCII = r"""
  / /_/ / /___/ ___ |/ /_/ / /___
 /_____/_____/_/  |_/_____/_____/
 """
+
+
+def _format_error_counts(counts: dict) -> str:
+    """``{"candidate": 3, "harness": 1}`` -> ``"3c 1h"`` (``"-"`` if none)."""
+    short = {"candidate": "c", "harness": "h", "timeout": "t"}
+    parts = [f"{counts[k]}{short[k]}" for k in short if counts.get(k)]
+    return " ".join(parts) or "-"
 
 
 class Experiment(ABC):
@@ -41,6 +51,7 @@ class Experiment(ABC):
         log_stdout=False,
         exp_logger=None,
         n_jobs=1,
+        log_level="INFO",
     ):
         """
         Initializes an experiment with multiple methods and problems.
@@ -56,6 +67,9 @@ class Experiment(ABC):
                 logger when output is hidden.
             exp_logger (ExperimentLogger, optiona): The logger object, can be a standard file logger or a WandB or MLFlow logger.
             n_jobs (int): Number of runs to execute in parallel.
+            log_level (str): Minimum level of the messages written to
+                ``experiment.log`` in the experiment directory and to each
+                run's ``run.log`` (DEBUG, INFO, WARNING or ERROR).
         """
         self.id = uuid.uuid4().hex
         self.methods = methods
@@ -70,6 +84,7 @@ class Experiment(ABC):
         self.show_stdout = show_stdout
         self.log_stdout = log_stdout
         self.n_jobs = n_jobs
+        self.log_level = log_level
         if exp_logger is None:
             exp_logger = ExperimentLogger("results/experiment")
         self.exp_logger = exp_logger
@@ -114,9 +129,8 @@ class Experiment(ABC):
     def _print_run_overview(self) -> None:
         """Pretty print the planned runs and their status."""
         runs = getattr(self.exp_logger, "progress", {}).get("runs", [])
-        header = f"{'Method':<15} {'Problem':<15} {'Seed':<5} Status"
-        lines = ["Run overview:", header, "-" * len(header)]
         tokens = self._status_tokens()
+        rows = [("Method", "LLM", "Problem", "Seed", "Evals", "Best", "Errors", "")]
         for r in runs:
             if r.get("end_time"):
                 status = tokens["done"]
@@ -126,8 +140,31 @@ class Experiment(ABC):
                 status = tokens["running"]
             else:
                 status = tokens["pending"]
+            best = r.get("best_fitness")
+            counts = r.get("error_counts") or {}
+            rows.append(
+                (
+                    str(r["method_name"]),
+                    str(r.get("llm_name") or "-"),
+                    str(r["problem_name"]),
+                    str(r["seed"]),
+                    f"{r.get('evaluations', 0)}/{r.get('budget', '?')}",
+                    "-" if best is None else f"{best:.6g}",
+                    _format_error_counts(counts),
+                    status,
+                )
+            )
+        widths = [max(len(row[c]) for row in rows) for c in range(len(rows[0]) - 1)]
+        lines = ["Run overview:"]
+        for k, row in enumerate(rows):
+            cells = [cell.ljust(widths[c]) for c, cell in enumerate(row[:-1])]
+            lines.append("  ".join(cells + [row[-1]]).rstrip())
+            if k == 0:
+                lines.append("-" * len(lines[-1]))
+        if any((r.get("error_counts") or {}) for r in runs):
             lines.append(
-                f"{r['method_name']:<15} {r['problem_name']:<15} {r['seed']:<5} {status}"
+                "Errors: evaluations that failed in the generated code (c), "
+                "in the harness (h) or by timeout (t)."
             )
         print("\n".join(lines))
 
@@ -154,7 +191,21 @@ class Experiment(ABC):
     def __call__(self):
         """
         Runs the experiment by executing each method on each problem.
+
+        Raises:
+            iohblade.envs.EnvironmentSetupError: If the evaluation
+                environment of a problem cannot be built (before any run
+                starts; all failing problems are reported).
+            RuntimeError: If one or more runs failed (after all other runs
+                finished and were recorded).
         """
+        directory = getattr(self.exp_logger, "dirname", None)
+        with experiment_logging(
+            directory, self.log_level, quiet=not self.show_stdout
+        ) as self._run_logs:
+            return self._run_all()
+
+    def _run_all(self):
         total_runs = len(self.problems) * len(self.methods) * len(self.seeds)
         if hasattr(self.exp_logger, "start_progress"):
             self.exp_logger.start_progress(
@@ -165,16 +216,19 @@ class Experiment(ABC):
                 seeds=self.seeds,
                 budget=self.budget,
             )
+        log.info(
+            "Experiment started: %d methods x %d problems x %d seeds",
+            len(self.methods),
+            len(self.problems),
+            len(self.seeds),
+        )
+        self._prepare_environments()
         if not self.show_stdout:
-            logging.disable(logging.CRITICAL)
             self._refresh_console()
         else:
             self._print_welcome_message()
             self._print_run_overview()
         tasks = {}  # future -> (method, problem, logger, seed)
-        # set up problem envs
-        for problem in self.problems:
-            problem._ensure_env()
         with ThreadPoolExecutor(max_workers=self.n_jobs) as executor:
             for problem in self.problems:
                 for method in self.methods:
@@ -229,19 +283,117 @@ class Experiment(ABC):
                     self._print_run_overview()
         for problem in self.problems:
             problem.cleanup()
+        self._print_summary(failures, len(tasks))
         if failures:
             raise RuntimeError(
                 f"{len(failures)} of {len(tasks)} runs failed (the others were "
                 "recorded; rerunning retries only the failed ones):\n"
-                + "\n".join(failures)
+                + "\n".join(line for line, _ in failures)
             )
         return
+
+    def _prepare_environments(self) -> None:
+        """Build every problem's evaluation environment before any run starts.
+
+        Raises:
+            EnvironmentSetupError: Listing every problem whose environment
+                could not be built; the full installer output of each is
+                written to ``<experiment>/env-errors/<problem>.txt``.
+        """
+        failed = []
+        for problem in self.problems:
+            try:
+                problem._ensure_env()
+            except Exception as e:
+                failed.append((problem, e))
+        if not failed:
+            return
+        directory = getattr(self.exp_logger, "dirname", None)
+        lines = []
+        for problem, error in failed:
+            text = f"{type(error).__name__}: {error}"
+            location = ""
+            if directory:
+                safe = "".join(
+                    c if c.isalnum() or c in "-_." else "_" for c in problem.name
+                )
+                path = os.path.join(directory, "env-errors", f"{safe}.txt")
+                try:
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    with open(path, "w") as f:
+                        f.write(text + "\n")
+                    location = f" (full output: {path})"
+                except OSError:
+                    pass
+            first = str(error).strip().splitlines()[0] if str(error).strip() else text
+            lines.append(f"  - {problem.name}: {first}{location}")
+            log.error("Evaluation environment of %s failed: %s", problem.name, text)
+        raise EnvironmentSetupError(
+            f"Could not build the evaluation environment of {len(failed)} "
+            "problem(s); no runs were started:\n"
+            + "\n".join(lines)
+            + "\nRun `iohblade check` on the experiment for details."
+        )
+
+    def _print_summary(self, failures, n_started: int) -> None:
+        """Print what happened, grouped by error type, and what to do next."""
+        runs = getattr(self.exp_logger, "progress", {}).get("runs", [])
+        totals = {}
+        for r in runs:
+            for kind, n in (r.get("error_counts") or {}).items():
+                totals[kind] = totals.get(kind, 0) + n
+        evaluations = sum(r.get("evaluations", 0) for r in runs)
+        lines = [
+            "",
+            f"Summary: {n_started - len(failures)} of {n_started} runs finished"
+            + (f", {len(failures)} failed." if failures else "."),
+        ]
+        if failures:
+            groups: dict[str, list] = {}
+            for line, error in failures:
+                groups.setdefault(type(error).__name__, []).append((line, error))
+            lines.append("Failed runs:")
+            for name, items in groups.items():
+                lines.append(f"  {name} ({len(items)} run(s)):")
+                for line, _ in items:
+                    lines.append(f"    - {line}")
+            lines.append("  Rerunning the experiment retries only the failed runs.")
+        if totals and evaluations:
+            parts = []
+            labels = {
+                "candidate": "in the generated code",
+                "harness": "in the evaluation harness",
+                "timeout": "by timeout",
+            }
+            for kind in ("candidate", "harness", "timeout"):
+                if totals.get(kind):
+                    parts.append(f"{totals[kind]} {labels[kind]}")
+            lines.append(
+                f"Evaluations: {evaluations}, of which failed: "
+                + ", ".join(parts)
+                + "."
+            )
+            if totals.get("harness"):
+                lines.append(
+                    "  Harness errors are not caused by the LLM's code: check the "
+                    "problem (see the runs' run.log)."
+                )
+        directory = getattr(self.exp_logger, "dirname", None)
+        if directory:
+            lines.append(
+                f"Logs: {os.path.join(directory, 'experiment.log')} and run.log "
+                "in each run's folder."
+            )
+        text = "\n".join(lines)
+        print(text, file=sys.__stdout__, flush=True)
+        log.info(text.strip())
 
     def _record_failure(self, method, problem, logger, seed, error) -> str:
         """Writes a failed run's traceback to its log dir and marks it failed.
 
         Returns:
-            str: One summary line for the end-of-experiment report.
+            tuple: One summary line for the end-of-experiment report, and
+            the exception.
         """
         trace = "".join(traceback.format_exception(error))
         error_path = os.path.join(logger.dirname, "error.txt")
@@ -258,11 +410,40 @@ class Experiment(ABC):
             f"{method.name} / {problem.name} / seed {seed}: "
             f"{type(error).__name__}: {error} (traceback: {error_path})"
         )
+        log.error("Run failed: %s\n%s", line, trace)
         # sys.__stderr__: worker threads may have redirected sys.stderr.
         print(f"Run failed: {line}", file=sys.__stderr__, flush=True)
-        return line
+        return line, error
 
     def _run_single(self, method, problem, logger, seed):
+        router = getattr(self, "_run_logs", None)
+        if router is not None:
+            router.register(os.path.join(logger.dirname, "run.log"))
+        log.info(
+            "Run started: %s / %s / %s / seed %s",
+            method.name,
+            getattr(method.llm, "model", "?"),
+            problem.name,
+            seed,
+        )
+        start = time.monotonic()
+        try:
+            result = self._run_single_inner(method, problem, logger, seed)
+        except BaseException:
+            log.exception("Run raised an exception")
+            raise
+        else:
+            log.info(
+                "Run finished in %.1fs; best fitness %s",
+                time.monotonic() - start,
+                getattr(result, "fitness", "?"),
+            )
+            return result
+        finally:
+            if router is not None:
+                router.unregister()
+
+    def _run_single_inner(self, method, problem, logger, seed):
         np.random.seed(seed)
         method.llm.set_logger(logger)
         logger.log_stdout = self.log_stdout
@@ -300,11 +481,8 @@ class Experiment(ABC):
         if hasattr(logger, "finish_run"):
             logger.finish_run(result)
         success = self._log_data(method, problem, logger)
-        print(
-            "Logged config files successfully"
-            if success
-            else "Some config logs failed."
-        )
+        if not success:
+            log.warning("Some configuration files could not be written.")
         return result
 
     def _get_hash(self, config: dict) -> str:

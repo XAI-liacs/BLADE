@@ -4,6 +4,25 @@
 
 ### Major changes
 
+- **Error reporting and logs** (#193):
+  - Experiments no longer call `logging.disable(logging.CRITICAL)`. All log
+    messages, including library output and Python warnings, go to
+    `<experiment>/experiment.log`, and each run's messages also go to its
+    own `run.log`. Terminal handlers are detached only while the experiment
+    runs (`show_stdout=False`). The level is set with
+    `Experiment(log_level=...)` or `experiment.log_level` in YAML.
+  - The run overview shows the LLM, evaluations used out of budget, the best
+    fitness and the failed evaluations by kind: in the generated code, in
+    the harness, or by timeout.
+  - After the runs, a summary groups failed runs by exception type, gives
+    the paths to their tracebacks and error totals, and says what to do
+    next.
+  - Evaluation environments of all problems are built before any run.
+    Failures are reported together (`EnvironmentSetupError`, full output in
+    `<experiment>/env-errors/`), and `iohblade run` exits with code 3.
+  - `progress.json` entries record `best_fitness`, `error_counts` and
+    `last_error`. The web app shows them in a run table, together with the
+    resolved configuration, the custom code and `experiment.log`.
 - **Smoke tests, starter projects and cached evaluation environments**
   (#192):
   - `iohblade check experiment.yml` builds each problem's evaluation
@@ -55,6 +74,16 @@
 
 ### Bug fixes
 
+- Every run appeared twice in `progress.json`, and in the run overview and
+  web app: the planned entries had no `llm_name`, so the entry a run used
+  was added separately. Planned entries now carry `llm_name`, and progress
+  files from older versions are cleaned up when an experiment is resumed.
+- With llamea 1.4.2, LLaMEA operators with more than one parent (crossover)
+  crash under the default `parent_selection="random"`: the NumPy array of
+  parents cannot be concatenated with the list holding the current
+  individual. `validate` now reports this (probing llamea's behaviour, so a
+  fixed llamea passes), and the templates, examples and docs that use
+  crossover set `parent_selection: tournament`.
 - **Built-in example solutions work again** (#192). The example code that
   the built-in problems show the LLM was broken or a skeleton for 17 of 26
   problems: wrong indentation, hyphens in class names, wrong output lengths,
