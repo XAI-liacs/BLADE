@@ -44,7 +44,7 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
 
         self.task_prompt = self.make_hexagon_task_prompt(tolerance=self.tolerance)
         self.example_prompt = self.make_hexagon_example_prompt(
-            f"HexagonPacking-n{n_hex}", self.n_hex
+            "HexagonPackingSolver", self.n_hex
         )
         self.format_prompt = self.make_format_prompt()
 
