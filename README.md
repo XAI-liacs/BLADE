@@ -210,9 +210,11 @@ make sure you have `uv` installed.
 
 ## 💻 Quick Start
 
-1. Set up an API key for your preferred provider:
-   - Obtain an API key from [OpenAI](https://openai.com/), Claude, Gemini, or another LLM provider.
-   - Set the API key in your environment variables:
+1. Choose an LLM:
+   - **Local, no API key:** install [Ollama](https://ollama.com/) and pull a model,
+     e.g. `ollama pull qwen2.5-coder:14b` (the examples below use this one).
+   - **Hosted:** obtain an API key from [OpenAI](https://openai.com/), Claude,
+     Gemini, or another provider and set it in your environment:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'
      ```
@@ -226,7 +228,9 @@ make sure you have `uv` installed.
     uv run iohblade run my-exp/experiment.yml        # run (rerun to resume)
     ```
 
-    A configuration names the LLMs, methods and problems:
+    A configuration names the LLMs, methods and problems. This one uses the
+    local Ollama model from step 1; to use OpenAI instead, uncomment the `gpt`
+    entry and set `llm: gpt` in the methods:
 
     ```yaml
     experiment: {output_dir: results/SBOX, runs: 5, budget: 50}
