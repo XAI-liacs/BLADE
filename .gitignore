@@ -184,3 +184,6 @@ _site/
 
 # Apple File System
 .DS_Store
+
+# Output of the unit and end-to-end tests
+test_results/

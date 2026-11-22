@@ -168,10 +168,18 @@ def _eval_pythonpath(problem, existing: str = "") -> str:
 
     The directory containing the ``iohblade`` package comes first, followed
     by the problem's ``extra_pythonpath`` entries (e.g. the folder of a custom
-    problem module) and any PYTHONPATH already set.
+    problem module) and any PYTHONPATH already set. With
+    ``problem.isolated_pythonpath`` only iohblade itself is exposed (for a pip
+    installation the folder containing it is the whole site-packages) and an
+    existing PYTHONPATH is dropped.
     """
-    repo_root = Path(__file__).resolve().parents[1]
-    entries = [str(repo_root)]
+    if getattr(problem, "isolated_pythonpath", False):
+        from .envs import iohblade_only_path
+
+        entries = [str(iohblade_only_path())]
+        existing = ""  # nothing from BLADE's own environment
+    else:
+        entries = [str(Path(__file__).resolve().parents[1])]
     for path in getattr(problem, "extra_pythonpath", None) or []:
         path = str(Path(path).resolve())
         if path not in entries:
@@ -374,6 +382,12 @@ class Problem(ABC):
         # Abort the run (HarnessError) after this many consecutive evaluations
         # that failed before the generated code was used. None disables it.
         self.max_harness_errors: int | None = 3
+        # Share a cached evaluation environment with problems that have the
+        # same dependencies (see iohblade.envs). False: a private one.
+        self.env_cache: bool = True
+        # Only make iohblade (not the rest of BLADE's own environment)
+        # importable in the evaluation process.
+        self.isolated_pythonpath: bool = False
         self._consecutive_harness_errors = 0
 
         # Path to the virtual environment used for evaluations
@@ -542,36 +556,35 @@ class Problem(ABC):
             )
 
     def _ensure_env(self):
-        """Create the virtual environment for evaluations if it does not exist."""
+        """Create (or reuse) the virtual environment for evaluations.
+
+        Environments are cached and shared between problems with the same
+        dependencies (see :mod:`iohblade.envs`); set ``self.env_cache =
+        False`` (or ``IOHBLADE_ENV_CACHE=0``) for a private temporary
+        environment that :meth:`cleanup` deletes.
+
+        Raises:
+            iohblade.envs.EnvironmentSetupError: If the environment cannot
+                be created or a dependency cannot be installed (a
+                ``RuntimeError``).
+        """
         if self._env_path is not None:
             return
-        import virtualenv
+        from .envs import get_env
 
-        env_dir = tempfile.mkdtemp(prefix="blade_env_")
-        self._env_path = Path(env_dir)
-        if getattr(self, "use_system_site_packages", False):
-            virtualenv.cli_run(["--system-site-packages", env_dir])
-        else:
-            virtualenv.cli_run([env_dir])
-        self._python_bin = (
-            self._env_path / ("Scripts" if os.name == "nt" else "bin") / "python"
+        info = get_env(
+            list(getattr(self, "dependencies", None) or []),
+            system_site_packages=getattr(self, "use_system_site_packages", False),
+            cache=getattr(self, "env_cache", True),
         )
-
-        deps = getattr(self, "dependencies", [])
-        if deps:
-            try:
-                subprocess.run(
-                    [str(self._python_bin), "-m", "pip", "install", *deps],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(
-                    f"Failed to install the dependencies {deps}:\n{e.stderr or e.stdout}"
-                ) from e
+        self._env_path = info.path
+        self._python_bin = info.python
+        self._env_cached = info.cached
 
     def cleanup(self):
+        """Delete a private evaluation environment (cached ones are kept)."""
+        if getattr(self, "_env_cached", False):
+            return
         try:
             if self._env_path and self._env_path.exists():
                 shutil.rmtree(self._env_path)

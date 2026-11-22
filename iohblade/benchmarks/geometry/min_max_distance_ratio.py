@@ -63,30 +63,51 @@ Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best
     * The Optimisation goal is to {formula}.
     * The tolerance for the point overlap is set to {self.tolerance}
 """)
-        best_known_initialiser = """
-    def __init__(self, n_points : int, dimensions : int):
-        pass"""
-        if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, n_points: int, dimensions: int, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
-        pass
+        if self.best_solution is None:
+            example_code = """import numpy as np
+
+
+class MinMaxDistanceSolver:
+    def __init__(self, n_points: int, dimensions: int):
+        self.n_points = n_points
+        self.dimensions = dimensions
+
+    def __call__(self) -> list[tuple[float, ...]]:
+        # Uniform random points in the unit hypercube (distinct points,
+        # so the minimum pairwise distance is non-zero).
+        rng = np.random.default_rng(0)
+        points = rng.random((self.n_points, self.dimensions))
+        return [tuple(p) for p in points]
+"""
+        else:
+            example_code = """import numpy as np
+
+
+class MinMaxDistanceSolver:
+    def __init__(
+        self,
+        n_points: int,
+        dimensions: int,
+        best_known_configuration: list[tuple[float, ...]] | None,
+    ):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.n_points = n_points
+        self.dimensions = dimensions
+        self.best_known_configuration = best_known_configuration
+
+    def __call__(self) -> list[tuple[float, ...]]:
+        # Baseline: return the best known configuration unchanged.
+        points = np.asarray(self.best_known_configuration, dtype=float)
+        return [tuple(p) for p in points]
 """
 
-        self.example_prompt = textwrap.dedent(f"""
-Must follow the following template for code:
-Description: A short one line description of technique used.
-
-```python
-class MinMaxDistanceSolver:
-    {best_known_initialiser}
-
-    def __call__(self) -> list[tuple[float, float]]:
-        return [(0.0,) * {self.dim}] * {self.n_points}
-```
-
-""")
+        self.example_prompt = (
+            "\nMust follow the following template for code:\n"
+            "# Description: A short one line description of technique used.\n"
+            "# Code:\n"
+            f"```python\n{example_code}```\n"
+        )
 
         self.format_prompt = textwrap.dedent("""
 

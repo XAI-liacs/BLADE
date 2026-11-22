@@ -70,29 +70,46 @@ Write a python class with function `__call__`, that generate a solution for the 
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
 
-        best_known_initialiser = """
-    def __init__(self, n_points : int):
-        pass
-"""
-        if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, n_points: int, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
-        pass
-"""
+        if self.best_solution is None:
+            example_code = """import numpy as np
 
-        self.example_prompt = textwrap.dedent(f"""
-Must follow the following template for code:
-Description: A short one line description of technique used.
-```
-class HeilbronnConvexRegion-n{self.n_points}:
-    {best_known_initialiser}
+
+class HeilbronnConvexRegionSolver:
+    def __init__(self, n_points: int):
+        self.n_points = n_points
+
     def __call__(self):
-        return np.zeros(({self.n_points}, 2))
+        # Uniform random points in the unit square; their convex hull is
+        # the region and is rescaled to area 1 by the evaluator.
+        rng = np.random.default_rng(0)
+        return rng.random((self.n_points, 2))
+"""
+        else:
+            example_code = """import numpy as np
 
-```
-""")
+
+class HeilbronnConvexRegionSolver:
+    def __init__(
+        self,
+        n_points: int,
+        best_known_configuration: list[tuple[float, float]] | None,
+    ):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.n_points = n_points
+        self.best_known_configuration = best_known_configuration
+
+    def __call__(self):
+        # Baseline: return the best known configuration unchanged.
+        return np.asarray(self.best_known_configuration, dtype=float)
+"""
+
+        self.example_prompt = (
+            "\nMust follow the following template for code:\n"
+            "# Description: A short one line description of technique used.\n"
+            "# Code:\n"
+            f"```python\n{example_code}```\n"
+        )
 
         self.format_prompt = textwrap.dedent("""
 

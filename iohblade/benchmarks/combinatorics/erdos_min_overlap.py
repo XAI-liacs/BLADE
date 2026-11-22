@@ -64,26 +64,27 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
     * The tolerance of f + g similar to 1 is set to {self.tolerance}
         """
 
-        best_known_initialiser = ""
+        initialiser = ""
         if best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then
-        optimised for better results.
+            initialiser = """
+    def __init__(self, best_known_configuration=None):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.best_known_configuration = best_known_configuration
 """
-        self.example_prompt = textwrap.dedent(f"""
+        self.example_prompt = f"""
 
 An example template of such program is given by:
 ```python
-class ErdosCandidate:
-
-    {best_known_initialiser}
-
+class ErdosCandidate:{initialiser}
     def __call__(self):
-        return [0,0]*{self.n_bins}
+        # Simple baseline: f = 1/2 everywhere, so g = 1 - f = 1/2 and
+        # dx * sum(f) = (2 / N) * (N / 2) = 1.
+        N = {self.n_bins}
+        return [0.5] * N
 ```
 
-""")
+"""
 
         self.format_prompt = textwrap.dedent("""
 

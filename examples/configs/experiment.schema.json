@@ -73,6 +73,18 @@
         },
         "logger": {
           "$ref": "#/$defs/LoggerSpec"
+        },
+        "env_cache": {
+          "default": true,
+          "description": "Reuse cached evaluation environments between problems with the same dependencies (also across experiments). False: a fresh temporary environment per problem.",
+          "title": "Env Cache",
+          "type": "boolean"
+        },
+        "isolated_pythonpath": {
+          "default": false,
+          "description": "Evaluate with only iohblade importable from BLADE's own environment (plus the problem's dependencies and custom code).",
+          "title": "Isolated Pythonpath",
+          "type": "boolean"
         }
       },
       "required": [
@@ -427,6 +439,19 @@
           "description": "Constructor (or suite factory) arguments.",
           "title": "Params",
           "type": "object"
+        },
+        "smoke_test_solution": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "A .py file with a known-good solution, evaluated by `iohblade check` (default: the code in the problem's example prompt).",
+          "title": "Smoke Test Solution"
         },
         "dependencies": {
           "description": "Extra pip requirements installed in the problem's evaluation environment (added to requirements.txt / pyproject.toml found next to a custom source).",

@@ -263,6 +263,17 @@ expects). Also write `experiment.yml` (original),
    the tail of the pip output and the full log path.
 6. **Webapp.** Show the resolved config, the source snapshot and the error
    categories per run.
+7. **Duplicate progress entries** (found in Phase 3). `start_progress` creates
+   run entries without `llm_name`, but `open_run` matches on `llm_name`, so
+   every run gets a second entry. The first stays "pending" forever in the
+   overview and the webapp. Planned runs should carry `llm_name` and match
+   the entries `open_run` looks up.
+
+Also found in Phase 3 and fixed in the same PR: the example code that 17
+built-in problems showed the LLM was broken. The examples were rewritten as
+valid baselines, `tests/unit/test_benchmark_examples.py` guards them, and
+`swig` is now installed into the evaluation environments that build `pyrfr`
+for smac.
 
 ## 8. Phased roadmap
 
@@ -274,7 +285,7 @@ tests.
 | **0. Groundwork** | Registry with lazy imports and clear "install group X" errors. `extra_pythonpath` in `evaluate_in_subprocess`. `HarnessError` classification and circuit breaker. (The iohblade-only `PYTHONPATH` shim moves to Phase 3 behind a flag, since removing the site-packages leak could break existing pip-installed setups.) | – | M |
 | **1. Built-in YAML** | `schema.py`, `yaml_loader.py` (marks, env, overrides), `build.py`, `load_experiment`, `iohblade validate/run/list/schema`. Built-ins only. Convert 3 scripts from `run_benchmarks/` to YAML as dogfooding. | 0 | L |
 | **2. Custom code** | `user_code.py` (file and folder, shadowing checks, ABC checks), dependency discovery, source snapshot and hash, resolved-config output, custom LLM providers. | 1 | L |
-| **3. Test runners and env cache** | Content-addressed venv cache with lock and uv fast path. `iohblade check`, `--dry-run`, `init` templates. | 2 | M |
+| **3. Test runners and env cache** | Content-addressed venv cache with lock and uv fast path. `iohblade check`, `--dry-run` resume info (no cost estimate: there is no reliable per-run cost data yet), `init` templates, `isolated_pythonpath` (moved here from Phase 0). | 2 | M |
 | **4. Error UX and logging** | Structured logging, end-of-run summary, exit codes, env errors raised before runs, webapp config/error view. | 0–3 | M |
 | **5. Docs and release** | User guide "Experiments from YAML", generated schema reference (published to GH Pages for the `$schema` link), tutorials for custom problems and methods, CHANGELOG, migrate the README quickstart. | all | S |
 

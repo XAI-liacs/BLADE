@@ -1,3 +1,4 @@
+import textwrap
 from typing import Optional, Any
 from iohblade.tags import PrimaryCategories, NoiseType, ObjectiveType
 
@@ -55,18 +56,37 @@ class PackingBase:
 """
         if self.best_solution is not None:
             best_known_initialiser = f"""
-    def __init__(self, n_hexagons: int={n_hexagon}, best_known_configuration: list[float] | None = None):
+    def __init__(self, n_hexagons: int = {n_hexagon}, best_known_configuration: list[list[float]] | None = None):
+        # Accepts a best known configuration (if available) for the problem, as an initial configuration, which can then
+        # be optimised for better results.
         self.best_known_configuration = best_known_configuration
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        # optimised for better results.
         self.n_hexagons = int(n_hexagons)
 """
         return f"""
+# Description: Place the hexagons on a honeycomb grid, which tiles the plane without overlaps.
+# Code:
 ```python
+import math
+
+import numpy as np
+
+
 class {class_name}:
-    {best_known_initialiser}
+    {best_known_initialiser.strip()}
+
     def __call__(self):
-        return [(0, ) * 3] * {n_hexagon}      # {n_hexagon} disjoint hexagons, with (x, y, theta).
+        n = self.n_hexagons
+        cols = int(math.ceil(math.sqrt(n)))
+        hexagons = []
+        for i in range(n):
+            row, col = divmod(i, cols)
+            # Flat-topped unit hexagons (theta = 0) tile the plane with a
+            # horizontal spacing of 1.5 and a vertical spacing of sqrt(3);
+            # every other column is shifted up by half a row.
+            x = 1.5 * col
+            y = math.sqrt(3) * (row + 0.5 * (col % 2))
+            hexagons.append([x, y, 0.0])
+        return np.array(hexagons, dtype=float)  # shape (n, 3): rows (x, y, theta)
 ```
 """
 
@@ -78,19 +98,16 @@ class {class_name}:
     ) -> str:
         hint = body_hint or """import numpy as np
 
-rng = np.random.default_rng(0)
 n = getattr(self, 'n_circles', 8)
 
-# naive jittered grid with small equal radii that surely fit
+# naive square grid of equal circles, each inscribed in its own grid cell
 g = int(np.ceil(np.sqrt(n)))
-r = 0.5/(g+1)
+r = 0.5 / g
 pts = []
 for i in range(n):
     row, col = divmod(i, g)
-    x = (col+1)/(g+1)
-    y = (row+1)/(g+1)
-    x += (rng.random()-0.5)*r*0.2
-    y += (rng.random()-0.5)*r*0.2
+    x = (col + 0.5) / g
+    y = (row + 0.5) / g
     pts.append([x, y, r])
 return np.array(pts, dtype=float)
 """
@@ -101,21 +118,21 @@ return np.array(pts, dtype=float)
 """
         if self.best_solution is not None:
             best_known_initialiser = f"""
-    def __init__(self, n_circles: int={n_circles}, best_known_configuration: list[float] | None):
+    def __init__(self, n_circles: int = {n_circles}, best_known_configuration: list[list[float]] | None = None):
+        # Accepts a best known configuration (if available) for the problem, as an initial configuration, which can then
+        # be optimised for better results.
         self.best_known_configuration = best_known_configuration
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        # optimised for better results.
         self.n_circles = int(n_circles)
 """
-        stringified_hint = "\n\t".join(hint.split("\n"))
+        body = textwrap.indent(textwrap.dedent(hint).strip(), " " * 8)
         return f"""
 
 ```python
 class {class_name}:
-    {best_known_initialiser}
+    {best_known_initialiser.strip()}
 
     def __call__(self):
-        {stringified_hint}
+{body}
 ```
 """
 

@@ -47,36 +47,34 @@ class NumberTheoryBase:
 
     def make_example_prompt(self, class_name: str) -> str:
         # Minimal, valid example that returns a simple U.
-        best_known_initialiser = """
+        initialiser = """
     def __init__(self, max_size=100):
         self.max_size = max_size
-        """
-        if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, max_size=100, best_known_configuration: list[float] | None = None):
-        self.max_size = max_size
-        self.best_known_configuration = best_known_configuration
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        # optimised for better results.
 """
-        return textwrap.dedent(f"""
+        if self.best_solution is not None:
+            initialiser = """
+    def __init__(self, max_size=100, best_known_configuration=None):
+        self.max_size = max_size
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.best_known_configuration = best_known_configuration
+"""
+        return f"""
 An example template of the program is:
 ```python
-class {class_name}:
-    {best_known_initialiser}
-
+class {class_name}:{initialiser}
     def __call__(self):
-        # Must return U ⊂ ℤ≥0 with 0 ∈ U and |U| ≤ self.max_size.
+        # Must return U ⊂ ℤ≥0 with 0 ∈ U, |U| ≤ self.max_size and
+        # max(U) ≤ 10**6.
         # Simple constructive baseline: start with 0, then add increasing gaps.
-        import random
         U = [0]
         gap = 1
-        while len(U) < self.max_size:
+        while len(U) < self.max_size and U[-1] + gap <= 10**6:
             U.append(U[-1] + gap)
-            gap = gap * 2 if random.random() < 0.3 else gap + 1
+            gap += 1
         return U
 ```
-""")
+"""
 
     def make_format_prompt(self) -> str:
         return textwrap.dedent("""

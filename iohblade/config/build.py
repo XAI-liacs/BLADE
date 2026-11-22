@@ -147,6 +147,7 @@ class ExperimentPlan:
         problems: Problem objects (suites expanded).
         seeds: Seeds of the runs.
         sources: Custom code loaded for this experiment.
+        smoke_tests: For each problem, its ``smoke_test_solution`` file.
     """
 
     config: ExperimentConfig
@@ -159,6 +160,7 @@ class ExperimentPlan:
     seeds: list[int] = field(default_factory=list)
     sources: list[LoadedSource] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    smoke_tests: list[Path | None] = field(default_factory=list)
 
     @property
     def n_runs(self) -> int:
@@ -688,8 +690,21 @@ class _Builder:
         from ..problem import Problem
 
         problems = []
+        self.smoke_tests: list[Path | None] = []
         for i, spec in enumerate(self.config.problems):
             path = ("problems", i)
+            smoke = None
+            if spec.smoke_test_solution is not None:
+                smoke = Path(spec.smoke_test_solution)
+                if not smoke.is_absolute():
+                    smoke = self.source.base_dir / smoke
+                if not smoke.is_file():
+                    self.issue(
+                        path + ("smoke_test_solution",),
+                        f"'{spec.smoke_test_solution}' does not exist "
+                        f"(looked for {smoke}).",
+                    )
+                    smoke = None
             if spec.suite is not None:
                 fn = self.resolve("suite", spec.suite, path + ("suite",))
                 if fn is None:
@@ -710,7 +725,9 @@ class _Builder:
                     continue
                 for item in items:
                     _add_unique(item, "dependencies", spec.dependencies)
+                    self._configure(item)
                 problems.extend(items)
+                self.smoke_tests.extend([smoke] * len(items))
                 continue
             cls, loaded = self.resolve_spec("problem", spec.type, spec, path, "type")
             if cls is None:
@@ -738,7 +755,9 @@ class _Builder:
                 _add_unique(problem, "extra_pythonpath", [str(loaded.root)])
                 _add_unique(problem, "dependencies", loaded.dependencies)
             _add_unique(problem, "dependencies", spec.dependencies)
+            self._configure(problem)
             problems.append(problem)
+            self.smoke_tests.append(smoke)
         names: dict[str, int] = {}
         for problem in problems:
             names[problem.name] = names.get(problem.name, 0) + 1
@@ -750,6 +769,12 @@ class _Builder:
                     "'name's (their results would be mixed up).",
                 )
         return problems
+
+    def _configure(self, problem) -> None:
+        """Apply the experiment-wide evaluation settings to a problem."""
+        section = self.config.experiment
+        problem.env_cache = section.env_cache
+        problem.isolated_pythonpath = section.isolated_pythonpath
 
     def check_logger(self) -> None:
         spec = self.config.experiment.logger
@@ -821,6 +846,7 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
         problems=problems,
         seeds=seeds,
         sources=list(builder.sources.values()),
+        smoke_tests=builder.smoke_tests,
     )
 
 

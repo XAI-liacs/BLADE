@@ -4,6 +4,28 @@
 
 ### Major changes
 
+- **Smoke tests, starter projects and cached evaluation environments**
+  (#192):
+  - `iohblade check experiment.yml` builds each problem's evaluation
+    environment and evaluates a reference solution through the real
+    pipeline (the new `smoke_test_solution` of a problem, or the code in
+    its example prompt). It then runs every method briefly with an offline
+    LLM replaying that solution. With `--llm`, it also sends one prompt to
+    each LLM. The exit code is 1 when a check fails.
+  - `iohblade init [dir] --template builtin|custom-problem|custom-method`
+    writes a starter experiment that passes `check`.
+  - `iohblade run --dry-run` reports how many runs an existing output
+    directory has finished, and whether resuming is possible.
+  - Evaluation environments are cached and shared between problems with
+    the same dependencies (`~/.cache/iohblade/envs`, or
+    `IOHBLADE_CACHE_DIR`). Packages are installed with `uv` when available,
+    falling back to `pip`; `iohblade cache list|clear` manages the cache.
+    Opt out with `experiment.env_cache: false`, `IOHBLADE_ENV_CACHE=0` or
+    `problem.env_cache = False`; `Problem.cleanup()` only deletes
+    non-cached environments.
+  - `experiment.isolated_pythonpath` / `Problem.isolated_pythonpath` expose
+    only `iohblade` (not the rest of BLADE's environment) to the
+    evaluation.
 - **Custom code in YAML experiments** (#191): problems, methods and LLMs
   can be loaded from your own `.py` file or package with `type: custom`
   (`provider: custom`), `source` and `class`. The module is imported under
@@ -33,6 +55,21 @@
 
 ### Bug fixes
 
+- **Built-in example solutions work again** (#192). The example code that
+  the built-in problems show the LLM was broken or a skeleton for 17 of 26
+  problems: wrong indentation, hyphens in class names, wrong output lengths,
+  degenerate points or typos. ToyMultiObjective showed no example at all,
+  because the placeholder prompts set by `Problem.__init__` hid its
+  class-level prompts. All examples are now simple, valid baselines that
+  evaluate to a finite fitness. A test (`test_benchmark_examples.py`) keeps
+  it that way, and `iohblade check` can use them as reference solutions.
+- `UncertaintyInequality` called `float()` on one-element arrays, which
+  NumPy >= 2.5 (installed in the evaluation environment) rejects, so no
+  solution could be scored. It now evaluates the polynomial at scalars.
+- Evaluation environments of the smac-based benchmarks (BBOB-SBOX, MA-BBOB,
+  Kerneltuner, AutoML) could not be built without a system `swig`, needed
+  to build `pyrfr`. `swig` is now installed from PyPI first, and the
+  environment's scripts folder is on `PATH` while installing.
 - The example scripts `run-sbox.py`, `run-mabbob.py`, `run-bbob-logging.py`,
   `run-kerneltuner.py`, `run-kerneltuner-info.py`, `minimal_example.py` and
   `minimal_example_trackio.py` passed `mutation_prompts` to LLaMEA, which

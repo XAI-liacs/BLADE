@@ -77,6 +77,7 @@ class BBOB_SBOX(Problem):
                 "pandas==2.2.3",
                 "ioh==0.3.22",
                 "configspace==1.2.1",
+                "swig",  # builds pyrfr, a dependency of smac
                 "smac==2.3.1",
             ]
         if imports is None:

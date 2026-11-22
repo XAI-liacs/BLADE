@@ -105,25 +105,27 @@ Write a python class with function `__call__`, that returns a list of floats f o
 """)
 
     def make_example_prompt(self, class_name: str) -> str:
-        best_known_initialiser = ""
+        initialiser = ""
         if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
+            initialiser = """
+    def __init__(self, best_known_configuration=None):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.best_known_configuration = best_known_configuration
 """
 
-        return textwrap.dedent(f"""
+        return f"""
 
 An example template of such program is given by:
 ```python
-class {class_name}:
-    {best_known_initialiser}
+class {class_name}:{initialiser}
     def __call__(self):
-        return [0,0]*{self.n_bins}
+        # Simple baseline: a constant (box) function over all N bins.
+        N = {self.n_bins}
+        return [1.0] * N
 ```
 
-""")
+"""
 
     def make_format_prompt(self):
         return textwrap.dedent("""

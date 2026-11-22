@@ -40,22 +40,29 @@ Write a python class with function `__call__`, that generates optimal Graph Colo
         self.example_prompt = textwrap.dedent("""
 An example response can be
 ---
-# Descripition:
-A novel algorithm for minimising the distinct colour count in graph colouring.
+# Description:
+Greedy colouring: give each node the smallest colour not used by its neighbours.
 # Code:
 ```python
-import random
-
 class GraphColoring:
     def __init__(self, nodes: list[int], edges: list[tuple[int, int]]):
         self.nodes = nodes
         self.edges = edges
-        self.color_mapping = {}
-        self.color_mapping[self.nodes[0]] = 1
 
     def __call__(self):
-        # Find steiner points.
-        return self.color_mapping
+        neighbours = {node: set() for node in self.nodes}
+        for u, v in self.edges:
+            neighbours[u].add(v)
+            neighbours[v].add(u)
+
+        color_mapping = {}
+        for node in self.nodes:
+            used = {color_mapping[n] for n in neighbours[node] if n in color_mapping}
+            color = 1
+            while color in used:
+                color += 1
+            color_mapping[node] = color
+        return color_mapping
 ```
 """)
         self.format_prompt = textwrap.dedent("""

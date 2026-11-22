@@ -49,7 +49,7 @@ Write a python class with function `__call__`, that generate a solution for Sphe
         self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
-# Descripition:
+# Description:
 A random selection algorithm for Spherical Code Solver.
 # Code:
 ```python
@@ -61,11 +61,12 @@ class SphericalCodeSolver:
         self.tolerance = tolerance
 
     def __call__(self) -> list[tuple[float, float, float]]:
+        # Random directions (Gaussian samples), with a fixed seed; the
+        # evaluator projects every point onto the unit sphere.
+        rng = random.Random(0)
         points = []
         for _ in range(self.n_points):
-            points.append(
-                (random.random(), randm.random(), random.random())
-            )
+            points.append((rng.gauss(0, 1), rng.gauss(0, 1), rng.gauss(0, 1)))
         return points
 ```
 """)

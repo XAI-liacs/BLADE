@@ -62,41 +62,57 @@ Write a python class with function `__call__`, that generate a solution for Heil
             f"- The tolerence of the solution is set to {self.tolerance}"
         )
 
-        best_known_initialiser = """
-    def __init__(self, n_points : int):
-        pass
+        if self.best_solution is None:
+            example_code = """import numpy as np
+
+
+class HeilbronnTriangleSolver:
+    def __init__(self, n_points: int):
+        self.n_points = n_points
+
+    def __call__(self):
+        # Uniform random points inside the default unit-area triangle
+        # (0, 0), (1, 0), (0, 2).
+        rng = np.random.default_rng(0)
+        u = rng.random((self.n_points, 2))
+        flip = u.sum(axis=1) > 1.0
+        u[flip] = 1.0 - u[flip]
+        points = np.column_stack([u[:, 0], 2.0 * u[:, 1]])
+        # Option 1: (None, points) uses the default triangle.
+        # Option 2: return (triangle, points) with triangle of shape (3, 2).
+        return (None, points)
 """
-        if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, n_points: int, best_known_configuration: list[tuple[float, float]] | None, in_triangle: list[tuple[float, float]]):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
-        pass
+        else:
+            example_code = """import numpy as np
+
+
+class HeilbronnTriangleSolver:
+    def __init__(
+        self,
+        n_points: int,
+        best_known_configuration: list[tuple[float, float]] | None,
+        in_triangle: list[tuple[float, float]],
+    ):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.n_points = n_points
+        self.best_known_configuration = best_known_configuration
+        self.in_triangle = in_triangle
+
+    def __call__(self):
+        # Baseline: return the best known configuration unchanged, as
+        # (triangle, points) with triangle of shape (3, 2).
+        triangle = np.asarray(self.in_triangle, dtype=float)
+        points = np.asarray(self.best_known_configuration, dtype=float)
+        return (triangle, points)
 """
 
-        call_format = f"""
-def __call__(self):
-    # Option 1: points only
-    return (None, np.zeros(({self.n_points}, 2)))
-
-    # Option 2: (triangle, points)
-    return (np.zeros((3, 2)), np.zeros(({self.n_points}, 2)))
-"""
-
-        self.example_prompt = textwrap.dedent(f"""
-Must follow the following template for code:
-Description: A short one line description of technique used.
-
-```python
-
-class HeilbronnTriangle-n{self.n_points}:
-
-    {best_known_initialiser}
-
-    {call_format}
-
-```
-""")
+        self.example_prompt = (
+            "\nMust follow the following template for code:\n"
+            "# Description: A short one line description of technique used.\n"
+            "# Code:\n"
+            f"```python\n{example_code}```\n"
+        )
 
         self.format_prompt = textwrap.dedent("""
 

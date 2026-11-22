@@ -59,7 +59,7 @@ Write a python class with function `__call__`, that generate a solution for Circ
         self.example_prompt = textwrap.dedent(f"""
 An example response can be
 ---
-# Descripition:
+# Description:
 A random selection algorithm for Circle Packing Area Problem.
 # Code:
 ```python
@@ -70,17 +70,29 @@ class CirclePackingSolver:
     def __init__(self, container, candidate_radii, tolerance):
         self.container = container
         self.candidate_radii = candidate_radii
+        self.tolerance = tolerance
 
     def __call__(self):
-    cs=[]
-    for r in self.candidate_radii:
-        for _ in range(100):
-            x=random.random()*self.container
-            y=random.random()*self.container
-            if all((x-x2)**2+(y-y2)**2>=(r+r2)**2 for x2,y2,r2 in cs):
-                cs.append((x,y,r))
-                break
-    return cs
+        cx, cy, R = self.container
+        rng = random.Random(0)
+        cs = []
+        # Each radius may be used at most once; try larger circles first.
+        for r in sorted(set(self.candidate_radii), reverse=True):
+            if r + self.tolerance >= R:
+                continue
+            for _ in range(100):
+                # Random centre such that the circle lies inside the container.
+                rho = rng.random() * (R - r - 2 * self.tolerance)
+                phi = rng.random() * 2 * math.pi
+                x = cx + rho * math.cos(phi)
+                y = cy + rho * math.sin(phi)
+                if all(
+                    math.hypot(x - x2, y - y2) - r - r2 >= 2 * self.tolerance
+                    for x2, y2, r2 in cs
+                ):
+                    cs.append([x, y, r])
+                    break
+        return cs
 ```
 """)
         self.format_prompt = textwrap.dedent("""

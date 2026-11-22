@@ -307,6 +307,7 @@ class AutoML(Problem):
                 "scikit-learn>=1.4",
                 "openml>=0.14",
                 "ConfigSpace>=1.2",
+                "swig",  # builds pyrfr, a dependency of smac
                 "smac>=2.1",
             ]
         else:
