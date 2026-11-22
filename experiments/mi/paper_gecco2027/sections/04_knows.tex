@@ -91,8 +91,18 @@ filter for crashes on a cheap problem, a smoke test dominates the
 probe. The probe's value is elsewhere: it shows that the failure is
 represented while the code is written, it ranks failures on new
 problems without running any code, and it pays off where a single
-evaluation is expensive and cannot be truncated.\todo{add the Bragg
-evaluation times from \#5}
+evaluation is expensive and cannot be truncated.
+
+In the loop on a new problem, the frozen probe works without
+calibration. On Bragg, 12 new seeds each run with and without the
+screen, with a running-quantile threshold (the top 21\% of the last 24
+scores of the run), the probe reaches AUROC 0.78 on the unscreened
+runs, skips 16.5\% of the evaluations at 59\% precision (failure rate
+38\%), and the best fitness is not lower with the screen (+0.037, 95\%
+CI $-0.10$ to $+0.16$). Bragg evaluations are also cheap (median 5.8\,s
+failing, 7.5\,s working; the skipped children account for 22\% of the
+evaluation time), so here too the screen saves little time; it shows
+that the probe can run in a new loop without labels from that loop.
 
 \begin{table}[t]
   \caption{Pre-screen with a frozen failure probe, \llamea on MA-BBOB,
