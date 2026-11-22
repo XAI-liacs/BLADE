@@ -51,6 +51,7 @@ class DummyProblem(Problem):
     def get_config(self) -> dict[str, Any]:
         return {}
 
+
 class HangingProblem(Problem):
     def get_prompt(self):
         return "Problem prompt"
@@ -67,6 +68,7 @@ class HangingProblem(Problem):
 
     def get_config(self) -> dict[str, Any]:
         return {}
+
 
 def test_problem_abstract_methods():
     dp = DummyProblem(name="dummy")

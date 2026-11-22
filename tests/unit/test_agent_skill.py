@@ -25,7 +25,9 @@ def test_frontmatter():
 def test_repository_copy_is_up_to_date():
     # Regenerate with: uv run iohblade skill
     for name in SKILL_FILES:
-        assert (REPO_COPY / name).read_text() == (SKILL_DIR / name).read_text(), (
+        assert (REPO_COPY / name).read_text() == (
+            SKILL_DIR / name
+        ).read_text(), (
             f".claude/skills/blade/{name} is outdated; run `uv run iohblade skill`."
         )
 

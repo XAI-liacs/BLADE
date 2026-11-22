@@ -1,6 +1,6 @@
 import numpy as np
-from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from codebleu.syntax_match import calc_syntax_match
+from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
 from iohblade.fitness import Fitness
 from iohblade.solution import Solution

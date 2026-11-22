@@ -4,9 +4,9 @@ LLM modules to connect to different LLM providers. Also extracts code, name and 
 
 import copy
 import logging
+import random
 import re
 import time
-import random
 import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
@@ -37,7 +37,7 @@ except:
     lms = object
 
 try:
-    from mlx_lm import load, generate  # Platform dependent dependency.
+    from mlx_lm import generate, load  # Platform dependent dependency.
 except:
     load = None
     generate = None
@@ -56,15 +56,14 @@ except ImportError:
     count_string_tokens = None
 
 
-from .solution import Solution
-from .utils import NoCodeException
-
-
 import platform
 import subprocess
 
 import psutil
 from cpuinfo import get_cpu_info
+
+from .solution import Solution
+from .utils import NoCodeException
 
 
 def _run(cmd):

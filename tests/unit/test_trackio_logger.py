@@ -29,7 +29,7 @@ def test_run_logger_start_and_finish(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -45,14 +45,14 @@ def test_run_logger_start_and_finish(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
     class DummyLLM(LLM):
         def _query(self, *args, **kwargs):
             return ""
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -75,7 +75,7 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -91,7 +91,7 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -101,7 +101,7 @@ def test_experiment_logger_add_run(tmp_path, mock_trackio):
     class DummyLLM(LLM):
         def _query(self, *args, **kwargs):
             return ""
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 

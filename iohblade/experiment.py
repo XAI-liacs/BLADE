@@ -1,22 +1,22 @@
-import hashlib
-import os
 import contextlib
 import copy
-import logging
-import sys
+import hashlib
 import json
+import logging
+import os
+import sys
 import time
 import traceback
+import uuid
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import uuid
 
 import numpy as np
 from tqdm import tqdm
 
-from .loggers import ExperimentLogger
 from .benchmarks import MA_BBOB
 from .envs import EnvironmentSetupError
+from .loggers import ExperimentLogger
 from .runlog import experiment_logging, log
 
 BLADE_ASCII = r"""

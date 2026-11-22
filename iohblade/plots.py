@@ -4,12 +4,11 @@ import difflib
 import os
 from collections import Counter
 
-import plotly.graph_objects as go
-
 import jsonlines
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
 import seaborn as sns
 from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA

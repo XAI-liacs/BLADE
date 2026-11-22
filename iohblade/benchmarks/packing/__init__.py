@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .unit_square_packing import UnitSquarePacking
 from .rectangle_packing import RectanglePacking
 from .hexagon_packing import HexagonPacking

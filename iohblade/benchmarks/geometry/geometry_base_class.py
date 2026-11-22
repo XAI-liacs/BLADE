@@ -1,9 +1,10 @@
-import textwrap
-import numpy as np
 import math
+import textwrap
+from typing import Any, Optional
 
-from typing import Optional, Any
-from iohblade.tags import PrimaryCategories, StructureTag, ObjectiveType, NoiseType
+import numpy as np
+
+from iohblade.tags import NoiseType, ObjectiveType, PrimaryCategories, StructureTag
 
 
 class GeometryBase:

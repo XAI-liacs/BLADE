@@ -1,7 +1,7 @@
-from .taboo_table import TabooElement
-
 from iohblade.problem import Problem
 from iohblade.solution import Solution
+
+from .taboo_table import TabooElement
 
 
 class Prompt:

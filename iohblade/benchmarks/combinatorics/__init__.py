@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .erdos_min_overlap import ErdosMinOverlap
 from .euclidian_steiner_tree import EuclidianSteinerTree
 from .graph_coloring import GraphColoring

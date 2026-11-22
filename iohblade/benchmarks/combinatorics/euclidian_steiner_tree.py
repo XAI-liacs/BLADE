@@ -1,13 +1,14 @@
-import math
 import inspect
+import math
 import textwrap
+from dataclasses import dataclass
 from pathlib import Path
 from statistics import mean
-from dataclasses import dataclass
 from typing import Any
+
+from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace
 
 
 @dataclass
@@ -180,14 +181,15 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from pathlib import Path
+
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
+            ComplexityTag,
             NoiseType,
             ObjectiveType,
-            VariableType,
+            PrimaryCategories,
             StructureTag,
-            ComplexityTag,
+            VariableType,
         )
 
         base = Path(__file__).parent.resolve()

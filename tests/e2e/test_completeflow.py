@@ -1,18 +1,18 @@
+import json
 import os
 import shutil
 from unittest.mock import MagicMock, patch
-import shutil
-import json
+
+import ioh
 import pytest
 
+from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, AutoML
 from iohblade.experiment import Experiment, MA_BBOB_Experiment
-from iohblade.llm import LLM, Gemini_LLM, OpenAI_LLM, Ollama_LLM, Dummy_LLM, Claude_LLM
+from iohblade.llm import LLM, Claude_LLM, Dummy_LLM, Gemini_LLM, Ollama_LLM, OpenAI_LLM
 from iohblade.loggers import ExperimentLogger
 from iohblade.method import Method
+from iohblade.methods import EoH, LLaMEA, RandomSearch, ReEvo
 from iohblade.problem import Problem
-from iohblade.benchmarks import BBOB_SBOX, MA_BBOB, AutoML
-from iohblade.methods import LLaMEA, EoH, RandomSearch, ReEvo
-import ioh
 
 
 @pytest.fixture

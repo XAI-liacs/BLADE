@@ -1,11 +1,11 @@
 import inspect
-import numpy as np
-
 from typing import Any
 
+import numpy as np
+
+from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 
 
 class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
@@ -69,7 +69,7 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         return solution
 
     def get_config(self) -> dict[str, Any]:
-        from iohblade.tags import PrimaryCategories, Benchmark, StructureTag
+        from iohblade.tags import Benchmark, PrimaryCategories, StructureTag
 
         return {
             "tags": [
@@ -102,7 +102,8 @@ if __name__ == "__main__":
     for key, value in config.items():
         print(f"------------------------------{key}------------------------------")
         print(value)
-    import json, hashlib
+    import hashlib
+    import json
 
     json_data = json.dumps(
         config,

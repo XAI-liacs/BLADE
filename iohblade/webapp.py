@@ -2,20 +2,19 @@ import json
 import os
 import subprocess
 import time
+import urllib
 from pathlib import Path
 
+import jsonlines
 import matplotlib
 import pandas as pd
-import plotly.graph_objects as go
 import plotly.express as px
-import jsonlines
+import plotly.graph_objects as go
 import streamlit as st
-import urllib
-
-from iohblade.plots import CEG_FEATURES, CEG_FEATURE_LABELS, plotly_code_evolution
 
 from iohblade.assets import LOGO_DARK_B64, LOGO_LIGHT_B64
 from iohblade.loggers import ExperimentLogger
+from iohblade.plots import CEG_FEATURE_LABELS, CEG_FEATURES, plotly_code_evolution
 
 LOGO_LIGHT = f"data:image/png;base64,{LOGO_LIGHT_B64}"
 LOGO_DARK = f"data:image/png;base64,{LOGO_DARK_B64}"

@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .mutationtype import MutationType
 from .moeh import MoEH_Method
 

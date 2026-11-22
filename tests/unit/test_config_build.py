@@ -360,9 +360,9 @@ def test_checked_in_schema_is_up_to_date(relative):
     import json
 
     path = Path(__file__).parents[2] / relative
-    assert json.loads(path.read_text()) == json_schema(), (
-        f"Regenerate with: uv run iohblade schema -o {relative}"
-    )
+    assert (
+        json.loads(path.read_text()) == json_schema()
+    ), f"Regenerate with: uv run iohblade schema -o {relative}"
 
 
 def _llamea(params, llm="a"):

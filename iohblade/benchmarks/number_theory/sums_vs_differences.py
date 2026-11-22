@@ -1,13 +1,13 @@
-import math
 import inspect
+import math
 from typing import Any
+
 import numpy as np
 
+from iohblade.benchmarks.number_theory.number_theory_base import NumberTheoryBase
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-
-from iohblade.benchmarks.number_theory.number_theory_base import NumberTheoryBase
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class SumDifference(NumberTheoryBase, Problem):
@@ -175,12 +175,12 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
-            VariableType,
             NoiseType,
             ObjectiveType,
+            PrimaryCategories,
             StructureTag,
+            VariableType,
         )
 
         tags: list[Any] = [

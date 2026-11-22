@@ -1,15 +1,14 @@
-import math
 import inspect
+import math
 from typing import Any
 
 import numpy as np
 from numpy.polynomial.hermite import hermval
 
+from iohblade.benchmarks.fourier.fourier_base import FourierBase
+from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace
-
-from iohblade.benchmarks.fourier.fourier_base import FourierBase
 
 
 class UncertaintyInequality(FourierBase, Problem):
@@ -185,12 +184,12 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
             NoiseType,
             ObjectiveType,
-            VariableType,
+            PrimaryCategories,
             StructureTag,
+            VariableType,
         )
 
         evaluator_string = (

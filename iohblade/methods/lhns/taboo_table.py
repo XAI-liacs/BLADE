@@ -1,8 +1,8 @@
 import random
-from typing import Optional
-
 from dataclasses import dataclass
 from difflib import Differ
+from typing import Optional
+
 from iohblade.solution import Solution
 
 

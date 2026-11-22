@@ -1,6 +1,7 @@
 import textwrap
-from typing import Optional, Any
-from iohblade.tags import PrimaryCategories, NoiseType, ObjectiveType
+from typing import Any, Optional
+
+from iohblade.tags import NoiseType, ObjectiveType, PrimaryCategories
 
 
 class PackingBase:

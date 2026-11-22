@@ -1,5 +1,5 @@
-import os
 import inspect
+import os
 import textwrap
 import traceback
 from typing import Any
@@ -230,9 +230,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             NoiseType,
             ObjectiveType,
+            PrimaryCategories,
             VariableType,
         )
 

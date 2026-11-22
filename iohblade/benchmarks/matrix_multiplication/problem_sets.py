@@ -10,9 +10,7 @@ from .constants import MATMUL_RANKS
 
 try:
     # Import at runtime so tests can instantiate specs
-    from .task_specification import (
-        MatMulTensorDecomposition,
-    )
+    from .task_specification import MatMulTensorDecomposition
 except Exception:  # pragma: no cover - fallback for type checking only
     if TYPE_CHECKING:
         from benchmarks.matrix_multiplication.task_specification import (

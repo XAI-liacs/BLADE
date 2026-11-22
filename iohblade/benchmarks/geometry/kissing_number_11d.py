@@ -1,12 +1,14 @@
+import inspect
+import math
+import random
 import textwrap
-import numpy as np
-import math, random, inspect
-
 from typing import Any
 
+import numpy as np
+
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class KissingNumber11D(Problem):
@@ -170,11 +172,11 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
             PrimaryCategories,
             StructureTag,
-            ObjectiveType,
-            NoiseType,
-            Benchmark,
             VariableType,
         )
 

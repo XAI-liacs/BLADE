@@ -6,7 +6,6 @@ import pytest
 
 from iohblade.fitness import Fitness
 
-
 # ---------------------------------------------------------------------------
 # Construction and basic attribute access
 # ---------------------------------------------------------------------------

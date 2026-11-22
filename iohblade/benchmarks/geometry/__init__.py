@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .min_max_distance_ratio import MinMaxMinDistanceRatio
 from .heilbronn_triangle import HeilbronnTriangle
 from .heilbronn_convex_region import HeilbronnConvexRegion

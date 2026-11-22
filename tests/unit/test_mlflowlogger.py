@@ -99,7 +99,7 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -115,7 +115,7 @@ def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -142,7 +142,7 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyMethod"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -158,7 +158,7 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"type": "DummyProblem"}
-        
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -168,7 +168,7 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
 
         def to_dict(self):
             return {"model": "dummy_LLM"}
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 

@@ -1,13 +1,12 @@
 import inspect
-import numpy as np
-
 from typing import Any
 
-from iohblade import Solution
-from iohblade.problem import Problem
+import numpy as np
 
+from iohblade import Solution
 from iohblade.benchmarks.packing.packing_base import PackingBase
 from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.problem import Problem
 
 
 class UnitSquarePacking(PackingBase, Problem):
@@ -114,7 +113,7 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
-        from iohblade.tags import Benchmark, VariableType, StructureTag
+        from iohblade.tags import Benchmark, StructureTag, VariableType
 
         evaluator = inspect.getsource(self.evaluate)
         self.tags.extend(

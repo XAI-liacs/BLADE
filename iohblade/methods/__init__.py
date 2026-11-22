@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .funsearch import funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch

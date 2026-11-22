@@ -94,12 +94,12 @@ Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
             NoiseType,
             ObjectiveType,
-            VariableType,
+            PrimaryCategories,
             StructureTag,
+            VariableType,
         )
 
         tags: list[Any] = [

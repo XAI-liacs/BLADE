@@ -1,9 +1,10 @@
-import math
 import inspect
-import numpy as np
-from typing import Any, Tuple, Optional
+import math
+from typing import Any, Optional, Tuple
 
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+import numpy as np
+
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -166,7 +167,7 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
-        from iohblade.tags import Benchmark, VariableType, StructureTag
+        from iohblade.tags import Benchmark, StructureTag, VariableType
 
         evaluator = "\n\n".join(
             [

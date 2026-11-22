@@ -1,13 +1,13 @@
-import math
 import inspect
+import math
 import textwrap
 from typing import Any, Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import (
-    prepare_namespace,
     _add_builtins_into,
     clean_local_namespace,
+    prepare_namespace,
 )
 from iohblade.problem import Problem
 from iohblade.solution import Solution
