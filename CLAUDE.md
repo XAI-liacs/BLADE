@@ -73,6 +73,7 @@ iohblade/               # Main package
 ├── envs.py             # Cached evaluation virtualenvs (uv/pip, build tools such as swig)
 ├── runlog.py           # experiment.log / per-run run.log handling
 ├── config/             # YAML experiments: loader, schema, builder, custom code, checks, templates
+├── agent_skill/        # Skill for coding agents (installed by `iohblade skill`)
 ├── assets.py           # Static assets and data
 ├── utils.py            # Shared utilities, exceptions, code extraction
 ├── benchmarks/         # 15+ benchmark domains (BBOB, SBOX, MA-BBOB, AutoML, ...)
@@ -185,6 +186,13 @@ solution: `tests/unit/test_benchmark_examples.py` evaluates every example, and
 `iohblade check` uses it as the reference solution. After changing
 `config/schema.py`, regenerate `examples/configs/experiment.schema.json` and
 `docs/_extra/experiment.schema.json` (tests compare them with the schema).
+
+### Agent Skill
+`iohblade/agent_skill/` (`SKILL.md`, `reference.md`) is the skill users install
+with `iohblade skill`; `.claude/skills/blade/` is a copy for this repository.
+Edit the package version, then run `uv run iohblade skill --force` to update
+the copy (`tests/unit/test_agent_skill.py` compares them and validates the
+YAML examples). Keep it in step with CLI and schema changes.
 
 ### Harness vs. Candidate Errors
 An evaluation that fails before the problem reads `solution.code` is a

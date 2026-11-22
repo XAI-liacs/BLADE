@@ -18,6 +18,10 @@ see "Breaking changes" for the two exceptions.
 
 ### Major changes
 
+- **Skill for coding agents:** `iohblade skill [folder]` installs a skill
+  (`SKILL.md` and `reference.md`, default `.claude/skills/blade/`) that
+  teaches coding agents such as Claude Code to set up, validate, check and
+  run BLADE experiments. The repository has a copy in `.claude/skills/blade/`.
 - **Documentation** (#194): tutorials for a custom problem and a custom
   method, the YAML guide, and the JSON schema published at
   `https://xai-liacs.github.io/BLADE/experiment.schema.json` for editor

@@ -328,6 +328,14 @@ All problems in a file are reported at once, with the line they refer to:
 ``iohblade`` exits with code 0 on success, 1 if runs failed and 2 for an
 invalid configuration.
 
+Coding agents
+-------------
+
+``iohblade skill [folder]`` installs a skill (``SKILL.md`` plus a
+reference) that teaches coding agents to write, validate, check and run
+these files; the default folder ``.claude/skills`` is where Claude Code
+looks. The BLADE repository has it in ``.claude/skills/blade/``.
+
 Editor support
 --------------
 

@@ -29,6 +29,7 @@
 - [Introduction](#introduction)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+  - [Using BLADE with a coding agent](#using-blade-with-a-coding-agent)
 - [Webapp](#-webapp)
 - [AlphaEvolve Benchmarks](#alphaevolve-benchmarks)
 - [Contributing](#-contributing)
@@ -59,6 +60,7 @@ The Python API remains available for scripting and for building new methods and 
 ### Features
 
 - **Experiments as configuration:** a YAML file and the `iohblade` command (`init`, `validate`, `check`, `run`) replace experiment scripts, including for your own problems and methods.
+- **Agent-ready:** a bundled skill (`iohblade skill`) lets coding agents such as Claude Code set up and run experiments for you.
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Evaluation:** Supports algorithm evolution and design using large language models.
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
@@ -295,6 +297,21 @@ make sure you have `uv` installed.
 
     The same experiment can also be loaded from YAML in Python:
     `Experiment.from_yaml("experiment.yml")`.
+
+### Using BLADE with a coding agent
+
+BLADE ships a skill that teaches coding agents (Claude Code and other agents
+that read `SKILL.md` skills) to set up, check and run experiments. Install it
+into your project and ask, for example, *"Set up a BLADE experiment that
+compares LLaMEA and random search on my problem in `my_problem.py`"*:
+
+```bash
+uv run iohblade skill                    # writes .claude/skills/blade/
+uv run iohblade skill .agents/skills     # or the skills folder of another agent
+```
+
+In a clone of this repository the skill is already available in
+`.claude/skills/blade/`.
 
 ### Trackio logging
 

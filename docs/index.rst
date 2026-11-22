@@ -61,7 +61,9 @@ The recommended way to use BLADE is a YAML experiment file and the
       - {type: bbob_sbox, params: {dims: [5], specific_group: 1}}
 
 Your own problems and methods are linked as Python files with ``type:
-custom``. The Python API remains available for scripting.
+custom``. The Python API remains available for scripting. Working with a
+coding agent? ``uv run iohblade skill`` installs a skill that teaches it
+these steps (see :doc:`Quickstart`).
 
 Documentation Guide
 -------------------

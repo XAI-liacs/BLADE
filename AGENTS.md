@@ -4,7 +4,7 @@ Guidance for AI contributors, including Codex, on working with this repository.
 
 ## Setup
 
-- Requires Python 3.11+.
+- Requires Python 3.11.5+.
 - Install [uv](https://docs.astral.sh/uv/) (v0.7.19 or newer).
 - Install dependencies:
   ```bash
@@ -14,6 +14,12 @@ Guidance for AI contributors, including Codex, on working with this repository.
   ```bash
   uv sync --group dev --group docs
   ```
+
+## Using BLADE
+
+To set up or run experiments (rather than change BLADE itself), follow the
+skill in `.claude/skills/blade/SKILL.md`: experiments are YAML files run with
+`uv run iohblade init / validate / check / run`.
 
 ## Development tools
 
