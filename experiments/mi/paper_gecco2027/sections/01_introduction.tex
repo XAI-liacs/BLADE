@@ -64,9 +64,8 @@ We study these questions with an instrumented open-weight model
 and, for transfer, on a photonics problem, circle packing and three BBOB
 functions in 20-D, all through the \blade benchmark
 suite~\cite{blade2025}. In total we generated and evaluated more than
-80,000 algorithms, with their activations, evaluation outcomes and
-traced search behaviour.\todo{update the count after the confirmation
-and the queued campaigns} Our contributions are:
+100,000 algorithms, with their activations, evaluation outcomes and
+traced search behaviour. Our contributions are:
 \begin{itemize}
   \item \textbf{A mechanistic study of the operator of an EC loop}, with
     controls that make the results usable by AAD methods: probes
@@ -93,9 +92,10 @@ and the queued campaigns} Our contributions are:
     the algorithm families written. In the closed loop, steering towards
     exploitation narrows the design space and is harmful, while a dose
     adapted to the success of the offspring, like an ES step size, is the
-    best arm on MA-BBOB (+0.08 \aocc at 200 evaluations; tested on new
-    seeds in a pre-registered confirmation).\todo{update with the
-    confirmation result} A pre-registered landscape test on BBOB 20-D
+    beats control on MA-BBOB, confirmed on 24 new seeds in a
+    pre-registered test (+0.075 \aocc at 200 evaluations). The same
+    schedule applied through the prompt, or a higher temperature, cannot
+    be told apart from it: the schedule matters more than the means. A pre-registered landscape test on BBOB 20-D
     shows that the dial acts on the design space, not on the optimiser's
     behaviour.
 \end{itemize}

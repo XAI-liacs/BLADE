@@ -31,7 +31,10 @@ design space and never helped; steering towards exploration rarely
 hurt. When to steer matters more than the direction.
 Steering the initial population breaks it (Bragg); anneal and the
 stagnation-adaptive dial are the safe settings, and the adaptive dial
-is the only arm that widens the search and the best one on MA-BBOB. EC
+is the only arm that widens the search, with a gain on MA-BBOB that
+held on new seeds. The confirmation also shows that the schedule, more
+than the vector, carries the gain: applying it through the prompt, or
+raising the temperature, does about as well. EC
 already has the right tools for such control, such as success rules
 and bandits over operators. Our rule saturates because improvements are
 rare, so better dose control is an open problem.
@@ -62,8 +65,9 @@ unspecifically, and some of what looks like a steering effect is that.
 We use open-weight models of 8--14B parameters; the dial is
 replicated on a second model in single generations only, not in the
 loop. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
-not resolved, and the gain of the adaptive dial rests on its
-pre-registered confirmation. f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
+not resolved; the confirmation cannot separate the adaptive dial from
+its prompt and temperature baselines (CIs of the differences span about
+$\pm0.07$). f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
 0.30--0.38), and the transfer problems have high
 failure rates. Concepts are labelled from code patterns. The
 non-inferiority margin of 0.10 \aocc is wide, and anneal's schedule at

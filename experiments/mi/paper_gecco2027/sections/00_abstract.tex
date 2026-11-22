@@ -1,19 +1,19 @@
 %% Abstract (limit 200 words, also submitted on 18 Jan 2027).
 LLM-driven algorithm design uses a language model as a black-box
-variation operator: unlike for a classical operator, we do not know what
+variation operator: unlike a classical operator, we do not know what
 it knows, what it uses, or how to control it. We open this operator with mechanistic interpretability,
 reading and editing the model's activations while it writes optimisation
 heuristics in \llamea. \emph{What it knows:} whether the new algorithm
-will crash is decodable while the code is written (AUROC 0.85, +0.08
-over code text, output uncertainty and search metadata), also on new
+will crash is decodable during writing (AUROC 0.85, +0.08
+over code text, uncertainty and search metadata), also on new
 problems, and sparse-autoencoder features represent metaheuristic
 concepts beyond their keywords. \emph{What it listens to:} in three
 models, the edits ignore the score in the feedback and follow the parent
 code and error traces. \emph{How to control it:} a direction read from
-the activations acts as an exploration dial that changes the measured
-search behaviour and, on five unseen problems, the algorithm families
-written. In the loop, steering towards exploitation narrows the design
-space and costs up to 0.24 \aocc; a dose adapted to the success of the
-offspring, like a step size, is the best arm on MA-BBOB. A pre-registered
-test on BBOB 20-D shows that the dial acts on the design space, not on
+the activations is a dial for the measured exploration and, on five
+unseen problems, the algorithm families written. In the loop, steering towards exploitation narrows the design
+space (up to $-0.24$ \aocc); a dose adapted to the success of the
+offspring, like a step size, gains 0.075 \aocc on new seeds
+(pre-registered), though not more than the same schedule on the prompt. On BBOB, a
+pre-registered test shows that the dial acts on the design space, not on
 the optimiser's behaviour.

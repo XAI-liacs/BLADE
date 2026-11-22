@@ -123,8 +123,42 @@ exploratory, and so is the choice of 200 evaluations, which we made
 after the analysis at 100. We therefore test it on 24 new seeds in a
 pre-registered confirmation, together with two baselines for its
 schedule: the same dose schedule driving the prompt sentence instead of
-the vector, and a higher sampling temperature.\todo{confirmation
-results (llamea-confirm, PREREG\_confirm.md)}
+the vector, and a higher sampling temperature.
+
+\paragraph{Pre-registered confirmation.}
+On 24 new seeds the adaptive dial again beats control at 200
+evaluations: +0.075 \aocc (95\% CI +0.023 to +0.127, 17 of 24 seeds,
+one-sided paired $t$-test $p=0.005$; Table~\ref{tab:confirm}), so the
+pre-registered hypothesis is supported. Pooled over all 40 seeds, the
+gain is +0.076 (CI +0.037 to +0.115). The two baselines qualify what is
+confirmed. The same schedule driving the prompt sentence (+0.047) and a
+sampling temperature of 1.1 (+0.061) cannot be distinguished from the
+adaptive dial (differences +0.029 and +0.014, Holm-corrected $p=0.83$),
+nor, with 24 seeds, from control (Holm $p=0.45$). What is confirmed is
+that more variation after an unsteered start, adapted to stagnation,
+helps; that the steering vector is the best way to apply it is not
+shown.
+
+\begin{table}[t]
+  \caption{Pre-registered confirmation on MA-BBOB, 24 new seeds, 200
+    evaluations: best \aocc (mean), paired difference to control with its
+    95\% bootstrap CI, failure rate of the generated algorithms. Primary
+    test (adaptive $>$ control): $p=0.005$; no secondary comparison
+    survives Holm's correction.}
+  \label{tab:confirm}
+  \small
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrr}
+    \toprule
+    Arm & best & $\Delta$ [95\% CI] & failures\\
+    \midrule
+    control & 0.664 & -- & 14.2\%\\
+    adaptive dial & 0.739 & \textbf{+0.075} [+0.023, +0.127] & 19.8\%\\
+    adaptive prompt & 0.711 & +0.047 [$-$0.011, +0.108] & 14.8\%\\
+    temperature 1.1 & 0.725 & +0.061 [$-$0.011, +0.133] & 17.9\%\\
+    \bottomrule
+  \end{tabular}
+\end{table}
 
 The fixed explore dial, anneal, the random direction and both prompts
 cannot be distinguished from control ($|\Delta|\le0.05$ at 200). The

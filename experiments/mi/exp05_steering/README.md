@@ -1219,3 +1219,19 @@ The dial replicates on the larger model: comparable to Qwen3-8B
 L15–L21 in 8B). Failure rates move within the resample noise (none
 0.09, resample 0.24), except a rise at L30 −0.4 (+0.22) and L17 +0.4
 (+0.19).
+
+### Confirmation result (`llamea-confirm`, 2026-11-22)
+
+Campaign complete (96 runs x 200, no restarts after the logged
+2026-11-19 relaunch). Pre-registered analysis
+(`scripts/18_confirm_analyze.py`, committed before it was run; output
+`results/llamea-confirm/confirm.md`):
+
+* **Primary H1 supported**: adaptive vs control, best AOCC @200,
+  +0.075 [95% CI +0.023, +0.127], 17/24 seeds, one-sided paired t
+  p = 0.0054. Pooled 40 seeds (300-339): +0.076 [+0.037, +0.115].
+* Secondary (Holm over four): adaptive vs adaptive_prompt +0.029
+  (Holm 0.83), vs temp11 +0.014 (0.83); adaptive_prompt vs control
+  +0.047 (0.45); temp11 vs control +0.061 (0.45). None significant: the
+  schedule helps, but the vector is not shown to be better than the
+  prompt or a higher temperature.

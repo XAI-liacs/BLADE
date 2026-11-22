@@ -7,8 +7,9 @@ the algorithmic concepts it writes. It listens selectively: to the
 parent code and the error trace, not to the score. And it can be given
 a parameter: a direction read from its own state, with a dose that
 transfers across problems, changes which algorithms the model designs,
-and in the loop works best when adapted to the success of the
-offspring, like the step size of an evolution strategy. EC has the
+and in the loop helps when adapted to the success of the offspring,
+like the step size of an evolution strategy (confirmed on new seeds),
+although the schedule matters more than the means of applying it. EC has the
 methods to control such parameters; future work includes dose control
 with bandits, steering the selection of parents as well as their
 variation, stopping doomed generations early from the model's state,
