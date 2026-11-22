@@ -58,31 +58,46 @@ Write a python class with function `__call__`, that generate a solution for the 
         )
         # - The environment only provides access to the libraries:
         #     - {"\n    - ".join(allowed)}
-        best_known_initialiser = """
-    def__init__(self):
-        pass
-"""
-        if self.best_solution is not None:
-            best_known_initialiser = """
-    def __init__(self, best_known_configuration: list[float] | None):
-        # Accepts a best known configuration (if available) for the problem, as a initial configuration, which is then 
-        optimised for better results.
-        pass
-"""
+        if self.best_solution is None:
+            example_code = f"""import itertools
 
-        self.example_prompt = textwrap.dedent(f"""
-Must follow the following template for code:
-Description: A short one line description of technique used.
-```
-class KissingNumber-{self.dim}d:
 
-    {best_known_initialiser}
+class KissingNumberSolver:
+    def __init__(self):
+        self.dim = {self.dim}
 
     def __call__(self):
-        return np.zeros((n, {self.dim}))        #Maximise n.
+        # All integer vectors with exactly two non-zero entries equal to +-1.
+        # Each has norm sqrt(2) and any two differ by at least sqrt(2), so
+        # min ||x - y|| >= max ||x|| holds. Maximise the number of points.
+        points = []
+        for i, j in itertools.combinations(range(self.dim), 2):
+            for si in (1, -1):
+                for sj in (1, -1):
+                    p = [0] * self.dim
+                    p[i] = si
+                    p[j] = sj
+                    points.append(tuple(p))
+        return points
+"""
+        else:
+            example_code = """class KissingNumberSolver:
+    def __init__(self, best_known_configuration: list[list[int]] | None):
+        # Accepts a best known configuration (if available) for the problem,
+        # as an initial configuration, which can then be optimised further.
+        self.best_known_configuration = best_known_configuration
 
-```
-""")
+    def __call__(self):
+        # Baseline: return the best known configuration unchanged.
+        return [tuple(p) for p in self.best_known_configuration]
+"""
+
+        self.example_prompt = (
+            "\nMust follow the following template for code:\n"
+            "# Description: A short one line description of technique used.\n"
+            "# Code:\n"
+            f"```python\n{example_code}```\n"
+        )
 
         self.format_prompt = textwrap.dedent("""
 
