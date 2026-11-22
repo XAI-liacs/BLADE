@@ -310,18 +310,30 @@ class Experiment(ABC):
             return
         directory = getattr(self.exp_logger, "dirname", None)
         lines = []
+        used: set[str] = set()
         for problem, error in failed:
             text = f"{type(error).__name__}: {error}"
+            full = getattr(error, "full_output", None)
             location = ""
             if directory:
-                safe = "".join(
-                    c if c.isalnum() or c in "-_." else "_" for c in problem.name
+                safe = (
+                    "".join(
+                        c if c.isalnum() or c in "-_." else "_" for c in problem.name
+                    )
+                    or "problem"
                 )
-                path = os.path.join(directory, "env-errors", f"{safe}.txt")
+                name, k = safe, 1
+                while name in used:  # names that normalise to the same file
+                    k += 1
+                    name = f"{safe}-{k}"
+                used.add(name)
+                path = os.path.join(directory, "env-errors", f"{name}.txt")
                 try:
                     os.makedirs(os.path.dirname(path), exist_ok=True)
                     with open(path, "w") as f:
                         f.write(text + "\n")
+                        if full:
+                            f.write("\nFull installer output:\n" + full + "\n")
                     location = f" (full output: {path})"
                 except OSError:
                     pass

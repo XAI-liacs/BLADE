@@ -276,7 +276,10 @@ def test_environment_errors_are_collected_before_runs(tmp_path):
     class _BrokenEnv(_Problem):
         def _ensure_env(self):
             raise EnvironmentSetupError(
-                "Failed to install the dependencies ['x']:\nerror: no swig"
+                "Failed to install the dependencies ['x']:\nerror: no swig",
+                full_output="line 1 of the resolver\n"
+                + "...\n" * 50
+                + "error: no swig",
             )
 
     started = []
@@ -288,18 +291,32 @@ def test_environment_errors_are_collected_before_runs(tmp_path):
 
     exp = Experiment(
         methods=[_Recording(_LLM(), 3, name="m")],
-        problems=[_BrokenEnv("one"), _Problem("fine"), _BrokenEnv("two")],
+        problems=[
+            _BrokenEnv("one"),
+            _Problem("fine"),
+            _BrokenEnv("two"),
+            _BrokenEnv("a b"),
+            _BrokenEnv("a_b"),
+        ],
         runs=1,
         exp_logger=ExperimentLogger(str(tmp_path / "exp")),
     )
     with pytest.raises(EnvironmentSetupError) as exc:
         exp()
     text = str(exc.value)
-    assert "of 2 problem(s); no runs were started" in text
+    assert "of 4 problem(s); no runs were started" in text
     assert "- one: Failed to install the dependencies ['x']:" in text
     assert "- two:" in text and "iohblade check" in text
     assert started == []
-    assert "no swig" in (tmp_path / "exp" / "env-errors" / "one.txt").read_text()
+    errors = tmp_path / "exp" / "env-errors"
+    one = (errors / "one.txt").read_text()
+    assert "line 1 of the resolver" in one  # the full output, not the tail
+    assert sorted(p.name for p in errors.iterdir()) == [
+        "a_b-2.txt",
+        "a_b.txt",
+        "one.txt",
+        "two.txt",
+    ]
 
 
 def test_format_error_counts():

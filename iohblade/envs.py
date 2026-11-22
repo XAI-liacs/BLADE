@@ -42,7 +42,16 @@ MARKER = ".blade-env.json"
 
 
 class EnvironmentSetupError(RuntimeError):
-    """Creating an evaluation environment or installing its packages failed."""
+    """Creating an evaluation environment or installing its packages failed.
+
+    Attributes:
+        full_output: The complete installer output (the message only holds
+            its last lines), or None.
+    """
+
+    def __init__(self, message: str, full_output: str | None = None):
+        super().__init__(message)
+        self.full_output = full_output
 
 
 @dataclass
@@ -156,6 +165,7 @@ def _install(python: Path, dependencies: list[str]) -> None:
 
 def _install_group(python: Path, group: list[str], env: dict, everything) -> None:
     errors = []
+    full = []
     uv = shutil.which("uv")
     if uv and os.environ.get("IOHBLADE_USE_UV", "1") != "0":
         result = subprocess.run(
@@ -166,9 +176,11 @@ def _install_group(python: Path, group: list[str], env: dict, everything) -> Non
         )
         if result.returncode == 0:
             return
+        output = (result.stdout or "") + (result.stderr or "")
         errors.append(
             f"uv pip install failed:\n{_tail(result.stderr or result.stdout)}"
         )
+        full.append(f"$ uv pip install {' '.join(group)}\n{output}")
     result = subprocess.run(
         [str(python), "-m", "pip", "install", *group],
         capture_output=True,
@@ -177,9 +189,12 @@ def _install_group(python: Path, group: list[str], env: dict, everything) -> Non
     )
     if result.returncode == 0:
         return
+    output = (result.stdout or "") + (result.stderr or "")
     errors.append(f"pip install failed:\n{_tail(result.stderr or result.stdout)}")
+    full.append(f"$ pip install {' '.join(group)}\n{output}")
     raise EnvironmentSetupError(
-        f"Failed to install the dependencies {everything}:\n" + "\n\n".join(errors)
+        f"Failed to install the dependencies {everything}:\n" + "\n\n".join(errors),
+        full_output="\n\n".join(full),
     )
 
 
