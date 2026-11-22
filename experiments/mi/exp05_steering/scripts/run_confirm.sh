@@ -3,7 +3,7 @@
 # control / adaptive / adaptive_prompt / temp11 on seeds 316-339, budget
 # 200, MA-BBOB. Starts the shards one by one, each on an allowed GPU
 # (default "2 3") as soon as one has >= 25 GB free. Re-running resumes
-# (finished runs are skipped).
+# (finished runs are skipped). JOBS="tag:n_shards ..." selects the campaign.
 #   setsid nohup bash scripts/run_confirm.sh \
 #     > $MI_CACHE/logs/exp05_confirm.log 2>&1 &
 set -u
@@ -13,7 +13,7 @@ export MI_CACHE=${MI_CACHE:-/local/steinnvan/cache}
 source experiments/mi/env.sh >/dev/null 2>&1
 export MLFLOW_DISABLE_AGENT_HINT=1
 S=experiments/mi/exp05_steering/scripts
-JOBS="llamea-confirm:6"
+JOBS=${JOBS:-"llamea-confirm:6"}  # e.g. JOBS="llamea-combo:4"
 free_gpu() {  # the allowed GPU with the most free memory, if >= 25 GB
   nvidia-smi --query-gpu=index,memory.free --format=csv,noheader,nounits |
     awk -F', ' -v ok=" $GPUS " 'index(ok, " " $1 " ") && $2 >= 25000' |

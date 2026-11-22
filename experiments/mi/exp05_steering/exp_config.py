@@ -512,6 +512,28 @@ LLAMEA_CAMPAIGNS["llamea-confirm"] = LLaMEACampaign(
     extra_deps=True,
 )
 
+# Follow-up (paper_gecco2027/PREREG_combo.md, registered 2026-11-22
+# before the runs): the adaptive dial and temperature 1.1 together, on the
+# confirmation seeds, paired with the four arms of ``llamea-confirm``.
+COMBO_ARMS = [LLaMEAArm("adaptive_temp11", dial="adaptive", temperature=1.1)]
+LLAMEA_CAMPAIGNS["llamea-combo-smoke"] = LLaMEACampaign(
+    tag="llamea-combo-smoke",
+    arms=COMBO_ARMS,
+    seeds=[995],
+    budget=16,
+    n_offspring=2,
+    traced=True,
+    extra_deps=True,
+)
+LLAMEA_CAMPAIGNS["llamea-combo"] = LLaMEACampaign(
+    tag="llamea-combo",
+    arms=COMBO_ARMS,
+    seeds=list(range(316, 340)),
+    budget=200,
+    traced=True,
+    extra_deps=True,
+)
+
 # Step 5b: contrastive levers. A labelled corpus of code (natural: every
 # algorithm of experiment 1's main campaign and of the `llamea` campaign;
 # elicited: initial prompts with one extra instruction), with concept
