@@ -135,6 +135,30 @@ def test_install_falls_back_to_pip(monkeypatch, tmp_path):
     assert calls[1][1:4] == ["-m", "pip", "install"]
 
 
+def test_build_tools_are_installed_first_and_on_path(monkeypatch, tmp_path):
+    calls = []
+
+    def fake_run(cmd, env=None, **kwargs):
+        calls.append((cmd, env["PATH"]))
+        return _completed(0)
+
+    monkeypatch.setattr(envs.shutil, "which", lambda name: None)
+    monkeypatch.setattr(envs.subprocess, "run", fake_run)
+    python = tmp_path / "env" / "bin" / "python"
+    envs._install(python, ["ioh==0.3.22", "SWIG", "smac==2.3.1"])
+    assert [c[0][4:] for c in calls] == [["SWIG"], ["ioh==0.3.22", "smac==2.3.1"]]
+    assert all(path.split(os.pathsep)[0] == str(python.parent) for _, path in calls)
+
+
+def test_smac_benchmarks_declare_swig():
+    from iohblade.benchmarks.BBOB.bbob_sboxcost import BBOB_SBOX
+    from iohblade.benchmarks.BBOB.mabbob import MA_BBOB
+
+    for problem in (BBOB_SBOX(dims=[2]), MA_BBOB(dims=[2])):
+        deps = problem.dependencies
+        assert "swig" in deps and deps.index("swig") < len(deps)
+
+
 def test_install_failure_reports_both_installers(monkeypatch, tmp_path):
     monkeypatch.setattr(envs.shutil, "which", lambda name: "/fake/uv")
     monkeypatch.setattr(

@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -124,17 +125,44 @@ def _tail(text: str, lines: int = 40) -> str:
     return "\n".join(parts[-lines:])
 
 
+# Packages that provide build tools other packages need while they are
+# built from source (e.g. pyrfr, a dependency of smac, needs swig). They are
+# installed first, and the environment's scripts folder is put on PATH for
+# the rest of the installation so the build backends find them.
+BUILD_TOOLS = ("swig", "cmake", "ninja")
+
+
+def _requirement_name(requirement: str) -> str:
+    name = re.split(r"[\s<>=!~;\[@]", requirement.strip(), maxsplit=1)[0]
+    return name.lower().replace("_", "-")
+
+
 def _install(python: Path, dependencies: list[str]) -> None:
-    """Install packages into an environment (uv if available, else pip)."""
+    """Install packages into an environment (uv if available, else pip).
+
+    Build tools in :data:`BUILD_TOOLS` are installed first; the
+    environment's scripts folder is on ``PATH`` while installing.
+    """
     if not dependencies:
         return
+    tools = [d for d in dependencies if _requirement_name(d) in BUILD_TOOLS]
+    rest = [d for d in dependencies if d not in tools]
+    env = os.environ.copy()
+    env["PATH"] = str(python.parent) + os.pathsep + env.get("PATH", "")
+    for group in (tools, rest):
+        if group:
+            _install_group(python, group, env, dependencies)
+
+
+def _install_group(python: Path, group: list[str], env: dict, everything) -> None:
     errors = []
     uv = shutil.which("uv")
     if uv and os.environ.get("IOHBLADE_USE_UV", "1") != "0":
         result = subprocess.run(
-            [uv, "pip", "install", "--python", str(python), *dependencies],
+            [uv, "pip", "install", "--python", str(python), *group],
             capture_output=True,
             text=True,
+            env=env,
         )
         if result.returncode == 0:
             return
@@ -142,15 +170,16 @@ def _install(python: Path, dependencies: list[str]) -> None:
             f"uv pip install failed:\n{_tail(result.stderr or result.stdout)}"
         )
     result = subprocess.run(
-        [str(python), "-m", "pip", "install", *dependencies],
+        [str(python), "-m", "pip", "install", *group],
         capture_output=True,
         text=True,
+        env=env,
     )
     if result.returncode == 0:
         return
     errors.append(f"pip install failed:\n{_tail(result.stderr or result.stdout)}")
     raise EnvironmentSetupError(
-        f"Failed to install the dependencies {dependencies}:\n" + "\n\n".join(errors)
+        f"Failed to install the dependencies {everything}:\n" + "\n\n".join(errors)
     )
 
 
