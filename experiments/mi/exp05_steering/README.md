@@ -1235,3 +1235,16 @@ Campaign complete (96 runs x 200, no restarts after the logged
   +0.047 (0.45); temp11 vs control +0.061 (0.45). None significant: the
   schedule helps, but the vector is not shown to be better than the
   prompt or a higher temperature.
+
+### Follow-up: the adaptive dial and temperature 1.1 together (`llamea-combo`, registered 2026-11-22)
+
+Pre-registered in `paper_gecco2027/PREREG_combo.md` (commit 4918b3f,
+before any run): one new arm, `adaptive_temp11` (the `adaptive` arm of
+`llamea-confirm` with sampling temperature 1.1), seeds 316–339, budget
+200, paired with the four confirmation arms. Primary: combo > control
+(one-sided paired t); secondary: combo vs adaptive and vs temp11 (Holm
+over two; ~32% power for a 0.05 difference). Analysis:
+`scripts/19_combo_analyze.py`; families and diversity with
+`06_llamea_analyze.py --tag llamea-combo`. Launched with
+`JOBS="llamea-combo:4" scripts/run_confirm.sh "2 3"` after the smoke
+campaign `llamea-combo-smoke`.
