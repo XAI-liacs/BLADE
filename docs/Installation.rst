@@ -8,7 +8,7 @@ It is easiest to use BLADE from the PyPI package:
    pip install iohblade
 
 .. important::
-   The Python version **must** be >= 3.11.
+   The Python version **must** be >= 3.11.5.
    An OpenAI/Gemini/Ollama/Claude/DeepSeek API key is needed for using LLM models.
 
 You can also install the package from source using **uv** (0.7.19 or newer).

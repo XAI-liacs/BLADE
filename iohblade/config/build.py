@@ -120,49 +120,7 @@ def _llamea_operators(value, path, params, issue):
             ok = False
             continue
         result.append(Operator(**item))
-    if not ok:
-        return None
-    multi = [
-        i
-        for i, op in enumerate(result)
-        if not isinstance(op, str) and op.number_of_parents > 1
-    ]
-    selection = params.get(
-        "parent_selection",
-        inspect.signature(LLAMEA_Algorithm).parameters["parent_selection"].default,
-    )
-    if multi and str(selection).lower() == "random" and _random_selection_is_broken():
-        index = multi[0]
-        issue(
-            (path + (index, "number_of_parents")) if isinstance(value, list) else path,
-            "This installed version of llamea crashes on operators with more "
-            "than one parent when parent_selection is 'random' (the default). "
-            "Set parent_selection: tournament (or roulette) in params.",
-        )
-        return None
-    return result
-
-
-def _random_selection_is_broken() -> bool:
-    """Whether llamea's random parent selection returns a NumPy array.
-
-    llamea 1.4.2 returns ``np.random.choice(...)`` there; adding the
-    individual (``parents + [individual]``) then makes NumPy add Solution
-    objects and raises a TypeError as soon as a crossover is chosen. The
-    behaviour is probed instead of the version, so a fixed llamea passes.
-    """
-    from types import SimpleNamespace
-
-    from llamea import LLaMEA as LLAMEA_Algorithm
-
-    probe = SimpleNamespace(
-        population=["a", "b"], parent_selection="random", n_offspring=1
-    )
-    try:
-        parents = LLAMEA_Algorithm._select_parents(probe, count=1)
-    except Exception:
-        return False
-    return not isinstance(parents, list)
+    return result if ok else None
 
 
 # Converters for parameters that need Python objects instead of plain YAML

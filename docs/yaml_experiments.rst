@@ -265,7 +265,6 @@ YAML each operator is a mapping with the fields of ``llamea.Operator``:
         llm: gemma
         params:
           n_parents: 2
-          parent_selection: tournament   # needed for crossover (see docs)
           n_offspring: 2
           operators:
             - name: refine                 # identifies the operator in the logs
@@ -280,10 +279,7 @@ YAML each operator is a mapping with the fields of ``llamea.Operator``:
 ``prompt`` is required; ``name`` (default ``mutation``), ``weight`` (default
 0.5) and ``number_of_parents`` (default 1) are optional. BLADE creates the
 ``Operator`` objects and checks the fields, the weights and that no operator
-needs more parents than ``n_parents``. With llamea 1.4.2, operators with
-more than one parent (crossover) crash when ``parent_selection`` is
-``random``, the default; ``validate`` reports this, and
-``parent_selection: tournament`` (or ``roulette``) avoids it. In Python:
+needs more parents than ``n_parents``. In Python:
 
 .. code-block:: python
 
@@ -296,8 +292,7 @@ more than one parent (crossover) crash when ``parent_selection`` is
         Operator(prompt="Combine the two selected solutions into a better one.",
                  name="crossover", weight=0.2, number_of_parents=2),
     ]
-    method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2,
-                    parent_selection="tournament")
+    method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
 
 Secrets and environment variables
 ---------------------------------

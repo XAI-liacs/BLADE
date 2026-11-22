@@ -25,7 +25,6 @@ methods:
     llm: [gemma, gemini]          # one method per LLM
     params:
       n_parents: 2
-      parent_selection: tournament   # needed for crossover (see docs)
       n_offspring: 2
       operators:                # llamea.Operator objects; weights set how often
         - name: refine          # each operator is picked

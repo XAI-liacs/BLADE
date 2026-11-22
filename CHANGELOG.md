@@ -78,12 +78,10 @@
   web app: the planned entries had no `llm_name`, so the entry a run used
   was added separately. Planned entries now carry `llm_name`, and progress
   files from older versions are cleaned up when an experiment is resumed.
-- With llamea 1.4.2, LLaMEA operators with more than one parent (crossover)
-  crash under the default `parent_selection="random"`: the NumPy array of
-  parents cannot be concatenated with the list holding the current
-  individual. `validate` now reports this (probing llamea's behaviour, so a
-  fixed llamea passes), and the templates, examples and docs that use
-  crossover set `parent_selection: tournament`.
+- LLaMEA operators with more than one parent (crossover) crashed with
+  llamea 1.4.2 under the default `parent_selection="random"`. BLADE now
+  requires `llamea>=1.4.3`, which fixes this, and therefore Python >= 3.11.5
+  (llamea 1.4.3's minimum).
 - **Built-in example solutions work again** (#192). The example code that
   the built-in problems show the LLM was broken or a skeleton for 17 of 26
   problems: wrong indentation, hyphens in class names, wrong output lengths,

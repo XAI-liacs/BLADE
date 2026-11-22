@@ -38,7 +38,6 @@ _LLAMEA = """\
     llm: local
     params:
       n_parents: 2
-      parent_selection: tournament   # needed for crossover (see docs)
       n_offspring: 2
       operators:
         - name: refine
