@@ -174,7 +174,7 @@ It is the easiest to use BLADE from the pypi package (`iohblade`).
   pip install iohblade
 ```
 > [!Important]
-> The Python version **must** be larger or equal to Python 3.11.
+> The Python version **must** be larger or equal to Python 3.11.5.
 > You need an OpenAI/Gemini/Ollama/Claude/DeepSeek API key for using LLM models.
 
 You can also install the package from source using <a href="https://docs.astral.sh/uv/" target="_blank">uv</a> (0.7.19).

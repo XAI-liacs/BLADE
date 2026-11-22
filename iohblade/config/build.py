@@ -198,6 +198,7 @@ class ExperimentPlan:
             log_stdout=section.log_stdout,
             exp_logger=exp_logger,
             n_jobs=section.n_jobs,
+            log_level=section.log_level,
         )
 
     def summary(self) -> str:

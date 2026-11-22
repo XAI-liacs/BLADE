@@ -14,6 +14,72 @@ from ..problem import Problem
 from ..solution import Solution
 from ..utils import convert_to_serializable
 
+ERROR_KINDS = ("candidate", "harness", "timeout")
+
+
+def error_kind(solution) -> str | None:
+    """Classify an evaluation error: candidate, harness, timeout (or None).
+
+    * ``harness``: the evaluation failed before the generated code was used
+      (see :data:`iohblade.problem.HARNESS_ERROR_PREFIX`);
+    * ``timeout``: the evaluation timed out;
+    * ``candidate``: any other error, i.e. in the generated code.
+    """
+    from ..problem import HARNESS_ERROR_PREFIX
+
+    error = str(getattr(solution, "error", "") or "")
+    if not error:
+        return None
+    if error.startswith(HARNESS_ERROR_PREFIX):
+        return "harness"
+    if "timed out" in error.lower():
+        return "timeout"
+    return "candidate"
+
+
+def _error_summary(error) -> str:
+    """The line of an error message that names the exception (max 200 chars)."""
+    import re
+
+    lines = [l.strip() for l in str(error).strip().splitlines() if l.strip()]
+    for line in lines:
+        if re.match(r"^[A-Za-z_][\w.]*(Error|Exception|Exit|Interrupt)\b", line):
+            return line[:200]
+    return (lines[-1] if lines else "")[:200]
+
+
+def _record_outcome(entry: dict, solution) -> None:
+    """Update a progress entry with the outcome of one evaluation."""
+    kind = error_kind(solution)
+    if kind is not None:
+        counts = entry.setdefault("error_counts", {})
+        counts[kind] = counts.get(kind, 0) + 1
+        entry["last_error"] = f"{kind}: {_error_summary(solution.error)}"
+        return
+    try:
+        fitness = float(solution.fitness)
+    except (TypeError, ValueError):
+        return  # multi-objective
+    if fitness != fitness or fitness in (float("inf"), float("-inf")):
+        return
+    best = entry.get("best_fitness")
+    minimise = entry.get("minimisation", False)
+    if best is None or (fitness < best if minimise else fitness > best):
+        entry["best_fitness"] = fitness
+
+
+def _accepts_argument(callback) -> bool:
+    import inspect
+
+    try:
+        params = inspect.signature(callback).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(
+        p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.VAR_POSITIONAL)
+        for p in params
+    )
+
 
 class ExperimentLogger:
     """
@@ -159,6 +225,9 @@ class ExperimentLogger:
                 entry["evaluations"] = 0
 
             entry["start_time"] = datetime.now().isoformat()
+            entry["minimisation"] = bool(getattr(problem, "minimisation", False))
+            for key in ("best_fitness", "error_counts", "last_error"):
+                entry.pop(key, None)  # a retry starts clean
             entry["log_dir"] = os.path.relpath(self.run_logger.dirname, self.dirname)
             entry["end_time"] = None
             entry.pop("error", None)  # a retry starts clean
@@ -343,6 +412,57 @@ class ExperimentLogger:
         else:
             self.progress = {}
 
+    def _planned_runs(self, methods, problems, seeds, budget):
+        """Progress entries for every (method, problem, seed) combination."""
+        runs = []
+        for m in methods:
+            llm_name = self._get_clean_llm_model_name(getattr(m, "llm", None))
+            for p in problems:
+                for s in seeds:
+                    runs.append(
+                        {
+                            "method_name": m.name,
+                            "llm_name": llm_name,
+                            "problem_name": p.name,
+                            "seed": int(s),
+                            "budget": int(budget),
+                            "evaluations": 0,
+                            "start_time": None,
+                            "end_time": None,
+                            "log_dir": None,
+                        }
+                    )
+        return runs
+
+    def _migrate_runs(self, methods):
+        """Fix progress files written by older versions.
+
+        Older versions created the planned entries without ``llm_name`` and
+        added a second entry (with ``llm_name``) once a run started, so runs
+        appeared twice. Drop such placeholders and fill in ``llm_name`` for
+        runs that never started.
+        """
+        runs = self.progress.get("runs", [])
+        with_llm = {
+            (r["method_name"], r["problem_name"], r["seed"])
+            for r in runs
+            if r.get("llm_name") is not None
+        }
+        llm_of = {}
+        for m in methods or []:
+            llm_of.setdefault(
+                m.name, self._get_clean_llm_model_name(getattr(m, "llm", None))
+            )
+        kept = []
+        for r in runs:
+            if r.get("llm_name") is None:
+                if (r["method_name"], r["problem_name"], r["seed"]) in with_llm:
+                    continue  # placeholder of a run that has its own entry
+                if r["method_name"] in llm_of:
+                    r["llm_name"] = llm_of[r["method_name"]]
+            kept.append(r)
+        self.progress["runs"] = kept
+
     def start_progress(
         self,
         id: str,
@@ -356,6 +476,7 @@ class ExperimentLogger:
         with self._lock:
             if os.path.exists(self._progress_path()):
                 self._load_progress()
+                self._migrate_runs(methods)
                 # Validate that the planned runs match
                 existing = {
                     (r["method_name"], r["problem_name"], r["seed"])
@@ -379,23 +500,8 @@ class ExperimentLogger:
                         "end_time": None,
                         "current": 0,
                         "total": int(total_runs),
-                        "runs": [],
+                        "runs": self._planned_runs(methods, problems, seeds, budget),
                     }
-                    for m in methods:
-                        for p in problems:
-                            for s in seeds:
-                                self.progress["runs"].append(
-                                    {
-                                        "method_name": m.name,
-                                        "problem_name": p.name,
-                                        "seed": int(s),
-                                        "budget": int(budget),
-                                        "evaluations": 0,
-                                        "start_time": None,
-                                        "end_time": None,
-                                        "log_dir": None,
-                                    }
-                                )
             else:
                 self.progress = {
                     "id": id,
@@ -403,23 +509,8 @@ class ExperimentLogger:
                     "end_time": None,
                     "current": 0,
                     "total": int(total_runs),
-                    "runs": [],
+                    "runs": self._planned_runs(methods, problems, seeds, budget),
                 }
-                for m in methods:
-                    for p in problems:
-                        for s in seeds:
-                            self.progress["runs"].append(
-                                {
-                                    "method_name": m.name,
-                                    "problem_name": p.name,
-                                    "seed": int(s),
-                                    "budget": int(budget),
-                                    "evaluations": 0,
-                                    "start_time": None,
-                                    "end_time": None,
-                                    "log_dir": None,
-                                }
-                            )
             self._write_progress()
 
     def increment_progress(self):
@@ -434,11 +525,20 @@ class ExperimentLogger:
                 self.progress["end_time"] = datetime.now().isoformat()
             self._write_progress()
 
-    def increment_eval(self, method_name, llm_name, problem_name, seed):
+    def increment_eval(self, method_name, llm_name, problem_name, seed, solution=None):
+        """Count one evaluation of a run (and record its outcome).
+
+        Args:
+            solution (Solution, optional): The evaluated solution. When given,
+                the run's best fitness and its error counts by kind
+                (``candidate``, ``harness``, ``timeout``) are updated.
+        """
         with self._lock:
             entry = self._get_run_entry(method_name, llm_name, problem_name, seed)
             if entry is not None:
                 entry["evaluations"] = entry.get("evaluations", 0) + 1
+                if solution is not None:
+                    _record_outcome(entry, solution)
                 self._write_progress()
 
     def mark_run_failed(self, method, problem, seed, error):
@@ -583,7 +683,10 @@ class RunLogger:
         with jsonlines.open(f"{self.dirname}/log.jsonl", "a") as file:
             file.write(convert_to_serializable(ind_dict))
         if self._progress_callback:
-            self._progress_callback()
+            if _accepts_argument(self._progress_callback):
+                self._progress_callback(individual)
+            else:  # callbacks written for older versions take no arguments
+                self._progress_callback()
 
     def log_code(self, individual):
         """

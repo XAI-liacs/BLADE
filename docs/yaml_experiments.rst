@@ -201,6 +201,39 @@ is available, otherwise with ``pip``.
   which for a pip installation is the whole ``site-packages`` of BLADE's
   environment, so undeclared packages may be importable by accident.
 
+Logs and error reports
+----------------------
+
+While an experiment runs, the console shows an overview of every run:
+
+.. code-block:: text
+
+    Method        LLM    Problem    Seed  Evals  Best    Errors
+    ------------------------------------------------------------
+    LLaMEA-local  qwen   MyProblem  0     20/20  -3.12   4c      ✅
+    LLaMEA-local  qwen   MyProblem  1     12/20  -4.80   2c 1t   🔄
+
+``Errors`` counts the evaluations that failed in the generated code (``c``),
+in the evaluation harness (``h``, a problem with the benchmark rather than the
+LLM's code) or by timeout (``t``). At the end, a summary lists the failed runs
+grouped by exception type with the path to each ``error.txt``, and the error
+totals.
+
+Everything that is logged, by BLADE and by libraries (including Python
+warnings), goes to ``<output_dir>/experiment.log``. Each run's folder also gets
+a ``run.log`` with the messages of that run. ``experiment.log_level`` (DEBUG,
+INFO, WARNING, ERROR; default INFO) sets how much is written. With
+``show_stdout: false`` (the default), log output is kept out of the terminal.
+
+If an evaluation environment cannot be built, no run starts. Every failing
+problem is listed, and the installer output is saved in
+``<output_dir>/env-errors/``. ``iohblade run`` exits with code 0 on success,
+1 if runs failed, 2 for an invalid configuration and 3 if an environment
+could not be built.
+
+The web app (``uv run iohblade-webapp``) shows the same run table, the
+resolved configuration, the custom code and the end of ``experiment.log``.
+
 Reproducibility
 ---------------
 

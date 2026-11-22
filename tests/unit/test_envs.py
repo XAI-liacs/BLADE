@@ -168,6 +168,7 @@ def test_install_failure_reports_both_installers(monkeypatch, tmp_path):
         envs._install(tmp_path / "python", ["nope"])
     text = str(exc.value)
     assert text.startswith("Failed to install the dependencies ['nope']")
+    assert "/fake/uv failed" in exc.value.full_output
     assert "uv pip install failed" in text and "pip install failed" in text
     assert isinstance(exc.value, RuntimeError)  # backward compatible
 

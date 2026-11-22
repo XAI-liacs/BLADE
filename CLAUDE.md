@@ -10,7 +10,7 @@ Core idea: LLM-based methods are given a problem prompt and iteratively generate
 
 ## Setup
 
-- Requires **Python 3.11+**.
+- Requires **Python 3.11.5+**.
 - Uses **uv** (v0.7.19+) as the package manager.
 - Install dependencies:
   ```bash

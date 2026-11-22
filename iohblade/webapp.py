@@ -143,6 +143,77 @@ def discover_experiments(root=RESULTS_DIR):
     return sorted(exps)
 
 
+def run_status_rows(progress: dict | None) -> list[dict]:
+    """One row per run of ``progress.json``: progress, best fitness, errors."""
+    rows = []
+    for r in (progress or {}).get("runs", []):
+        if r.get("end_time"):
+            status = "done"
+        elif r.get("error"):
+            status = "failed"
+        elif r.get("start_time"):
+            status = "running"
+        else:
+            status = "pending"
+        counts = r.get("error_counts") or {}
+        rows.append(
+            {
+                "Method": r.get("method_name"),
+                "LLM": r.get("llm_name") or "",
+                "Problem": r.get("problem_name"),
+                "Seed": r.get("seed"),
+                "Evaluations": f"{r.get('evaluations', 0)}/{r.get('budget', '?')}",
+                "Best fitness": r.get("best_fitness"),
+                "Errors in code": counts.get("candidate", 0),
+                "Harness errors": counts.get("harness", 0),
+                "Timeouts": counts.get("timeout", 0),
+                "Status": status,
+                "Last error": r.get("error") or r.get("last_error") or "",
+            }
+        )
+    return rows
+
+
+def read_record(exp_dir: str) -> dict:
+    """The recorded configuration of an experiment (see iohblade.config.record).
+
+    Returns:
+        dict: ``resolved`` (YAML text or None), ``sources`` (module ->
+        {source, sha256}) and ``archived`` (older records, newest first).
+    """
+    record = os.path.join(exp_dir, "blade_config")
+    resolved_path = os.path.join(record, "resolved.yml")
+    sources_path = os.path.join(record, "sources.json")
+    resolved = None
+    if os.path.exists(resolved_path):
+        with open(resolved_path) as f:
+            resolved = f.read()
+    sources = {}
+    if os.path.exists(sources_path):
+        try:
+            with open(sources_path) as f:
+                sources = json.load(f)
+        except ValueError:
+            sources = {}
+    archived = (
+        sorted(
+            (d for d in os.listdir(exp_dir) if d.startswith("blade_config-")),
+            reverse=True,
+        )
+        if os.path.isdir(exp_dir)
+        else []
+    )
+    return {"resolved": resolved, "sources": sources, "archived": archived}
+
+
+def tail_file(path: str, lines: int = 200) -> str | None:
+    """The last ``lines`` lines of a text file (None if it does not exist)."""
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        return "".join(f.readlines()[-lines:])
+
+
 def read_progress(exp_dir):
     """Read the progress of an experiment from the directory"""
     path = os.path.join(exp_dir, "progress.json")
@@ -225,6 +296,12 @@ def run() -> None:
                 total = prog.get("total", 1)
                 pct = prog.get("current", 0) / total if total else 0
                 st.progress(pct)
+            rows = run_status_rows(prog)
+            if rows:
+                st.markdown("#### Runs")
+                st.dataframe(
+                    pd.DataFrame(rows), hide_index=True, use_container_width=True
+                )
             if prog.get("runs") and not finished:
                 st.markdown("#### Run Progress")
                 for r in prog["runs"]:
@@ -235,6 +312,29 @@ def run() -> None:
                     evaluations = r.get("evaluations", 0)
                     pct_run = evaluations / budget if budget else 0
                     st.progress(pct_run, text=label)
+
+        record = read_record(exp_dir)
+        if record["resolved"] or record["sources"]:
+            with st.expander("Configuration"):
+                if record["resolved"]:
+                    st.code(record["resolved"], language="yaml")
+                if record["sources"]:
+                    st.markdown("**Custom code**")
+                    for module, info in record["sources"].items():
+                        st.markdown(
+                            f"- `{module}`: {info.get('source')} "
+                            f"(sha256 `{str(info.get('sha256', ''))[:12]}`)"
+                        )
+                if record["archived"]:
+                    st.markdown(
+                        "Earlier versions (the experiment was resumed with a "
+                        "changed configuration or code): "
+                        + ", ".join(f"`{a}`" for a in record["archived"])
+                    )
+        log_text = tail_file(os.path.join(exp_dir, "experiment.log"))
+        if log_text:
+            with st.expander("Experiment log (last 200 lines)"):
+                st.code(log_text, language="text")
 
         st.header(f"Convergence - {selected}")
         df = convergence_dataframe(logger)

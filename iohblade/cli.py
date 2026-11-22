@@ -12,7 +12,7 @@ Commands:
                                        environments.
 
 Exit codes: 0 success, 1 runs or checks failed, 2 invalid configuration or
-usage.
+usage, 3 an evaluation environment could not be built.
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ import sys
 EXIT_OK = 0
 EXIT_RUN_FAILED = 1
 EXIT_CONFIG = 2
+EXIT_ENVIRONMENT = 3
 
 _KINDS = {
     "problems": "problem",
@@ -194,9 +195,14 @@ def _cmd_run(args) -> int:
         print(plan.summary())
         print("\n".join(_resume_status(plan)))
         return EXIT_OK
+    from .envs import EnvironmentSetupError
+
     experiment = plan.make_experiment()
     try:
         experiment()
+    except EnvironmentSetupError as e:
+        print(f"\n{e}", file=sys.stderr)
+        return EXIT_ENVIRONMENT
     except RuntimeError as e:
         print(f"\n{e}", file=sys.stderr)
         return EXIT_RUN_FAILED
