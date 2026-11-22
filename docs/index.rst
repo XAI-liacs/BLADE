@@ -14,8 +14,8 @@ BLADE
 .. image:: https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg
    :alt: Maintenance
    :height: 18
-.. image:: https://img.shields.io/badge/Python-3.11+-blue.svg
-   :alt: Python 3.11+
+.. image:: https://img.shields.io/badge/Python-3.11.5+-blue.svg
+   :alt: Python 3.11.5+
    :height: 18
 .. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7
    :target: https://codecov.io/gh/XAI-liacs/BLADE
@@ -274,6 +274,8 @@ If you use BLADE in your research, please consider citing the associated paper:
    Introduction
    Installation
    yaml_experiments
+   tutorial_custom_problem
+   tutorial_custom_method
    benchmarks
    fitness
    webapp

@@ -30,6 +30,7 @@ author = 'Niki van Stein'
 extensions = [
     "sphinxext.opengraph",
     "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",  # Google-style docstrings (Args:, Returns:, Raises:)
     "myst_parser",
     "nbsphinx",
     "sphinx_copybutton",
@@ -65,6 +66,11 @@ html_theme = "furo"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# Files copied as-is to the root of the built site. experiment.schema.json is
+# the JSON schema of YAML experiments, for editor completion:
+# https://xai-liacs.github.io/BLADE/experiment.schema.json
+html_extra_path = ['_extra']
 
 html_theme_options = {
     "light_logo": "logo.png",

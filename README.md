@@ -15,7 +15,7 @@
     <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
-  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
+  <img src="https://img.shields.io/badge/Python-3.11.5+-blue" alt="Python 3.11.5+" height="18">
   <a href="https://codecov.io/gh/XAI-liacs/BLADE" >
     <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/>
   </a>
@@ -37,6 +37,7 @@
 
 ## 🔥 News
 
+- 2026.11 ✨✨ **BLADE v1.2.0**: define experiments in YAML, use your own problems and methods without writing an experiment script, and check an experiment before spending LLM time (`iohblade init / validate / check / run`).
 - 2025.03 ✨✨ **BLADE v0.0.1 released**!
 
 
@@ -58,6 +59,7 @@ to the implementation location and corresponding documentation entry.
 
 | Feature | Implementation | Documentation |
 |---|---|---|
+| Experiments from YAML, `iohblade` command | `iohblade/config/`, `iohblade/cli.py` | `docs/yaml_experiments.rst` |
 | Experiment orchestration | `iohblade/experiment.py` | `docs/experiment.rst` |
 | Problems and benchmark wrapping | `iohblade/problem.py`, `iohblade/benchmarks/` | `docs/problem.rst`, `docs/benchmarks.rst` |
 | Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch helper) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
@@ -66,6 +68,8 @@ to the implementation location and corresponding documentation entry.
 | Baselines | `iohblade/baselines/` | `docs/baselines.rst` |
 | Plotting and analysis helpers | `iohblade/plots.py`, `iohblade/behaviour_metrics.py` | `docs/plots.rst`, `docs/behaviour_metrics.rst` |
 | Streamlit result browser | `iohblade/webapp.py` | `docs/webapp.rst` |
+| Component registry (names of built-in problems, methods, LLMs, loggers) | `iohblade/registry.py` | `docs/registry.rst` |
+| Cached evaluation environments | `iohblade/envs.py` | `docs/yaml_experiments.rst` |
 | Utility helpers and exceptions | `iohblade/utils.py` | `docs/utils.rst` |
 
 #### Included Benchmark Function Sets
@@ -213,7 +217,36 @@ make sure you have `uv` installed.
      export OPENAI_API_KEY='your_api_key_here'
      ```
 
-2. Running an Experiment
+2. Running an experiment from a YAML file
+
+    ```bash
+    uv run iohblade init my-exp            # starter experiment.yml (+ --template custom-problem / custom-method)
+    uv run iohblade validate my-exp/experiment.yml   # checks the configuration, runs nothing
+    uv run iohblade check my-exp/experiment.yml      # smoke test without LLM calls
+    uv run iohblade run my-exp/experiment.yml        # run (rerun to resume)
+    ```
+
+    A configuration names the LLMs, methods and problems:
+
+    ```yaml
+    experiment: {output_dir: results/SBOX, runs: 5, budget: 50}
+    llms:
+      qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
+      # gpt: {provider: openai, model: gpt-4o, api_key: "${env:OPENAI_API_KEY}"}
+    methods:
+      - {type: random_search, name: "RS-{llm}", llm: qwen}
+      - {type: llamea, name: "LLaMEA-{llm}", llm: qwen, params: {n_parents: 4, n_offspring: 12, elitism: false}}
+    problems:
+      - type: bbob_sbox
+        name: SBOX_COST
+        params: {dims: [5], budget_factor: 2000, specific_group: 1}
+    ```
+
+    Your own problems and methods are linked with `type: custom`, `source:` and
+    `class:`. See the [YAML guide](https://xai-liacs.github.io/BLADE/yaml_experiments.html),
+    the tutorials, and `examples/configs/`.
+
+3. Or running an experiment from Python
 
     To run a benchmarking experiment using BLADE:
 
@@ -244,6 +277,9 @@ make sure you have `uv` installed.
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
+    The same experiment can also be loaded from YAML in Python:
+    `Experiment.from_yaml("experiment.yml")`.
+
 ### Trackio logging
 
 To mirror results to a [Trackio](https://github.com/gradio-app/trackio) dashboard,
@@ -268,14 +304,17 @@ After running experiments you can browse them using the built-in Streamlit app:
 uv run iohblade-webapp
 ```
 
-The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
+The app lists available experiments from the `results` directory and shows,
+per experiment, the status of every run (best fitness, failed evaluations),
+the resolved configuration, the experiment log and convergence plots.
 
 ---
 
 ## 💻 Examples
 
 
-See the files in the `examples` folder for examples on experiments and visualisations.
+See the files in the `examples` folder for examples on experiments and visualisations,
+and `examples/configs/` for YAML experiments (built-in benchmarks and a custom problem).
 
 ---
 

@@ -43,6 +43,12 @@ uv run black iohblade/
 # Launch the results web app
 uv run iohblade-webapp
 
+# YAML experiments (see docs/yaml_experiments.rst)
+uv run iohblade validate examples/configs/circle_packing.yml   # check a config, run nothing
+uv run iohblade check examples/configs/circle_packing.yml      # smoke test without LLM calls
+uv run iohblade list problems                                  # registry keys
+uv run iohblade schema -o examples/configs/experiment.schema.json  # after schema changes
+
 # Search the codebase (prefer rg over grep -R or ls -R)
 rg "search_term" iohblade/
 ```
@@ -62,6 +68,11 @@ iohblade/               # Main package
 ├── plots.py            # Visualization (convergence, behaviour metrics)
 ├── behaviour_metrics.py# Behavioural profiling of optimization runs
 ├── webapp.py           # Streamlit web app for browsing results
+├── registry.py         # Registry: short keys -> built-in problems/suites/methods/LLMs/loggers
+├── cli.py              # `iohblade` command: init, validate, check, run, list, schema, cache
+├── envs.py             # Cached evaluation virtualenvs (uv/pip, build tools such as swig)
+├── runlog.py           # experiment.log / per-run run.log handling
+├── config/             # YAML experiments: loader, schema, builder, custom code, checks, templates
 ├── assets.py           # Static assets and data
 ├── utils.py            # Shared utilities, exceptions, code extraction
 ├── benchmarks/         # 15+ benchmark domains (BBOB, SBOX, MA-BBOB, AutoML, ...)
@@ -90,6 +101,7 @@ Understanding these classes is essential for working with the codebase:
 | `LLM` | `llm.py` | Abstract LLM provider; concrete subclasses for each vendor |
 | `Experiment` | `experiment.py` | Orchestrates runs of (method, problem) pairs with seeding and parallel execution |
 | `ExperimentLogger` | `loggers/` | Records results; file-based, MLflow, or Trackio backends |
+| `ExperimentPlan` | `config/build.py` | A YAML configuration built into objects; `make_experiment()` gives the `Experiment` |
 
 ### Typical Experiment Workflow
 
@@ -152,6 +164,21 @@ Use these from `iohblade.utils` instead of generic exceptions:
 
 ### LLM Provider Abstraction
 All LLM providers share the same interface. Add new providers by subclassing `LLM` in `llm.py` and implementing the `query()` method.
+
+### YAML Experiments and the Registry
+Built-in components are referred to by registry key (`iohblade/registry.py`).
+A new built-in problem, suite, method, LLM provider or logger must be added to
+the registry (and its `StrEnum`), and its example prompt must contain a working
+solution: `tests/unit/test_benchmark_examples.py` evaluates every example, and
+`iohblade check` uses it as the reference solution. After changing
+`config/schema.py`, regenerate `examples/configs/experiment.schema.json` and
+`docs/_extra/experiment.schema.json` (tests compare them with the schema).
+
+### Harness vs. Candidate Errors
+An evaluation that fails before the problem reads `solution.code` is a
+*harness* error (feedback starts with `HARNESS_ERROR_PREFIX`); after
+`Problem.max_harness_errors` in a row the run stops with `HarnessError`.
+Keep candidate-code execution inside `evaluate()`.
 
 ### Benchmarks are Self-Contained
 Each benchmark in `iohblade/benchmarks/` defines its own `Problem` subclass, system prompt, and evaluation logic. Adding a new benchmark means creating a new subclass — do not modify existing benchmark logic.

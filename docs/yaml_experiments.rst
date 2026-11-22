@@ -330,10 +330,19 @@ invalid configuration.
 Editor support
 --------------
 
-``uv run iohblade schema -o experiment.schema.json`` writes a JSON schema
-of the format. Editors with YAML language support (e.g. VS Code with the
-YAML extension) use it for completion and checking when the YAML file
-starts with ``# yaml-language-server: $schema=experiment.schema.json``.
+Editors with YAML language support (e.g. VS Code with the YAML extension) give
+completion, descriptions and checks for the configuration when its first line
+points at the JSON schema of the format:
+
+.. code-block:: yaml
+
+    # yaml-language-server: $schema=https://xai-liacs.github.io/BLADE/experiment.schema.json
+
+The schema is published with the documentation (the version of the latest
+release; ``.../BLADE/main/experiment.schema.json`` follows the development
+version). ``uv run iohblade schema -o experiment.schema.json`` writes it for
+your installed version, which ``iohblade init`` also does next to the
+generated ``experiment.yml``.
 
 Python API
 ----------
