@@ -44,9 +44,21 @@
 ## Introduction
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs). It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
+**The recommended way to use BLADE is a YAML experiment file and the `iohblade` command.** You describe which LLMs, methods and problems to use (built-in ones by name, your own as a Python file), and BLADE validates the file, smoke-tests it without LLM calls, and runs it:
+
+```bash
+uv run iohblade init my-exp                       # starter experiment.yml
+uv run iohblade validate my-exp/experiment.yml    # every mistake, with its line number
+uv run iohblade check my-exp/experiment.yml       # smoke test, no LLM calls
+uv run iohblade run my-exp/experiment.yml         # run (rerun to resume)
+```
+
+The Python API remains available for scripting and for building new methods and problems.
+
 
 ### Features
 
+- **Experiments as configuration:** a YAML file and the `iohblade` command (`init`, `validate`, `check`, `run`) replace experiment scripts, including for your own problems and methods.
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Evaluation:** Supports algorithm evolution and design using large language models.
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
@@ -219,7 +231,7 @@ make sure you have `uv` installed.
      export OPENAI_API_KEY='your_api_key_here'
      ```
 
-2. Running an experiment from a YAML file
+2. Define and run an experiment in YAML (recommended)
 
     ```bash
     uv run iohblade init my-exp            # starter experiment.yml (+ --template custom-problem / custom-method)
@@ -250,9 +262,9 @@ make sure you have `uv` installed.
     `class:`. See the [YAML guide](https://xai-liacs.github.io/BLADE/yaml_experiments.html),
     the tutorials, and `examples/configs/`.
 
-3. Or running an experiment from Python
+3. Or use the Python API (for scripting)
 
-    To run a benchmarking experiment using BLADE:
+    The same experiment written in Python:
 
     ```python
     import os
@@ -317,8 +329,9 @@ the resolved configuration, the experiment log and convergence plots.
 ## 💻 Examples
 
 
-See the files in the `examples` folder for examples on experiments and visualisations,
-and `examples/configs/` for YAML experiments (built-in benchmarks and a custom problem).
+Start with `examples/configs/`: YAML experiments on built-in benchmarks and with a custom
+problem (`uv run iohblade validate examples/configs/custom_problem.yml`). The `examples`
+folder also has Python scripts and notebooks for experiments and visualisations.
 
 ---
 

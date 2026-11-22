@@ -1,9 +1,9 @@
 Experiments from YAML
 =====================
 
-An experiment can be described in a YAML file instead of a Python script.
-The file names the LLMs, methods and problems to use, and BLADE builds and
-runs the experiment:
+The recommended way to define a BLADE experiment is a YAML file. It names
+the LLMs, methods and problems to use, and BLADE builds and runs the
+experiment:
 
 .. code-block:: bash
 
@@ -12,8 +12,9 @@ runs the experiment:
     uv run iohblade check my-exp/experiment.yml     # smoke test, no LLM calls
     uv run iohblade run my-exp/experiment.yml       # run (or resume) it
 
-Python scripts keep working as before; the YAML file is another way to
-create the same :class:`~iohblade.experiment.Experiment`.
+The YAML file creates the same :class:`~iohblade.experiment.Experiment` as
+the Python API, which remains available for scripting
+(``Experiment.from_yaml(path)`` loads a file from Python).
 
 Example
 -------

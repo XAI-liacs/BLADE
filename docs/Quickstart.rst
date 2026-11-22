@@ -1,58 +1,109 @@
 Quick Start
 -----------
 
-1. Set up an OpenAI API key:
+The recommended way to use BLADE is a YAML experiment file and the
+``iohblade`` command. (The Python API, shown at the end, is available for
+scripting.)
 
-   - Obtain an API key from `OpenAI <https://openai.com/>`_.
-   - Set the API key in your environment variables:
+1. Choose an LLM
+
+   - **Local, no API key:** install `Ollama <https://ollama.com/>`_ and pull a
+     model, e.g. ``ollama pull qwen2.5-coder:14b`` (used below).
+   - **Hosted:** get an API key from OpenAI, Anthropic, Google or another
+     provider and set it in your environment, e.g.
+     ``export OPENAI_API_KEY='your_api_key_here'``. Configuration files read it
+     with ``${env:OPENAI_API_KEY}``; keys are never written in them.
+
+2. Create an experiment
 
    .. code-block:: bash
 
-      export OPENAI_API_KEY='your_api_key_here'
+      uv run iohblade init my-exp     # or: --template custom-problem / custom-method
 
-2. Running an Experiment
+   This writes ``my-exp/experiment.yml``. An experiment names the LLMs,
+   methods and problems; built-in components are referred to by name
+   (``uv run iohblade list`` shows them all):
 
-   .. code-block:: python
+   .. code-block:: yaml
 
-      import os
+      experiment: {output_dir: results, runs: 5, budget: 50}
+      llms:
+        qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
+        # gpt: {provider: openai, model: gpt-4o, api_key: "${env:OPENAI_API_KEY}"}
+      methods:
+        - {type: random_search, name: "RS-{llm}", llm: qwen}
+        - {type: llamea, name: "LLaMEA-{llm}", llm: qwen, params: {n_parents: 4, n_offspring: 12, elitism: false}}
+      problems:
+        - type: bbob_sbox
+          name: SBOX_COST
+          params: {dims: [5], budget_factor: 2000, specific_group: 1}
 
-      from iohblade.experiment import Experiment
-      from iohblade.llm import Ollama_LLM
-      from iohblade.methods import LLaMEA, RandomSearch
-      from iohblade.benchmarks import BBOB_SBOX
-      from iohblade.loggers import ExperimentLogger
+3. Validate and smoke test
 
-      llm = Ollama_LLM("qwen2.5-coder:14b") #qwen2.5-coder:14b, deepseek-coder-v2:16b
-      budget = 50 #short budget for testing
+   .. code-block:: bash
 
-      RS = RandomSearch(llm, budget=budget) #Random Search baseline
-      LLaMEA_method = LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False) #LLamEA with 4,12 strategy
-      methods = [RS, LLaMEA_method]
+      uv run iohblade validate my-exp/experiment.yml   # all mistakes, with line numbers; runs nothing
+      uv run iohblade check my-exp/experiment.yml      # builds the environments, runs everything briefly without an LLM
 
-      problems = []
-      # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
-      training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
-      test_instances = [(f, i) for f in range(1,25) for i in range(5, 16)]
-      problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
-      # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
-      logger = ExperimentLogger("results/SBOX")
-      experiment = Experiment(methods=methods, problems=problems, runs=5, show_stdout=True, exp_logger=logger) #normal run
-      experiment() #run the experiment, all data is logged in the folder results/SBOX/
+4. Run
 
-3. Monitoring experiment progress.
-    Run the included web-app that searches for all the experiments--running and completed--in the ``current-working-directory/results``. It can
-    be used to monitor progress of running experiment, inspect convergence of completed experiments and download best solution found so far.
+   .. code-block:: bash
 
-    To run the web app:
+      uv run iohblade run my-exp/experiment.yml
 
-    .. code-block:: bash
+   The console shows every run's progress, best fitness and failed
+   evaluations; results, logs and the resolved configuration are written to
+   ``my-exp/results``. Running the command again resumes: finished runs are
+   skipped.
 
-        uv run iohblade-webapp
+5. Monitor and inspect
 
-    Read more :doc:`here <webapp>`.
+   .. code-block:: bash
 
+      uv run iohblade-webapp
+
+   The web app lists the experiments in ``./results``, with run status,
+   convergence plots, the best solutions and the configuration. Read more
+   :doc:`here <webapp>`.
+
+Next: :doc:`yaml_experiments` (every option), :doc:`tutorial_custom_problem`
+and :doc:`tutorial_custom_method`.
+
+Using the Python API
+--------------------
+
+The same experiment in Python, e.g. for scripting or inside a notebook:
+
+.. code-block:: python
+
+   from iohblade.experiment import Experiment
+   from iohblade.llm import Ollama_LLM
+   from iohblade.methods import LLaMEA, RandomSearch
+   from iohblade.benchmarks import BBOB_SBOX
+   from iohblade.loggers import ExperimentLogger
+
+   llm = Ollama_LLM("qwen2.5-coder:14b")
+   budget = 50
+
+   methods = [
+       RandomSearch(llm, budget=budget),
+       LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False),
+   ]
+   training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
+   test_instances = [(f, i) for f in range(1, 25) for i in range(5, 16)]
+   problems = [
+       BBOB_SBOX(training_instances=training_instances, test_instances=test_instances,
+                 dims=[5], budget_factor=2000, name="SBOX_COST")
+   ]
+   experiment = Experiment(methods=methods, problems=problems, runs=5,
+                           exp_logger=ExperimentLogger("results/SBOX"))
+   experiment()
+
+A YAML file can also be loaded from Python:
+``Experiment.from_yaml("my-exp/experiment.yml")()``.
 
 Examples
 --------
 
-Additional examples can be found in our `examples` folder on GitHub.
+YAML experiments are in the ``examples/configs`` folder on GitHub; Python
+scripts and notebooks are in ``examples``.

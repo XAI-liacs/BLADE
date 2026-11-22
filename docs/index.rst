@@ -36,15 +36,46 @@ BLADE
 It focuses on **heuristic optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
 
+Getting Started
+---------------
+
+The recommended way to use BLADE is a YAML experiment file and the
+``iohblade`` command:
+
+.. code-block:: bash
+
+    uv run iohblade init my-exp                       # starter experiment.yml
+    uv run iohblade validate my-exp/experiment.yml    # every mistake, with its line number
+    uv run iohblade check my-exp/experiment.yml       # smoke test, no LLM calls
+    uv run iohblade run my-exp/experiment.yml         # run (rerun to resume)
+
+.. code-block:: yaml
+
+    experiment: {output_dir: results, runs: 5, budget: 50}
+    llms:
+      qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
+    methods:
+      - {type: llamea, name: "LLaMEA-{llm}", llm: qwen, params: {n_parents: 4, n_offspring: 12}}
+      - {type: random_search, name: "RS-{llm}", llm: qwen}
+    problems:
+      - {type: bbob_sbox, params: {dims: [5], specific_group: 1}}
+
+Your own problems and methods are linked as Python files with ``type:
+custom``. The Python API remains available for scripting.
+
 Documentation Guide
 -------------------
 
-- Start here for conceptual usage: :doc:`Introduction` and :doc:`Quickstart`.
+- Start here: :doc:`Quickstart`, then :doc:`yaml_experiments` for every
+  option, and the tutorials :doc:`tutorial_custom_problem` and
+  :doc:`tutorial_custom_method`.
+- Concepts: :doc:`Introduction`.
 - For benchmark catalog and taxonomy: :doc:`benchmarks`.
 - For API reference by feature area: :doc:`modules`.
 - For interactive monitoring: :doc:`webapp`.
 
 
+- **Experiments as configuration:** a YAML file and the ``iohblade`` command replace experiment scripts, including for your own problems and methods.
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Algorithm Design:** Supports algorithm evolution and design using large language models.
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison and LLM-driven AAD algorithms.
@@ -273,6 +304,7 @@ If you use BLADE in your research, please consider citing the associated paper:
 
    Introduction
    Installation
+   Quickstart
    yaml_experiments
    tutorial_custom_problem
    tutorial_custom_method

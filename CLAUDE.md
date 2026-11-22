@@ -105,6 +105,18 @@ Understanding these classes is essential for working with the codebase:
 
 ### Typical Experiment Workflow
 
+The default, user-facing way is a YAML experiment and the `iohblade` command
+(see `docs/yaml_experiments.rst`, templates via `iohblade init`):
+
+```bash
+uv run iohblade init my-exp            # --template custom-problem / custom-method
+uv run iohblade validate my-exp/experiment.yml
+uv run iohblade check my-exp/experiment.yml
+uv run iohblade run my-exp/experiment.yml
+```
+
+The same experiment through the Python API (scripting, notebooks, tests):
+
 ```python
 from iohblade.llm import Ollama_LLM
 from iohblade.methods import LLaMEA, RandomSearch
