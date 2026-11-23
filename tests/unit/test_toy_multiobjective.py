@@ -15,24 +15,22 @@ import numpy as np
 class BiSphereSearcher:
     \"\"\"Simple grid searcher for the bi-sphere toy problem.\"\"\"
 
-    def run(self, budget: int = 100) -> tuple[float, float]:
-        xs = np.linspace(-1.0, 3.0, budget)
-        f1s = xs ** 2
-        f2s = (xs - 2.0) ** 2
-        return float(f1s.min()), float(f2s.min())
+    def run(self, objective, budget: int = 100):
+        for x in np.linspace(-1.0, 3.0, budget):
+            objective(x)
 """
 
 _BROKEN_CODE = "this is not valid python ]["
 
 _MISSING_CLASS_CODE = """\
-def run(budget=100):
-    return 0.0, 0.0
+def run(objective, budget=100):
+    objective(0.0)
 """
 
-_WRONG_RETURN_CODE = """\
+_NO_EVALUATION_CODE = """\
 class BiSphereSearcher:
-    def run(self, budget=100):
-        return \"not a tuple of numbers\"
+    def run(self, objective, budget=100):
+        return 0.0, 0.0  # reports values without evaluating anything
 """
 
 
@@ -59,23 +57,29 @@ def test_evaluate_good_code_valid_values(problem):
     assert f["f1"] >= -0.1  # should be very close to 0 (negated)
 
 
-def test_evaluate_broken_code_returns_nan(problem):
+def _is_failure(fitness):
+    # Failures score the worst value (-inf) on both maximised objectives.
+    return fitness["f1"] == -math.inf and fitness["f2"] == -math.inf
+
+
+def test_evaluate_broken_code_is_failure(problem):
     sol = Solution(code=_BROKEN_CODE)
     result = problem.evaluate(sol)
-    assert math.isnan(float(result.fitness))
+    assert _is_failure(result.fitness)
 
 
-def test_evaluate_missing_class_returns_nan(problem):
+def test_evaluate_missing_class_is_failure(problem):
     sol = Solution(code=_MISSING_CLASS_CODE)
     result = problem.evaluate(sol)
-    assert math.isnan(float(result.fitness))
+    assert _is_failure(result.fitness)
     assert "BiSphereSearcher" in result.feedback
 
 
-def test_evaluate_wrong_return_returns_nan(problem):
-    sol = Solution(code=_WRONG_RETURN_CODE)
+def test_evaluate_without_evaluations_is_failure(problem):
+    """Values returned by run() are ignored; only evaluated points count."""
+    sol = Solution(code=_NO_EVALUATION_CODE)
     result = problem.evaluate(sol)
-    assert math.isnan(float(result.fitness))
+    assert _is_failure(result.fitness)
 
 
 def test_test_method_same_as_evaluate(problem):
@@ -103,13 +107,13 @@ def test_fitness_pareto_trade_off(problem):
     """A solution closer to x=0 should have better f1 but worse f2."""
     code_near_zero = """\
 class BiSphereSearcher:
-    def run(self, budget=100):
-        return 0.001, 4.0  # x ~ 0
+    def run(self, objective, budget=100):
+        objective(0.03)  # x ~ 0
 """
     code_near_two = """\
 class BiSphereSearcher:
-    def run(self, budget=100):
-        return 4.0, 0.001  # x ~ 2
+    def run(self, objective, budget=100):
+        objective(1.97)  # x ~ 2
 """
     r_zero = problem.evaluate(Solution(code=code_near_zero))
     r_two = problem.evaluate(Solution(code=code_near_two))

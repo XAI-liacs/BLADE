@@ -1,7 +1,10 @@
 import inspect
 import textwrap
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
+
+import numpy as np
 
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
@@ -33,6 +36,7 @@ Write a python class with function `__call__`, that generates optimal Graph Colo
 - The `__call__` method must return:
     - `color_mapping : dict[int, int]`: A node -> color mapping, i.e. `color_mapping[node_id] = color_id.
         - Where color_id is `int`, in 1...n.
+        - Every node must be coloured; a missing node or a non-integer colour makes the solution invalid.
 - The optimisation goal is to minimise `n`, number of colours used, such that:
     - The assertion of color_mapping[u] != color_mapping[v] for all (u,v) pairs in `edges` stands.
 - The returned fitness is going to be `len(set(color_mapping.values()))`.
@@ -95,6 +99,34 @@ one-line description, describing the main idea. Give the response in the format:
                 v = int(datum[2])
                 self.edges.append((u, v))
 
+    def _validate_coloring(self, coloring) -> None:
+        """Check that `coloring` maps every node to an integer colour >= 1.
+
+        Raises:
+            ValueError: If the mapping is not a dict, misses a node, or has
+                a colour that is not an integer (bool excluded) of at least 1.
+        """
+        if not isinstance(coloring, Mapping):
+            raise ValueError(
+                f"Expected a dict node -> colour, got {type(coloring).__name__}."
+            )
+        missing = [node for node in self.nodes if node not in coloring]
+        if missing:
+            raise ValueError(
+                f"{len(missing)} node(s) have no colour, e.g. {missing[:5]}."
+            )
+        for node in self.nodes:
+            color = coloring[node]
+            if isinstance(color, (bool, np.bool_)) or not isinstance(
+                color, (int, np.integer)
+            ):
+                raise ValueError(
+                    f"Colour of node {node} must be an int, got {color!r} "
+                    f"({type(color).__name__})."
+                )
+            if color < 1:
+                raise ValueError(f"Colour of node {node} must be >= 1, got {color}.")
+
     def evaluate(self, solution: Solution, logger=None):
         code = solution.code
         name = solution.name if solution.name else "GraphColoring"
@@ -105,19 +137,26 @@ one-line description, describing the main idea. Give the response in the format:
             cls = ns[name]
             coloring = cls(self.nodes, self.edges)()
 
+            self._validate_coloring(coloring)
             for u, v in self.edges:
                 colorU = coloring[u]
                 colorV = coloring[v]
-                assert (
-                    colorU != colorV
-                ), f"Colours on nodes {u}, and {v} are same, while edge ({u}, {v}) exists."
+                if colorU == colorV:
+                    raise ValueError(
+                        f"Colours on nodes {u}, and {v} are same, while edge "
+                        f"({u}, {v}) exists."
+                    )
 
-            score = float(len(set(coloring.values())))
+            score = float(len({int(coloring[node]) for node in self.nodes}))
             solution = solution.set_scores(
                 score, f"Got score {score}, try minimising further."
             )
         except Exception as e:
-            solution = solution.set_scores(float("inf"), f"Encountered error {e}", e)
+            solution = solution.set_scores(
+                self.failure_fitness(), f"Encountered error {e}", e
+            )
+            if not solution.error:  # harness-side error: keep a message
+                solution.error = f"{type(e).__name__}: {e}"
         return solution
 
     def test(self, solution: Solution):

@@ -56,13 +56,15 @@ class EuclidianSteinerTree(Problem):
 Write a python class with function `__call__`, that generates optimal Steiner Points for a given set of point, in order to optimise their Minimum Spanning Tree distance.
 - The class must initialise with 2 positional parameter:
     1. `points: list[list[float][:2]]`: A list of locations, representing 2-D coordinates of nodes that needs to be connected using Minimum Spanning Tree using Steiner Points.
-    2. `tolerance: float (10^-6)`: A tolerance parameter that expects Steiner MST distance to be at a minimum `tolerance` units less than Normal MST.
+    2. `tolerance: float (10^-6)`: A numerical tolerance (e.g. the minimum useful distance between points).
 - The `__call__` method must return:
     - `steiner_points : list[list[float][:2]]`: A list of steiner points.
         - Each steiner point must be 2-D vector.
 - The optimisation goal is to minimise `steiner_mst/normal_mst` ratio where:
     - `steiner_mst` is minimum spanning tree found using the provided points + returned `steiner_points`
     - `normal_mst` is a mimumum spanning tree found using the only the provided points.
+    - A ratio below 1 means the Steiner points shortened the tree; useless points give a ratio of 1 or more.
+    - Every Steiner point must have finite coordinates, otherwise the solution is invalid.
 - The returned fitness is going to be average fitness across {len(self.points)} distinct benchmarks.
 """)
         self.example_prompt = textwrap.dedent("""
@@ -150,27 +152,39 @@ one-line description, describing the main idea. Give the response in the format:
                 )()
                 steiner_points = []
                 for index, steiner_point in enumerate(steiner_pts):
-                    steiner_points.append(
-                        Location(
-                            len(self.points) + index + 1,
-                            steiner_point[0],
-                            steiner_point[1],
+                    if len(steiner_point) != 2:
+                        raise ValueError(
+                            f"Steiner point {index} must be a 2-D point, got "
+                            f"{steiner_point!r}."
                         )
-                    )
+                    x, y = float(steiner_point[0]), float(steiner_point[1])
+                    if not (math.isfinite(x) and math.isfinite(y)):
+                        raise ValueError(
+                            f"Steiner point {index} has non-finite coordinates "
+                            f"({x}, {y})."
+                        )
+                    steiner_points.append(Location(len(points) + index + 1, x, y))
                 normal_mst = self.compute_mst_length(points)
                 steiner_mst = self.compute_mst_length(points + steiner_points)
-
-                assert (
-                    steiner_mst + self.tolerance >= normal_mst
-                ), f"Steiner's MST ({steiner_mst}) was close to or geater thn normal MST ({normal_mst})"
-                fitness[bench_id] = normal_mst / steiner_mst
+                if not (math.isfinite(steiner_mst) and normal_mst > 0):
+                    raise ValueError(
+                        f"Could not compute a valid MST ratio (Steiner MST "
+                        f"{steiner_mst}, normal MST {normal_mst})."
+                    )
+                # Lower is better: < 1 means the Steiner points shortened
+                # the tree, >= 1 means they did not help.
+                fitness[bench_id] = steiner_mst / normal_mst
 
             solution = solution.set_scores(
                 mean(fitness.values()),
-                f"Got fitness {fitness} across {len(self.points)} benchmarks.",
+                f"Got steiner_mst/normal_mst ratios {fitness} across "
+                f"{len(self.points)} benchmarks (lower is better, below 1 "
+                "means the Steiner points shortened the tree).",
             )
         except Exception as e:
-            solution = solution.set_scores(float("inf"), f"Got error {e}", e)
+            solution = solution.set_scores(self.failure_fitness(), f"Got error {e}", e)
+            if not solution.error:  # harness-side error: keep a message
+                solution.error = f"{type(e).__name__}: {e}"
         return solution
 
     def test(self, solution: Solution):

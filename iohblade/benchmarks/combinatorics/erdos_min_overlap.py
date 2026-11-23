@@ -140,12 +140,16 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             else:
                 f = np.asarray(cls()(), dtype=np.float64)
         except Exception as e:
-            solution = solution.set_scores(float("inf"), f"exec-error {e}", e)
+            solution = solution.set_scores(self.failure_fitness(), f"exec-error {e}", e)
+            if not solution.error:  # harness-side error: keep a message
+                solution.error = f"{type(e).__name__}: {e}"
             return solution
 
         try:
             if f.ndim != 1 or f.size != self.n_bins:
                 raise ValueError(f"f must be length {self.n_bins} got {f.shape}.")
+            if not np.all(np.isfinite(f)):
+                raise ValueError("entries of f must be finite (no NaN or inf)")
             # bounds f ∈ [0,1] within tolerance
             if np.any(f < -self.tolerance) or np.any(f > 1.0 + self.tolerance):
                 raise ValueError("entries of f must lie in [0,1]")
@@ -158,10 +162,14 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             g = 1.0 - f  # f+g=1 pointwise
 
             score = self._sup_overlap(f, g)  # minimize
+            if not np.isfinite(score):
+                raise ValueError(f"computed overlap is not finite ({score})")
             msg = f"Score = {score:.6g}; with configuration: N={self.n_bins}, dx={dx:.6g}, If={I_f:.6g}.\n\t Best known score = {self.best_known}"
             solution = solution.set_scores(score, msg)
         except Exception as e:
-            solution = solution.set_scores(float("inf"), f"calc-error {e}")
+            solution = solution.set_scores(self.failure_fitness(), f"calc-error {e}", e)
+            if not solution.error:  # harness-side error: keep a message
+                solution.error = f"{type(e).__name__}: {e}"
 
         return solution
 
