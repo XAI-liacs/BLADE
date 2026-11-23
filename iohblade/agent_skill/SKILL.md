@@ -6,10 +6,10 @@ description: Set up, check and run BLADE (iohblade) experiments that benchmark L
 # BLADE experiments
 
 BLADE (`iohblade` on PyPI) runs LLM-driven *methods* (LLaMEA, EoH, ReEvo,
-FunSearch, random search, ...) that write optimisation algorithms for
-*problems* (benchmarks), using one or more *LLMs*. An experiment is a YAML
-file; the `iohblade` command validates, smoke-tests and runs it. Prefer
-this route over writing Python experiment scripts.
+FunSearch, ShinkaEvolve, random search, ...) that write optimisation
+algorithms for *problems* (benchmarks), using one or more *LLMs*. An
+experiment is a YAML file; the `iohblade` command validates, smoke-tests
+and runs it. Prefer this route over writing Python experiment scripts.
 
 ## Commands
 

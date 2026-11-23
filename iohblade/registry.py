@@ -105,6 +105,7 @@ class BuiltinMethod(StrEnum):
     LHNS = "lhns"
     MCTS_AHD = "mcts_ahd"
     MOEH = "moeh"
+    SHINKA_EVOLVE = "shinka_evolve"
 
 
 class LLMProvider(StrEnum):
@@ -673,6 +674,13 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         "iohblade.methods.moeh_method.moeh:MoEH_Method",
         "Multi-objective evolution of heuristics (MoEH).",
         "methods",
+    ),
+    (
+        ComponentKind.METHOD,
+        BuiltinMethod.SHINKA_EVOLVE,
+        "iohblade.methods.shinka_evolve:ShinkaEvolve",
+        "ShinkaEvolve: islands, weighted parents, diff/full/crossover patches.",
+        None,
     ),
     # LLM providers
     (

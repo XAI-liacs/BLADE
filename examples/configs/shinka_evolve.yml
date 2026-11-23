@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# ShinkaEvolve, FunSearch and LLaMEA on circle packing. ShinkaEvolve gets a
+# `multi` LLM, so its bandit chooses between the two models per generation.
+#   uv run iohblade validate examples/configs/shinka_evolve.yml
+#   uv run iohblade check examples/configs/shinka_evolve.yml
+#   uv run iohblade run examples/configs/shinka_evolve.yml
+version: 1
+
+experiment:
+  output_dir: ../../results/ShinkaEvolve
+  runs: 3
+  budget: 50
+
+llms:
+  qwen:
+    provider: ollama
+    model: "qwen2.5-coder:14b"
+  gemma:
+    provider: ollama
+    model: "gemma3:12b"
+  both:
+    provider: multi
+    llms: [qwen, gemma]
+
+methods:
+  - type: shinka_evolve
+    name: "ShinkaEvolve"
+    llm: both
+    params:
+      num_islands: 2
+      patch_type_probs: {diff: 0.6, full: 0.3, cross: 0.1}
+      novelty_rejection: true      # local n-gram embeddings, LLM judge
+      meta_interval: 10            # meta recommendations every 10 evaluations
+  - type: funsearch
+    name: "FunSearch-{llm}"
+    llm: qwen
+    params:
+      num_islands: 5
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: qwen
+    params:
+      n_parents: 1
+      n_offspring: 1
+
+problems:
+  - type: circle_packing

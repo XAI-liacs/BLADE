@@ -2,6 +2,7 @@
 from .funsearch import FunSearch, funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch
+from .shinka_evolve import ShinkaEvolve
 from .lhns import LHNS_Method
 from .mcts_ahd import MCTS_Method
 from .moeh_method.mutationtype import MutationType
@@ -21,6 +22,7 @@ __all__ = [
     "EoH",
     "FunSearch",
     "funsearch",
+    "ShinkaEvolve",
     "ReEvo",
     "LHNS_Method",
     "MCTS_Method",

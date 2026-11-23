@@ -109,6 +109,27 @@ see "Breaking changes" for the two exceptions.
   `programs_per_prompt`, `samples_per_prompt`, `reset_period`,
   `temperature_init`, `temperature_period`. The old class name
   `funsearch` still works.
+- **ShinkaEvolve (#217):** `iohblade.methods.ShinkaEvolve`
+  (`type: shinka_evolve`), a reimplementation of ShinkaEvolve (Lange et al.,
+  2025) after its reference code (version 0.0.8). It includes:
+  - islands with a global archive, and weighted, power-law or beam-search
+    parent selection;
+  - archive and top-k inspirations;
+  - diff (SEARCH/REPLACE), full-rewrite (five prompt variants) and
+    crossover patches, with a fix mode for islands without a correct
+    program;
+  - optional migration;
+  - optional novelty rejection with a local n-gram embedding and an LLM
+    judge;
+  - optional meta recommendations;
+  - an asymmetric UCB bandit over the LLMs of a `provider: multi` LLM.
+
+  The `shinka` package itself is not used: it conflicts with BLADE's
+  `openai` and `google-genai` pins, and its budget counts generations.
+  Every generation here ends in exactly one evaluation, so a run evaluates
+  exactly `budget` solutions; novelty-rejected candidates use LLM calls but
+  no evaluations. Nothing is written to disk.
+  Example: `examples/configs/shinka_evolve.yml`.
 
 ### Bug fixes
 

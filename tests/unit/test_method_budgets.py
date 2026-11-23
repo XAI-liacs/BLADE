@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from iohblade.llm import LLM
-from iohblade.methods import FunSearch, RandomSearch
+from iohblade.methods import FunSearch, RandomSearch, ShinkaEvolve
 from iohblade.methods.lhns.lhns import LHNS, LHNS_Method
 from iohblade.methods.lhns.taboo_table import TabooElement
 from iohblade.methods.mcts_ahd.mcts import MCTS, MCTS_Method
@@ -324,6 +324,8 @@ def _make_method(name: str, llm: LLM, budget: int):
             return RandomSearch(llm, budget)
         case "FunSearch":
             return FunSearch(llm, budget, num_islands=3, samples_per_prompt=3)
+        case "ShinkaEvolve":
+            return ShinkaEvolve(llm, budget, novelty_rejection=True, meta_interval=5)
         case "LHNS-vns":
             return LHNS_Method(llm, budget, "vns")
         case "LHNS-ils":
@@ -346,6 +348,7 @@ def _make_method(name: str, llm: LLM, budget: int):
     [
         "RandomSearch",
         "FunSearch",
+        "ShinkaEvolve",
         "LHNS-vns",
         "LHNS-ils",
         "LHNS-ts",
