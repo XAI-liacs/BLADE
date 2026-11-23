@@ -13,8 +13,8 @@ evaluated), what information it uses (the parent and a few parameters),
 and how to control it (a step size or a rate, with decades of methods
 to adapt them~\cite{rechenberg1973}). For the LLM operator we know none
 of these. Its input is a prompt of thousands of tokens, and we do not
-know which parts it uses; 16--25\% of its children crash in our runs,
-far more on harder problems; and the only way to control it is the
+know which parts it uses; 13--23\% of its children crash on MA-BBOB in
+our runs, and more than a third on harder problems; and the only way to control it is the
 wording of the prompt. AAD methods differ in their prompts,
 populations and selection, but all of them treat the operator as a
 black box.
@@ -91,13 +91,14 @@ traced search behaviour. Our contributions are:
     of the generated code and, on five problems it was not derived from,
     the algorithm families written. In the closed loop, steering towards
     exploitation narrows the design space and is harmful, while a dose
-    adapted to the success of the offspring, like an ES step size, is the
+    adapted to the success of the offspring, like an ES step size,
     beats control on MA-BBOB, confirmed on 24 new seeds in a
     pre-registered test (+0.075 \aocc at 200 evaluations). The same
     schedule applied through the prompt, or a higher temperature, cannot
-    be told apart from it: the schedule matters more than the means. A pre-registered landscape test on BBOB 20-D
-    shows that the dial acts on the design space, not on the optimiser's
-    behaviour.
+    be told apart from it, and combining dial and temperature adds
+    nothing: the schedule matters more than the means. On BBOB 20-D a
+    pre-registered landscape prediction fails, because the dial acts on
+    the design space, not on the optimiser's behaviour.
 \end{itemize}
 Along the way we found sandbox and scoring issues in widely used AAD
 benchmarks that inflate failure rates or compress scores

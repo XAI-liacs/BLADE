@@ -4,8 +4,9 @@
 The failure is represented in the generator's state while it writes,
 and a frozen probe ranks failures on new problems without retraining;
 only its threshold is problem-specific. As an efficiency tool, however,
-it is dominated on our problems by a smoke test, because a failing
-evaluation costs seconds and generation dominates the loop. The probe
+it is dominated on MA-BBOB by a smoke test, because a failing
+evaluation costs seconds and generation dominates the loop; Bragg
+evaluations are as cheap. The probe
 pays off where one evaluation is expensive and cannot be truncated
 (simulations, training runs), and the larger saving may lie in
 generation itself: a probe on the partial code could stop a doomed
@@ -27,15 +28,14 @@ model writes. In the loop, selection keeps what scores, so the endpoint
 depends on whether the steered design space still contains the family
 that solves the problem. On f2 that family is population-based DE, and
 the exploit side removes it. Steering towards exploitation narrows the
-design space and never helped; steering towards exploration rarely
-hurt. When to steer matters more than the direction.
+design space and never helped significantly; steering towards
+exploration rarely hurt. When to steer matters more than the direction.
 Steering the initial population breaks it (Bragg); anneal and the
 stagnation-adaptive dial are the safe settings, and the adaptive dial
-is the only arm that widens the search, with a gain on MA-BBOB that
-held on new seeds. The confirmation also shows that the schedule, more
+widens the search, with a gain on MA-BBOB that held on new seeds. The confirmation also shows that the schedule, more
 than the vector, carries the gain: applying it through the prompt, or
 raising the temperature, does about as well, and combining dial and
-temperature adds nothing but failures. EC
+temperature adds breadth and failures, not fitness. EC
 already has the right tools for such control, such as success rules
 and bandits over operators. Our rule saturates because improvements are
 rare, so better dose control is an open problem.
@@ -65,8 +65,8 @@ unspecifically, and some of what looks like a steering effect is that.
 \paragraph{Limitations.}
 We use open-weight models of 8--14B parameters; the dial is
 replicated on a second model in single generations only, not in the
-loop. With 6 to 16 seeds per arm, effects below about 0.05 \aocc are
-not resolved; the confirmation cannot separate the adaptive dial from
+loop. With 6 to 16 seeds per arm in the exploratory campaigns, effects
+below about 0.05 \aocc are not resolved; the confirmation cannot separate the adaptive dial from
 its prompt and temperature baselines (CIs of the differences span about
 $\pm0.07$). f20 and f9 discriminate little between arms (arm means within 0.24--0.26 on f20, all f9 runs within
 0.30--0.38), and the transfer problems have high
