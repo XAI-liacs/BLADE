@@ -15,7 +15,7 @@ from typing import Any
 import pytest
 
 from iohblade.llm import LLM
-from iohblade.methods import RandomSearch
+from iohblade.methods import FunSearch, RandomSearch
 from iohblade.methods.lhns.lhns import LHNS, LHNS_Method
 from iohblade.methods.lhns.taboo_table import TabooElement
 from iohblade.methods.mcts_ahd.mcts import MCTS, MCTS_Method
@@ -322,6 +322,8 @@ def _make_method(name: str, llm: LLM, budget: int):
     match name:
         case "RandomSearch":
             return RandomSearch(llm, budget)
+        case "FunSearch":
+            return FunSearch(llm, budget, num_islands=3, samples_per_prompt=3)
         case "LHNS-vns":
             return LHNS_Method(llm, budget, "vns")
         case "LHNS-ils":
@@ -341,7 +343,16 @@ def _make_method(name: str, llm: LLM, budget: int):
 
 @pytest.mark.parametrize(
     "name",
-    ["RandomSearch", "LHNS-vns", "LHNS-ils", "LHNS-ts", "MCTS_AHD", "MoEH", "EoH"],
+    [
+        "RandomSearch",
+        "FunSearch",
+        "LHNS-vns",
+        "LHNS-ils",
+        "LHNS-ts",
+        "MCTS_AHD",
+        "MoEH",
+        "EoH",
+    ],
 )
 @pytest.mark.parametrize("budget", [4, 12, 21])
 def test_method_evaluations_match_budget(monkeypatch, tmp_path, name, budget):

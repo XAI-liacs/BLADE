@@ -649,8 +649,8 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
     (
         ComponentKind.METHOD,
         BuiltinMethod.FUNSEARCH,
-        "iohblade.methods.funsearch:funsearch",
-        "FunSearch-style island evolution.",
+        "iohblade.methods.funsearch:FunSearch",
+        "FunSearch: island-based evolution with best-shot prompts.",
         None,
     ),
     (

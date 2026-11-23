@@ -1,5 +1,5 @@
 # isort: skip_file  (import order resolves circular imports; keep it)
-from .funsearch import funsearch
+from .funsearch import FunSearch, funsearch
 from .llamea import LLaMEA
 from .random_search import RandomSearch
 from .lhns import LHNS_Method
@@ -19,6 +19,7 @@ __all__ = [
     "LLaMEA",
     "RandomSearch",
     "EoH",
+    "FunSearch",
     "funsearch",
     "ReEvo",
     "LHNS_Method",
