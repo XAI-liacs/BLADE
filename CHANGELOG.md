@@ -112,6 +112,34 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Experiment runner and loggers (#207).**
+  - **MLflow:** any experiment with more than one run crashed ("Run ... is
+    already active"), and per-step logs from worker threads went to
+    auto-created runs. Every run now gets its own MLflow run through an
+    `MlflowClient` and is marked FINISHED or FAILED. The docstring
+    recommends a `sqlite:///` tracking URI, since mlflow 3.17 refuses
+    `file:` stores.
+  - **Parallel runs (`n_jobs > 1`):**
+    - one thread-safe stdout/stderr router replaces the per-run
+      `redirect_stdout`, which could mix runs' output and leave
+      `sys.stdout` replaced afterwards;
+    - a warning says that individual seeds are not exactly reproducible
+      with thread-parallel runs. `random` is now seeded too.
+  - **Captured output** (`log_stdout`) is saved when a run fails; it was
+    lost exactly then.
+  - **`progress.json`** is written atomically, so an interrupted write no
+    longer prevents resuming; an unreadable file gives a clear error.
+  - **Trackio:**
+    - runs were all named `""`;
+    - logging from a method's helper threads failed; each run logger now
+      logs through its own run object.
+  - **ReEvo** no longer writes its reflection files into the current
+    directory. They go to the run folder (`reevo/`), to `output_path`, or
+    to a temporary folder.
+  - **Evaluation-environment shim:** creating the `isolated_pythonpath`
+    shim from parallel threads could fail; Windows copies of it are
+    refreshed after an upgrade.
+  - **`log_configspace`** creates its folder.
 - **Plots, web app and analysis (#202).**
   - **Best-so-far direction:** curves, "best" selections and "Top
     Solutions" always maximised. On minimisation problems they showed the

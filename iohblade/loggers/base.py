@@ -568,14 +568,58 @@ class ExperimentLogger:
         return os.path.join(self.dirname, "progress.json")
 
     def _write_progress(self):
-        with open(self._progress_path(), "w") as f:
-            json.dump(self.progress, f)
+        """Write ``progress.json`` atomically.
+
+        The data goes to a temporary file in the same directory, which then
+        replaces ``progress.json`` (``os.replace``), so a process killed
+        while writing never leaves a truncated file behind.
+        """
+        import threading
+
+        path = self._progress_path()
+        # Unique per process and thread; open() keeps the usual permissions.
+        tmp = f"{path}.{os.getpid()}-{threading.get_ident()}.tmp"
+        try:
+            with open(tmp, "w") as f:
+                json.dump(self.progress, f)
+            for attempt in range(10):
+                try:
+                    os.replace(tmp, path)
+                    break
+                except PermissionError:  # Windows: a reader has it open
+                    if attempt == 9:
+                        raise
+                    import time
+
+                    time.sleep(0.05)
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
     def _load_progress(self):
+        """Read ``progress.json`` (an empty progress if there is none).
+
+        Raises:
+            ValueError: ``progress.json`` exists but cannot be read; the
+                message names the file. The progress is not discarded
+                silently: fix or remove the file to continue.
+        """
         path = self._progress_path()
         if os.path.exists(path):
-            with open(path) as f:
-                self.progress = json.load(f)
+            try:
+                with open(path) as f:
+                    self.progress = json.load(f)
+            except (OSError, ValueError) as e:
+                raise ValueError(
+                    f"Cannot read the experiment progress file {path}: {e}. "
+                    "It may have been damaged when the experiment was "
+                    "interrupted. Fix the file, or delete it to restart the "
+                    "progress tracking (finished runs in experimentlog.jsonl "
+                    "are kept, but all runs are then treated as pending)."
+                ) from e
         else:
             self.progress = {}
 
@@ -877,6 +921,7 @@ class RunLogger:
         Args:
             individual (Solution): potential solution to be logged.
         """
+        os.makedirs(os.path.join(self.dirname, "configspace"), exist_ok=True)
         with open(
             f"{self.dirname}/configspace/{individual.id}-{individual.name}.py", "w"
         ) as file:
