@@ -7,7 +7,7 @@ import re
 import textwrap
 import time
 import traceback
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 import numpy as np
@@ -282,12 +282,10 @@ from kernel_tuner.strategies.wrapper import OptAlg
                 "samples": 32,
                 "minimum_fraction_of_budget_valid": 0.01,
                 "pattern_for_full_search_space_filenames": {
-                    "regex": os.path.join(
-                        self.cache_dir,
-                        "cachefiles",
-                        "${applications}",
-                        "${gpus}_T4.json",
-                    )
+                    # A regular expression for kernel_tuner: use "/" also
+                    # on Windows, where "\\" would act as an escape.
+                    "regex": PurePath(self.cache_dir).as_posix().rstrip("/")
+                    + "/cachefiles/${applications}/${gpus}_T4.json"
                 },
             }
         }

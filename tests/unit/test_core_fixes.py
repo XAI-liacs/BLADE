@@ -380,8 +380,14 @@ def test_kerneltuner_test_and_cache_dir(monkeypatch, tmp_path):
     regex = captured["override"]["experimental_groups_defaults"][
         "pattern_for_full_search_space_filenames"
     ]["regex"]
-    assert regex.startswith(cache_dir)
-    assert regex.endswith("cachefiles/${applications}/${gpus}_T4.json")
+    # "/" separators on every platform: the value is a regular expression.
+    from pathlib import PurePath
+
+    assert regex == (
+        PurePath(cache_dir).as_posix().rstrip("/")
+        + "/cachefiles/${applications}/${gpus}_T4.json"
+    )
+    assert "\\" not in regex
     assert "/data/neocortex" not in regex
     assert problem.imports == "import os\n"
 
