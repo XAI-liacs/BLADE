@@ -5,3 +5,6 @@ omit =
     iohblade/methods/reevo.py
     iohblade/methods/llamea.py
     iohblade/webapp.py
+    # Photonics simulators: run while evaluating candidates, inside the
+    # evaluation subprocess, where coverage is not measured.
+    iohblade/benchmarks/photonics/photonics_instances/problems/*
