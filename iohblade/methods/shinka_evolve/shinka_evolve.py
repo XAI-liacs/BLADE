@@ -17,6 +17,7 @@ from ...llm import LLM, Multi_LLM
 from ...method import Method
 from ...problem import Problem
 from ...solution import Solution
+from ..prompt_utils import task_context
 from . import prompts
 from .bandit import AsymmetricUCB
 from .database import PARENT_SELECTIONS, Program, ProgramDatabase, Sample
@@ -453,7 +454,7 @@ class ShinkaEvolve(Method):
         """The prompt of a patch; also the crossover partner and the full
         rewrite variant, if any."""
         parent = sample.parent
-        system = f"{self.task_sys_msg}\n\n# Problem\n\n{problem.task_prompt.strip()}"
+        system = f"{self.task_sys_msg}\n\n# Problem\n\n{task_context(problem)}"
         if self.recommendations and patch_type in ("diff", "full"):
             recommendation = self.recommendations[
                 np.random.randint(len(self.recommendations))

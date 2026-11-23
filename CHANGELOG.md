@@ -130,6 +130,9 @@ see "Breaking changes" for the two exceptions.
   exactly `budget` solutions; novelty-rejected candidates use LLM calls but
   no evaluations. Nothing is written to disk.
   Example: `examples/configs/shinka_evolve.yml`.
+- FunSearch and ShinkaEvolve prompts include the context a problem adds
+  in `get_prompt()` (such as the photonics descriptions and insights), not
+  only its `task_prompt` (`iohblade.methods.prompt_utils.task_context`).
 
 ### Bug fixes
 
