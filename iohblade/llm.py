@@ -194,6 +194,88 @@ def get_hardware_info() -> Dict:
     }
 
 
+_DEFAULT_CODE_PATTERN = r"```(?:python)?\n(.*?)\n```"
+_DEFAULT_NAME_PATTERN = "class\\s*(\\w*)(?:\\(\\w*\\))?\\:"
+_DEFAULT_DESC_PATTERN = r"#\s*Description\s*:\s*(.*)"
+_DEFAULT_CS_PATTERN = r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
+
+# A fenced block: an opening fence at the start of a line with an optional
+# language tag, the body, and a closing fence on its own line.
+_FENCED_BLOCK = re.compile(
+    r"^[ \t]*```[ \t]*([\w+.-]*)[^\n]*\n(.*?)\n[ \t]*```",
+    re.MULTILINE | re.DOTALL,
+)
+_PYTHON_TAGS = ("python", "python3", "py")
+
+
+def _extract_python_block(message: str) -> str | None:
+    """The code of the first python-tagged fenced block, else of the first
+    untagged one; blocks tagged with another language are skipped.
+
+    Handles ```py, trailing spaces after the tag and CRLF line endings.
+    """
+    text = message.replace("\r\n", "\n")
+    untagged = None
+    for match in _FENCED_BLOCK.finditer(text):
+        tag = match.group(1).lower()
+        if tag in _PYTHON_TAGS:
+            return match.group(2)
+        if not tag and untagged is None:
+            untagged = match.group(2)
+    if untagged is not None:
+        return untagged
+    # Fences that do not start a line (e.g. "Code: ```python ...").
+    match = re.search(_DEFAULT_CODE_PATTERN, text, re.DOTALL | re.IGNORECASE)
+    return match.group(1) if match else None
+
+
+def _main_class_name(code: str) -> str:
+    """The name of the class an algorithm is instantiated from.
+
+    Of the top-level classes, the one no other top-level class refers to
+    (helpers such as ``Particle`` are used by the main class); if several,
+    the last one. Falls back to the first ``class Name`` line when the code
+    does not parse. Returns "" when there is no class.
+    """
+    import ast
+
+    try:
+        tree = ast.parse(code)
+    except (SyntaxError, ValueError):
+        match = re.search(r"^[ \t]*class[ \t]+(\w+)", code, re.MULTILINE)
+        return match.group(1) if match else ""
+    classes = [node for node in tree.body if isinstance(node, ast.ClassDef)]
+    if not classes:
+        return ""
+    used = set()
+    for cls in classes:
+        for node in ast.walk(cls):
+            if isinstance(node, ast.Name) and node.id != cls.name:
+                used.add(node.id)
+    candidates = [cls.name for cls in classes if cls.name not in used]
+    return (candidates or [cls.name for cls in classes])[-1]
+
+
+def _retry_after_seconds(err, fallback: float) -> float:
+    """Seconds from an error's Retry-After header, or ``fallback``."""
+    response = getattr(err, "response", None)
+    value = None
+    if response is not None:
+        try:
+            value = response.headers.get("Retry-After")
+        except Exception:
+            value = None
+    try:
+        return max(0.0, float(value)) if value is not None else fallback
+    except (TypeError, ValueError):  # e.g. an HTTP date
+        return fallback
+
+
+def _retryable_status(status) -> bool:
+    """Whether an HTTP status is worth retrying (rate limit, server error)."""
+    return status is None or status in (408, 409, 429) or status >= 500
+
+
 class LLM(ABC):
     def __init__(
         self,
@@ -224,22 +306,18 @@ class LLM(ABC):
         self.model = model
         self.logger = logger
         self.log = self.logger != None
+        # Custom patterns replace the default extraction; the defaults are
+        # stored so that to_dict() shows what is used.
         self.code_pattern = (
-            code_pattern if code_pattern != None else r"```(?:python)?\n(.*?)\n```"
+            code_pattern if code_pattern is not None else _DEFAULT_CODE_PATTERN
         )
         self.name_pattern = (
-            name_pattern
-            if name_pattern != None
-            else "class\\s*(\\w*)(?:\\(\\w*\\))?\\:"
+            name_pattern if name_pattern is not None else _DEFAULT_NAME_PATTERN
         )
         self.desc_pattern = (
-            desc_pattern if desc_pattern != None else r"#\s*Description\s*:\s*(.*)"
+            desc_pattern if desc_pattern is not None else _DEFAULT_DESC_PATTERN
         )
-        self.cs_pattern = (
-            cs_pattern
-            if cs_pattern != None
-            else r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
-        )
+        self.cs_pattern = cs_pattern if cs_pattern is not None else _DEFAULT_CS_PATTERN
         # Mute tokecost logging
         logging.getLogger("tokencost").setLevel(logging.ERROR)
 
@@ -257,13 +335,15 @@ class LLM(ABC):
         """
         pass
 
-    def query(self, session: list):
+    def query(self, session: list, **kwargs):
         """
         Sends a conversation history to the configured model and returns the response text.
 
         Args:
             session_messages (list of dict): A list of message dictionaries with keys
                 "role" (e.g. "user", "assistant") and "content" (the message text).
+            **kwargs: Settings passed on to the provider's ``_query`` (for
+                example ``temperature``), for providers that accept them.
 
         Returns:
             str: The text content of the LLM's response.
@@ -282,7 +362,7 @@ class LLM(ABC):
             except Exception:
                 cost = 0
             try:
-                tokens = count_message_tokens(input_msg, model=self.model)
+                tokens = count_string_tokens(prompt=input_msg, model=self.model)
             except Exception:
                 tokens = 0
             self.logger.log_conversation(
@@ -292,7 +372,7 @@ class LLM(ABC):
                 tokens,
             )
 
-        message = self._query(session)
+        message = self._query(session, **kwargs) if kwargs else self._query(session)
 
         if self.log:
             try:
@@ -343,6 +423,13 @@ class LLM(ABC):
             NoCodeException: If the language model fails to return any code.
             Exception: Captures and logs any other exceptions that occur during the interaction.
         """
+        if diff_mode and not getattr(LLM, "_warned_diff_mode", False):
+            LLM._warned_diff_mode = True
+            warnings.warn(
+                "diff_mode is not supported by BLADE's LLM classes: responses "
+                "are treated as complete code. Use diff_mode=False.",
+                stacklevel=2,
+            )
         message = self.query(session_messages, **kwargs)
 
         code = self.extract_algorithm_code(message)
@@ -370,13 +457,14 @@ class LLM(ABC):
         Returns:
             classname (string): The Python class name or empty string.
         """
+        if self.name_pattern != _DEFAULT_NAME_PATTERN:
+            try:
+                return re.findall(self.name_pattern, code, re.IGNORECASE)[0]
+            except Exception:
+                return ""
         try:
-            return re.findall(
-                "class\\s*(\\w*)(?:\\([^)]*\\))?\\:",
-                code,
-                re.IGNORECASE,
-            )[0]
-        except Exception as e:
+            return _main_class_name(code)
+        except Exception:
             return ""
 
     def extract_configspace(self, message):
@@ -395,7 +483,7 @@ class LLM(ABC):
             # ConfigSpace not installed, no HPO
             return None
 
-        pattern = r"space\s*:\s*\n*```\n*(?:python)?\n(.*?)\n```"
+        pattern = self.cs_pattern
         c = None
         for m in re.finditer(pattern, message, re.DOTALL | re.IGNORECASE):
             try:
@@ -418,10 +506,13 @@ class LLM(ABC):
         Raises:
             NoCodeException: If no code block is found within the message.
         """
-        pattern = r"```(?:python)?\n(.*?)\n```"
-        match = re.search(pattern, message, re.DOTALL | re.IGNORECASE)
-        if match:
-            return match.group(1)
+        if self.code_pattern != _DEFAULT_CODE_PATTERN:
+            match = re.search(self.code_pattern, message, re.DOTALL | re.IGNORECASE)
+            code = match.group(1) if match else None
+        else:
+            code = _extract_python_block(message)
+        if code is not None:
+            return code
         else:
             return """raise Exception("Could not extract generated code. The code should be encapsulated with ``` in your response.")"""  # trick to later raise this exception when the algorithm is evaluated.
 
@@ -435,8 +526,7 @@ class LLM(ABC):
         Returns:
             str: Extracted algorithm name or empty string.
         """
-        pattern = r"#\s*Description\s*:\s*(.*)"
-        match = re.search(pattern, message, re.IGNORECASE)
+        match = re.search(self.desc_pattern, message, re.IGNORECASE)
         if match:
             return match.group(1)
         else:
@@ -562,20 +652,17 @@ class OpenAI_LLM(LLM):
             str: The text content of the LLM's response.
         """
 
+        options = dict(kwargs)  # kept intact for every retry
+        temperature = options.pop("temperature", self.temperature)
+
         attempt = 0
         while True:
             try:
-                ## Manage temeperature copy.
-                temperature = self.temperature
-                if "temperature" in kwargs:
-                    temperature = kwargs["temperature"]
-                    kwargs.pop("temperature")
-
                 response = self.client.chat.completions.create(
                     model=self.model,
                     messages=session_messages,
                     temperature=temperature,
-                    **kwargs,
+                    **options,
                 )
                 return response.choices[0].message.content
 
@@ -583,19 +670,17 @@ class OpenAI_LLM(LLM):
                 attempt += 1
                 if attempt > max_retries:
                     raise
-
-                retry_after = None
-                if getattr(err, "response", None) is not None:
-                    retry_after = err.response.headers.get("Retry-After")
-
-                wait = int(retry_after) if retry_after else default_delay * attempt
-                time.sleep(wait)
+                time.sleep(_retry_after_seconds(err, default_delay * attempt))
 
             except (
                 openai.APITimeoutError,
                 openai.APIConnectionError,
                 openai.APIError,
             ) as err:
+                # Bad requests, authentication, unknown models, ...: retrying
+                # cannot help.
+                if not _retryable_status(getattr(err, "status_code", None)):
+                    raise
                 attempt += 1
                 if attempt > max_retries:
                     raise
@@ -647,6 +732,26 @@ class DeepSeek_LLM(OpenAI_LLM):
         return [config]
 
 
+def _gemini_retryable(err) -> bool:
+    """Whether a google-genai error is worth retrying."""
+    code = getattr(err, "code", None)
+    if isinstance(code, int):
+        return _retryable_status(code)
+    # Older google-api-core errors (ResourceExhausted) carry a retry delay.
+    if getattr(err, "retry_delay", None) is not None:
+        return True
+    if re.search(r"\b429\b|ResourceExhausted|RESOURCE_EXHAUSTED", str(err)):
+        return True
+    if isinstance(err, (ConnectionError, TimeoutError)):
+        return True
+    try:
+        import httpx
+
+        return isinstance(err, httpx.TransportError)
+    except ImportError:  # pragma: no cover
+        return False
+
+
 class Gemini_LLM(LLM):
     """
     A manager class for handling requests to Google's Gemini models.
@@ -693,8 +798,13 @@ class Gemini_LLM(LLM):
         Returns:
             str: model's reply.
         """
+        # google-genai expects roles "user"/"model" and parts as {"text": ...}.
         history = [
-            {"role": m["role"], "parts": [m["content"]]} for m in session_messages[:-1]
+            {
+                "role": "model" if m["role"] in ("assistant", "model") else "user",
+                "parts": [{"text": m["content"]}],
+            }
+            for m in session_messages[:-1]
         ]
         last = session_messages[-1]["content"]
 
@@ -710,6 +820,8 @@ class Gemini_LLM(LLM):
                 return response.text
 
             except Exception as err:
+                if not _gemini_retryable(err):
+                    raise  # invalid request, key or model: retrying cannot help
                 attempt += 1
                 if attempt > max_retries:
                     raise  # bubble out after N tries
@@ -932,11 +1044,7 @@ class Claude_LLM(LLM):
                 attempt += 1
                 if attempt > max_retries:
                     raise
-                retry_after = None
-                if getattr(err, "response", None) is not None:
-                    retry_after = err.response.headers.get("Retry-After")
-                wait = int(retry_after) if retry_after else default_delay * attempt
-                time.sleep(wait)
+                time.sleep(_retry_after_seconds(err, default_delay * attempt))
 
             except (
                 anthropic.APITimeoutError,
@@ -1032,7 +1140,8 @@ class LMStudio_LLM(LLM):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.llm = lms.llm(self.model)
+        # lms is a placeholder when lmstudio is not installed.
+        self.llm = lms.llm(self.model) if hasattr(lms, "llm") else None
 
     def __deepcopy__(self, memo):
         cls = self.__class__
@@ -1075,7 +1184,7 @@ class MLX_LM_LLM(LLM):
         self.max_tokens = max_tokens
 
     def __getstate__(self) -> object:
-        state = self.__dict__
+        state = self.__dict__.copy()  # do not strip the live object
         state.pop("tokenizer", None)
         state.pop("llm", None)
         return state

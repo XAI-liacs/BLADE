@@ -33,7 +33,7 @@ class RandomSearch(Method):
         best_solution = None
         for i in range(self.budget):
             solution = self.llm.sample_solution(
-                [{"role": "client", "content": problem.get_prompt()}]
+                [{"role": "user", "content": problem.get_prompt()}]
             )
             solution = problem(solution)
             # Keep the first solution, then only strict improvements; failed

@@ -275,7 +275,7 @@ class LHNS:
             for i in range(5):
                 try:
                     new = self.llm.sample_solution(
-                        [{"role": "client", "content": initialisation_prompt}]
+                        [{"role": "user", "content": initialisation_prompt}]
                     )
                     return new
                 except Exception as e:
