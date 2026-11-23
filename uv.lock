@@ -2218,7 +2218,6 @@ dependencies = [
     { name = "python-constraint2" },
     { name = "pyyaml" },
     { name = "seaborn" },
-    { name = "smac" },
     { name = "streamlit" },
     { name = "tokencost" },
     { name = "virtualenv" },
@@ -2255,6 +2254,9 @@ extraproblems = [
     { name = "openml" },
     { name = "pygdm2" },
     { name = "pymoosh" },
+]
+hpo = [
+    { name = "smac" },
 ]
 kerneltuner = [
     { name = "autotuning-methodology" },
@@ -2294,7 +2296,6 @@ requires-dist = [
     { name = "python-constraint2", specifier = ">=2.2.3,<3" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "smac", specifier = ">=2.4.1" },
     { name = "streamlit", specifier = ">=1.35.0,<2" },
     { name = "tokencost", specifier = ">=0.1.26,<0.2" },
     { name = "virtualenv", specifier = ">=20.34.0" },
@@ -2332,6 +2333,7 @@ extraproblems = [
     { name = "pygdm2", specifier = "==1.1.12" },
     { name = "pymoosh", specifier = "==3.2" },
 ]
+hpo = [{ name = "smac", specifier = ">=2.4.1,<2.5" }]
 kerneltuner = [
     { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" },
     { name = "kernel-tuner", git = "https://github.com/KernelTuner/kernel_tuner.git?rev=ad41cfe99aec44c99ae79b4ececcc7227eb20db2" },

@@ -112,11 +112,29 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Hyperparameter tuning on BBOB-SBOX, MA-BBOB and Kerneltuner (#221).**
+  With `HPO=True` (LLaMEA), these benchmarks generated configuration spaces
+  but never used them.
+  - **Tuning before scoring:** they now tune each algorithm's
+    hyperparameters with SMAC before scoring it, on a fixed subset of the
+    training instances, minimising 1 − AOCC (or 1 − score). The incumbent
+    is scored like a normal evaluation, recorded in the solution's metadata
+    and reused by `test()`.
+  - **New options:** `hpo`, `hpo_trials` (BBOB-SBOX 100, MA-BBOB and
+    Kerneltuner 50) and `hpo_instances` (12). Tuning makes evaluations
+    longer, so raise `eval_timeout` accordingly.
+  - **Lighter environments:** their evaluation environments no longer
+    install smac, swig and ConfigSpace by default, so they no longer build
+    pyrfr.
+  - **Also fixed:** MA-BBOB `test()` crashed (`Analyzer.reset()`), and an
+    ioh logger could be garbage-collected while still attached.
 - **AutoML benchmark and optional hyperparameter tuning (#220).**
   - **AutoML could not be loaded:** it imported smac at module level, and
     smac 2.4.0 fails to import with scikit-learn 1.9. smac is now imported
-    only when tuning runs (`iohblade.hpo`), and BLADE requires
-    `smac>=2.4.1`, which works with scikit-learn 1.9.
+    only when tuning runs (`iohblade.hpo`), and tuning uses `smac>=2.4.1`,
+    which works with scikit-learn 1.9. smac is no longer a required
+    dependency of BLADE (optional group `hpo`, for calling
+    `iohblade.hpo.run_smac` directly).
   - **Tuning dependencies are optional:** a problem's evaluation
     environment installs `smac>=2.4.1,<2.5` and `ConfigSpace` only when HPO
     is enabled (`Problem.enable_hpo()`, AutoML `hpo=True`).

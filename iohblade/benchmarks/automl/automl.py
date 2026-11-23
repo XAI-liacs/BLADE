@@ -24,7 +24,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OrdinalEncoder
 
-from iohblade.hpo import import_smac, run_smac
+from iohblade.hpo import UNUSED_CONFIGSPACE_FEEDBACK, import_smac, run_smac
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.tabpfn_utils import VALID_TABPFN_MODES
@@ -921,10 +921,7 @@ class AutoML(Problem):
         if did_hpo:
             msg += f" | HPO used; incumbent={incumbent_dict}"
         elif cs is not None:
-            msg += (
-                "\nHPO is not enabled for this problem: the configuration "
-                "space was ignored and the default hyperparameters were used."
-            )
+            msg += "\n" + UNUSED_CONFIGSPACE_FEEDBACK
 
         error_msg = ""
         if failures:

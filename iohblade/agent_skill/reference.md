@@ -188,9 +188,14 @@ the reply text) and `get_config()` (a list with one
 `prompt` is required; `number_of_parents` must not exceed `n_parents`.
 
 `params: {HPO: true}` makes LLaMEA also generate a configuration space;
-problems that support tuning (`automl`) then tune it with SMAC, and their
-evaluation environment adds `smac>=2.4.1` and `ConfigSpace`. `validate` notes which problems tune and warns for the
-others (evaluated with default hyperparameters).
+problems that support tuning (`automl`, `bbob_sbox`, `ma_bbob`,
+`kerneltuner`) then tune it with SMAC (cost `1 - score`, e.g. `1 - AOCC`)
+and score the incumbent, and their evaluation environment adds
+`smac>=2.4.1` and `ConfigSpace`. `validate` notes which problems tune and
+warns for the others (evaluated with default hyperparameters). Tuning
+budget: problem params `hpo_trials` (`bbob_sbox` 100, `ma_bbob` and
+`kerneltuner` 50) and `hpo_instances` (12); tuning makes evaluations
+slower, so raise `eval_timeout`.
 
 ## Python API
 

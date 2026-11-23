@@ -150,13 +150,15 @@ def test_build_tools_are_installed_first_and_on_path(monkeypatch, tmp_path):
     assert all(path.split(os.pathsep)[0] == str(python.parent) for _, path in calls)
 
 
-def test_smac_benchmarks_declare_swig():
+def test_bbob_benchmarks_do_not_build_smac_by_default():
+    """smac (and swig to build pyrfr) only come with HPO (issue #221)."""
     from iohblade.benchmarks.BBOB.bbob_sboxcost import BBOB_SBOX
     from iohblade.benchmarks.BBOB.mabbob import MA_BBOB
 
     for problem in (BBOB_SBOX(dims=[2]), MA_BBOB(dims=[2])):
-        deps = problem.dependencies
-        assert "swig" in deps and deps.index("swig") < len(deps)
+        deps = " ".join(problem.dependencies).lower()
+        assert "swig" not in deps and "smac" not in deps
+        assert "configspace" not in deps
 
 
 def test_install_failure_reports_both_installers(monkeypatch, tmp_path):
