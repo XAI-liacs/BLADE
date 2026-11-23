@@ -30,15 +30,36 @@ if TYPE_CHECKING:  # pragma: no cover
 
 RECORD_DIR = "blade_config"
 REDACTED = "<redacted>"
-_SECRET_KEY = re.compile(r"(api_?key|token|secret|password)", re.IGNORECASE)
+# A key is a credential if it is (or ends in) one of these words; camelCase is
+# split first, so ``apiKey`` and ``authToken`` match but ``max_tokens``,
+# ``tokenizer`` and ``token_limit`` do not.
+_SECRET_KEY = re.compile(
+    r"^(?:.*[_-])?(?:api[_-]?key|apikey|token|secret|password|passwd"
+    r"|secret[_-]?key|access[_-]?key|private[_-]?key)$",
+    re.IGNORECASE,
+)
+
+
+def is_secret_key(key: Any) -> bool:
+    """Whether a mapping key names a credential (``api_key``, ``*_token``, ...).
+
+    Matches ``api_key``/``apikey``, ``token``, ``secret``, ``password`` and
+    keys ending in ``_token``, ``_secret``, ``_password``, ``_api_key`` (also
+    with ``-`` or in camelCase), but not keys that merely contain such a word
+    (``max_tokens``, ``tokenizer``, ``token_limit``).
+    """
+    if not isinstance(key, str):
+        return False
+    snake = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", key)
+    return bool(_SECRET_KEY.match(snake))
 
 
 def redact(data: Any, secret_paths: set[tuple]) -> Any:
     """Copy of ``data`` with secrets replaced by ``<redacted>``.
 
     A value is a secret if it was read from the environment (its path is in
-    ``secret_paths``) or its key looks like a credential (api_key, token,
-    secret, password).
+    ``secret_paths``) or its key names a credential (see
+    :func:`is_secret_key`).
     """
 
     def walk(value, path):
@@ -47,7 +68,7 @@ def redact(data: Any, secret_paths: set[tuple]) -> Any:
         if isinstance(value, dict):
             out = {}
             for k, v in value.items():
-                if isinstance(k, str) and _SECRET_KEY.search(k) and v is not None:
+                if is_secret_key(k) and v is not None:
                     out[k] = REDACTED
                 else:
                     out[k] = walk(v, path + (k,))
