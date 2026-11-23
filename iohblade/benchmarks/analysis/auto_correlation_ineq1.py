@@ -56,7 +56,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
             if err is not None:
                 raise err
         except Exception as e:
-            solution = solution.set_scores(float("inf"), e)
+            solution = solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
         try:

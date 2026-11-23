@@ -10,11 +10,14 @@ from iohblade.solution import Solution
 
 class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
     r"""
-    Auto Correlation Inequality 1:
+    Auto Correlation Inequality 3:
         Takes 0 arugements, instantiates evaluator and base class with appropritate
         functionality.
-        Optimisation:
-            \[\max_t |||f*f||(t)| / (∫f)^2 \]
+        Optimisation (f may take negative values):
+            \[\min |\max_t (f*f)(t)| / (∫f)^2 \]
+        The absolute value is taken *outside* the max, as in the AlphaEvolve
+        paper (C3). Taking it inside, max_t |(f*f)(t)|, is the different
+        constant C3'.
         Best known auto-correlation 3 score by alpha evolve: is C_3 <= 1.4557 (prev 1.4581).
     """
 
@@ -30,7 +33,10 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
         )
         Problem.__init__(self, name=self.task_name)
 
-        self.task_prompt = self.make_task_prompt("minimize  max_t |(f*f)(t)| / (∫ f)^2")
+        self.task_prompt = self.make_task_prompt(
+            "minimize  |max_t (f*f)(t)| / (∫ f)^2 (absolute value of the maximum,"
+            " not the maximum of the absolute value)"
+        )
         self.example_prompt = self.make_example_prompt("AutoCorreCandidate_3")
         self.format_prompt = self.make_format_prompt()
 
@@ -62,7 +68,8 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
             if I == 0.0:
                 raise ValueError("Integral ∫f must be nonzero for C3")
 
-            score = float(np.max(np.abs(g)) / (I * I))  # minimize
+            # C3: |max_t g(t)| / I^2 (abs outside the max, not max |g|).
+            score = float(abs(np.max(g)) / (I * I))  # minimize
             if not np.isfinite(score):
                 raise ValueError(f"non-finite C3 ratio {score}")
             solution = solution.set_scores(

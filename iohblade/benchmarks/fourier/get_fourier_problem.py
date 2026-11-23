@@ -1,5 +1,8 @@
 from iohblade.benchmarks.fourier import UncertaintyInequality
 
+# AlphaEvolve construction (results notebook, section B.4): coefficients of
+# H_0, H_4 and H_8; the evaluator appends the H_12 coefficient that makes
+# P(0) = 0. Scores 0.3520991 (best known 0.3521).
 best_known_configuration = [
     0.3292519302257546,
     -0.01158510802599293,

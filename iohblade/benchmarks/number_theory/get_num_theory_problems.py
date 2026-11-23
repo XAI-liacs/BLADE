@@ -1,5 +1,9 @@
 from .sums_vs_differences import SumDifference
 
+# AlphaEvolve construction from the results notebook, section B.6
+# (``solution_1``): |U| = 2003, max(U) = 1,040,200; the evaluator scores it
+# c(U) = 1.147989. The paper's 1.1584 is for ``solution_2`` (54,265
+# elements), which does not fit within SumDifference's limits.
 best_solution = [
     0,
     110,

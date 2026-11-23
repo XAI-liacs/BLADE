@@ -14,6 +14,8 @@
 
 * **Target**: The AlphaEvolve result shows $C_5 \le 0.380924$ (previous best: $0.380927$).
 
+* **Discretisation**: a candidate returns the heights of a step function $f$ on $N$ equal bins of $[-1, 1]$ ($dx = 2/N$). Any length $1 \le N \le$ `max_bins` (default 100,000) is accepted; `n_bins` (default 800) is only the suggested resolution. The seed is the symmetric 95-step AlphaEvolve function (notebook B.5), which scores $0.3809230$.
+
 This is the continuous limit of the discrete minimum-overlap problem originally posed by Erdős in 1955.
 
 ## How a Candidate is Evaluated.

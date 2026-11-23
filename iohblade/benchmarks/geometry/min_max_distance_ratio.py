@@ -12,7 +12,7 @@ class MinMaxMinDistanceRatio(Problem):
     """
     Minimize (max_pairwise_distance / min_pairwise_distance)^2 for n points in R^d.
     We operate on squared distances to match the paper's reporting; score = ratio^2.
-    Best Known Score is: 12.889266 for 16 points in 2D and 4.1658 in 14 points 3D.
+    Best Known Score is: 12.889266112 for 16 points in 2D and 4.165849767 for 14 points in 3D.
     """
 
     def __init__(
@@ -29,14 +29,15 @@ class MinMaxMinDistanceRatio(Problem):
         self.tolerance = float(tolerance)
         self.best_solution = best_solution
 
-        # Guard against bad "best_solution."
-        if best_solution:
-            if len(best_solution) != self.n_points:
-                best_solution = None
+        # Guard against a bad "best_solution": drop it (on self, which is
+        # what the prompts and evaluate() use) if its shape does not match.
+        if self.best_solution is not None:
+            if len(self.best_solution) != self.n_points:
+                self.best_solution = None
 
-        if best_solution:
-            for point in best_solution:
-                if len(point) != dim:
+        if self.best_solution is not None:
+            for point in self.best_solution:
+                if len(point) != self.dim:
                     self.best_solution = None
                     break
 

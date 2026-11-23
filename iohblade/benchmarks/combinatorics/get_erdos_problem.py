@@ -1,6 +1,11 @@
 from iohblade.benchmarks.combinatorics import ErdosMinOverlap
 
-best_solution = [
+# Left half (48 step heights) of the AlphaEvolve construction, from section
+# B.5 of the AlphaEvolve results notebook. The full step function is
+# symmetric; the notebook builds it as concatenate((seq[:-1], seq[::-1])),
+# i.e. 95 heights on [-1, 1] (the middle height appears once). See
+# ``best_solution`` below; it scores 0.3809230 (best known 0.380924).
+best_solution_half = [
     0.0,
     0.0,
     0.0,
@@ -50,6 +55,10 @@ best_solution = [
     0.961270753,
     0.992409079,
 ]
+
+
+# Full symmetric 95-value seed, as constructed in the notebook (B.5).
+best_solution = best_solution_half[:-1] + best_solution_half[::-1]
 
 
 def get_combinatorics_problems(use_best: bool) -> list[ErdosMinOverlap]:

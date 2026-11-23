@@ -11,14 +11,14 @@ class NumberTheoryBase:
     which lower-bounds C6.
 
     Candidates must implement a class whose __call__() returns a finite U ⊂ ℤ≥0
-    with 0 ∈ U and |U| ≤ max_size.
+    with 0 ∈ U, |U| ≤ max_size and max(U) ≤ max_value.
     """
 
     def __init__(self, name, best_soluton: list[int] | None = None) -> None:
         self.task_name = name
         self.best_solution = best_soluton
 
-    def make_task_prompt(self, formula: str) -> str:
+    def make_task_prompt(self, formula: str, max_value: int = 2**21) -> str:
         # Single-set U specification; matches Appendix B.6, eq. (3).
         return textwrap.dedent(f"""
 - Write a Python class, with `__call__` method that CONSTRUCTS a finite integer set U.
@@ -26,6 +26,7 @@ class NumberTheoryBase:
     - U is non negative integer.
     - 0 is in U
     - |U| <= max_size passed to the class constructor.
+    - max(U) <= {max_value} (= 2**21).
 - Objective:
     - Maximize {formula}
         - where |U±U| are the cardinalities of the sum/difference sets and max(U) is the largest element of U.
@@ -38,14 +39,14 @@ class NumberTheoryBase:
     - Favor constructions with large |U−U| and small |U+U| while keeping max(U) modest.
     - Ensure 0 is included.
     - Keep integers non-negative.
-    - Respect max_size.
+    - Respect max_size and max(U) <= {max_value}.
     - Useful families to try:
         - greedy/Sidon-like sets,
         - Golomb-ruler style, block + gaps,
         - digital/bit-pattern constructions, unions of progressions, randomized hill-climbing.
 """)
 
-    def make_example_prompt(self, class_name: str) -> str:
+    def make_example_prompt(self, class_name: str, max_value: int = 2**21) -> str:
         # Minimal, valid example that returns a simple U.
         initialiser = """
     def __init__(self, max_size=100):
@@ -65,11 +66,11 @@ An example template of the program is:
 class {class_name}:{initialiser}
     def __call__(self):
         # Must return U ⊂ ℤ≥0 with 0 ∈ U, |U| ≤ self.max_size and
-        # max(U) ≤ 10**6.
+        # max(U) ≤ {max_value}.
         # Simple constructive baseline: start with 0, then add increasing gaps.
         U = [0]
         gap = 1
-        while len(U) < self.max_size and U[-1] + gap <= 10**6:
+        while len(U) < self.max_size and U[-1] + gap <= {max_value}:
             U.append(U[-1] + gap)
             gap += 1
         return U

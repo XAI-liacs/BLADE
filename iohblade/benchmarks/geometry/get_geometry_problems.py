@@ -7892,15 +7892,15 @@ def get_min_max_dist_ratio_problem(use_best: bool) -> list[MinMaxMinDistanceRati
     """
     if use_best:
         min_max_2D = MinMaxMinDistanceRatio(
-            16, 2, 12.889, best_solution=best_min_max_min_distance_2D
+            16, 2, 12.889266112, best_solution=best_min_max_min_distance_2D
         )
         min_max_3D = MinMaxMinDistanceRatio(
-            14, 3, 4.1658, best_solution=best_min_max_min_distance_3D
+            14, 3, 4.165849767, best_solution=best_min_max_min_distance_3D
         )
 
         return [min_max_2D, min_max_3D]
 
-    min_max_2D = MinMaxMinDistanceRatio(16, 2, 12.889)
-    min_max_3D = MinMaxMinDistanceRatio(14, 3, 4.1658)
+    min_max_2D = MinMaxMinDistanceRatio(16, 2, 12.889266112)
+    min_max_3D = MinMaxMinDistanceRatio(14, 3, 4.165849767)
 
     return [min_max_2D, min_max_3D]

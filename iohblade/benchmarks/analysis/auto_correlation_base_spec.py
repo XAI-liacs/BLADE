@@ -18,7 +18,7 @@ from iohblade.misc.prepare_namespace import prepare_namespace
         * Task which could be one of the following.
             * autocorr_ineq_1: minimise ‖f∗f‖₁
             * autocorr_ineq_2: minimise -||f*f||_2^2
-            * autocorr_ineq_3: minimise max(f*f)
+            * autocorr_ineq_3: minimise |max(f*f)| (f may be signed)
         * n_bins: Level of discretisation, number of bins in [-1/4, 1/4].
         * require_nonnegative, depending on the problem, it can be true or false.
             * autocorr_ineq_1: TRUE
@@ -40,7 +40,7 @@ class AutoCorrBaseSpec:
         * `task_name: str` Could be one of the following.
                 * autocorr_ineq_1: minimise ‖f∗f‖₁
                 * autocorr_ineq_2: maximise ||f*f||_2^2
-                * autocorr_ineq_3: minimise max(f*f)
+                * autocorr_ineq_3: minimise |max(f*f)| (f may be signed)
         * `n_bins` int: Level of discretisation, number of bins in [-1/4, 1/4], **MUST** be positive.
         * `best_known` float: Best known evaluation of the benchmark.
         * `best_solution` list[float]: Best known configuration of the benchmark.
@@ -152,10 +152,13 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             compiled_code = compile(code, name, "exec")
             exec(compiled_code, global_parameters, local_parameters)
             cls = local_parameters[name]
-            if self.best_solution:
+            if self.best_solution is not None:
+                # Seed the candidate with the best known configuration (the
+                # list of values), not with the best known score.
                 f = np.asarray(
-                    cls(best_known_configuration=self.best_known)(), dtype=np.float64
-                )  # Runs if class has __init__(self, best_known_solution)
+                    cls(best_known_configuration=list(self.best_solution))(),
+                    dtype=np.float64,
+                )  # Runs if class has __init__(self, best_known_configuration)
             else:
                 f = np.asarray(
                     cls()(), dtype=np.float64

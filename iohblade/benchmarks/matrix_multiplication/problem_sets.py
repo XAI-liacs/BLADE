@@ -18,14 +18,15 @@ except Exception:  # pragma: no cover - fallback for type checking only
         )
 
 
-def _max_rank_minus_1(n: int, m: int, p: int) -> int:
+def _target_rank(n: int, m: int, p: int) -> int:
     """Return the target rank for the <n,m,p> matrix-multiplication tensor.
 
     The target is the literature best-known rank from
-    ``constants.MATMUL_RANKS``, which is keyed by the sorted dimensions
-    (the rank of <n,m,p> does not depend on the order of n, m and p). Without
-    a table entry it falls back to ``n*m*p - 1``, one below the naive rank,
-    and a table entry is never allowed to exceed that fallback.
+    ``constants.MATMUL_RANKS`` (not that rank minus one), which is keyed by
+    the sorted dimensions (the rank of <n,m,p> does not depend on the order
+    of n, m and p). Without a table entry it falls back to ``n*m*p - 1``,
+    one below the naive rank, and a table entry is never allowed to exceed
+    that fallback.
     """
     naive_minus_1 = n * m * p - 1
     key: Tuple[int, int, int] = tuple(sorted((n, m, p)))  # type: ignore[assignment]
@@ -33,6 +34,11 @@ def _max_rank_minus_1(n: int, m: int, p: int) -> int:
     if info and "best_known" in info:
         return min(int(info["best_known"]), naive_minus_1)
     return naive_minus_1
+
+
+# Backwards-compatible alias: the old name suggested ``best_known - 1``, but
+# the function has always returned the best-known rank itself.
+_max_rank_minus_1 = _target_rank
 
 
 def default_problems() -> List[MatMulTensorDecomposition]:
@@ -109,7 +115,7 @@ def default_problems() -> List[MatMulTensorDecomposition]:
     ]
 
     problems = [
-        MatMulTensorDecomposition(n, m, p, grid=grid, rank=_max_rank_minus_1(n, m, p))
+        MatMulTensorDecomposition(n, m, p, grid=grid, rank=_target_rank(n, m, p))
         for (n, m, p) in sizes
     ]
     print(

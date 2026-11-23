@@ -78,8 +78,10 @@ benchmark registry to run problems. For matrix multiplication:
 
 1. **Problems and ranks (decremental)**
    [`problem_sets.py`](problem_sets.py) defines `default_problems()` and
-   sets the starting rank for each size via `_max_rank_minus_1(n,m,p)`, which
-   looks up the literature best-known rank from
+   sets the starting rank for each size via `_target_rank(n,m,p)` (old name
+   `_max_rank_minus_1`, kept as an alias), which looks up the literature
+   best-known rank (the rank itself, not one below it; values from Table 3 of
+   the AlphaEvolve paper) from
    [`constants.py`](constants.py) when available, i.e.
    `MATMUL_RANKS[tuple(sorted((n,m,p)))]['best_known']` (the rank does not
    depend on the order of the dimensions), capped at the naive `n*m*p - 1`.
