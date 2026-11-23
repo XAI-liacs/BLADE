@@ -233,6 +233,14 @@ def test_ellipsometry_reference_structure_is_seeded(photonics_module):
     np.testing.assert_allclose(a.x_ref, b.x_ref)
 
 
+def test_photonics_config_records_reference_seed(photonics_module):
+    problem = photonics_module.Photonics(
+        logger=None, problem_type="ellipsometry", reference_seed=7
+    )
+    assert problem.to_dict()["reference_seed"] == 7
+    assert problem.get_config()["config"]["reference_seed"] == 7
+
+
 @pytest.mark.parametrize(
     "problem_type, lower, upper",
     [("ellipsometry", 1e-8, 40.0), ("bragg", 0.1648, 1.0)],

@@ -243,6 +243,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "name": self.name,
             "problem_type": self.problem_type,
             "budget_factor": self.budget_factor,
+            "reference_seed": self.reference_seed,
         }
 
     def _rebuild_problem(self):
@@ -313,6 +314,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "config": {
                 "problem_type": self.problem_type,
                 "budget_factor": self.budget_factor,
+                "reference_seed": self.reference_seed,
                 "depencencies": self.dependencies,
                 "imports": self.imports,
             },
