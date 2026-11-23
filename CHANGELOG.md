@@ -93,6 +93,22 @@ see "Breaking changes" for the two exceptions.
   explicit dependencies (they were already installed through other
   packages). LLaMEA `operators` can be given as mappings with the fields
   of `llamea.Operator` (`prompt`, `name`, `weight`, `number_of_parents`).
+- **FunSearch (#216):** `iohblade.methods.FunSearch` (`type: funsearch`)
+  replaces the stub that raised `NotImplementedError`. It reimplements the
+  FunSearch programs database (Romera-Paredes et al., Nature 2024), after
+  the reference code and the LLM4AD port:
+  - islands of programs clustered by score;
+  - best-shot prompts with versions ordered worst to best;
+  - temperature-scheduled cluster sampling that prefers shorter programs;
+  - resets of the weaker half of the islands.
+
+  Resets are counted in evaluations rather than wall-clock time, so runs
+  are reproducible. It evaluates exactly `budget` solutions, respects
+  `problem.minimisation`, never keeps failed evaluations, and rejects
+  multi-objective fitness. Parameters: `num_islands`,
+  `programs_per_prompt`, `samples_per_prompt`, `reset_period`,
+  `temperature_init`, `temperature_period`. The old class name
+  `funsearch` still works.
 
 ### Bug fixes
 

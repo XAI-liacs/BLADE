@@ -216,7 +216,7 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
      - Evolution of Heuristics
      - `code <https://github.com/FeiLiu36/EoH>`_, `paper <https://arxiv.org/abs/2401.02051>`_
    * - **FunSearch**
-     - Google's GA-like algorithm
+     - Island-based evolution with best-shot prompts (reimplemented in BLADE, after the LLM4AD port)
      - `code <https://github.com/google-deepmind/funsearch>`_, `paper <https://www.nature.com/articles/s41586-023-06924-6>`_
    * - **ReEvo**
      - Large Language Models as Hyper-Heuristics with Reflective Evolution
@@ -227,9 +227,6 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
    * - **Monte Carlo Tree Search**
      - Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design
      - `code <https://github.com/zz1358m/MCTS-AHD-master/tree/main>`_, `paper <https://arxiv.org/abs/2501.08603>`_
-
-.. note::
-   ``FunSearch`` is currently not yet integrated.
 
 Supported LLM APIs
 ------------------
