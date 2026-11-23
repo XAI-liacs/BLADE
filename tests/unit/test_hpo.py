@@ -366,7 +366,9 @@ def test_automl_hpo_without_smac_is_a_harness_error(tmp_path, automl_module):
     root = str(Path(automl_module.__file__).resolve().parents[3])
     proc = subprocess.run(
         [sys.executable, str(script)],
-        env={"PYTHONPATH": os.pathsep.join([str(stubs), root])},
+        # Extend (not replace) the environment: on Windows the interpreter
+        # needs SYSTEMROOT etc. to start (WinError 10106 otherwise).
+        env={**os.environ, "PYTHONPATH": os.pathsep.join([str(stubs), root])},
         capture_output=True,
         text=True,
         timeout=300,
