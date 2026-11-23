@@ -1,8 +1,8 @@
-import sys
 import copy
-import types
 import datetime as _dt
 import pickle
+import sys
+import types
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -14,15 +14,15 @@ import pytest
 import iohblade.llm as llm_mod  # the module that defines _query
 from iohblade.llm import (
     LLM,
+    MLX_LM_LLM,
     Claude_LLM,
+    DeepSeek_LLM,
+    Dummy_LLM,
     Gemini_LLM,
+    LMStudio_LLM,
     NoCodeException,
     Ollama_LLM,
     OpenAI_LLM,
-    DeepSeek_LLM,
-    Dummy_LLM,
-    LMStudio_LLM,
-    MLX_LM_LLM,
 )
 
 
@@ -104,7 +104,7 @@ def test_llm_instantiation():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "Mock response"
-        
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -117,6 +117,7 @@ def test_llm_sample_solution_no_code_raises_exception():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "This has no code block"
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -131,6 +132,7 @@ def test_llm_sample_solution_good_code():
     class DummyLLM(LLM):
         def _query(self, session: list):
             return "# Description: MyAlgo\n```python\nclass MyAlgo:\n  pass\n```"
+
         def get_config(self) -> list[dict[str, Any]]:
             return [{}]
 
@@ -364,7 +366,7 @@ def test_ollama_llm_retries_then_succeeds(monkeypatch):
     llm_mod.ollama.Client.chat.assert_called_with(
         model=llm.model,
         messages=[{"role": "user", "content": "hi\n"}],
-        options = {}    # Options feature added.
+        options={},  # Options feature added.
     )
     slept.assert_called_once_with(10)
 
@@ -403,14 +405,10 @@ def test_ollama_llm_query_forwards_kwargs(monkeypatch):
     monkeypatch.setattr(llm_mod.ollama.Client, "chat", mocked_chat)
 
     session = [{"role": "user", "content": "Hello"}]
-    session_out = copy.deepcopy(session)    # Factoring long message combiner.
+    session_out = copy.deepcopy(session)  # Factoring long message combiner.
     session_out[0]["content"] += "\n"
     # Example kwargs to forward
-    extra_kwargs = {
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "num_ctx": 512
-    }
+    extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "num_ctx": 512}
 
     # Call _query with session and kwargs
     result = llm._query(session, **extra_kwargs)
@@ -420,10 +418,9 @@ def test_ollama_llm_query_forwards_kwargs(monkeypatch):
 
     # Assert the underlying chat function was called with correct arguments
     mocked_chat.assert_called_once_with(
-        model=llm.model,
-        messages=session_out,
-        options=extra_kwargs
+        model=llm.model, messages=session_out, options=extra_kwargs
     )
+
 
 def test_gemini_query_forwards_kwargs(monkeypatch):
     llm = Gemini_LLM(api_key="none", model="llamea-test")
@@ -433,7 +430,9 @@ def test_gemini_query_forwards_kwargs(monkeypatch):
     mocked_chat = MagicMock()
     mocked_chat.send_message.return_value.text = "OK"
 
-    monkeypatch.setattr(llm_mod.genai.client.Chats , "create", MagicMock(return_value=mocked_chat))
+    monkeypatch.setattr(
+        llm_mod.genai.client.Chats, "create", MagicMock(return_value=mocked_chat)
+    )
 
     session = [{"role": "user", "content": "Hello"}]
     extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "top_k": 12}
@@ -448,11 +447,10 @@ def test_gemini_query_forwards_kwargs(monkeypatch):
     # Assertions
     assert result == "OK"
     llm.client.chats.create.assert_called_once_with(
-        model="llamea-test",
-        history=[],
-        config=expected_config
+        model="llamea-test", history=[], config=expected_config
     )
     mocked_chat.send_message.assert_called_once_with("Hello")
+
 
 def test_openai_query_forwards_kwargs(monkeypatch):
     llm = OpenAI_LLM(api_key="whatup", model="llamea-test")
@@ -461,7 +459,7 @@ def test_openai_query_forwards_kwargs(monkeypatch):
     mock_response.choices = [MagicMock()]
     mock_response.choices[0].message.content = "OK"
     mocked_chat = MagicMock(return_value=mock_response)
-    monkeypatch.setattr(llm.client.chat.completions , "create", mocked_chat)
+    monkeypatch.setattr(llm.client.chat.completions, "create", mocked_chat)
 
     session = [{"role": "user", "content": "Hello"}]
     extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "top_k": 12}
@@ -476,13 +474,11 @@ def test_openai_query_forwards_kwargs(monkeypatch):
         extra_kwargs.pop("temperature")
 
     llm.client.chat.completions.create.assert_called_once_with(
-        model = "llamea-test",
-        messages=session,
-        temperature=temperature,
-        **extra_kwargs
+        model="llamea-test", messages=session, temperature=temperature, **extra_kwargs
     )
 
     assert llm.temperature == local_temperature
+
 
 def sample_solution_passes_kwargs(monkeypatch):
     class LLM_mock(LLM):
@@ -498,6 +494,7 @@ def sample_solution_passes_kwargs(monkeypatch):
 
     obj.query.assert_called_once_with(session_messages, **kwargs)
 
+
 def test_ollama_deep_copies(monkeypatch):
     llm1 = Ollama_LLM(model="llama-test")
     llm2 = copy.deepcopy(llm1)
@@ -511,14 +508,10 @@ def test_ollama_deep_copies(monkeypatch):
     monkeypatch.setattr(llm2.client, "chat", mocked_chat2)
 
     session = [{"role": "user", "content": "Hello"}]
-    session_out = copy.deepcopy(session)    # Factoring long message combiner.
+    session_out = copy.deepcopy(session)  # Factoring long message combiner.
     session_out[0]["content"] += "\n"
 
-    extra_kwargs = {
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "num_ctx": 512
-    }
+    extra_kwargs = {"temperature": 0.7, "top_p": 0.9, "num_ctx": 512}
 
     # Call _query with session and kwargs
     result = llm1._query(session, **extra_kwargs)
@@ -528,12 +521,11 @@ def test_ollama_deep_copies(monkeypatch):
 
     # Assert the underlying chat function was called with correct arguments
     mocked_chat1.assert_called_once_with(
-        model=llm1.model,
-        messages=session_out,
-        options=extra_kwargs
+        model=llm1.model, messages=session_out, options=extra_kwargs
     )
 
     mocked_chat2.assert_not_called()
+
 
 @pytest.fixture
 def fake_mlx_load(monkeypatch):
@@ -546,16 +538,14 @@ def fake_mlx_load(monkeypatch):
         print(calls)
         return llm, tokenizer
 
-    monkeypatch.setattr(
-        "iohblade.llm.load",
-        fake_load
-    )
+    monkeypatch.setattr("iohblade.llm.load", fake_load)
 
     return {
         "llm": llm,
         "tokenizer": tokenizer,
         "calls": calls,
     }
+
 
 class AlwaysFailLLM:
     def __init__(self):
@@ -565,8 +555,9 @@ class AlwaysFailLLM:
         self.calls += 1
         raise RuntimeError("LLM failure")
 
+
 class FakeTokenier:
-    def apply_chat_template(self, session, add_generation_prompt:bool):
+    def apply_chat_template(self, session, add_generation_prompt: bool):
         return session
 
 
@@ -583,13 +574,14 @@ def test_query_fails_only_after_max_tries(fake_mlx_load, monkeypatch):
     )
 
     # monkeypatch the internal llm and dependencies
-    monkeypatch.setattr('iohblade.llm.generate', failing_llm.generate)
+    monkeypatch.setattr("iohblade.llm.generate", failing_llm.generate)
     llm.tokenizer = mock_tokenizer
 
     result = llm._query([{"client": "hello"}], max_tries=3, add_generation_prompt=True)
 
     assert result == ""
     assert failing_llm.calls == 3
+
 
 def test_deepcopy_shares_llm_and_tokenizer(fake_mlx_load):
     llm = MLX_LM_LLM(
@@ -608,6 +600,7 @@ def test_deepcopy_shares_llm_and_tokenizer(fake_mlx_load):
     assert llm is not llm_copy
     assert llm.config == llm_copy.config
     assert llm.max_tokens == llm_copy.max_tokens
+
 
 def test_getstate_setstate_restores_llm_and_tokenizer(fake_mlx_load):
     llm = MLX_LM_LLM(
@@ -635,6 +628,7 @@ def test_getstate_setstate_restores_llm_and_tokenizer(fake_mlx_load):
     assert restored.llm is fake_mlx_load["llm"]
     assert restored.tokenizer is fake_mlx_load["tokenizer"]
 
+
 class AlwaysFailLMStudio:
     def __init__(self):
         self.calls = 0
@@ -653,6 +647,7 @@ class AlwaysSucceedLMStudio:
         self.calls += 1
         return self.response
 
+
 @pytest.fixture
 def fake_lms_llm(monkeypatch):
     calls = []
@@ -669,9 +664,11 @@ def fake_lms_llm(monkeypatch):
     monkeypatch.setitem(sys.modules, "llamea.llm.lms", lms)
 
     import iohblade.llm
+
     monkeypatch.setattr(iohblade.llm, "lms", lms, raising=False)
 
     return {"calls": calls}
+
 
 def test_lms_query_fails_only_after_max_tries(fake_lms_llm):
     llm = LMStudio_LLM(
@@ -691,6 +688,7 @@ def test_lms_query_fails_only_after_max_tries(fake_lms_llm):
     assert result == ""
     assert failing.calls == 3
 
+
 def test_lms_query_success_and_think_stripped(fake_lms_llm):
     llm = LMStudio_LLM(model="dummy", config=None)
 
@@ -704,6 +702,7 @@ def test_lms_query_success_and_think_stripped(fake_lms_llm):
     )
 
     assert result == "Hello!"
+
 
 def test_lms_deepcopy_shares_llm_instance(fake_lms_llm):
     llm = LMStudio_LLM(
@@ -720,6 +719,7 @@ def test_lms_deepcopy_shares_llm_instance(fake_lms_llm):
     assert llm is not llm_copy
     assert llm.model == llm_copy.model
     assert llm.config == llm_copy.config
+
 
 def test_lms_getstate_setstate_reloads_llm(fake_lms_llm):
     llm = LMStudio_LLM(
@@ -739,6 +739,7 @@ def test_lms_getstate_setstate_reloads_llm(fake_lms_llm):
     assert restored.model == llm.model
     assert restored.config == llm.config
     assert hasattr(restored, "llm")
+
 
 def _claude_response(blocks, stop_reason="end_turn"):
     resp = MagicMock()

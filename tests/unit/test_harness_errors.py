@@ -4,11 +4,7 @@ import textwrap
 import numpy as np
 import pytest
 
-from iohblade.problem import (
-    HARNESS_ERROR_PREFIX,
-    _build_eval_script,
-    _eval_pythonpath,
-)
+from iohblade.problem import HARNESS_ERROR_PREFIX, _build_eval_script, _eval_pythonpath
 from iohblade.solution import Solution
 from iohblade.utils import HarnessError
 

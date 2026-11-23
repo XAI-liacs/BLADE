@@ -1,13 +1,13 @@
-import json
 import inspect
+import json
 import textwrap
-from typing import Any
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace
 
 
 @dataclass
@@ -215,13 +215,13 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
-            VariableType,
+            ComplexityTag,
             NoiseType,
             ObjectiveType,
+            PrimaryCategories,
             StructureTag,
-            ComplexityTag,
+            VariableType,
         )
 
         tags: list[Any] = [

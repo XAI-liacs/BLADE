@@ -2,34 +2,34 @@ import ast
 import json
 import math
 import os
-import textwrap
 import random
 import re
+import textwrap
 import time
 import traceback
 from typing import Any
-from sklearn.impute import SimpleImputer
-from sklearn.preprocessing import OrdinalEncoder
+
 import numpy as np
+import openml
 import pandas as pd
 import sklearn
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
-import openml
 from ConfigSpace import Configuration, ConfigurationSpace
-from smac import AlgorithmConfigurationFacade, Scenario
-
-from iohblade.tags import PrimaryCategories, Benchmark
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
     accuracy_score,
     f1_score,
+    mean_absolute_error,
     roc_auc_score,
     root_mean_squared_error,
-    mean_absolute_error,
 )
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OrdinalEncoder
+from smac import AlgorithmConfigurationFacade, Scenario
+
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.tabpfn_utils import VALID_TABPFN_MODES
+from iohblade.tags import Benchmark, PrimaryCategories
 
 VALID_TABPFN_EVAL_SOURCES = ("env", "pip")
 

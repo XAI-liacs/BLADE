@@ -1,12 +1,11 @@
-import math
 import inspect
+import math
 import textwrap
+from typing import Any, Optional
 
-from typing import Optional, Any
-
+from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace
 
 
 class SphericalCode(Problem):
@@ -175,11 +174,11 @@ one-line description, describing the main idea. Give the response in the format:
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
             PrimaryCategories,
             StructureTag,
-            ObjectiveType,
-            NoiseType,
-            Benchmark,
             VariableType,
         )
 

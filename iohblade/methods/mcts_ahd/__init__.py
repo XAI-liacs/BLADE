@@ -1,3 +1,4 @@
+# isort: skip_file  (import order resolves circular imports; keep it)
 from .mcts import MCTS_Method, MCTS
 
 __all__ = [

@@ -1,6 +1,6 @@
 # Development plan: YAML-defined experiments
 
-Status: proposal · Scope: `iohblade` ≥ 1.2
+Status: implemented in `iohblade` 1.2.0 (#195–#199 and the Phase 5 PR) · Scope: `iohblade` ≥ 1.2
 
 ## 1. Goal
 

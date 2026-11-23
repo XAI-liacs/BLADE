@@ -10,6 +10,8 @@ Commands:
     iohblade schema [-o file]          Print the JSON schema of the YAML format.
     iohblade cache list|clear          Show or delete cached evaluation
                                        environments.
+    iohblade skill [dir]               Install the BLADE skill for coding
+                                       agents (default: .claude/skills).
 
 Exit codes: 0 success, 1 runs or checks failed, 2 invalid configuration or
 usage, 3 an evaluation environment could not be built.
@@ -123,6 +125,21 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("schema", help="Print the JSON schema of the YAML format.")
     p.add_argument("-o", "--output", help="Write the schema to this file.")
+
+    p = sub.add_parser(
+        "skill",
+        help="Install the BLADE skill for coding agents (Claude Code, ...).",
+    )
+    p.add_argument(
+        "directory",
+        nargs="?",
+        default=".claude/skills",
+        help=(
+            "Skills folder of your agent; the skill is written to "
+            "<directory>/blade (default: .claude/skills)."
+        ),
+    )
+    p.add_argument("--force", action="store_true", help="Overwrite existing files.")
     return parser
 
 
@@ -313,6 +330,25 @@ def _cmd_schema(args) -> int:
     return EXIT_OK
 
 
+def _cmd_skill(args) -> int:
+    from .agent_skill import install_skill
+
+    try:
+        files = install_skill(args.directory, force=args.force)
+    except FileExistsError as e:
+        print(str(e), file=sys.stderr)
+        return EXIT_CONFIG
+    print("Installed the BLADE skill:")
+    for path in files:
+        print(f"  {path}")
+    print(
+        "\nAsk your coding agent, e.g. 'Set up a BLADE experiment for my "
+        "problem'.\nOther agents: pass their skills folder, e.g. "
+        "`iohblade skill .agents/skills`."
+    )
+    return EXIT_OK
+
+
 _COMMANDS = {
     "check": _cmd_check,
     "init": _cmd_init,
@@ -321,6 +357,7 @@ _COMMANDS = {
     "run": _cmd_run,
     "list": _cmd_list,
     "schema": _cmd_schema,
+    "skill": _cmd_skill,
 }
 
 

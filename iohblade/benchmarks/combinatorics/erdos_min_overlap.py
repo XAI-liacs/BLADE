@@ -1,16 +1,17 @@
 import builtins
+import importlib
+import inspect
+import json
 import math
 import random
-import inspect
-import importlib
 import textwrap
 from typing import Any
-import numpy as np
-import json
 
+import numpy as np
+
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
 
 
 class ErdosMinOverlap(Problem):

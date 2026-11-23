@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import inspect
 import textwrap
-
 from typing import Any
 
 from iohblade.fitness import Fitness
@@ -195,9 +194,9 @@ class ToyMultiObjective(Problem):
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             NoiseType,
             ObjectiveType,
+            PrimaryCategories,
             VariableType,
         )
 

@@ -15,7 +15,7 @@
     <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
   </a>
   <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
-  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+" height="18">
+  <img src="https://img.shields.io/badge/Python-3.11.5+-blue" alt="Python 3.11.5+" height="18">
   <a href="https://codecov.io/gh/XAI-liacs/BLADE" >
     <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/>
   </a>
@@ -29,6 +29,7 @@
 - [Introduction](#introduction)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+  - [Using BLADE with a coding agent](#using-blade-with-a-coding-agent)
 - [Webapp](#-webapp)
 - [AlphaEvolve Benchmarks](#alphaevolve-benchmarks)
 - [Contributing](#-contributing)
@@ -37,15 +38,29 @@
 
 ## 🔥 News
 
+- 2026.11 ✨✨ **BLADE v1.2.0**: define experiments in YAML, use your own problems and methods without writing an experiment script, and check an experiment before spending LLM time (`iohblade init / validate / check / run`).
 - 2025.03 ✨✨ **BLADE v0.0.1 released**!
 
 
 ## Introduction
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs). It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
+**The recommended way to use BLADE is a YAML experiment file and the `iohblade` command.** You describe which LLMs, methods and problems to use (built-in ones by name, your own as a Python file), and BLADE validates the file, smoke-tests it without LLM calls, and runs it:
+
+```bash
+uv run iohblade init my-exp                       # starter experiment.yml
+uv run iohblade validate my-exp/experiment.yml    # every mistake, with its line number
+uv run iohblade check my-exp/experiment.yml       # smoke test, no LLM calls
+uv run iohblade run my-exp/experiment.yml         # run (rerun to resume)
+```
+
+The Python API remains available for scripting and for building new methods and problems.
+
 
 ### Features
 
+- **Experiments as configuration:** a YAML file and the `iohblade` command (`init`, `validate`, `check`, `run`) replace experiment scripts, including for your own problems and methods.
+- **Agent-ready:** a bundled skill (`iohblade skill`) lets coding agents such as Claude Code set up and run experiments for you.
 - **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
 - **LLM-Driven Evaluation:** Supports algorithm evolution and design using large language models.
 - **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison.
@@ -58,6 +73,7 @@ to the implementation location and corresponding documentation entry.
 
 | Feature | Implementation | Documentation |
 |---|---|---|
+| Experiments from YAML, `iohblade` command | `iohblade/config/`, `iohblade/cli.py` | `docs/yaml_experiments.rst` |
 | Experiment orchestration | `iohblade/experiment.py` | `docs/experiment.rst` |
 | Problems and benchmark wrapping | `iohblade/problem.py`, `iohblade/benchmarks/` | `docs/problem.rst`, `docs/benchmarks.rst` |
 | Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch helper) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
@@ -66,6 +82,8 @@ to the implementation location and corresponding documentation entry.
 | Baselines | `iohblade/baselines/` | `docs/baselines.rst` |
 | Plotting and analysis helpers | `iohblade/plots.py`, `iohblade/behaviour_metrics.py` | `docs/plots.rst`, `docs/behaviour_metrics.rst` |
 | Streamlit result browser | `iohblade/webapp.py` | `docs/webapp.rst` |
+| Component registry (names of built-in problems, methods, LLMs, loggers) | `iohblade/registry.py` | `docs/registry.rst` |
+| Cached evaluation environments | `iohblade/envs.py` | `docs/yaml_experiments.rst` |
 | Utility helpers and exceptions | `iohblade/utils.py` | `docs/utils.rst` |
 
 #### Included Benchmark Function Sets
@@ -206,16 +224,49 @@ make sure you have `uv` installed.
 
 ## 💻 Quick Start
 
-1. Set up an API key for your preferred provider:
-   - Obtain an API key from [OpenAI](https://openai.com/), Claude, Gemini, or another LLM provider.
-   - Set the API key in your environment variables:
+1. Choose an LLM:
+   - **Local, no API key:** install [Ollama](https://ollama.com/) and pull a model,
+     e.g. `ollama pull qwen2.5-coder:14b` (the examples below use this one).
+   - **Hosted:** obtain an API key from [OpenAI](https://openai.com/), Claude,
+     Gemini, or another provider and set it in your environment:
      ```bash
      export OPENAI_API_KEY='your_api_key_here'
      ```
 
-2. Running an Experiment
+2. Define and run an experiment in YAML (recommended)
 
-    To run a benchmarking experiment using BLADE:
+    ```bash
+    uv run iohblade init my-exp            # starter experiment.yml (+ --template custom-problem / custom-method)
+    uv run iohblade validate my-exp/experiment.yml   # checks the configuration, runs nothing
+    uv run iohblade check my-exp/experiment.yml      # smoke test without LLM calls
+    uv run iohblade run my-exp/experiment.yml        # run (rerun to resume)
+    ```
+
+    A configuration names the LLMs, methods and problems. This one uses the
+    local Ollama model from step 1; to use OpenAI instead, uncomment the `gpt`
+    entry and set `llm: gpt` in the methods:
+
+    ```yaml
+    experiment: {output_dir: results/SBOX, runs: 5, budget: 50}
+    llms:
+      qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
+      # gpt: {provider: openai, model: gpt-4o, api_key: "${env:OPENAI_API_KEY}"}
+    methods:
+      - {type: random_search, name: "RS-{llm}", llm: qwen}
+      - {type: llamea, name: "LLaMEA-{llm}", llm: qwen, params: {n_parents: 4, n_offspring: 12, elitism: false}}
+    problems:
+      - type: bbob_sbox
+        name: SBOX_COST
+        params: {dims: [5], budget_factor: 2000, specific_group: 1}
+    ```
+
+    Your own problems and methods are linked with `type: custom`, `source:` and
+    `class:`. See the [YAML guide](https://xai-liacs.github.io/BLADE/yaml_experiments.html),
+    the tutorials, and `examples/configs/`.
+
+3. Or use the Python API (for scripting)
+
+    The same experiment written in Python:
 
     ```python
     import os
@@ -244,6 +295,24 @@ make sure you have `uv` installed.
     experiment() #run the experiment, all data is logged in the folder results/SBOX/
     ```
 
+    The same experiment can also be loaded from YAML in Python:
+    `Experiment.from_yaml("experiment.yml")`.
+
+### Using BLADE with a coding agent
+
+BLADE ships a skill that teaches coding agents (Claude Code and other agents
+that read `SKILL.md` skills) to set up, check and run experiments. Install it
+into your project and ask, for example, *"Set up a BLADE experiment that
+compares LLaMEA and random search on my problem in `my_problem.py`"*:
+
+```bash
+uv run iohblade skill                    # writes .claude/skills/blade/
+uv run iohblade skill .agents/skills     # or the skills folder of another agent
+```
+
+In a clone of this repository the skill is already available in
+`.claude/skills/blade/`.
+
 ### Trackio logging
 
 To mirror results to a [Trackio](https://github.com/gradio-app/trackio) dashboard,
@@ -268,14 +337,18 @@ After running experiments you can browse them using the built-in Streamlit app:
 uv run iohblade-webapp
 ```
 
-The app lists available experiments from the `results` directory, displays their progress, and shows convergence plots.
+The app lists available experiments from the `results` directory and shows,
+per experiment, the status of every run (best fitness, failed evaluations),
+the resolved configuration, the experiment log and convergence plots.
 
 ---
 
 ## 💻 Examples
 
 
-See the files in the `examples` folder for examples on experiments and visualisations.
+Start with `examples/configs/`: YAML experiments on built-in benchmarks and with a custom
+problem (`uv run iohblade validate examples/configs/custom_problem.yml`). The `examples`
+folder also has Python scripts and notebooks for experiments and visualisations.
 
 ---
 

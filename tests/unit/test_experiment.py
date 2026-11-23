@@ -54,6 +54,7 @@ class EvalProblem(Problem):
     def get_config(self) -> dict[str, Any]:
         return {}
 
+
 def test_ma_bbob_experiment_init(cleanup_tmp_dir):
     class DummyMethod(Method):
         def __call__(self, problem):
@@ -174,6 +175,7 @@ def test_experiment_log_stdout(cleanup_tmp_dir):
 
         def _ensure_env(self):
             return None
+
         def get_config(self) -> dict[str, Any]:
             return {}
 
@@ -243,6 +245,7 @@ def test_experiment_logs_problem_eval_stdout(cleanup_tmp_dir):
     with open(os.path.join(run_dir, "stderr.log")) as f:
         assert "eval err" in f.read()
 
+
 def test_experiment_logs_configuration(cleanup_tmp_dir):
     class EvalMethod(Method):
         def __call__(self, problem):
@@ -276,23 +279,29 @@ def test_experiment_logs_configuration(cleanup_tmp_dir):
         exp_logger=ExperimentLogger(os.path.join(cleanup_tmp_dir, "exp_eval")),
     )
     exp()
-    path = os.path.join(cleanup_tmp_dir, 'exp_eval', 'run-m-l-p-0')
+    path = os.path.join(cleanup_tmp_dir, "exp_eval", "run-m-l-p-0")
 
-    assert os.path.exists(os.path.join(path, 'method.json'))
-    assert os.path.exists(os.path.join(path, 'llm.json'))
-    assert os.path.exists(os.path.join(path, 'problem.json'))
+    assert os.path.exists(os.path.join(path, "method.json"))
+    assert os.path.exists(os.path.join(path, "llm.json"))
+    assert os.path.exists(os.path.join(path, "problem.json"))
 
     ## Check ids are genenrated:
     with open(os.path.join(path, "method.json")) as f:
         data = json.load(f)
-        assert data.get('hash') is not None, "method.json wasn't hashed, set it's 'id' as Experiment._get_hash(method.get_config)."
+        assert (
+            data.get("hash") is not None
+        ), "method.json wasn't hashed, set it's 'id' as Experiment._get_hash(method.get_config)."
     with open(os.path.join(path, "llm.json")) as f:
         data = json.load(f)
         for llm_instance in data:
-            assert llm_instance.get('hash') is not None, "llm.json wasn't hashed, set it's 'id' as Experiment._get_hash(llm.get_config)."
+            assert (
+                llm_instance.get("hash") is not None
+            ), "llm.json wasn't hashed, set it's 'id' as Experiment._get_hash(llm.get_config)."
     with open(os.path.join(path, "problem.json")) as f:
         data = json.load(f)
-        assert data.get('hash') is not None, "problem.json wasn't hashed, set it's 'id' as Experiment._get_hash(problem.get_config)."
+        assert (
+            data.get("hash") is not None
+        ), "problem.json wasn't hashed, set it's 'id' as Experiment._get_hash(problem.get_config)."
 
 
 @pytest.mark.parametrize(
@@ -374,9 +383,7 @@ def test_failed_run_is_recorded_and_others_continue(tmp_path, error):
         assert ok["end_time"] is not None and "error" not in ok
         # Failed runs stay pending, so a rerun retries them.
         assert broken["end_time"] is None
-        assert (
-            f"{type(error).__name__}: screener failed to load" in broken["error"]
-        )
+        assert f"{type(error).__name__}: screener failed to load" in broken["error"]
         with open(os.path.join(root, broken["log_dir"], "error.txt")) as f:
             trace = f.read()
         assert "Traceback" in trace and "screener failed to load" in trace
@@ -384,5 +391,5 @@ def test_failed_run_is_recorded_and_others_continue(tmp_path, error):
         assert len(f.readlines()) == 2  # only the successful runs
     llm_name = exp.exp_logger._get_clean_llm_model_name(llm)
     assert exp.exp_logger.is_run_pending(
-        BrokenMethod(llm, 1, name="broken"),  llm_name, NoEnvProblem(name="p"), 0
+        BrokenMethod(llm, 1, name="broken"), llm_name, NoEnvProblem(name="p"), 0
     )

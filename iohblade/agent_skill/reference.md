@@ -1,0 +1,207 @@
+# BLADE experiment reference
+
+Full guide: https://xai-liacs.github.io/BLADE/yaml_experiments.html.
+`iohblade schema` prints the JSON schema; `iohblade list` the built-in keys.
+
+## Contents
+- [Fields](#fields)
+- [Built-in components](#built-in-components)
+- [Custom problem](#custom-problem)
+- [Custom method](#custom-method)
+- [Custom LLM](#custom-llm)
+- [LLaMEA operators](#llamea-operators)
+- [Python API](#python-api)
+- [Troubleshooting](#troubleshooting)
+
+## Fields
+
+```yaml
+version: 1                       # optional
+experiment:
+  output_dir: results            # required; an existing directory is resumed
+  name: my-experiment
+  runs: 5                        # independent runs per method x problem
+  seeds: [1, 2, 3]               # explicit unique seeds (instead of runs)
+  budget: 100                    # solutions per run; default budget of every method
+  n_jobs: 1                      # runs in parallel
+  show_stdout: false
+  log_stdout: false
+  log_level: INFO                # DEBUG | INFO | WARNING | ERROR
+  logger: {type: file, params: {}}   # file | mlflow | trackio
+  env_cache: true                # share evaluation virtualenvs between problems
+  isolated_pythonpath: false     # evaluation sees only iohblade + dependencies
+llms:
+  <name>:
+    provider: ollama             # see `iohblade list llms`; custom for your own
+    model: "qwen2.5-coder:14b"
+    api_key: "${env:OPENAI_API_KEY}"
+    llms: [a, b]                 # only for provider: multi
+    params: {}                   # extra constructor arguments
+methods:
+  - type: llamea                 # see `iohblade list methods`; custom for your own
+    name: "LLaMEA-{llm}"
+    llm: qwen                    # or a list of LLM names
+    budget: 50                   # overrides experiment.budget
+    params: {}                   # constructor arguments
+problems:
+  - type: circle_packing         # one problem; see `iohblade list problems`
+    name: CirclePacking
+    params: {}
+    smoke_test_solution: reference_solution.py   # used by `iohblade check`
+    dependencies: []             # pip requirements for the evaluation env
+  - suite: unit_square_packing   # or a suite: several problems, no `name`
+    params: {get_best: false}    # most suites take use_best or get_best: start from the best-known solution
+```
+
+- `params` are checked against the component's constructor; unknown or
+  missing parameters are reported by `validate`. Strings are converted to
+  enum values where a parameter expects an enum.
+- `${env:NAME}` and `${env:NAME:-default}` read the environment or a
+  `.env` file next to the YAML file. Quote them inside `[...]`/`{...}`.
+- `--set dotted.path=value` overrides any value on the command line,
+  e.g. `--set methods.0.budget=20`.
+
+## Built-in components
+
+Run `iohblade list` for the current list. To see the parameters of a
+component, print its constructor signature and docstring:
+
+```bash
+python -c "import inspect; from iohblade.registry import registry as r; c = r.resolve('problem', 'circle_packing'); print(inspect.signature(c)); help(c)"
+```
+
+(`'method'`, `'suite'`, `'llm'` or `'logger'` for other kinds.) LLaMEA
+forwards extra `params` to `llamea.LLaMEA`, so its options (`n_parents`,
+`n_offspring`, `elitism`, `operators`, ...) are documented there. Some
+components need extra packages; `iohblade list` shows how to install them.
+
+## Custom problem
+
+```yaml
+problems:
+  - type: custom
+    source: my_problem.py          # or a package folder; "submodule:Class" for class
+    class: MyProblem
+    params: {dim: 5}
+    dependencies: [scipy>=1.11]    # also read from requirements.txt / pyproject.toml next to it
+    smoke_test_solution: reference_solution.py
+```
+
+Start from `iohblade init DIR -t custom-problem`. The class:
+
+```python
+from iohblade.problem import Problem
+from iohblade.solution import Solution
+
+class MyProblem(Problem):
+    def __init__(self, dim=5, name="MyProblem"):
+        super().__init__(name=name, eval_timeout=60)   # seconds per evaluation
+        self.dim = dim
+        self.minimisation = False                       # BLADE maximises by default
+        self.task_prompt = "Write a Python class ..."   # what the LLM must write
+        self.example_prompt = "An example:\n```python\n...\n```\n"  # working code!
+        self.format_prompt = "Give the full class in one ```python code block.\n"
+
+    def evaluate(self, solution: Solution) -> Solution:
+        # exec solution.code, run it, then:
+        solution.set_scores(fitness, "feedback text shown to the LLM")
+        return solution
+
+    def test(self, solution): return self.evaluate(solution)
+    def to_dict(self): return {"dim": self.dim}
+    def get_config(self):
+        return {"tags": [], "name": self.name, "prompt": self.get_prompt(),
+                "minimisation": self.minimisation, "config": self.to_dict()}
+```
+
+Rules:
+- `evaluate()` runs in a separate virtualenv with `dependencies`; the
+  problem object is created in BLADE's own process. Import
+  evaluation-only packages inside `evaluate()`.
+- Execute the candidate's code only inside `evaluate()`. An exception
+  before `solution.code` is used counts as a harness error.
+- The code block in `example_prompt` (or `smoke_test_solution`) must be a
+  working solution: `iohblade check` evaluates it.
+- The source folder is on the evaluation `PYTHONPATH`, so data files and
+  helper modules next to it work. Don't name the file like an installed
+  module (`validate` warns).
+
+## Custom method
+
+```yaml
+methods:
+  - type: custom
+    source: my_method.py
+    class: MyMethod
+    name: "MyMethod-{llm}"
+    llm: qwen
+    params: {}
+```
+
+```python
+from iohblade.method import Method
+
+class MyMethod(Method):
+    def __init__(self, llm, budget, name="MyMethod"):
+        super().__init__(llm, budget, name)
+
+    def __call__(self, problem):
+        prompt = [{"role": "user", "content": problem.get_prompt()}]
+        best = problem(self.llm.sample_solution(prompt))   # problem(...) evaluates
+        for _ in range(self.budget - 1):
+            ...  # build a prompt from best.code / best.feedback, sample, evaluate
+        return best
+
+    def to_dict(self): return {"name": self.name, "budget": self.budget}
+    def get_config(self): return {"name": self.name, "config": {}}
+```
+
+Compare fitness respecting `problem.minimisation`. Methods run in BLADE's
+own environment: install what they import there. Start from
+`iohblade init DIR -t custom-method`.
+
+## Custom LLM
+
+`provider: custom` with `source` and `class`: a subclass of
+`iohblade.llm.LLM` that implements `_query(self, session, **kwargs)`
+(`session` is a list of `{"role": ..., "content": ...}` messages; return
+the reply text) and `get_config()` (a list with one
+`{"model": ..., "config": {...}}` dict per model).
+
+## LLaMEA operators
+
+```yaml
+- type: llamea
+  llm: qwen
+  params:
+    n_parents: 2
+    n_offspring: 2
+    elitism: true
+    operators:
+      - {name: refine, prompt: "Refine the strategy of the selected solution.", weight: 0.7, number_of_parents: 1}
+      - {name: crossover, prompt: "Combine the two selected solutions into a better one.", weight: 0.3, number_of_parents: 2}
+```
+
+`prompt` is required; `number_of_parents` must not exceed `n_parents`.
+
+## Python API
+
+`from iohblade.experiment import Experiment; Experiment.from_yaml("experiment.yml")()`
+runs a YAML file from Python. Scripts that start BLADE themselves must set
+`multiprocessing.set_start_method("spawn", force=True)` first.
+
+## Troubleshooting
+
+| Symptom | Cause and fix |
+|---|---|
+| `Unknown field 'x'. Did you mean 'y'?` | Typo; follow the suggestion |
+| `Unknown parameter 'x' for problem 'p'` | Not a constructor argument; read the class signature |
+| `Unknown problem type` | Use a key from `iohblade list problems` |
+| Missing package for a method/LLM | Install it in BLADE's environment (`validate` names it) |
+| Environment build fails (exit 3) | See `<output_dir>/env-errors/`; fix `dependencies`; add `swig`/`cmake` for source builds; `iohblade cache clear` for a corrupt cache |
+| `[FAIL] problem ...` in `check` | Harness or reference solution broken; fix the problem code |
+| `[FAIL] method ...` in `check` | Method crashes with a valid solution; fix the method |
+| `check --llm` fails | Wrong key, model name or server not running (`ollama serve`) |
+| Run stops with `HarnessError` | 3 harness errors in a row; see the run's `error.txt` and `run.log` |
+| Mostly `c`/`t` errors | Generated code fails or is slow: clarify prompts, give a working example, raise `eval_timeout` |
+| Resumed run warns the configuration changed | Previous record kept as `blade_config-<timestamp>/`; use a new `output_dir` for a different experiment |

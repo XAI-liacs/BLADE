@@ -1,19 +1,17 @@
-from iohblade.solution import Solution
 from iohblade.methods.moeh_method.population import Population
+from iohblade.solution import Solution
+
 
 def test_population_accepts_valid_solution():
     s = Solution()
 
-    s.set_scores(
-        0.72,
-        "Scored 0.72, best known solution is 0.912."
-    )
+    s.set_scores(0.72, "Scored 0.72, best known solution is 0.912.")
 
     p = Population(10, True)
     p.append(s)
 
     assert len(p) == 1
-    
+
 
 def test_population_rejects_invalid_solution():
     s = Solution()
@@ -24,6 +22,7 @@ def test_population_rejects_invalid_solution():
 
     assert len(p) == 0
 
+
 def test_population_selection_matrix():
     p = Population(3, True)
     solutions = [Solution("ABC"), Solution("ABD"), Solution("BATMAN")]
@@ -33,10 +32,11 @@ def test_population_selection_matrix():
 
     for solution in solutions:
         p.append(solution)
-    
+
     next_gen = p.parent_selection(2, True)
     for individual in next_gen:
         assert individual in p
+
 
 def test_population_management():
     p = Population(3, True)
@@ -47,12 +47,12 @@ def test_population_management():
 
     for solution in solutions:
         p.append(solution)
-    
+
     sorted_population = p.population_management(True)
     solutions = sorted(solutions, key=lambda x: x.fitness)
     for i in range(len(solutions)):
         ref_dict = solutions[i].__dict__
         source_dict = sorted_population[i].__dict__
         for key in source_dict:
-            if key != 'id':
+            if key != "id":
                 assert source_dict[key] == ref_dict[key]

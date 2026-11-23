@@ -8,7 +8,6 @@ from iohblade.benchmarks.toy_multiobjective import ToyMultiObjective
 from iohblade.fitness import Fitness
 from iohblade.solution import Solution
 
-
 _GOOD_CODE = """\
 import numpy as np
 

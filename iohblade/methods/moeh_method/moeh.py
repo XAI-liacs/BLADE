@@ -1,15 +1,14 @@
-import random
 import inspect
+import random
 from typing import Any
 
 from iohblade.llm import LLM
 from iohblade.method import Method
+from iohblade.methods.moeh_method.mutationtype import MutationType
+from iohblade.methods.moeh_method.population import Population
+from iohblade.methods.moeh_method.prompts import MoEH_Prompts
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-
-from iohblade.methods.moeh_method.prompts import MoEH_Prompts
-from iohblade.methods.moeh_method.population import Population
-from iohblade.methods.moeh_method.mutationtype import MutationType
 
 
 class MoEH:

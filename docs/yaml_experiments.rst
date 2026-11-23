@@ -1,9 +1,9 @@
 Experiments from YAML
 =====================
 
-An experiment can be described in a YAML file instead of a Python script.
-The file names the LLMs, methods and problems to use, and BLADE builds and
-runs the experiment:
+The recommended way to define a BLADE experiment is a YAML file. It names
+the LLMs, methods and problems to use, and BLADE builds and runs the
+experiment:
 
 .. code-block:: bash
 
@@ -12,8 +12,9 @@ runs the experiment:
     uv run iohblade check my-exp/experiment.yml     # smoke test, no LLM calls
     uv run iohblade run my-exp/experiment.yml       # run (or resume) it
 
-Python scripts keep working as before; the YAML file is another way to
-create the same :class:`~iohblade.experiment.Experiment`.
+The YAML file creates the same :class:`~iohblade.experiment.Experiment` as
+the Python API, which remains available for scripting
+(``Experiment.from_yaml(path)`` loads a file from Python).
 
 Example
 -------
@@ -327,13 +328,30 @@ All problems in a file are reported at once, with the line they refer to:
 ``iohblade`` exits with code 0 on success, 1 if runs failed and 2 for an
 invalid configuration.
 
+Coding agents
+-------------
+
+``iohblade skill [folder]`` installs a skill (``SKILL.md`` plus a
+reference) that teaches coding agents to write, validate, check and run
+these files; the default folder ``.claude/skills`` is where Claude Code
+looks. The BLADE repository has it in ``.claude/skills/blade/``.
+
 Editor support
 --------------
 
-``uv run iohblade schema -o experiment.schema.json`` writes a JSON schema
-of the format. Editors with YAML language support (e.g. VS Code with the
-YAML extension) use it for completion and checking when the YAML file
-starts with ``# yaml-language-server: $schema=experiment.schema.json``.
+Editors with YAML language support (e.g. VS Code with the YAML extension) give
+completion, descriptions and checks for the configuration when its first line
+points at the JSON schema of the format:
+
+.. code-block:: yaml
+
+    # yaml-language-server: $schema=https://xai-liacs.github.io/BLADE/experiment.schema.json
+
+The schema is published with the documentation (the version of the latest
+release; ``.../BLADE/main/experiment.schema.json`` follows the development
+version). ``uv run iohblade schema -o experiment.schema.json`` writes it for
+your installed version, which ``iohblade init`` also does next to the
+generated ``experiment.yml``.
 
 Python API
 ----------

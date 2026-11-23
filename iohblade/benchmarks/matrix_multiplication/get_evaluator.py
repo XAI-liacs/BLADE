@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
-
 from typing import TYPE_CHECKING, Any, Callable, Optional, Tuple
 
 import numpy as np
 
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.solution import Solution
 
 # Type hint only - not imported at runtime

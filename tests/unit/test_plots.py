@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+
 import iohblade
 
 # Adjust imports to match your actual package structure
@@ -330,10 +331,10 @@ def test_pareto_front_mask_basic():
     xs = np.array([3.0, 2.0, 0.0, 1.0])
     ys = np.array([0.0, 1.0, 3.0, 0.5])
     mask = _pareto_front_mask(xs, ys)  # maximisation=True by default
-    assert mask[0]       # (3.0, 0.0) – non-dominated
-    assert mask[1]       # (2.0, 1.0) – non-dominated
-    assert mask[2]       # (0.0, 3.0) – non-dominated
-    assert not mask[3]   # (1.0, 0.5) – dominated by (2.0, 1.0)
+    assert mask[0]  # (3.0, 0.0) – non-dominated
+    assert mask[1]  # (2.0, 1.0) – non-dominated
+    assert mask[2]  # (0.0, 3.0) – non-dominated
+    assert not mask[3]  # (1.0, 0.5) – dominated by (2.0, 1.0)
 
 
 def test_pareto_front_mask_dominated():
@@ -342,8 +343,8 @@ def test_pareto_front_mask_dominated():
     ys = np.array([0.0, 1.0, 0.5])
     # With minimisation=False: (0.5, 0.5) is dominated by (0.0, 0.0)
     mask = _pareto_front_mask(xs, ys, maximisation=False)
-    assert mask[0]       # (0.0, 0.0) is non-dominated
-    assert not mask[2]   # (0.5, 0.5) is dominated by (0.0, 0.0)
+    assert mask[0]  # (0.0, 0.0) is non-dominated
+    assert not mask[2]  # (0.5, 0.5) is dominated by (0.0, 0.0)
 
 
 def test_plot_convergence_multiobjective(mock_mo_logger):

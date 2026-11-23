@@ -1,11 +1,12 @@
 import inspect
-import numpy as np
 from typing import Any
 
-from iohblade.problem import Problem
-from iohblade.solution import Solution
+import numpy as np
+
 from iohblade.benchmarks.packing.packing_base import PackingBase
 from iohblade.misc.prepare_namespace import prepare_namespace
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 class RectanglePacking(PackingBase, Problem):
@@ -155,7 +156,7 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
         return self.__dict__
 
     def get_config(self) -> dict[str, Any]:
-        from iohblade.tags import Benchmark, VariableType, StructureTag
+        from iohblade.tags import Benchmark, StructureTag, VariableType
 
         evaluator = inspect.getsource(self.evaluate)
 

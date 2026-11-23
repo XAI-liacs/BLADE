@@ -1,15 +1,14 @@
-import re
 import math
 import random
+import re
 from typing import Any
 
 from iohblade.llm import LLM
-from iohblade.problem import Problem
-from iohblade.solution import Solution
 from iohblade.method import Method
-
 from iohblade.methods.lhns.prompt import Prompt
 from iohblade.methods.lhns.taboo_table import TabooTable
+from iohblade.problem import Problem
+from iohblade.solution import Solution
 
 
 class LHNS:

@@ -1,9 +1,9 @@
-import re
-import os
+import inspect
 import json
 import math
+import os
 import random
-import inspect
+import re
 import textwrap
 import time
 import traceback
@@ -330,11 +330,11 @@ from kernel_tuner.strategies.wrapper import OptAlg
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
+            Benchmark,
+            NoiseType,
+            ObjectiveType,
             PrimaryCategories,
             StructureTag,
-            ObjectiveType,
-            NoiseType,
-            Benchmark,
             VariableType,
         )
 

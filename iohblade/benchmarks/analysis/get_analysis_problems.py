@@ -1,5 +1,7 @@
 from typing import Optional
+
 from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2, AutoCorrIneq3
+
 from .auto_correlation_base_spec import AutoCorrBaseSpec
 
 ac1_best = [

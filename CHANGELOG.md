@@ -1,9 +1,31 @@
 # Changelog
 
-## Unreleased
+## v1.2.0 (unreleased)
+
+Changes since [v1.1.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.1).
+Experiments can now be defined in YAML and run with the new `iohblade`
+command, including your own problems and methods, with checks and error
+reports that point at the cause. Python scripts written for 1.1 keep working;
+see "Breaking changes" for the two exceptions.
+
+### Breaking changes
+
+- Python >= 3.11.5 is required (was 3.11), because `llamea>=1.4.3` requires it.
+- A run now stops with `HarnessError` after 3 consecutive evaluations that
+  fail before the generated code is used (a broken problem or environment),
+  instead of spending its whole budget. `problem.max_harness_errors = None`
+  restores the old behaviour.
 
 ### Major changes
 
+- **Skill for coding agents:** `iohblade skill [folder]` installs a skill
+  (`SKILL.md` and `reference.md`, default `.claude/skills/blade/`) that
+  teaches coding agents such as Claude Code to set up, validate, check and
+  run BLADE experiments. The repository has a copy in `.claude/skills/blade/`.
+- **Documentation** (#194): tutorials for a custom problem and a custom
+  method, the YAML guide, and the JSON schema published at
+  `https://xai-liacs.github.io/BLADE/experiment.schema.json` for editor
+  completion. The README quick start shows the YAML and the Python route.
 - **Error reporting and logs** (#193):
   - Experiments no longer call `logging.disable(logging.CRITICAL)`. All log
     messages, including library output and Python warnings, go to

@@ -1,11 +1,12 @@
-import os
 import inspect
+import math
+import os
 import textwrap
 import traceback
 from typing import Any
+
 import ioh
 import numpy as np
-import math
 import pandas as pd
 from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
@@ -318,9 +319,9 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             NoiseType,
             ObjectiveType,
+            PrimaryCategories,
             VariableType,
         )
 

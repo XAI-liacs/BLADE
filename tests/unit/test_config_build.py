@@ -352,14 +352,17 @@ def test_example_configs_are_valid(path):
     assert plan.n_runs > 0
 
 
-def test_checked_in_schema_is_up_to_date():
+@pytest.mark.parametrize(
+    "relative",
+    ["examples/configs/experiment.schema.json", "docs/_extra/experiment.schema.json"],
+)
+def test_checked_in_schema_is_up_to_date(relative):
     import json
 
-    path = Path(__file__).parents[2] / "examples" / "configs" / "experiment.schema.json"
-    assert json.loads(path.read_text()) == json_schema(), (
-        "Regenerate with: uv run iohblade schema -o "
-        "examples/configs/experiment.schema.json"
-    )
+    path = Path(__file__).parents[2] / relative
+    assert (
+        json.loads(path.read_text()) == json_schema()
+    ), f"Regenerate with: uv run iohblade schema -o {relative}"
 
 
 def _llamea(params, llm="a"):

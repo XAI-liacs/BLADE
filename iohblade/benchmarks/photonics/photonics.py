@@ -1,5 +1,5 @@
-import os
 import inspect
+import os
 import textwrap
 import traceback
 from typing import Any
@@ -10,14 +10,14 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
-from iohblade.problem import BASE_DEPENDENCIES, Problem
-from iohblade.solution import Solution
-from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
 from iohblade.benchmarks.photonics.photonics_instances import (
     algorithmic_insights,
     get_photonic_instance,
     problem_descriptions,
 )
+from iohblade.problem import BASE_DEPENDENCIES, Problem
+from iohblade.solution import Solution
+from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
 
 
 class Photonics(Problem):
@@ -262,12 +262,12 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
     def get_config(self) -> dict[str, Any]:
         from iohblade.tags import (
-            PrimaryCategories,
             Benchmark,
             NoiseType,
             ObjectiveType,
-            VariableType,
+            PrimaryCategories,
             StructureTag,
+            VariableType,
         )
 
         evaluator = inspect.getsource(self.evaluate)

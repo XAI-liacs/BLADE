@@ -1,9 +1,9 @@
-import textwrap
 import inspect
-from typing import Optional, Any
+import textwrap
+from typing import Any, Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
-from iohblade.misc.prepare_namespace import prepare_namespace, clean_local_namespace
+from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 
 

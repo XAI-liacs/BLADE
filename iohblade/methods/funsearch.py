@@ -1,8 +1,8 @@
+from typing import Any
+
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
-
-from typing import Any
 
 # import funsearch
 

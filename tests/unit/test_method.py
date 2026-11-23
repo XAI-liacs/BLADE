@@ -1,17 +1,19 @@
+import os
+import shutil
+import sys
 from typing import Any
 from unittest.mock import MagicMock
 
-import sys
-import os
 import pytest
-import shutil
+
+from iohblade.experiment import Experiment
 from iohblade.llm import LLM
+from iohblade.loggers.base import ExperimentLogger
 from iohblade.method import Method
 from iohblade.methods.random_search import RandomSearch
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.experiment import Experiment
-from iohblade.loggers.base import ExperimentLogger
+
 
 @pytest.fixture
 def cleanup_tmp_dir():
@@ -23,6 +25,7 @@ def cleanup_tmp_dir():
     # Cleanup
     if os.path.exists(dirname):
         shutil.rmtree(dirname)
+
 
 def test_random_search_calls_llm():
     class DummyLLM(LLM):
@@ -77,7 +80,11 @@ def test_experiment_hashes_method_as_id(cleanup_tmp_dir):
             return super().to_dict()
 
         def get_config(self) -> dict[str, Any]:
-            return {"name": "Dummy Prompt", "evaluator": "def f(x):\n\treturn 42.0", "minimisation": True}
+            return {
+                "name": "Dummy Prompt",
+                "evaluator": "def f(x):\n\treturn 42.0",
+                "minimisation": True,
+            }
 
     class DummyMethod(Method):
         def __call__(self, problem):
@@ -90,7 +97,6 @@ def test_experiment_hashes_method_as_id(cleanup_tmp_dir):
 
         def get_config(self) -> dict[str, Any]:
             return {}
-
 
     llm = DummyLLM("", "")
     method = DummyMethod(llm, 1, name="m")
@@ -105,7 +111,7 @@ def test_experiment_hashes_method_as_id(cleanup_tmp_dir):
     hash2 = exp._get_hash(problem.get_config())
     assert hash1 == hash2, "Hashes of same config files must match..."
     config = problem.get_config()
-    config['prompt'] = "some prompt"
+    config["prompt"] = "some prompt"
     hash3 = exp._get_hash(config)
     assert hash1 != hash3, "Hashes of different problem must differ..."
     print(hash1, hash2, hash3)

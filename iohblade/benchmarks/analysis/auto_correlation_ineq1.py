@@ -1,11 +1,11 @@
 import inspect
-import numpy as np
-
 from typing import Any
 
+import numpy as np
+
+from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 from iohblade.problem import Problem
 from iohblade.solution import Solution
-from iohblade.benchmarks.analysis.auto_correlation_base_spec import AutoCorrBaseSpec
 from iohblade.tags import Benchmark, PrimaryCategories, StructureTag
 
 
