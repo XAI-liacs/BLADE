@@ -7,6 +7,7 @@ import traceback
 from types import SimpleNamespace
 from typing import Any
 
+from ..fitness import from_minimised, to_minimised
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
@@ -153,8 +154,14 @@ class ReEvo(Method):
             reevo.function_evals += 1
             raw_code = individual.get("code")
             if raw_code is None:
+                # No code in the response: invalid (ReEvo minimises, so inf).
+                # ReEvo still reads the code of an all-invalid population.
+                individual["code"] = ""
                 individual["exec_success"] = False
-                individual["obj"] = ((-1) ** int(not minimisation)) * float("inf")
+                individual["obj"] = float("inf")
+                population[response_id] = reevo.mark_invalid_individual(
+                    individual, "No code found in the response."
+                )
                 continue
             individual["code"] = _normalize_code_snippet(raw_code)
             solution = Solution(
@@ -165,16 +172,18 @@ class ReEvo(Method):
             )
             solution = problem(solution)
 
-            if solution.error != "":
-                # If the solution has an error, we mark it as invalid.
+            objective = to_minimised(solution.fitness, minimisation)
+            if solution.error != "" or objective == float("inf"):
+                # An error or a failed evaluation (non-finite fitness): invalid.
                 individual["exec_success"] = False
                 individual["obj"] = float("inf")
                 population[response_id] = reevo.mark_invalid_individual(
-                    individual, solution.error
+                    individual,
+                    solution.error or solution.feedback or "Invalid fitness.",
                 )
                 continue
-            # Re-Evo always minimizes. (while BLADE problems are maximization)
-            individual["obj"] = ((-1) ** int(not minimisation)) * solution.fitness
+            # ReEvo always minimises; to_minimised negates maximised fitness.
+            individual["obj"] = objective
 
             individual["exec_success"] = True
             population[response_id] = individual
@@ -223,7 +232,13 @@ class ReEvo(Method):
         code = _normalize_code_snippet(code)
         name = first_class_name(code) or "AlgorithmName"
         sol = Solution(code=code, name=name)
-        sol.set_scores(abs(reevo.best_obj_overall), "", "")
+        sol.set_scores(
+            from_minimised(
+                reevo.best_obj_overall, getattr(problem, "minimisation", False)
+            ),
+            "",
+            "",
+        )
         return sol
 
     def to_dict(self):

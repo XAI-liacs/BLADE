@@ -1,6 +1,11 @@
 from iohblade.mcts_node import MCTS_Node
 
 
+def _direction(maximisation: bool) -> str:
+    """'higher' or 'lower': which objective values are better."""
+    return "higher" if maximisation else "lower"
+
+
 class MCTS_Prompts:
     """
     An extension of `iohblade.Problem` instanced that adds necessary prompt mutation in algorithm including
@@ -42,7 +47,12 @@ class MCTS_Prompts:
 
     @classmethod
     def get_prompt_e1(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
+        cls,
+        task_prompt,
+        example_prompt,
+        format_prompt,
+        indivs: list[MCTS_Node],
+        maximisation: bool = True,
     ):
         prompt_indiv = (
             "\n".join(
@@ -62,7 +72,9 @@ class MCTS_Prompts:
             + str(len(indivs))
             + " existing algorithms with their codes as follows: \n\n"
             + prompt_indiv
-            + "Please create a new algorithm that has a totally different form from the given algorithms. Try generating codes with different structures, flows or algorithms. The new algorithm should have a relatively low objective value, will adhering to following contract. \n"
+            + "Please create a new algorithm that has a totally different form from the given algorithms. Try generating codes with different structures, flows or algorithms. The new algorithm should have a good objective value ("
+            + _direction(maximisation)
+            + " is better), while adhering to the following contract. \n"
             + task_prompt
             + example_prompt
             + format_prompt
@@ -72,7 +84,12 @@ class MCTS_Prompts:
 
     @classmethod
     def get_prompt_e2(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
+        cls,
+        task_prompt,
+        example_prompt,
+        format_prompt,
+        indivs: list[MCTS_Node],
+        maximisation: bool = True,
     ):
         prompt_indiv = "\n".join(
             list(
@@ -96,7 +113,9 @@ Has objective Value {item[1].fitness}.
             + str(len(indivs))
             + " existing algorithms with their codes and objective values as follows: \n\n"
             + prompt_indiv
-            + f"Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have a objective value lower than both algorithms.\n"
+            + f"Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have a better objective value than both algorithms ("
+            + _direction(maximisation)
+            + " is better).\n"
             f"Firstly, list the common ideas in the No.{1} algorithm that may give good performances. Secondly, based on the common idea, describe the design idea based on the No.{len(indivs)} algorithm and main steps of your algorithm in one sentence. \
 The description must be inside a brace. Thirdly, reply with a response adhering to following contract. Make sure only the final code is in code block. \
 '"
@@ -146,7 +165,12 @@ Please identify the main algorithm parameters and help me in creating a new algo
 
     @classmethod
     def get_prompt_s1(
-        cls, task_prompt, example_prompt, format_prompt, indivs: list[MCTS_Node]
+        cls,
+        task_prompt,
+        example_prompt,
+        format_prompt,
+        indivs: list[MCTS_Node],
+        maximisation: bool = True,
     ):
         prompt_indiv = ""
         for i in range(len(indivs)):
@@ -168,7 +192,9 @@ Please identify the main algorithm parameters and help me in creating a new algo
             + str(len(indivs))
             + " existing algorithms with their codes and objective values as follows: \n\n"
             + prompt_indiv
-            + f"Please help me create a new algorithm that is inspired by all the above algorithms with its objective value lower than any of them.\n"
+            + f"Please help me create a new algorithm that is inspired by all the above algorithms with an objective value better than any of them ("
+            + _direction(maximisation)
+            + " is better).\n"
             "Firstly, list some ideas in the provided algorithms that are clearly helpful to a better algorithm. Secondly, based on the listed ideas, describe the design idea and main steps of your new algorithm in one sentence.\n"
             "Respond in adherance to following contract: "
         )

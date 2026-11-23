@@ -613,7 +613,7 @@ def test_selection_exapnds_root_nodes(monkeypatch):
     llm = DummyLLM()
     problem = DummyProblem()
 
-    def is_never_fully_expanded(max_children: int):
+    def is_never_fully_expanded(max_children: int, *args, **kwargs):
         return False
 
     mcts_instance = MCTS(llm, problem, 10)
@@ -635,10 +635,10 @@ def test_selection_exapnds_non_root(monkeypatch):
     llm = DummyLLM()
     problem = DummyProblem()
 
-    def is_never_fully_expanded(max_children: int):
+    def is_never_fully_expanded(max_children: int, *args, **kwargs):
         return False
 
-    def is_always_fully_expanded(max_children: int):
+    def is_always_fully_expanded(max_children: int, *args, **kwargs):
         return True
 
     mcts_instance = MCTS(llm, problem, 40)

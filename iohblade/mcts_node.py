@@ -82,23 +82,33 @@ class MCTS_Node(Solution):
     def is_leaf(self):
         return len(self.children) == 0
 
-    def is_less_fit_than(self, other: MCTS_Node):
+    def is_less_fit_than(self, other: MCTS_Node, maximisation: bool = True):
+        """Whether this node's Q is worse than ``other``'s.
+
+        Args:
+            other: The node to compare with.
+            maximisation: The optimisation direction (higher Q is better
+                when True).
+        """
         if self.Q is None or other.Q is None:
             return False
-        return self.Q < other.Q
+        return self.Q < other.Q if maximisation else self.Q > other.Q
 
-    def is_fully_expanded(self, max_children: int) -> bool:
+    def is_fully_expanded(self, max_children: int, maximisation: bool = True) -> bool:
         """
         Check for completion of progressive Widening (Page 3: https://arxiv.org/pdf/2501.08603).
 
         ## Args:
         `max_children: int`: User defined upper limit of sub-tree width.
+        `maximisation: bool`: The optimisation direction.
 
         ## Returns:
         `bool`: Truth value of whether upper limit is reach or not.
         """
         return (
             len(self.children) >= max_children
-            or any(self.is_less_fit_than(child) for child in self.children)
+            or any(
+                self.is_less_fit_than(child, maximisation) for child in self.children
+            )
             or self.is_root
         )

@@ -331,7 +331,23 @@ def evaluate_in_subprocess(problem, conn, solution):
 class Problem(ABC):
     """
     Abstract problem class.
+
+    Attributes:
+        minimisation (bool): Whether lower fitness is better. Subclasses set
+            it in their constructor; the default is maximisation.
     """
+
+    minimisation: bool = False
+
+    def failure_fitness(self) -> float:
+        """Fitness given to a failed evaluation: the worst possible value.
+
+        ``inf`` for a minimisation problem, ``-inf`` otherwise, so a timeout
+        or crash can never be mistaken for a good solution.
+        """
+        from .fitness import worst_fitness
+
+        return worst_fitness(bool(getattr(self, "minimisation", False)))
 
     def __init__(
         self,
@@ -421,7 +437,7 @@ class Problem(ABC):
         if self.logger != None:
             if self.logger.budget_exhausted():
                 solution.set_scores(
-                    -np.inf,
+                    self.failure_fitness(),
                     feedback="Budget is exhausted.",
                     error="Budget is exhausted.",
                 )
@@ -477,7 +493,7 @@ class Problem(ABC):
                         err = result["error"]
                         harness_error = bool(result.get("harness_error"))
                         solution.set_scores(
-                            -np.inf,
+                            self.failure_fitness(),
                             feedback=err,
                             error=err,
                         )
@@ -487,7 +503,7 @@ class Problem(ABC):
                             solution = data
                         elif isinstance(data, str):
                             solution.set_scores(
-                                -np.inf,
+                                self.failure_fitness(),
                                 feedback=data,
                                 error=data,
                             )
@@ -499,7 +515,7 @@ class Problem(ABC):
                     solution = result
                 elif isinstance(result, str):
                     solution.set_scores(
-                        -np.inf,
+                        self.failure_fitness(),
                         feedback=result,
                         error=result,
                     )
@@ -512,7 +528,7 @@ class Problem(ABC):
             if harness_error:
                 msg = HARNESS_ERROR_PREFIX + msg
             solution.set_scores(
-                -np.inf,
+                self.failure_fitness(),
                 feedback=msg,
                 error=msg,
             )

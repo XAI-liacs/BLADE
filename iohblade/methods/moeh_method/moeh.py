@@ -161,7 +161,10 @@ class MoEH:
 
             case MutationType.E2:
                 prompt = MoEH_Prompts.get_prompt_e2(
-                    self.problem.example_prompt, self.problem.format_prompt, pop
+                    self.problem.example_prompt,
+                    self.problem.format_prompt,
+                    pop,
+                    maximisation=not self.minimisation,
                 )
                 solution = self._sample_solution(prompt, pop)
                 return solution

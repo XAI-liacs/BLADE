@@ -1,5 +1,6 @@
 from typing import Any
 
+from ..fitness import is_better
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
@@ -35,8 +36,10 @@ class RandomSearch(Method):
                 [{"role": "client", "content": problem.get_prompt()}]
             )
             solution = problem(solution)
-            if best_solution is None or (
-                (solution.fitness > best_solution.fitness) != self.minimisation
+            # Keep the first solution, then only strict improvements; failed
+            # evaluations (non-finite fitness) never replace a valid best.
+            if best_solution is None or is_better(
+                solution.fitness, best_solution.fitness, self.minimisation
             ):
                 best_solution = solution
         return best_solution

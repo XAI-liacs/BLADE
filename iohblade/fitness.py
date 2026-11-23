@@ -103,3 +103,72 @@ class Fitness:
     def __repr__(self) -> str:
         parts = ", ".join(f"{k}: {v}" for k, v in self._fitness.items())
         return parts if parts else "Fitness()"
+
+
+def _is_finite(value) -> bool:
+    """Whether a scalar or every objective of a :class:`Fitness` is finite."""
+    if value is None:
+        return False
+    if isinstance(value, Fitness):
+        vector = value.to_vector()
+        return bool(vector) and all(_finite_number(v) for v in vector)
+    return _finite_number(value)
+
+
+def _finite_number(value) -> bool:
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def is_better(candidate, incumbent, minimisation: bool = False) -> bool:
+    """Whether fitness ``candidate`` is strictly better than ``incumbent``.
+
+    A non-finite fitness (a failed evaluation, NaN, ``None``) is never
+    better, and any finite fitness is better than a non-finite incumbent.
+    Multi-objective :class:`Fitness` values are compared by Pareto
+    dominance.
+
+    Args:
+        candidate: Fitness of the new solution (float or Fitness).
+        incumbent: Fitness to beat (float, Fitness or None).
+        minimisation: Whether lower values are better.
+
+    Returns:
+        bool: True if ``candidate`` should replace ``incumbent``.
+    """
+    if not _is_finite(candidate):
+        return False
+    if not _is_finite(incumbent):
+        return True
+    if minimisation:
+        return bool(candidate < incumbent)
+    return bool(candidate > incumbent)
+
+
+def worst_fitness(minimisation: bool = False) -> float:
+    """The worst possible scalar fitness: ``inf`` when minimising, else ``-inf``."""
+    return math.inf if minimisation else -math.inf
+
+
+def to_minimised(fitness, minimisation: bool = False) -> float:
+    """Convert a scalar BLADE fitness to an objective that is minimised.
+
+    For wrapping libraries that always minimise (EoH, ReEvo): the fitness is
+    negated when the problem maximises, and a failed evaluation (non-finite
+    or non-numeric fitness) becomes ``inf``, the worst objective.
+    """
+    if not _finite_number(fitness):
+        return math.inf
+    value = float(fitness)
+    return value if minimisation else -value
+
+
+def from_minimised(objective, minimisation: bool = False) -> float:
+    """Inverse of :func:`to_minimised`; non-finite objectives become the
+    worst fitness for the problem's direction."""
+    if not _finite_number(objective):
+        return worst_fitness(minimisation)
+    value = float(objective)
+    return value if minimisation else -value
