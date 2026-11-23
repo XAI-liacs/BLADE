@@ -248,13 +248,24 @@ Reproducibility
   ``--set`` overrides, with API keys, tokens and values read from the
   environment replaced by ``<redacted>``;
 * ``sources/``: a copy of every custom source, and ``sources.json`` with
-  their SHA-256 hashes.
+  their SHA-256 hashes and paths (relative to the configuration file, so the
+  experiment folder can be moved).
 
 Each run's ``problem.json`` / ``method.json`` / ``llm.json`` of a custom
 component contains a ``custom_source`` entry with the source path, class
 and hash. If you resume an experiment after changing its configuration or
 custom code, the previous record is kept as ``blade_config-<timestamp>/``
 and a warning is printed.
+
+Resuming identifies runs by method name, problem name and seed. An existing
+``output_dir`` can be resumed with the same runs, or with more of them
+(higher ``runs``, more ``seeds``, another method or problem): finished runs
+are skipped and the new ones start. If the configuration leaves out runs
+that are recorded there (fewer ``runs`` or ``seeds``, a renamed or removed
+method or problem), ``iohblade run`` stops with exit code 2 before writing
+anything, and says which runs differ; use a new ``output_dir`` or restore
+the previous settings. ``iohblade run --dry-run`` shows what resuming would
+do.
 
 LLaMEA operators
 ----------------
@@ -306,6 +317,26 @@ Secrets and environment variables
 put in a ``.env`` file next to the YAML file (the environment takes
 precedence). Inside ``[...]`` or ``{...}`` such values must be quoted.
 
+A value that is exactly one placeholder, written without quotes, gets the
+type of its text, as if it had been written in the file:
+``n_parents: ${env:NP:-4}`` is the integer 4, ``elitism: ${env:ELITISM}``
+with ``ELITISM=false`` is ``False``. Everything else stays a string: quoted
+values (``api_key: "${env:OPENAI_API_KEY}"``), placeholders inside a longer
+string, values of credential keys (``api_key``, ``token``, ``*_token``,
+``*_secret``, ``*_password``) and configurations passed to
+:func:`~iohblade.config.load_plan` as a dict. Quote API keys, so a key that
+happens to look like a number stays text.
+
+The ``.env`` file follows the usual (python-dotenv) rules:
+
+.. code-block:: bash
+
+    # comment lines and blank lines are skipped
+    export OPENAI_API_KEY=sk-abc     # "export " is optional; " #" starts a comment
+    GOOGLE_API_KEY="xyz # not a comment"   # quoted values end at the closing quote
+    PROMPT="line one\nline two"     # double quotes support \n and \" escapes
+    RAW='no $escapes\n here'         # single quotes are literal
+
 Overriding values
 -----------------
 
@@ -314,8 +345,15 @@ tests:
 
 .. code-block:: bash
 
-    uv run iohblade run experiment.yml --set experiment.runs=1 --set methods.0.budget=2
+    uv run iohblade run experiment.yml --set experiment.runs=1 --set methods.0.budget=2 \
+        --set experiment.output_dir=results/quick-test
     uv run iohblade run experiment.yml --dry-run    # only show the planned runs
+
+Give a quick test its own ``output_dir``: an existing results folder can only
+be resumed with the same or more runs (see `Reproducibility`_).
+``${env:...}`` works in ``--set`` values too, e.g.
+``--set methods.0.params.n_parents=${env:NP}`` (quote the value,
+``--set 'llms.x.api_key="${env:KEY}"'``, to keep it a string).
 
 Error messages
 --------------
@@ -363,7 +401,10 @@ Python API
 
     from iohblade.experiment import Experiment
 
-    experiment = Experiment.from_yaml("experiment.yml", overrides=["experiment.runs=1"])
+    experiment = Experiment.from_yaml(
+        "experiment.yml",
+        overrides=["experiment.runs=1", "experiment.output_dir=results/quick-test"],
+    )
     experiment()
 
     from iohblade.config import load_plan

@@ -57,7 +57,8 @@ Follow these steps in order; do not start `run` before `validate` and
    LLM. Use `check --llm` once to test keys and model names.
 7. **Trial run** before the full one:
    `iohblade run FILE --set experiment.runs=1 --set experiment.budget=4`
-   (with a different `output_dir`, e.g. `--set experiment.output_dir=results/trial`).
+   `--set experiment.output_dir=results/trial` (always a separate
+   `output_dir`: an existing one only resumes with the same or more runs).
 8. **Full run**: `iohblade run FILE`. Long runs: tell the user the command
    rather than blocking on it, or run it in the background. Rerunning
    resumes.

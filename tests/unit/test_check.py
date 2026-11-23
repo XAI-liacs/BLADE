@@ -261,8 +261,16 @@ def test_dry_run_reports_resume_state(tmp_path, capsys):
     text = capsys.readouterr().out
     assert "1 of 2 runs already finished" in text and "Warning" not in text
 
+    # Adding runs to an existing output directory is supported (#208).
     cli.main(["run", str(path), "--dry-run", "--set", "experiment.runs=3"])
-    assert "resuming will fail" in capsys.readouterr().out
+    text = capsys.readouterr().out
+    assert "1 of 3 runs already finished" in text
+    assert "1 are new in this configuration" in text and "seed 2" in text
+
+    # Leaving out recorded runs is not.
+    cli.main(["run", str(path), "--dry-run", "--set", "experiment.runs=1"])
+    text = capsys.readouterr().out
+    assert "Cannot resume" in text and "seed 1" in text
 
     (out / "progress.json").write_text("{broken")
     cli.main(["run", str(path), "--dry-run"])

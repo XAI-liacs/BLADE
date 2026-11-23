@@ -17,8 +17,10 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import re
 import shutil
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -98,6 +100,53 @@ def _version() -> str:
         return "unknown"
 
 
+def _relative_source(path: Path, base_dir: Path) -> str:
+    """``path`` relative to the configuration folder (POSIX separators).
+
+    Relative paths keep the record valid when the experiment folder is moved;
+    a path that cannot be made relative (another drive) stays absolute.
+    """
+    try:
+        return Path(os.path.relpath(path, base_dir)).as_posix()
+    except ValueError:  # pragma: no cover - different drive on Windows
+        return Path(path).as_posix()
+
+
+def _comparable_hashes(hashes: Any, base_dir: Path) -> dict[str, tuple]:
+    """``module -> (relative source or None, sha256)`` of a ``sources.json``.
+
+    Records written by older versions hold absolute paths; those are made
+    relative to ``base_dir`` when they lie inside it, and otherwise only
+    their hash is compared (the folder may have been moved since).
+    """
+    out: dict[str, tuple] = {}
+    if not isinstance(hashes, dict):
+        return out
+    for module, entry in hashes.items():
+        if not isinstance(entry, dict):
+            continue
+        source = entry.get("source")
+        if isinstance(source, str) and Path(source).is_absolute():
+            try:
+                source = Path(source).relative_to(base_dir).as_posix()
+            except ValueError:
+                source = None
+        out[module] = (source, entry.get("sha256"))
+    return out
+
+
+def _same_sources(previous: Any, current: dict, base_dir: Path) -> bool:
+    old = _comparable_hashes(previous, base_dir)
+    new = _comparable_hashes(current, base_dir)
+    if old.keys() != new.keys():
+        return False
+    for module, (source, sha) in new.items():
+        old_source, old_sha = old[module]
+        if old_sha != sha or (old_source is not None and old_source != source):
+            return False
+    return True
+
+
 def write_record(plan: "ExperimentPlan", output_dir: str | Path) -> list[str]:
     """Write the configuration and custom sources of ``plan``.
 
@@ -110,21 +159,33 @@ def write_record(plan: "ExperimentPlan", output_dir: str | Path) -> list[str]:
     """
     output_dir = Path(output_dir)
     record = output_dir / RECORD_DIR
+    base_dir = plan.source.base_dir
     resolved = _to_yaml(redact(plan.source.data, plan.source.secrets))
     hashes = {
-        s.module_name: {"source": str(s.path), "sha256": s.sha256} for s in plan.sources
+        s.module_name: {
+            "source": _relative_source(s.path, base_dir),
+            "sha256": s.sha256,
+        }
+        for s in plan.sources
     }
 
     warnings: list[str] = []
     old_resolved = record / "resolved.yml"
     old_hashes = record / "sources.json"
     if old_resolved.exists():
-        previous = _strip_header(old_resolved.read_text())
-        prev_hashes = json.loads(old_hashes.read_text()) if old_hashes.exists() else {}
+        previous = _strip_header(old_resolved.read_text(encoding="utf-8"))
+        try:
+            prev_hashes = (
+                json.loads(old_hashes.read_text(encoding="utf-8"))
+                if old_hashes.exists()
+                else {}
+            )
+        except ValueError:
+            prev_hashes = None  # damaged: treat as changed
         changed = []
         if previous != resolved:
             changed.append("configuration")
-        if prev_hashes != hashes:
+        if not _same_sources(prev_hashes, hashes, base_dir):
             changed.append("custom code")
         if changed:
             stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -143,12 +204,216 @@ def write_record(plan: "ExperimentPlan", output_dir: str | Path) -> list[str]:
         f"# from: {plan.source.file or '<in-memory configuration>'}\n"
         f"# iohblade: {_version()}\n"
     )
-    old_resolved.write_text(header + resolved)
-    old_hashes.write_text(json.dumps(hashes, indent=2) + "\n")
+    old_resolved.write_text(header + resolved, encoding="utf-8")
+    old_hashes.write_text(json.dumps(hashes, indent=2) + "\n", encoding="utf-8")
     sources_dir = record / "sources"
     for source in plan.sources:
         source.snapshot(sources_dir)
     return warnings
+
+
+# ---------------------------------------------------------------- resume ---
+
+RunKey = tuple[str, str, int]
+
+
+def _describe(key: RunKey) -> str:
+    method, problem, seed = key
+    return f"{method} on {problem}, seed {seed}"
+
+
+def _listing(keys: set[RunKey], limit: int = 5) -> str:
+    items = sorted(keys, key=lambda k: (str(k[0]), str(k[1]), str(k[2])))
+    text = "; ".join(_describe(k) for k in items[:limit])
+    if len(items) > limit:
+        text += f"; ... ({len(items) - limit} more)"
+    return text
+
+
+@dataclass
+class ResumeStatus:
+    """What running a plan in an existing output directory would do.
+
+    A run is identified as in ``progress.json``: by (method name, problem
+    name, seed). Resuming skips the finished runs. Runs that are planned
+    but not recorded yet (more ``runs``/``seeds``, another method or
+    problem) are added. Runs that are recorded but no longer planned make
+    the directory incompatible: BLADE never drops recorded runs.
+
+    Attributes:
+        output_dir: The results directory.
+        planned: The planned runs.
+        recorded: The runs recorded in ``progress.json`` (empty if new).
+        finished: How many planned runs already finished.
+        error: Why ``progress.json`` could not be read, if it could not.
+    """
+
+    output_dir: Path
+    planned: set[RunKey] = field(default_factory=set)
+    recorded: set[RunKey] = field(default_factory=set)
+    finished: int = 0
+    error: str | None = None
+
+    @property
+    def is_new(self) -> bool:
+        """No runs are recorded in the directory yet."""
+        return self.error is None and not self.recorded
+
+    @property
+    def added(self) -> set[RunKey]:
+        """Planned runs that are not recorded yet."""
+        return self.planned - self.recorded if self.recorded else set()
+
+    @property
+    def removed(self) -> set[RunKey]:
+        """Recorded runs that are no longer planned."""
+        return self.recorded - self.planned
+
+    @property
+    def compatible(self) -> bool:
+        """Whether the plan can run in (resume) this directory."""
+        return self.error is None and not self.removed
+
+    def summary(self) -> list[str]:
+        """Lines for ``iohblade run --dry-run``."""
+        if self.error is not None:
+            return [f"Cannot resume: {self.error}"]
+        if self.is_new:
+            return ["Output directory is new: all runs will start."]
+        if not self.compatible:
+            return [f"Cannot resume: {self.mismatch_message()}"]
+        n = len(self.planned)
+        lines = [
+            f"Resuming: {self.finished} of {n} runs already finished and "
+            f"will be skipped; {n - self.finished} will run."
+        ]
+        if self.added:
+            lines.append(
+                f"Of these, {len(self.added)} are new in this configuration "
+                f"and will be added to the experiment: {_listing(self.added)}."
+            )
+        return lines
+
+    def mismatch_message(self) -> str:
+        """Why the plan cannot resume, and what to do instead."""
+        if self.error is not None:
+            return self.error
+        lines = [
+            f"The output directory {self.output_dir} already holds "
+            f"{len(self.recorded)} run(s) of a different setup, and this "
+            f"configuration plans {len(self.planned)}. Resuming can skip "
+            "finished runs and add new ones, but not leave recorded runs out.",
+            f"Recorded but no longer planned: {_listing(self.removed)}.",
+        ]
+        rec_seeds = sorted({k[2] for k in self.recorded})
+        plan_seeds = sorted({k[2] for k in self.planned})
+        if rec_seeds != plan_seeds:
+            lines.append(f"Seeds recorded: {rec_seeds}; planned: {plan_seeds}.")
+        for what, index in (("Methods", 0), ("Problems", 1)):
+            rec = sorted({k[index] for k in self.recorded})
+            new = sorted({k[index] for k in self.planned})
+            if rec != new:
+                lines.append(f"{what} recorded: {rec}; planned: {new}.")
+        lines.append(
+            "Either use a new output directory (change experiment.output_dir, "
+            "e.g. --set experiment.output_dir=results/trial), or restore the "
+            "previous settings (runs/seeds, methods and problems) to resume."
+        )
+        return "\n    ".join(lines)
+
+
+def _progress_runs(path: Path) -> list[dict]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("not a JSON object")
+    runs = data.get("runs", [])
+    if not isinstance(runs, list):
+        raise ValueError("'runs' is not a list")
+    return [r for r in runs if isinstance(r, dict)]
+
+
+def resume_status(plan: "ExperimentPlan", output_dir=None) -> ResumeStatus:
+    """Compare the plan with the progress recorded in its output directory.
+
+    Args:
+        plan: The plan to run.
+        output_dir: The results directory (default: ``plan.output_dir``).
+
+    Returns:
+        ResumeStatus: What resuming would do; nothing is written.
+    """
+    from ..loggers.base import ExperimentLogger
+
+    output_dir = Path(output_dir if output_dir is not None else plan.output_dir)
+    planned = {
+        (m.name, p.name, int(s))
+        for m in plan.methods
+        for p in plan.problems
+        for s in plan.seeds
+    }
+    status = ResumeStatus(output_dir, planned)
+    path = output_dir / "progress.json"
+    if not path.is_file():
+        return status
+    try:
+        runs = _progress_runs(path)
+        status.recorded = {
+            (r["method_name"], r["problem_name"], int(r["seed"])) for r in runs
+        }
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        status.error = (
+            f"Could not read the experiment progress file {path}: {e}. Fix or "
+            "delete it, or use a new output directory."
+        )
+        return status
+    for method in plan.methods:
+        llm = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
+        for problem in plan.problems:
+            for seed in plan.seeds:
+                status.finished += any(
+                    r.get("method_name") == method.name
+                    and r.get("problem_name") == problem.name
+                    and r.get("llm_name") == llm
+                    and r.get("seed") == int(seed)
+                    and r.get("end_time")
+                    for r in runs
+                )
+    return status
+
+
+def add_planned_runs(exp_logger, plan: "ExperimentPlan") -> int:
+    """Add runs that are planned but not recorded to ``progress.json``.
+
+    The experiment logger only resumes when the recorded runs equal the
+    planned ones; adding the new runs (as not yet started entries in the
+    logger's own format) first lets an experiment grow, e.g. with more
+    ``runs``. Recorded runs are never changed or removed.
+
+    Returns:
+        int: The number of runs added.
+    """
+    progress = getattr(exp_logger, "progress", None)
+    if not isinstance(progress, dict) or not hasattr(exp_logger, "_planned_runs"):
+        return 0
+    runs = progress.get("runs") or []
+    if not runs:
+        return 0  # a new experiment; the logger plans all runs itself
+    recorded = {(r["method_name"], r["problem_name"], int(r["seed"])) for r in runs}
+    new = [
+        r
+        for r in exp_logger._planned_runs(
+            plan.methods, plan.problems, plan.seeds, plan.config.experiment.budget
+        )
+        if (r["method_name"], r["problem_name"], r["seed"]) not in recorded
+    ]
+    if not new:
+        return 0
+    with exp_logger._lock:
+        progress["runs"] = runs + new
+        progress["total"] = len(progress["runs"])
+        progress["end_time"] = None
+        exp_logger._write_progress()
+    return len(new)
 
 
 def _strip_header(text: str) -> str:

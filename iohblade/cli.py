@@ -163,47 +163,9 @@ def _cmd_validate(args) -> int:
 
 def _resume_status(plan) -> list[str]:
     """Lines describing what resuming in ``plan.output_dir`` would do."""
-    from .loggers.base import ExperimentLogger
+    from .config.record import resume_status
 
-    path = plan.output_dir / "progress.json"
-    if not path.is_file():
-        return ["Output directory is new: all runs will start."]
-    try:
-        runs = json.loads(path.read_text()).get("runs", [])
-    except (OSError, ValueError):
-        return [f"Could not read {path}; resuming may fail."]
-    planned = {
-        (m.name, p.name, int(s))
-        for m in plan.methods
-        for p in plan.problems
-        for s in plan.seeds
-    }
-    existing = {(r["method_name"], r["problem_name"], r["seed"]) for r in runs}
-    lines = []
-    if existing and existing != planned:
-        lines.append(
-            "Warning: the runs recorded in this output directory differ from "
-            "the planned ones (methods, problems or seeds changed); resuming "
-            "will fail. Use a new output_dir."
-        )
-    finished = 0
-    for method in plan.methods:
-        llm = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
-        for problem in plan.problems:
-            for seed in plan.seeds:
-                finished += any(
-                    r.get("method_name") == method.name
-                    and r.get("problem_name") == problem.name
-                    and r.get("llm_name") == llm
-                    and r.get("seed") == int(seed)
-                    and r.get("end_time")
-                    for r in runs
-                )
-    lines.append(
-        f"Resuming: {finished} of {plan.n_runs} runs already finished and "
-        f"will be skipped; {plan.n_runs - finished} will run."
-    )
-    return lines
+    return resume_status(plan).summary()
 
 
 def _cmd_run(args) -> int:
@@ -322,7 +284,7 @@ def _cmd_schema(args) -> int:
 
     text = json.dumps(json_schema(), indent=2)
     if args.output:
-        with open(args.output, "w") as f:
+        with open(args.output, "w", encoding="utf-8") as f:
             f.write(text + "\n")
         print(f"Schema written to {args.output}")
     else:

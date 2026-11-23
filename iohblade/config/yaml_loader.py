@@ -21,6 +21,7 @@ from typing import Any
 import yaml
 
 from .errors import ConfigError, ConfigIssue, Path_
+from .record import is_secret_key
 
 _ENV_PATTERN = re.compile(r"\$\{env:([A-Za-z_][A-Za-z0-9_]*)(?::-(.*?))?\}")
 
@@ -36,6 +37,8 @@ class LoadedConfig:
         secrets: Paths of values that were filled from the environment;
             they are redacted when the configuration is printed or saved.
         overridden: Paths set by overrides (reported as ``<--set>``).
+        plain: Paths of unquoted (plain) YAML scalars; only these get a
+            type from a ``${env:...}`` value (see :func:`interpolate_env`).
     """
 
     data: Any
@@ -43,6 +46,7 @@ class LoadedConfig:
     marks: dict[Path_, tuple[int, int]] = field(default_factory=dict)
     secrets: set[Path_] = field(default_factory=set)
     overridden: set[Path_] = field(default_factory=set)
+    plain: set[Path_] = field(default_factory=set)
 
     @property
     def base_dir(self) -> Path:
@@ -66,8 +70,11 @@ class _Loader(yaml.SafeLoader):
     pass
 
 
-def _to_python(loader, node, path, marks, issues, file):
-    """Convert a composed YAML node into Python objects, recording marks."""
+def _to_python(loader, node, path, marks, issues, file, plain):
+    """Convert a composed YAML node into Python objects, recording marks.
+
+    Paths of plain (unquoted, non-block) scalars are added to ``plain``.
+    """
     marks[path] = (node.start_mark.line + 1, node.start_mark.column + 1)
     if isinstance(node, yaml.MappingNode):
         # Keys written in this mapping itself (not inherited through '<<').
@@ -106,7 +113,9 @@ def _to_python(loader, node, path, marks, issues, file):
                 )
             if is_explicit:
                 explicit_keys.add(key)
-            result[key] = _to_python(loader, value_node, child, marks, issues, file)
+            result[key] = _to_python(
+                loader, value_node, child, marks, issues, file, plain
+            )
             # Point at the key rather than the value.
             marks[child] = (
                 key_node.start_mark.line + 1,
@@ -115,9 +124,11 @@ def _to_python(loader, node, path, marks, issues, file):
         return result
     if isinstance(node, yaml.SequenceNode):
         return [
-            _to_python(loader, item, path + (i,), marks, issues, file)
+            _to_python(loader, item, path + (i,), marks, issues, file, plain)
             for i, item in enumerate(node.value)
         ]
+    if isinstance(node, yaml.ScalarNode) and node.style is None:
+        plain.add(path)
     return loader.construct_object(node, deep=True)
 
 
@@ -154,40 +165,154 @@ def parse_yaml(text: str, file: str | None = None) -> LoadedConfig:
         loader.dispose()
     marks: dict[Path_, tuple[int, int]] = {}
     issues: list[ConfigIssue] = []
+    plain: set[Path_] = set()
     data = (
-        _to_python(loader, node, (), marks, issues, file) if node is not None else None
+        _to_python(loader, node, (), marks, issues, file, plain)
+        if node is not None
+        else None
     )
     if issues:
         raise ConfigError(issues)
-    return LoadedConfig(data, file, marks)
+    return LoadedConfig(data, file, marks, plain=plain)
+
+
+_DOTENV_ESCAPES = {"n": "\n", "r": "\r", "t": "\t", '"': '"', "\\": "\\"}
+
+
+def _dotenv_value(text: str) -> str:
+    """The value of a ``.env`` line (the text after ``=``).
+
+    Like python-dotenv: a quoted value ends at its closing quote (in double
+    quotes ``\\n``, ``\\t``, ``\\"`` and ``\\\\`` are escapes; single quotes
+    are literal); an unquoted value ends at `` #`` (an inline comment).
+    Surrounding whitespace is removed.
+    """
+    text = text.strip()
+    if text[:1] in ("'", '"'):
+        quote = text[0]
+        out = []
+        i = 1
+        while i < len(text):
+            char = text[i]
+            if char == quote:
+                return "".join(out)
+            if quote == '"' and char == "\\" and i + 1 < len(text):
+                nxt = text[i + 1]
+                out.append(_DOTENV_ESCAPES.get(nxt, "\\" + nxt))
+                i += 2
+                continue
+            out.append(char)
+            i += 1
+        # No closing quote: keep the text as written (minus a comment).
+    match = re.search(r"\s#", text)
+    if match:
+        text = text[: match.start()]
+    return text.strip()
 
 
 def read_dotenv(path: str | os.PathLike) -> dict[str, str]:
     """Read ``KEY=VALUE`` lines from a ``.env`` file (missing file: empty).
 
-    Supports comments, blank lines, an optional ``export`` prefix and single
-    or double quotes around the value.
+    Follows python-dotenv: blank lines and ``#`` comment lines are skipped,
+    an ``export`` prefix is allowed, unquoted values end at an inline
+    `` # comment``, and single- or double-quoted values end at the closing
+    quote (double quotes support ``\\n`` and ``\\"`` escapes).
     """
     path = Path(path)
     if not path.is_file():
         return {}
     values = {}
-    for raw in path.read_text().splitlines():
+    for raw in path.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
-        if line.startswith("export "):
-            line = line[len("export ") :]
+        if line.startswith("export ") or line.startswith("export\t"):
+            line = line[len("export ") :].lstrip()
         key, _, value = line.partition("=")
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        values[key.strip()] = value
+        key = key.strip()
+        if not key:
+            continue
+        values[key] = _dotenv_value(value)
     return values
+
+
+def _typed(text: str) -> Any:
+    """Parse the text of a lone ``${env:...}`` placeholder as a YAML value.
+
+    ``"3"`` gives 3, ``"true"`` gives True, ``"[1, 2]"`` a list; text that
+    is not valid YAML, and the empty string, stay strings.
+    """
+    if not text.strip():
+        return text
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError:
+        return text
+
+
+def _substitute(value, path, env, issue, secrets, plain) -> Any:
+    """Replace ``${env:...}`` in ``value`` (recursively).
+
+    Args:
+        value: The value to substitute in.
+        path: Its configuration path.
+        env: The variables.
+        issue: ``issue(path, message)`` reports a missing variable.
+        secrets: Paths of substituted values are added to it.
+        plain: Whether ``path`` may be typed: a callable ``path -> bool``.
+    """
+    if isinstance(value, dict):
+        return {
+            k: _substitute(v, path + (k,), env, issue, secrets, plain)
+            for k, v in value.items()
+        }
+    if isinstance(value, list):
+        return [
+            _substitute(v, path + (i,), env, issue, secrets, plain)
+            for i, v in enumerate(value)
+        ]
+    if not isinstance(value, str) or "${env:" not in value:
+        return value
+    missing = False
+
+    def repl(match):
+        nonlocal missing
+        name, default = match.group(1), match.group(2)
+        if name in env:
+            return env[name]
+        if default is not None:
+            return default
+        missing = True
+        issue(
+            path,
+            f"Environment variable '{name}' is not set (set it, add it "
+            "to a .env file next to the configuration, or use "
+            f"${{env:{name}:-default}}).",
+        )
+        return match.group(0)
+
+    secrets.add(path)
+    result = _ENV_PATTERN.sub(repl, value)
+    key = path[-1] if path else None
+    if (
+        not missing
+        and _ENV_PATTERN.fullmatch(value)
+        and plain(path)
+        and not is_secret_key(key)
+    ):
+        return _typed(result)
+    return result
 
 
 def interpolate_env(cfg: LoadedConfig, env: dict[str, str]) -> None:
     """Replace ``${env:NAME}`` placeholders in all strings, in place.
+
+    A value that is exactly one placeholder written without quotes in the
+    YAML file gets the type of its text, like a YAML value or a ``--set``
+    value: ``n_parents: ${env:NP:-1}`` gives the integer 1. Quoted values
+    (``"${env:NAME}"``), placeholders inside a longer string, values of
+    credential keys (``api_key``, ``*_token``, ...) and configurations
+    passed as a dict always stay strings.
 
     Raises:
         ConfigError: Listing every variable that is not set and has no
@@ -195,39 +320,18 @@ def interpolate_env(cfg: LoadedConfig, env: dict[str, str]) -> None:
     """
     issues: list[ConfigIssue] = []
 
-    def substitute(value, path):
-        if isinstance(value, dict):
-            return {k: substitute(v, path + (k,)) for k, v in value.items()}
-        if isinstance(value, list):
-            return [substitute(v, path + (i,)) for i, v in enumerate(value)]
-        if not isinstance(value, str) or "${env:" not in value:
-            return value
+    def issue(path, message):
+        issues.append(cfg.issue(path, message))
 
-        def repl(match):
-            name, default = match.group(1), match.group(2)
-            if name in env:
-                return env[name]
-            if default is not None:
-                return default
-            issues.append(
-                cfg.issue(
-                    path,
-                    f"Environment variable '{name}' is not set (set it, add it "
-                    "to a .env file next to the configuration, or use "
-                    f"${{env:{name}:-default}}).",
-                )
-            )
-            return match.group(0)
-
-        cfg.secrets.add(path)
-        return _ENV_PATTERN.sub(repl, value)
-
-    cfg.data = substitute(cfg.data, ())
+    cfg.data = _substitute(
+        cfg.data, (), env, issue, cfg.secrets, lambda p: p in cfg.plain
+    )
     if issues:
         raise ConfigError(issues)
 
 
-def _parse_override(item: str) -> tuple[list[str | int], Any]:
+def _parse_override(item: str) -> tuple[list[str | int], Any, bool]:
+    """``"a.b=value"`` -> (path parts, parsed value, value was quoted)."""
     if "=" not in item:
         raise ValueError(f"Override '{item}' must have the form key.path=value.")
     key, _, raw = item.partition("=")
@@ -237,16 +341,29 @@ def _parse_override(item: str) -> tuple[list[str | int], Any]:
             raise ValueError(f"Override '{item}' has an empty key segment.")
         parts.append(int(part) if part.isdigit() else part)
     value = yaml.safe_load(raw) if raw.strip() else ""
-    return parts, value
+    return parts, value, raw.strip()[:1] in ("'", '"')
 
 
-def apply_overrides(cfg: LoadedConfig, overrides: list[str] | dict) -> None:
+def apply_overrides(
+    cfg: LoadedConfig,
+    overrides: list[str] | dict,
+    env: dict[str, str] | None = None,
+) -> None:
     """Apply ``key.path=value`` overrides in place.
 
     ``overrides`` is a list of ``"a.b=value"`` strings (values are parsed as
     YAML, so ``runs=3`` gives an int) or a dict ``{"a.b": value}``. List
     items are addressed by index (``methods.0.budget=10``); missing mapping
-    keys are created.
+    keys are created. ``${env:...}`` in override values is substituted like
+    in the file: an unquoted lone placeholder (``--set
+    methods.0.params.n_parents=${env:NP}``) gets the type of its text, a
+    quoted one (``--set 'a="${env:X}"'``) and dict overrides stay strings.
+
+    Args:
+        cfg: The configuration to change.
+        overrides: The overrides.
+        env: Variables for ``${env:...}`` (default: the ``.env`` file next
+            to the configuration updated with ``os.environ``).
 
     Raises:
         ConfigError: If an override is malformed or its path does not exist.
@@ -255,21 +372,45 @@ def apply_overrides(cfg: LoadedConfig, overrides: list[str] | dict) -> None:
         items = []
         for key, value in overrides.items():
             parts = [int(p) if p.isdigit() else p for p in str(key).split(".")]
-            items.append((str(key), parts, value))
+            items.append((str(key), parts, value, False))
     else:
         items = []
         issues = []
         for item in overrides or []:
             try:
-                parts, value = _parse_override(item)
+                parts, value, quoted = _parse_override(item)
             except (ValueError, yaml.YAMLError) as e:
                 issues.append(ConfigIssue((), str(e), "<--set>"))
                 continue
-            items.append((item, parts, value))
+            items.append((item, parts, value, not quoted))
         if issues:
             raise ConfigError(issues)
 
+    if env is None and any(
+        "${env:" in repr(value) for _, _, value, _ in items
+    ):  # only read .env when an override needs it
+        env = {**read_dotenv(cfg.base_dir / ".env"), **os.environ}
     issues = []
+    substituted = []
+    for text, parts, value, typed in items:
+
+        def issue(path, message, text=text):
+            issues.append(ConfigIssue(path, f"Override '{text}': {message}", "<--set>"))
+
+        top = tuple(parts)
+        value = _substitute(
+            value,
+            top,
+            env or {},
+            issue,
+            cfg.secrets,
+            lambda p, t=typed, top=top: t and p == top,
+        )
+        substituted.append((text, parts, value))
+    if issues:
+        raise ConfigError(issues)
+    items = substituted
+
     if cfg.data is None:
         cfg.data = {}
     for text, parts, value in items:
@@ -317,11 +458,13 @@ def load_yaml(
     overrides: list[str] | dict | None = None,
     env: dict[str, str] | None = None,
 ) -> LoadedConfig:
-    """Load a configuration from a YAML file, YAML text or a dict.
+    """Load a configuration from a YAML file or a dict.
 
     Args:
-        source: Path to a ``.yml``/``.yaml`` file, or already parsed data
-            (relative paths then refer to the current directory).
+        source: Path to a ``.yml``/``.yaml`` file (a ``str`` is always taken
+            as a path, never as YAML text; use :func:`parse_yaml` for text),
+            or already parsed data (relative paths then refer to the current
+            directory).
         overrides: ``key.path=value`` overrides applied after interpolation.
         env: Variables for ``${env:...}``. Defaults to the ``.env`` file next
             to the configuration updated with ``os.environ``.
@@ -330,8 +473,8 @@ def load_yaml(
         LoadedConfig: The data with provenance information.
 
     Raises:
-        ConfigError: If the file cannot be read or parsed, a variable is
-            missing, or an override is invalid.
+        ConfigError: If the file cannot be read, is not UTF-8 or cannot be
+            parsed, a variable is missing, or an override is invalid.
     """
     if not isinstance(source, (str, os.PathLike)):
         import copy
@@ -340,15 +483,27 @@ def load_yaml(
     else:
         path = Path(source)
         try:
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
         except OSError as e:
             raise ConfigError(
                 [ConfigIssue((), f"Cannot read configuration: {e}", str(path))]
+            ) from e
+        except UnicodeDecodeError as e:
+            raise ConfigError(
+                [
+                    ConfigIssue(
+                        (),
+                        "Cannot read configuration: the file is not valid "
+                        f"UTF-8 (byte {e.start}: {e.reason}). Save it with "
+                        "UTF-8 encoding.",
+                        str(path),
+                    )
+                ]
             ) from e
         cfg = parse_yaml(text, str(path))
     if env is None:
         env = {**read_dotenv(cfg.base_dir / ".env"), **os.environ}
     interpolate_env(cfg, env)
     if overrides:
-        apply_overrides(cfg, overrides)
+        apply_overrides(cfg, overrides, env)
     return cfg

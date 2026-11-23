@@ -343,6 +343,6 @@ def write_template(name: str, directory: str | Path, force: bool = False) -> lis
     written = []
     for filename, content in files.items():
         path = directory / filename
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
         written.append(path)
     return written

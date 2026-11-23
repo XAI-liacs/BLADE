@@ -28,8 +28,10 @@ from .yaml_loader import LoadedConfig, load_yaml
 # Methods that keep **kwargs and pass them on later, when the run starts.
 # Their keyword arguments are checked against the real target up front, so
 # typos are reported before an experiment starts rather than mid-run.
-# key -> (import path of the target, parameters BLADE sets itself)
-_KWARGS_TARGETS: dict[tuple[str, str], tuple[str, set[str]]] = {
+# key -> (import path of the target, or the names the class reads from
+# **kwargs itself; parameters BLADE sets itself). An empty set means the
+# method reads none of its **kwargs, so any extra parameter is an error.
+_KWARGS_TARGETS: dict[tuple[str, str], tuple[str | frozenset[str], set[str]]] = {
     ("method", "llamea"): (
         "llamea:LLaMEA",
         {
@@ -44,6 +46,17 @@ _KWARGS_TARGETS: dict[tuple[str, str], tuple[str, set[str]]] = {
             "max_workers",
             "minimization",
         },
+    ),
+    # RandomSearch stores **kwargs but never reads them.
+    ("method", "random_search"): (frozenset(), set()),
+    # EoH.__call__ reads self.kwargs["pop_size" / "output_path" / "timeout"].
+    ("method", "eoh"): (frozenset({"pop_size", "output_path", "timeout"}), set()),
+    # ReEvo.__call__ / _output_dir read these keys of self.kwargs.
+    ("method", "reevo"): (
+        frozenset(
+            {"pop_size", "init_pop_size", "mutation_rate", "timeout", "output_path"}
+        ),
+        set(),
     ),
 }
 
@@ -178,14 +191,40 @@ class ExperimentPlan:
 
         Also records the resolved configuration and a copy of the custom
         code in ``<output_dir>/blade_config/`` (see :mod:`.record`).
+
+        An existing output directory is resumed: finished runs are skipped
+        and runs that are new in this configuration (more ``runs``/``seeds``,
+        another method or problem) are added. Nothing is written when the
+        directory holds runs this configuration no longer plans.
+
+        Raises:
+            ConfigError: If the output directory holds runs that are not in
+                this plan, or its ``progress.json`` cannot be read.
         """
         from ..experiment import Experiment
-        from .record import write_record
+        from .record import add_planned_runs, resume_status, write_record
 
         section = self.config.experiment
+        status = resume_status(
+            self, exp_logger.dirname if exp_logger is not None else None
+        )
+        if not status.compatible:
+            raise ConfigError(
+                [
+                    self.source.issue(
+                        ("experiment", "output_dir"), status.mismatch_message()
+                    )
+                ]
+            )
         if exp_logger is None:
             exp_logger = self.make_logger()
+        added = add_planned_runs(exp_logger, self)
         self.warnings = write_record(self, exp_logger.dirname)
+        if added:
+            self.warnings.append(
+                f"{added} run(s) new in this configuration were added to the "
+                f"existing experiment in {exp_logger.dirname}."
+            )
         for warning in self.warnings:
             print(f"Warning: {warning}", file=sys.stderr)
         return Experiment(
@@ -400,7 +439,7 @@ class _Builder:
         path: Path_,
         *,
         provided: dict | None = None,
-        kwargs_target: tuple[str, set[str]] | None = None,
+        kwargs_target: tuple[str | frozenset[str], set[str]] | None = None,
         what: str = "",
     ) -> dict | None:
         """Check ``kwargs`` against ``target``'s signature.
@@ -430,7 +469,10 @@ class _Builder:
         var_kw = any(p.kind == p.VAR_KEYWORD for p in sig.parameters.values())
         extra_names: set[str] | None = None
         owned: set[str] = set()
-        if kwargs_target is not None:
+        if kwargs_target is not None and not isinstance(kwargs_target[0], str):
+            extra_names = set(kwargs_target[0])
+            owned = kwargs_target[1]
+        elif kwargs_target is not None:
             try:
                 module_name, _, attr = kwargs_target[0].partition(":")
                 obj = __import__(module_name, fromlist=[attr])
@@ -491,10 +533,20 @@ class _Builder:
                     ok = False
                     continue
                 if key not in extra_names:
+                    accepted = sorted(
+                        (set(params) | extra_names) - owned - set(provided)
+                    )
                     self.issue(
                         p,
                         f"Unknown parameter '{key}' for {what}."
-                        + _did_you_mean(key, (set(params) | extra_names) - owned),
+                        + (
+                            _did_you_mean(key, accepted)
+                            or (
+                                " Accepted: " + ", ".join(accepted) + "."
+                                if accepted
+                                else " It takes no parameters."
+                            )
+                        ),
                     )
                     ok = False
                     continue
