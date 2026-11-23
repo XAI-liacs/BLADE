@@ -112,6 +112,35 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **LLM layer (#205).**
+  - **Code extraction:** a block in another language before the python
+    block (e.g. `bash`) made the prose between them the "code". It now
+    takes the first python-tagged block (`python`, `py`, `python3`, also
+    with CRLF line endings or a trailing space), else the first untagged
+    one.
+  - **Class name:** the class name was the first `class` in the code,
+    often a helper such as `Particle`. It is now the top-level class that
+    no other class uses; a comment like `# helper subclass:` no longer
+    matches.
+  - **Custom patterns:** `code_pattern`, `name_pattern`, `desc_pattern`
+    and `cs_pattern` are now used; they were ignored before.
+  - **Gemini:** conversations with more than one message failed, because
+    the history used a format google-genai rejects. The error was then
+    retried for 150 s.
+  - **Retries:** OpenAI/DeepSeek and Gemini no longer retry errors that
+    cannot succeed (bad request, authentication, unknown model). OpenAI
+    retries keep the requested `temperature`, and a fractional
+    `Retry-After` header no longer crashes.
+  - **Roles:** RandomSearch and LHNS sent the role `"client"`, which OpenAI
+    and Anthropic reject; it is now `"user"`.
+  - `sample_solution(..., **kwargs)` passes settings such as `temperature`
+    to the provider; it raised `TypeError` before.
+  - Prompt tokens are counted in the conversation log; they were always 0.
+  - `diff_mode=True` (LLaMEA) now warns, because responses are always
+    treated as complete code.
+  - Pickling an `MLX_LM_LLM` no longer removes the model from the live
+    object, and unpickling an `LMStudio_LLM` works without lmstudio
+    installed.
 - **Benchmark scores that could be gamed or were wrong (#203).**
   - **Steiner tree:** the fitness is now `steiner_mst / normal_mst`
     (minimised). The old ratio and check were inverted, so real
