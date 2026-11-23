@@ -238,3 +238,19 @@ def test_compare_auc_carries_last_value_to_budget():
     result = compare_auc(_auc_logger(rows), "a", "b", budget=3, test="ttest", n_boot=50)
     # a stopped after one evaluation: its 2.0 is carried to evaluation 3.
     assert result.iloc[0]["mean_auc_a"] == pytest.approx(4.0)
+
+
+def test_compare_auc_pairs_by_seed_with_several_llms():
+    # Method a ran seed 1 with two LLMs; method b ran seeds 1 and 2. The
+    # paired comparison must use seed 1 only, with a's two LLM runs averaged.
+    rows = [
+        {"method_name": "a", "llm_name": "x", "seed": 1, "_id": 0, "fitness": 2.0},
+        {"method_name": "a", "llm_name": "y", "seed": 1, "_id": 0, "fitness": 4.0},
+        {"method_name": "b", "llm_name": "x", "seed": 1, "_id": 0, "fitness": 1.0},
+        {"method_name": "b", "llm_name": "x", "seed": 2, "_id": 0, "fitness": 9.0},
+    ]
+    result = compare_auc(_auc_logger(rows), "a", "b", budget=2, test="ttest", n_boot=50)
+    row = result.iloc[0]
+    assert row["n_seeds"] == 1
+    assert row["mean_auc_a"] == pytest.approx(3.0)  # mean of 2.0 and 4.0 over 1 step
+    assert row["mean_auc_b"] == pytest.approx(1.0)

@@ -291,7 +291,7 @@ def compare_auc(
         pd.DataFrame: Per-problem summary of AUC comparisons, including the
         ``minimisation`` direction used.
     """
-    from .plots import best_so_far
+    from .plots import best_so_far, run_columns
 
     methods, problems = logger.get_methods_problems()
     if method_a not in methods or method_b not in methods:
@@ -320,26 +320,32 @@ def compare_auc(
         valid = pd.concat([c["fitness_value"] for c in curves.values()]).dropna()
         worst = (valid.max() if minimise else valid.min()) if len(valid) else 0.0
 
+        # One AUC per seed and method. Runs of a method that share a seed
+        # (e.g. the method with several LLMs) are averaged, so the paired
+        # samples below compare the two methods on the same seeds.
         aucs = {}
         for method, curve in curves.items():
-            group_cols = ["seed"] if "seed" in curve.columns else []
-            if "run" in curve.columns:
-                group_cols = ["seed", "run"] if group_cols else ["run"]
-            per_seed_auc = []
-            for _, run in curve.groupby(group_cols, sort=True):
+            rcols = run_columns(curve) or ["_run"]
+            if rcols == ["_run"]:
+                curve = curve.assign(_run=0)
+            per_seed = {}
+            for position, (_, run) in enumerate(curve.groupby(rcols, sort=True)):
                 values = (
                     run.set_index("eval")["best_so_far"]
                     .reindex(range(1, budget + 1))
                     .ffill()
                     .fillna(worst)
                 )
-                per_seed_auc.append(trapezoid(values.values, np.arange(1, budget + 1)))
-            aucs[method] = np.asarray(per_seed_auc, dtype=float)
+                auc = trapezoid(values.values, np.arange(1, budget + 1))
+                key = run["seed"].iloc[0] if "seed" in run.columns else position
+                per_seed.setdefault(key, []).append(auc)
+            aucs[method] = {k: float(np.mean(v)) for k, v in per_seed.items()}
 
-        # Paired samples
-        min_len = min(len(aucs[method_a]), len(aucs[method_b]))
-        a = aucs[method_a][:min_len]
-        b = aucs[method_b][:min_len]
+        # Paired samples: the seeds both methods were run with.
+        seeds = sorted(set(aucs[method_a]) & set(aucs[method_b]), key=str)
+        min_len = len(seeds)
+        a = np.asarray([aucs[method_a][k] for k in seeds], dtype=float)
+        b = np.asarray([aucs[method_b][k] for k in seeds], dtype=float)
 
         diff = a - b
 
