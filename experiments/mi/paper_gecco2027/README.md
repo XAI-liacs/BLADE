@@ -57,3 +57,10 @@ Template" and replace `main.tex`).
   Earlier: "What Does the Generator Know? Reading and Steering ...".
 * Whether the benchmark fixes are a contribution or a setup paragraph.
 * The CCS concepts (check the ids with the ACM CCS tool).
+
+## Data archive (Zenodo)
+
+`zenodo/build_archive.sh` builds the reproducibility archive of all data
+that is not in git (run logs, labels, processed tables, activations, SAE
+codes) as three zips plus `SHA256SUMS`, with absolute paths anonymised;
+`zenodo/README_zenodo.md` becomes the README of the record.
