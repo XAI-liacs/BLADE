@@ -1,6 +1,11 @@
 from iohblade.solution import Solution
 
 
+def _direction(maximisation: bool) -> str:
+    """'higher' or 'lower': which objective values are better."""
+    return "higher" if maximisation else "lower"
+
+
 class MoEH_Prompts:
     """
     An extension of `iohblade.Problem` instanced that adds necessary prompt mutation in algorithm including
@@ -42,7 +47,11 @@ class MoEH_Prompts:
 
     @classmethod
     def get_prompt_e2(
-        cls, example_prompt, format_prompt, indivs: list[Solution]
+        cls,
+        example_prompt,
+        format_prompt,
+        indivs: list[Solution],
+        maximisation: bool = True,
     ) -> str:
         prompt_indiv = "\n".join(
             list(
@@ -66,7 +75,9 @@ Has objective Value {item[1].fitness}.
             + str(len(indivs))
             + " existing algorithms with their codes and objective values as follows: \n\n"
             + prompt_indiv
-            + f"Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have a objective value lower than both algorithms.\n"
+            + f"Please create a new algorithm that has a similar form to the No.{len(indivs)} algorithm and is inspired by the No.{1} algorithm. The new algorithm should have better objective values than both algorithms ("
+            + _direction(maximisation)
+            + " is better).\n"
             f"Firstly, list the common ideas in the No.{1} algorithm that may give good performances. Secondly, based on the common idea, describe the design idea based on the No.{len(indivs)} algorithm and main steps of your algorithm in one sentence. \
 The description must be inside a brace. Thirdly, reply with a response adhering to following contract. Make sure only the final code is in code block. \
 "

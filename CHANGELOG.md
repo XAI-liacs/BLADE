@@ -96,6 +96,22 @@ see "Breaking changes" for the two exceptions.
 
 ### Bug fixes
 
+- **Optimisation direction (#201).** On minimisation problems (TSP, VRP,
+  graph colouring, hexagon packing, ...) a failed evaluation could become
+  the best solution:
+  - A timeout, crash or exhausted budget scored `-inf` regardless of the
+    direction; it now scores the worst value (`Problem.failure_fitness()`:
+    `inf` when minimising).
+  - RandomSearch, LHNS, EoH, ReEvo and MCTS-AHD never select a failed
+    (non-finite) solution as their best. They use the new helper
+    `iohblade.fitness.is_better`.
+  - EoH and ReEvo returned the fitness with the wrong sign (EoH when
+    minimising, ReEvo for negative fitness). ReEvo also crashed on a
+    response without code.
+  - MCTS-AHD backpropagated the maximum child Q, and ran its UCT selection
+    backwards, when minimising. It also treated a score of 0.0 as missing.
+  - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
+    value; they now state which direction is better.
 - Every run appeared twice in `progress.json`, and in the run overview and
   web app: the planned entries had no `llm_name`, so the entry a run used
   was added separately. Planned entries now carry `llm_name`, and progress

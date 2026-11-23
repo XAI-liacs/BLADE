@@ -3,6 +3,7 @@ import random
 import re
 from typing import Any
 
+from iohblade.fitness import is_better
 from iohblade.llm import LLM
 from iohblade.method import Method
 from iohblade.methods.lhns.prompt import Prompt
@@ -60,14 +61,12 @@ class LHNS:
 
     def _log_best_solution(self, next: Solution):
         print(f"Self score: {self.best_solution.fitness}; new score: {next.fitness}")
-        if math.isnan(self.best_solution.fitness):
+        # A failed evaluation (non-finite fitness) never replaces a valid
+        # best; until a valid solution exists, the latest one is kept.
+        if not self.best_solution.fitness_is_valid() or is_better(
+            next.fitness, self.best_solution.fitness, self.minimisation
+        ):
             self.best_solution = next
-            return
-        else:
-            if self.minimisation and self.best_solution.fitness > next.fitness:
-                self.best_solution = next
-            elif (not self.minimisation) and self.best_solution.fitness < next.fitness:
-                self.best_solution = next
 
     def simulated_annealing(self, next_solution: Solution, iteration_number: int):
         """

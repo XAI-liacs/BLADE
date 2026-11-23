@@ -4,6 +4,7 @@ import random
 import traceback
 from typing import Any, Iterable, Optional
 
+from iohblade.fitness import is_better
 from iohblade.llm import LLM
 from iohblade.mcts_node import MCTS_Node
 from iohblade.method import Method
@@ -125,11 +126,19 @@ class MCTS:
                 )
             case "e1":
                 prompt = MCTS_Prompts.get_prompt_e1(
-                    task_prompt, example_prompt, format_prompt, relevant_nodes
+                    task_prompt,
+                    example_prompt,
+                    format_prompt,
+                    relevant_nodes,
+                    maximisation=self.maximisation,
                 )
             case "e2":
                 prompt = MCTS_Prompts.get_prompt_e2(
-                    task_prompt, example_prompt, format_prompt, relevant_nodes
+                    task_prompt,
+                    example_prompt,
+                    format_prompt,
+                    relevant_nodes,
+                    maximisation=self.maximisation,
                 )
             case "m1":
                 relevant_node = relevant_nodes[-1]
@@ -143,7 +152,11 @@ class MCTS:
                 )
             case "s1":
                 prompt = MCTS_Prompts.get_prompt_s1(
-                    task_prompt, example_prompt, format_prompt, relevant_nodes
+                    task_prompt,
+                    example_prompt,
+                    format_prompt,
+                    relevant_nodes,
+                    maximisation=self.maximisation,
                 )
             case _:
                 error_msg = f"Error enconutered {approach} method, which is not in expected list [i1, m1, m2, e1, e2, s1]."
@@ -310,9 +323,9 @@ class MCTS:
         new_node.Q = new_node.fitness
         self.q_min = safe_min([self.q_min, new_node.Q])
         self.q_max = safe_max([self.q_max, new_node.Q])
-        if self.best_solution.fitness < new_node.fitness and self.maximisation:
-            self.best_solution = new_node
-        elif self.best_solution.fitness > new_node.fitness and not self.maximisation:
+        if is_better(
+            new_node.fitness, self.best_solution.fitness, not self.maximisation
+        ):
             self.best_solution = new_node
         return new_node
 
@@ -332,7 +345,9 @@ class MCTS:
         expanded_nodes = []
         while not current.is_leaf:
             # Expand node.
-            if not current.is_fully_expanded(self.max_children):
+            if not current.is_fully_expanded(
+                self.max_children, maximisation=self.maximisation
+            ):
                 if current.is_root:
                     relevant_nodes = self._get_e1_nodes(current)
                     node = self._get_new_node("e1", relevant_nodes, depth=1)
@@ -344,11 +359,8 @@ class MCTS:
                 current.add_child(node)
                 expanded_nodes.append(node)
 
-            # Find best child.
-            if self.maximisation:
-                best_child = sorted(current.children, key=self.uct, reverse=True)[0]
-            else:
-                best_child = sorted(current.children, key=self.uct, reverse=False)[0]
+            # Find best child: uct() is higher-is-better in both directions.
+            best_child = max(current.children, key=self.uct)
 
             current = best_child
         return expanded_nodes, current
@@ -398,14 +410,17 @@ class MCTS:
         ## Returns:
             `None`: Function is an inplace mutation on MCTS_Node objects, and returns/throws nothing.
         """
-        if node.Q and node.Q not in self.rank_list:
+        if node.Q is not None and node.Q not in self.rank_list:
             self.rank_list.append(node.Q)
             self.rank_list.sort()
 
         parent = node.parent
         while parent is not None:
-            best_child_Q = safe_max(child.Q for child in parent.children)
-            if parent.Q and best_child_Q:
+            child_Qs = (child.Q for child in parent.children)
+            best_child_Q = (
+                safe_max(child_Qs) if self.maximisation else safe_min(child_Qs)
+            )
+            if parent.Q is not None and best_child_Q is not None:
                 parent.Q = (
                     parent.Q * (1 - self.discount_factor)
                     + best_child_Q * self.discount_factor
@@ -428,20 +443,22 @@ class MCTS:
             `eval_remains: int`: Number of evaluation remaining for current optimisation process.
 
         ## Returns:
-            `None`: Inplace mutation function, which retuns or throws nothing.
+            `float`: The UCT score; higher is more promising in both
+            optimisation directions (``-inf`` for nodes without a valid Q).
         """
         uct = 0
-        exploration_constant = self.lambda_0 * self.eval_remain
-        if node.Q and self.q_max and self.q_min:
-            try:
-                uct = (node.Q - self.q_min) / (self.q_max - self.q_min)
-            except:
-                pass
-        else:  # place the node.Q = None, nodes as least fit.
+        exploration_constant = self.lambda_0 * max(self.eval_remain, 0)
+        if node.Q is None or self.q_max is None or self.q_min is None:
+            # Unevaluated or failed nodes are the least attractive; the
+            # selection always takes the highest UCT.
+            return float("-inf")
+        if self.q_max > self.q_min:
+            # Normalised exploitation term, higher is better in both
+            # optimisation directions.
             if self.maximisation:
-                return float("-inf")
+                uct = (node.Q - self.q_min) / (self.q_max - self.q_min)
             else:
-                return float("inf")
+                uct = (self.q_max - node.Q) / (self.q_max - self.q_min)
         if node.parent:
             return uct + (
                 exploration_constant

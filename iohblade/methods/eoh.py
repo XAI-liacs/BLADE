@@ -6,6 +6,7 @@ import re
 import textwrap
 from typing import Any, Optional, Tuple
 
+from ..fitness import from_minimised, to_minimised
 from ..llm import LLM
 from ..method import Method
 from ..problem import Problem
@@ -76,9 +77,7 @@ class _BladeProblemAdapter:
             description=class_info(code_string)[1] or "No description provided.",
         )
         solution = self.problem(solution)
-        return (
-            (-1) ** int(not self.minimisation)
-        ) * solution.fitness  # EoH minimizes the fitness, so we return negative value, when maximising.
+        return to_minimised(solution.fitness, self.minimisation)
 
 
 class _BladeInterfaceLLM:
@@ -162,7 +161,11 @@ class EoH(Method):
         name_match = re.search(r"class\s+(\w+)", code)
         name = name_match.group(1) if name_match else "OptimizationAlgorithm"
         solution = Solution(code=code, name=name, description=desc)
-        solution.set_scores(-best.get("objective", 0))
+        solution.set_scores(
+            from_minimised(
+                best.get("objective"), getattr(problem, "minimisation", False)
+            )
+        )
         return solution
 
     def to_dict(self):

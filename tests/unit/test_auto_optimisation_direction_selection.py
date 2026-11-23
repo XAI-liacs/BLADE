@@ -86,12 +86,29 @@ def RandomOptimser():
     assert (fitness <= 0) and (not dp.minimisation)
 
 
+class _SeedSucceeds(DummyProblemWorks):
+    """DummyProblemWorks whose first evaluation (ReEvo's seed) never fails.
+
+    ReEvo stops when its seed function is invalid, and a non-finite fitness
+    marks an individual invalid.
+    """
+
+    def evaluate(self, solution):
+        if self.iteration == 0:
+            rate, self.failure_rate = self.failure_rate, 0.0
+            try:
+                return super().evaluate(solution)
+            finally:
+                self.failure_rate = rate
+        return super().evaluate(solution)
+
+
 def test_revo_works_properly():
 
     llm = Dummy_LLM()
     reevo = ReEvo(llm, 5)
 
-    problem = DummyProblemWorks(minimisation=True, failure_rate=0.6)
+    problem = _SeedSucceeds(minimisation=True, failure_rate=0.6)
     soln = reevo(problem)
 
     assert soln.fitness == min(problem.all_scores)
