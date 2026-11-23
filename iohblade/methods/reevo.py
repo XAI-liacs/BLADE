@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import builtins
+import contextlib
 import logging
+import os
 import re
+import tempfile
 import textwrap
+import threading
 import traceback
 from types import SimpleNamespace
 from typing import Any
@@ -15,11 +20,47 @@ from ..solution import Solution
 from ..utils import class_info, first_class_name
 
 try:
+    import reevo as _reevo_module
     from reevo import ReEvo as ReEvoAlgorithm
     from reevo.utils.llm_client.base import BaseClient
 except Exception:  # pragma: no cover - optional dependency
+    _reevo_module = None
     ReEvoAlgorithm = None
     BaseClient = object  # type: ignore
+
+
+# The ReEvo library writes its reflection files
+# (``problem_iter*_short_term_reflections.txt`` etc.) with ``open()`` on bare
+# relative file names, i.e. into the current working directory, whatever
+# ``root_dir`` is. Changing the working directory would affect every thread
+# of the process (parallel runs, loggers with relative paths), so instead the
+# library module gets its own ``open`` that puts relative paths into the
+# output directory of the run executing in the calling thread.
+_output_dir = threading.local()
+
+
+def _reevo_open(file, *args, **kwargs):
+    directory = getattr(_output_dir, "path", None)
+    if directory and isinstance(file, (str, os.PathLike)) and not os.path.isabs(file):
+        file = os.path.join(directory, file)
+    return builtins.open(file, *args, **kwargs)
+
+
+def _install_open_shim(module) -> None:
+    if module is not None and getattr(module, "open", None) is not _reevo_open:
+        module.open = _reevo_open
+
+
+@contextlib.contextmanager
+def _files_in(directory: str):
+    """Make ReEvo write its relative files into ``directory`` (this thread)."""
+    _install_open_shim(_reevo_module)
+    previous = getattr(_output_dir, "path", None)
+    _output_dir.path = directory
+    try:
+        yield
+    finally:
+        _output_dir.path = previous
 
 
 _CODE_BLOCK_RE = re.compile(
@@ -141,7 +182,13 @@ class _BladeReEvoClient(BaseClient):
 
 
 class ReEvo(Method):
-    """Wrapper for the ReEvo baseline."""
+    """Wrapper for the ReEvo baseline.
+
+    ReEvo writes reflection files (``problem_iter*_*.txt``). They go to
+    ``output_path`` if given; otherwise to a ``reevo`` folder in the run's
+    log directory when the problem has a logger, else to a temporary
+    directory that is removed afterwards. (Never to the working directory.)
+    """
 
     def __init__(self, llm: LLM, budget: int, name: str = "ReEvo", **kwargs: Any):
         super().__init__(llm, budget, name)
@@ -220,15 +267,16 @@ class ReEvo(Method):
         cfg = OmegaConf.create(cfg_dict)
         client = _BladeReEvoClient(self.llm)
 
-        reevo = ReEvoAlgorithm(
-            cfg, root_dir=self.kwargs.get("output_path", "./"), generator_llm=client
-        )
-        # Override evaluation to use BLADE problems
-        reevo.evaluate_population = lambda pop: self._eval_population(
-            reevo, pop, problem
-        )
-        reevo.init_population()
-        code, _ = reevo.evolve()
+        with contextlib.ExitStack() as stack:
+            output_dir = self._output_dir(problem, stack)
+            stack.enter_context(_files_in(output_dir))
+            reevo = ReEvoAlgorithm(cfg, root_dir=output_dir, generator_llm=client)
+            # Override evaluation to use BLADE problems
+            reevo.evaluate_population = lambda pop: self._eval_population(
+                reevo, pop, problem
+            )
+            reevo.init_population()
+            code, _ = reevo.evolve()
         code = _normalize_code_snippet(code)
         name = first_class_name(code) or "AlgorithmName"
         sol = Solution(code=code, name=name)
@@ -240,6 +288,20 @@ class ReEvo(Method):
             "",
         )
         return sol
+
+    def _output_dir(self, problem: Problem, stack: contextlib.ExitStack) -> str:
+        """The directory for ReEvo's files (see the class docstring)."""
+        explicit = self.kwargs.get("output_path")
+        if explicit:
+            path = os.path.abspath(explicit)
+        elif getattr(problem, "logger", None) is not None and getattr(
+            problem, "logger_dir", ""
+        ):
+            path = os.path.abspath(os.path.join(problem.logger_dir, "reevo"))
+        else:
+            return stack.enter_context(tempfile.TemporaryDirectory(prefix="reevo-"))
+        os.makedirs(path, exist_ok=True)
+        return path
 
     def to_dict(self):
         return {

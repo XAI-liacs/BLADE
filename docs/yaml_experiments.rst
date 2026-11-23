@@ -63,7 +63,10 @@ Sections
     ``output_dir`` (required), ``name``, ``runs`` (default 5), ``seeds``,
     ``budget`` (default 100), ``n_jobs`` (default 1), ``show_stdout``,
     ``log_stdout`` and ``logger`` (``type``: ``file`` (default), ``mlflow``
-    or ``trackio``, plus ``params``).
+    or ``trackio``, plus ``params``). With ``n_jobs`` above 1 the runs are
+    threads that share the global random number generators, so the results
+    of individual seeds are not exactly reproducible; use ``n_jobs: 1`` for
+    reproducible per-seed results.
 
 ``llms``
     A mapping from a name of your choice to ``provider``, ``model``,

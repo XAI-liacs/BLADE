@@ -64,7 +64,10 @@ def test_run_logger_start_and_finish(tmp_path, mock_trackio):
     run_logger.start_run(llm)
     run_logger.finish_run(Solution(name="sol"))
 
-    mock_trackio.init.assert_called_once()
+    # The run is named after the BLADE run (it used to be "").
+    mock_trackio.init.assert_called_once_with(
+        project=logger.project, name="MyMethod-llm-unknown-MyProblem-0"
+    )
     mock_trackio.finish.assert_called_once()
 
 
@@ -131,8 +134,10 @@ def test_run_logger_log_conversation(tmp_path, mock_trackio):
     )
     run_logger.log_conversation("user", "Hello Trackio", cost=1.0, tokens=5)
 
-    mock_trackio.init.assert_called_once()
-    mock_trackio.log.assert_called()
+    mock_trackio.init.assert_called_once_with(project="proj", name="test_run")
+    # Logged through the run object returned by trackio.init (not the
+    # module-level trackio.log, which only knows the calling thread's run).
+    mock_trackio.init.return_value.log.assert_called()
     convo_path = os.path.join(run_logger.dirname, "conversationlog.jsonl")
     assert os.path.exists(convo_path)
     with open(convo_path, "r") as f:
@@ -155,7 +160,7 @@ def test_run_logger_log_individual(tmp_path, mock_trackio):
     run_logger.log_individual(sol)
 
     mock_trackio.init.assert_called_once()
-    assert mock_trackio.log.call_count >= 1
+    assert mock_trackio.init.return_value.log.call_count >= 1
     log_path = os.path.join(run_logger.dirname, "log.jsonl")
     assert os.path.exists(log_path)
     with open(log_path, "r") as f:

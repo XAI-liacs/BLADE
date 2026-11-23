@@ -1,3 +1,4 @@
+import threading
 from datetime import datetime
 
 from ConfigSpace.read_and_write import json as cs_json
@@ -71,7 +72,14 @@ class TrackioExperimentLogger(ExperimentLogger):
 
 
 class TrackioRunLogger(RunLogger):
-    """Run logger that mirrors data to Trackio."""
+    """Run logger that mirrors data to Trackio.
+
+    Each run logs to its own Trackio run object (the one returned by
+    ``trackio.init``). Trackio keeps its *current* run in a context variable,
+    i.e. per thread, so the module-level ``trackio.log`` would fail (or log
+    to another run) when a method logs from a helper thread; logging through
+    the run object keeps parallel runs (``n_jobs > 1``) apart.
+    """
 
     def __init__(
         self,
@@ -87,32 +95,44 @@ class TrackioRunLogger(RunLogger):
         self.method_name = method_name
         self.problem_name = problem_name
         self.seed = seed
-        self._run_name = args[0] if args else ""
+        # RunLogger(name, root_dir, ...): the name may be given either way.
+        self._run_name = kwargs.get("name", args[0] if args else "")
         self._initialized = False
+        self._run = None
+        self._init_thread = None
+        self._init_lock = threading.Lock()
         self.llm_name = ""
 
     def _ensure_init(self):
-        if not self._initialized:
-            trackio.init(project=self.project, name=self._run_name)
-            self._initialized = True
+        with self._init_lock:
+            if not self._initialized:
+                self._run = trackio.init(project=self.project, name=self._run_name)
+                self._init_thread = threading.get_ident()
+                self._initialized = True
+            return self._run
+
+    def _log(self, metrics: dict):
+        run = self._ensure_init()
+        if run is not None and callable(getattr(run, "log", None)):
+            run.log(metrics)
+        else:  # an older trackio that does not return the run
+            trackio.log(metrics)
 
     def start_run(self, llm: LLM):
         """Initialise Trackio and log run metadata."""
         self.llm_name = llm.model
-        self._ensure_init()
-        trackio.log(
+        self._log(
             {
                 "method_name": self.method_name,
                 "problem_name": self.problem_name,
                 "llm_name": self.llm_name,
-                "seed": int(self.seed),
+                "seed": int(self.seed) if self.seed is not None else None,
             }
         )
 
     def finish_run(self, solution: Solution):
         """Log final fitness and finish the Trackio run."""
-        self._ensure_init()
-        trackio.log(
+        self._log(
             {
                 "final_fitness": (
                     convert_to_serializable(solution.fitness)
@@ -121,12 +141,24 @@ class TrackioRunLogger(RunLogger):
                 )
             }
         )
-        trackio.finish()
-        self._initialized = False
+        with self._init_lock:
+            run = self._run
+            if (
+                run is not None
+                and callable(getattr(run, "finish", None))
+                and threading.get_ident() != self._init_thread
+            ):
+                # Initialised in another thread: that thread's current run
+                # is ours, so finish the run object itself.
+                run.finish()
+            else:
+                # Finishes this thread's current run (ours) and clears it.
+                trackio.finish()
+            self._run = None
+            self._initialized = False
 
     def log_conversation(self, role, content, cost: float = 0.0, tokens: int = 0):
-        self._ensure_init()
-        trackio.log(
+        self._log(
             {
                 "role": role,
                 "reply_time": str(datetime.now()),
@@ -138,12 +170,10 @@ class TrackioRunLogger(RunLogger):
         super().log_conversation(role, content, cost, tokens)
 
     def log_individual(self, individual):
-        self._ensure_init()
         ind_dict = individual.to_dict()
         if "fitness" in ind_dict:
-            # print(convert_to_serializable(ind_dict["fitness"]))
-            trackio.log({"fitness": convert_to_serializable(ind_dict["fitness"])})
-        trackio.log({"solution": convert_to_serializable(ind_dict)})
+            self._log({"fitness": convert_to_serializable(ind_dict["fitness"])})
+        self._log({"solution": convert_to_serializable(ind_dict)})
         super().log_individual(individual)
 
     def log_code(self, individual):
@@ -154,3 +184,14 @@ class TrackioRunLogger(RunLogger):
 
     def budget_exhausted(self):  # pragma: no cover - same as parent
         return super().budget_exhausted()
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        state["_init_lock"] = None
+        state["_run"] = None  # live Trackio runs cannot be pickled
+        state["_initialized"] = False
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._init_lock = threading.Lock()

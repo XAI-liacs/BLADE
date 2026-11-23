@@ -340,6 +340,46 @@ def clear_cache() -> int:
     return count
 
 
+def _points_to(link: Path, target: Path) -> bool:
+    """Whether ``link`` is a symlink that resolves to ``target``."""
+    try:
+        return link.is_symlink() and link.resolve() == target.resolve()
+    except OSError:
+        return False
+
+
+def _package_stamp(package: Path) -> str:
+    """Identifies the installed iohblade: its version and its files' mtimes.
+
+    Used to refresh the copy of the package (see :func:`iohblade_only_path`)
+    after iohblade was upgraded or edited at the same path.
+    """
+    try:
+        from importlib.metadata import version
+
+        installed = version("iohblade")
+    except Exception:
+        installed = "unknown"
+    digest = hashlib.sha256(installed.encode())
+    for path in sorted(package.rglob("*")):
+        if "__pycache__" in path.parts or path.suffix == ".pyc":
+            continue
+        try:
+            info = path.stat()
+        except OSError:
+            continue
+        rel = path.relative_to(package).as_posix()
+        digest.update(f"{rel}:{info.st_mtime_ns}:{info.st_size}\n".encode())
+    return digest.hexdigest()
+
+
+def _read_text(path: Path) -> str | None:
+    try:
+        return path.read_text()
+    except OSError:
+        return None
+
+
 def iohblade_only_path() -> Path:
     """A directory containing only the ``iohblade`` package (for PYTHONPATH).
 
@@ -347,18 +387,59 @@ def iohblade_only_path() -> Path:
     sees iohblade but no other package of the environment BLADE runs in.
     (Without it, the folder containing iohblade is used, which for a pip
     installation is the whole site-packages directory.)
+
+    The directory holds a symlink to the package, or a copy of it where
+    symlinks cannot be created (e.g. Windows without privileges). It is
+    created under a file lock, as evaluations call this from parallel
+    threads and processes. A copy is refreshed when iohblade changes (a
+    stamp of its version and file modification times is kept next to it).
     """
     package = Path(__file__).resolve().parent
     digest = hashlib.sha256(str(package).encode()).hexdigest()[:16]
-    shim = cache_root().parent / "shims" / digest
+    shims = cache_root().parent / "shims"
+    shim = shims / digest
     link = shim / "iohblade"
-    if link.exists():
-        return shim
+    if _points_to(link, package):
+        return shim  # fast path: no lock, no file walk
+    stamp_file = shims / f"{digest}.stamp"
+
+    from filelock import FileLock
+
     shim.mkdir(parents=True, exist_ok=True)
-    try:
-        os.symlink(package, link, target_is_directory=True)
-    except (OSError, NotImplementedError):  # e.g. Windows without privileges
+    with FileLock(str(shims / f"{digest}.lock")):
+        if _points_to(link, package):
+            return shim
+        stamp = None
+        if link.is_dir() and not link.is_symlink():
+            stamp = _package_stamp(package)
+            if _read_text(stamp_file) == stamp:
+                return shim  # an up-to-date copy
+        # Missing, stale copy or a link to something else: (re)create.
+        if link.is_symlink() or link.is_file():
+            link.unlink()
+        elif link.exists():
+            shutil.rmtree(link)
+        try:
+            os.symlink(package, link, target_is_directory=True)
+            return shim
+        except FileExistsError:
+            # Created concurrently by a process that does not take the
+            # lock (an older iohblade): fine if it is the right link.
+            if _points_to(link, package):
+                return shim
+            if link.is_symlink():
+                link.unlink()
+            else:
+                shutil.rmtree(link, ignore_errors=True)
+        except (OSError, NotImplementedError):  # e.g. Windows without privileges
+            pass
+        if stamp is None:
+            stamp = _package_stamp(package)
+        tmp = shims / f"{digest}.tmp-{os.getpid()}"
+        shutil.rmtree(tmp, ignore_errors=True)
         shutil.copytree(
-            package, link, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
+            package, tmp, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
         )
+        os.replace(tmp, link)
+        stamp_file.write_text(stamp)
     return shim

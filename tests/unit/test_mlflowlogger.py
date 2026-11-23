@@ -48,17 +48,70 @@ def mock_mlflow():
 
 
 @pytest.fixture
-def mock_experiment_logger(tmp_path, mock_mlflow):
+def tracking_uri(tmp_path, monkeypatch):
+    """A real, local MLflow tracking store (sqlite) for the test.
+
+    The experiment logger talks to MLflow through ``MlflowClient`` with
+    explicit run ids, so it is tested against a real store instead of
+    mocks of the fluent API. (MLflow 3 refuses the plain file store.)
+    """
+    monkeypatch.setenv("MLFLOW_DISABLE_AGENT_HINT", "1")
+    monkeypatch.chdir(tmp_path)  # default artifact location: ./mlruns
+    previous = mlflow.get_tracking_uri()
+    yield f"sqlite:///{tmp_path / 'mlflow.db'}"
+    mlflow.set_tracking_uri(previous)
+
+
+@pytest.fixture
+def mock_experiment_logger(tmp_path, tracking_uri):
     """
     Create a MLFlowExperimentLogger object, pointing to a temp path
-    (for file-based logs). The MLflow calls are mocked.
+    (for file-based logs) and a temporary sqlite tracking store.
     """
-    # We'll pass a made-up tracking URI
     name = str(tmp_path / "my_experiment")
     logger = MLFlowExperimentLogger(
-        name=name, read=False, mlflow_tracking_uri="file:/fake_tracking"
+        name=name, read=False, mlflow_tracking_uri=tracking_uri
     )
     return logger
+
+
+class DummyMethod(Method):
+    def __call__(self, problem):
+        pass
+
+    def to_dict(self):
+        return {"type": "DummyMethod"}
+
+    def get_config(self) -> dict[str, Any]:
+        return {}
+
+
+class DummyProblem(Problem):
+    def get_prompt(self):
+        return "prompt"
+
+    def evaluate(self, s):
+        return s
+
+    def test(self, s):
+        return s
+
+    def to_dict(self):
+        return {"type": "DummyProblem"}
+
+    def get_config(self) -> dict[str, Any]:
+        return {}
+
+
+class DummyLLM(LLM):
+    def _query(self, s):
+        return "dummy response"
+
+    def to_dict(self):
+        return {"model": "dummy_LLM"}
+
+    def get_config(self) -> list[dict[str, Any]]:
+        return [{}]
 
 
 @pytest.fixture
@@ -70,108 +123,57 @@ def mock_run_logger(tmp_path):
     return logger
 
 
-def test_experiment_logger_init(mock_experiment_logger, mock_mlflow):
+def test_experiment_logger_init(mock_experiment_logger, tracking_uri):
     """
-    On init, it should call mlflow.set_tracking_uri(...)
-    and either create or get an experiment.
+    On init, it should set the tracking URI and create (or get) an experiment.
     """
-    # mlflow.set_tracking_uri should have been called
-    mock_mlflow["set_uri"].assert_called_once_with("file:/fake_tracking")
-    # Either create_experiment or get_experiment_by_name is called
-    # by the constructor
-    create_exp_calls = mock_mlflow["create_experiment"].call_count
-    get_exp_calls = mock_mlflow["get_experiment_by_name"].call_count
-    assert create_exp_calls + get_exp_calls > 0, "Should create or get experiment."
+    assert mlflow.get_tracking_uri() == tracking_uri
+    experiment = mock_experiment_logger.client.get_experiment(
+        mock_experiment_logger.experiment_id
+    )
+    assert experiment.name == mock_experiment_logger.dirname
+
+    # A second logger for the same experiment name reuses the experiment.
+    again = MLFlowExperimentLogger(
+        name=mock_experiment_logger.dirname, mlflow_tracking_uri=tracking_uri
+    )
+    assert again.experiment_id == mock_experiment_logger.experiment_id
 
     # Also check that parent constructor made a directory for file logging:
     assert os.path.exists(mock_experiment_logger.dirname)
 
 
-def test_experiment_logger_open_run(mock_experiment_logger, mock_mlflow):
+def test_experiment_logger_open_run(mock_experiment_logger):
     """
-    open_run() should start an mlflow run.
+    open_run() should create an MLflow run for the run (not a fluent active
+    run), and hand its id to the run logger.
     """
     assert not mock_experiment_logger._mlflow_run_active
 
-    class DummyMethod(Method):
-        def __call__(self, problem):
-            pass
-
-        def to_dict(self):
-            return {"type": "DummyMethod"}
-
-        def get_config(self) -> dict[str, Any]:
-            return {}
-
-    class DummyProblem(Problem):
-        def get_prompt(self):
-            return "prompt"
-
-        def evaluate(self, s):
-            return s
-
-        def test(self, s):
-            return s
-
-        def to_dict(self):
-            return {"type": "DummyProblem"}
-
-        def get_config(self) -> dict[str, Any]:
-            return {}
-
-    dm = DummyMethod(None, budget=10, name="MyMethod")
+    dm = DummyMethod(DummyLLM("", "dummy_model"), budget=10, name="MyMethod")
     dp = DummyProblem(name="MyProblem")
-    mock_experiment_logger.open_run(dm, dp, 1)
+    run_logger = mock_experiment_logger.open_run(dm, dp, 1)
 
-    # Should call mlflow.start_run
-    mock_mlflow["start_run"].assert_called_once()
     assert mock_experiment_logger._mlflow_run_active
+    assert isinstance(run_logger, MLFlowRunLogger)
+    assert run_logger.run_id == mock_experiment_logger._current_run_id
+    run = mock_experiment_logger.client.get_run(run_logger.run_id)
+    assert run.info.status == "RUNNING"
+    assert run.info.run_name == "MyMethod-dummy_model-MyProblem-0"
+    assert mlflow.active_run() is None
+
+    # A second run can be opened while the first one is still open.
+    second = mock_experiment_logger.open_run(dm, dp, 1, seed=1)
+    assert second.run_id != run_logger.run_id
 
 
-def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
+def test_experiment_logger_add_run(mock_experiment_logger):
     """
     add_run() is normally called at the end of a run.
-    If no run is active, it opens one automatically.
-    Then it logs params, metric, an artifact, ends the run,
+    If no run is open, it creates one.
+    Then it logs params, metric, an artifact, terminates the run,
     and calls super().add_run(...) for file-based logging.
     """
-
-    class DummyMethod(Method):
-        def __call__(self, problem):
-            pass
-
-        def to_dict(self):
-            return {"type": "DummyMethod"}
-
-        def get_config(self) -> dict[str, Any]:
-            return {}
-
-    class DummyProblem(Problem):
-        def get_prompt(self):
-            return "prompt"
-
-        def evaluate(self, s):
-            return s
-
-        def test(self, s):
-            return s
-
-        def to_dict(self):
-            return {"type": "DummyProblem"}
-
-        def get_config(self) -> dict[str, Any]:
-            return {}
-
-    class DummyLLM(LLM):
-        def _query(self, s):
-            return "dummy response"
-
-        def to_dict(self):
-            return {"model": "dummy_LLM"}
-
-        def get_config(self) -> list[dict[str, Any]]:
-            return [{}]
-
     method = DummyMethod(None, budget=10, name="myMethod")
     problem = DummyProblem(name="myProblem")
     llm = DummyLLM("fake_key", "dummy_model")
@@ -191,20 +193,20 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
         seed=42,
     )
 
-    # mlflow.start_run should be called because no run was active
-    mock_mlflow["start_run"].assert_called_once()
-    # We should have logged several params
-    log_param_calls = [args for args, _ in mock_mlflow["log_param"].call_args_list]
-    # Expect something like ("method_name", "myMethod"), ("problem_name","myProblem"), ...
-    expected_params = {"method_name", "problem_name", "llm_name", "seed"}
-    for param_name, param_value in log_param_calls:
-        assert param_name in expected_params
-
+    client = mock_experiment_logger.client
+    (run,) = client.search_runs([mock_experiment_logger.experiment_id])
+    assert run.data.params == {
+        "method_name": "myMethod",
+        "problem_name": "myProblem",
+        "llm_name": "dummy_model",
+        "seed": "42",
+    }
     # final_fitness as a metric
-    mock_mlflow["log_metric"].assert_called_with("final_fitness", 99.0)
-
-    # mlflow.end_run
-    mock_mlflow["end_run"].assert_called_once()
+    assert run.data.metrics["final_fitness"] == 99.0
+    artifacts = {a.path for a in client.list_artifacts(run.info.run_id)}
+    assert "final_run_object.json" in artifacts
+    # the run is terminated
+    assert run.info.status == "FINISHED"
     assert not mock_experiment_logger._mlflow_run_active
 
     # Check file-based logs
@@ -216,6 +218,25 @@ def test_experiment_logger_add_run(mock_experiment_logger, mock_mlflow):
         content = f.read()
     assert "myMethod" in content
     assert "myProblem" in content
+
+
+def test_run_logger_with_run_id_logs_to_that_run(mock_experiment_logger):
+    """With a run id, the run logger does not need an active MLflow run."""
+    dm = DummyMethod(DummyLLM("", "dummy_model"), budget=10, name="MyMethod")
+    run_logger = mock_experiment_logger.open_run(dm, DummyProblem(name="P"), 5)
+    sol = Solution(name="sol", code="print(1)")
+    sol.set_scores(2.5)
+    run_logger.log_individual(sol)
+    run_logger.log_code(sol)
+    run_logger.log_conversation("user", "hi")
+
+    client = mock_experiment_logger.client
+    assert client.get_run(run_logger.run_id).data.metrics["fitness"] == 2.5
+    artifacts = {a.path for a in client.list_artifacts(run_logger.run_id)}
+    assert {f"solution_{sol.id}.json", f"code_{sol.id}.py", "conversation_0.json"} <= (
+        artifacts
+    )
+    assert mlflow.active_run() is None
 
 
 def test_run_logger_init_file_structure(mock_run_logger):
