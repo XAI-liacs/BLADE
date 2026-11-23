@@ -27,6 +27,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from types import ModuleType
 
+# Attribute on an imported custom module: the hash of the files it was
+# imported from, so an edited source is re-imported by the next load.
+_HASH_ATTR = "__blade_sha256__"
+
 # Files and folders that are not part of a package's source.
 _IGNORED = {"__pycache__", ".git", ".venv", ".mypy_cache", ".pytest_cache"}
 
@@ -134,7 +138,7 @@ def read_requirements(path: Path) -> list[str]:
     req = folder / "requirements.txt"
     if req.is_file():
         lines = []
-        for raw in req.read_text().splitlines():
+        for raw in req.read_text(encoding="utf-8").splitlines():
             line = raw.split("#", 1)[0].strip()
             if line and not line.startswith("-"):
                 lines.append(line)
@@ -144,7 +148,7 @@ def read_requirements(path: Path) -> list[str]:
         import tomllib
 
         try:
-            data = tomllib.loads(pyproject.read_text())
+            data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
         except tomllib.TOMLDecodeError as e:
             raise UserCodeError(f"Cannot parse {pyproject}: {e}") from e
         return list(data.get("project", {}).get("dependencies", []))
@@ -166,6 +170,27 @@ def _module_origin(name: str) -> Path | None:
     if spec.origin in (None, "built-in", "frozen"):
         return Path(f"<{spec.origin or 'namespace'}>")
     return Path(spec.origin).resolve()
+
+
+def _forget_module(module_name: str, path: Path) -> None:
+    """Drop a module (and its submodules) so the next import reads the files.
+
+    The cached bytecode of the source files is removed as well: Python
+    checks it by modification time (whole seconds) and size, so a file
+    edited quickly without changing its size could otherwise load stale
+    bytecode.
+    """
+    for name in list(sys.modules):
+        if name == module_name or name.startswith(module_name + "."):
+            del sys.modules[name]
+    for file in _source_files(path):
+        if file.suffix != ".py":
+            continue
+        try:
+            Path(importlib.util.cache_from_source(str(file))).unlink(missing_ok=True)
+        except (OSError, NotImplementedError, ValueError):
+            pass
+    importlib.invalidate_caches()
 
 
 def _requirement_name(requirement: str) -> str:
@@ -228,6 +253,12 @@ def load_source(
     if str(root) not in sys.path:
         # Appended, so the folder cannot shadow installed packages.
         sys.path.append(str(root))
+    sha256 = hash_source(path)
+    cached = sys.modules.get(module_name)
+    if cached is not None and getattr(cached, _HASH_ATTR, sha256) != sha256:
+        # Loaded before (from this path, see the origin check above) and
+        # edited since: import_module would return the old module.
+        _forget_module(module_name, path)
     try:
         module = importlib.import_module(module_name)
     except ModuleNotFoundError as e:
@@ -258,12 +289,16 @@ def load_source(
         raise UserCodeError(
             f"Importing '{source}' failed: {type(e).__name__}: {e}"
         ) from e
+    try:
+        setattr(module, _HASH_ATTR, sha256)
+    except AttributeError:  # pragma: no cover - exotic module objects
+        pass
     return LoadedSource(
         path=path,
         root=root,
         module_name=module_name,
         module=module,
-        sha256=hash_source(path),
+        sha256=sha256,
         dependencies=read_requirements(path),
     )
 

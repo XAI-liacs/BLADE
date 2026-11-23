@@ -84,7 +84,7 @@ class ReplayLLM(LLM):
 def reference_solution(problem, smoke: Path | None) -> tuple[str | None, str]:
     """The code to evaluate for ``problem`` and where it came from."""
     if smoke is not None:
-        return smoke.read_text(), f"smoke_test_solution {smoke.name}"
+        return smoke.read_text(encoding="utf-8"), f"smoke_test_solution {smoke.name}"
     match = _CODE.search(getattr(problem, "example_prompt", "") or "")
     if match:
         return match.group(1), "the example in the problem's prompt"

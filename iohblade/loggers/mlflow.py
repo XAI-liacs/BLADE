@@ -13,6 +13,45 @@ from ..solution import Solution
 from ..utils import convert_to_serializable
 from .base import ExperimentLogger, RunLogger
 
+# MLflow's client is used from several threads (one per parallel run, plus
+# helper threads of a method). Its local stores (sqlite, files) are not
+# reliable under concurrent artifact writes (on Windows, artifacts logged at
+# the same time from several threads went missing), so every MLflow call
+# made by these loggers is serialised. The calls are cheap compared with an
+# evaluation.
+_MLFLOW_LOCK = threading.RLock()
+
+
+class _LockedClient:
+    """An ``MlflowClient`` whose methods run under :data:`_MLFLOW_LOCK`."""
+
+    def __init__(self, client):
+        self._client = client
+
+    @property
+    def wrapped(self):
+        return self._client
+
+    def __getattr__(self, name):
+        if name.startswith("__") or name == "_client":
+            raise AttributeError(name)  # e.g. lookups while unpickling
+        attr = getattr(self._client, name)
+        if not callable(attr):
+            return attr
+
+        def locked(*args, **kwargs):
+            with _MLFLOW_LOCK:
+                return attr(*args, **kwargs)
+
+        return locked
+
+
+def _locked(client):
+    if client is None or isinstance(client, _LockedClient):
+        return client
+    return _LockedClient(client)
+
+
 try:  # pragma: no cover - import guard
     import mlflow
     import mlflow.exceptions
@@ -73,7 +112,7 @@ class MLFlowExperimentLogger(ExperimentLogger):
         if mlflow_tracking_uri:
             mlflow.set_tracking_uri(mlflow_tracking_uri)
         self.mlflow_tracking_uri = mlflow_tracking_uri
-        self.client = MlflowClient(tracking_uri=mlflow_tracking_uri)
+        self.client = _locked(MlflowClient(tracking_uri=mlflow_tracking_uri))
 
         # Create or retrieve a named MLflow experiment
         try:
@@ -271,9 +310,9 @@ class MLFlowRunLogger(RunLogger):
         # We do want to keep the parent's file-based logging directories
         super().__init__(name, root_dir, budget, progress_callback=progress_callback)
         self.run_id = run_id
-        self.client = client
+        self.client = _locked(client)
         if run_id is not None and client is None:
-            self.client = MlflowClient()
+            self.client = _locked(MlflowClient())
         self._step_lock = threading.Lock()
         self._fitness_step = 0
 
@@ -281,15 +320,18 @@ class MLFlowRunLogger(RunLogger):
         if self.run_id is not None:
             self.client.log_text(self.run_id, text, artifact_file)
         else:
-            mlflow.log_text(text, artifact_file=artifact_file)
+            with _MLFLOW_LOCK:
+                mlflow.log_text(text, artifact_file=artifact_file)
 
     def _log_metric(self, key, value, step=None):
         if self.run_id is not None:
             self.client.log_metric(self.run_id, key, value, step=step)
         elif step is None:
-            mlflow.log_metric(key, value)
+            with _MLFLOW_LOCK:
+                mlflow.log_metric(key, value)
         else:
-            mlflow.log_metric(key, value, step=step)
+            with _MLFLOW_LOCK:
+                mlflow.log_metric(key, value, step=step)
 
     def log_conversation(self, role, content, cost=0.0, tokens=0):
         """

@@ -58,8 +58,11 @@ problems:
   enum values where a parameter expects an enum.
 - `${env:NAME}` and `${env:NAME:-default}` read the environment or a
   `.env` file next to the YAML file. Quote them inside `[...]`/`{...}`.
+  An unquoted lone placeholder gets a type (`n_parents: ${env:NP:-4}` is
+  the integer 4); a quoted one (`"${env:KEY}"`) and credential keys
+  (`api_key`, `*_token`, `*_secret`, `*_password`) stay strings.
 - `--set dotted.path=value` overrides any value on the command line,
-  e.g. `--set methods.0.budget=20`.
+  e.g. `--set methods.0.budget=20` (`${env:...}` works there too).
 
 ## Built-in components
 
@@ -124,7 +127,7 @@ Rules:
   working solution: `iohblade check` evaluates it.
 - The source folder is on the evaluation `PYTHONPATH`, so data files and
   helper modules next to it work. Don't name the file like an installed
-  module (`validate` warns).
+  module: `validate` reports that as an error (rename the file or folder).
 
 ## Custom method
 
@@ -205,3 +208,4 @@ runs a YAML file from Python. Scripts that start BLADE themselves must set
 | Run stops with `HarnessError` | 3 harness errors in a row; see the run's `error.txt` and `run.log` |
 | Mostly `c`/`t` errors | Generated code fails or is slow: clarify prompts, give a working example, raise `eval_timeout` |
 | Resumed run warns the configuration changed | Previous record kept as `blade_config-<timestamp>/`; use a new `output_dir` for a different experiment |
+| `run` (exit 2): output directory already holds runs of a different setup | Fewer runs/seeds or a renamed/removed method or problem than recorded there. Use a new `output_dir` (`--set experiment.output_dir=results/trial`) or restore the settings. Adding runs, seeds, methods or problems is fine: finished runs are kept, new ones start |

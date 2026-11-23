@@ -112,6 +112,31 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **YAML configuration and CLI (#208).**
+  - **Resuming with other settings:**
+    - running an existing `output_dir` with fewer or other runs, e.g.
+      `--set experiment.runs=1`, printed a traceback after it had already
+      archived and overwritten the recorded configuration. It is now a
+      configuration error (exit 2) raised before anything is written, with
+      what differs and how to proceed;
+    - adding runs (more `runs`, seeds, methods or problems) resumes the
+      finished runs and starts only the new ones.
+  - **Misspelled `params`** for `random_search`, `eoh` and `reevo` are now
+    reported; they were silently accepted.
+  - **`${env:NAME}` values:** an unquoted value that is exactly one
+    `${env:NAME}` now gets its YAML type (number, boolean, list). Quoted
+    values and credentials stay strings. `--set` values get the same
+    substitution.
+  - **`.env` files:** inline comments and quotes ended up in the values;
+    they are now read like python-dotenv.
+  - **Custom code** edited and loaded again in the same process (notebooks,
+    the Python API) is reloaded; the old class was used before.
+  - **Encoding:** all configuration files are read and written as UTF-8;
+    a non-UTF-8 file is a configuration error.
+  - **`resolved.yml`** no longer redacts settings such as `max_tokens` or
+    `tokenizer`.
+  - **`sources.json`** stores paths relative to the configuration, so a
+    moved experiment folder no longer reports changed code.
 - **Methods respect their evaluation budget (#206).** Unequal budgets made
   method comparisons unfair.
   - **LHNS:**
