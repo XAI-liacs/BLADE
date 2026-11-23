@@ -222,7 +222,20 @@ def read_dotenv(path: str | os.PathLike) -> dict[str, str]:
     if not path.is_file():
         return {}
     values = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    try:
+        text = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise ConfigError(
+            [
+                ConfigIssue(
+                    (),
+                    "Cannot read the .env file: it is not valid UTF-8 (byte "
+                    f"{e.start}: {e.reason}). Save it with UTF-8 encoding.",
+                    str(path),
+                )
+            ]
+        ) from e
+    for raw in text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue

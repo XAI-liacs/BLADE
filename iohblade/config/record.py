@@ -65,7 +65,9 @@ def redact(data: Any, secret_paths: set[tuple]) -> Any:
     """
 
     def walk(value, path):
-        if path in secret_paths and isinstance(value, str):
+        # Values read from the environment are redacted whatever their type
+        # (an unquoted ${env:...} value can be a number or a list).
+        if path in secret_paths and value is not None:
             return REDACTED
         if isinstance(value, dict):
             out = {}
@@ -214,16 +216,18 @@ def write_record(plan: "ExperimentPlan", output_dir: str | Path) -> list[str]:
 
 # ---------------------------------------------------------------- resume ---
 
-RunKey = tuple[str, str, int]
+# (method, LLM or None, problem, seed)
+RunKey = tuple[str, Any, str, int]
 
 
 def _describe(key: RunKey) -> str:
-    method, problem, seed = key
-    return f"{method} on {problem}, seed {seed}"
+    method, llm, problem, seed = key
+    with_llm = f" ({llm})" if llm else ""
+    return f"{method}{with_llm} on {problem}, seed {seed}"
 
 
 def _listing(keys: set[RunKey], limit: int = 5) -> str:
-    items = sorted(keys, key=lambda k: (str(k[0]), str(k[1]), str(k[2])))
+    items = sorted(keys, key=lambda k: tuple(str(part) for part in k))
     text = "; ".join(_describe(k) for k in items[:limit])
     if len(items) > limit:
         text += f"; ... ({len(items) - limit} more)"
@@ -305,13 +309,13 @@ class ResumeStatus:
             "finished runs and add new ones, but not leave recorded runs out.",
             f"Recorded but no longer planned: {_listing(self.removed)}.",
         ]
-        rec_seeds = sorted({k[2] for k in self.recorded})
-        plan_seeds = sorted({k[2] for k in self.planned})
+        rec_seeds = sorted({k[3] for k in self.recorded})
+        plan_seeds = sorted({k[3] for k in self.planned})
         if rec_seeds != plan_seeds:
             lines.append(f"Seeds recorded: {rec_seeds}; planned: {plan_seeds}.")
-        for what, index in (("Methods", 0), ("Problems", 1)):
-            rec = sorted({k[index] for k in self.recorded})
-            new = sorted({k[index] for k in self.planned})
+        for what, index in (("Methods", 0), ("LLMs", 1), ("Problems", 2)):
+            rec = sorted({str(k[index]) for k in self.recorded})
+            new = sorted({str(k[index]) for k in self.planned})
             if rec != new:
                 lines.append(f"{what} recorded: {rec}; planned: {new}.")
         lines.append(
@@ -345,21 +349,22 @@ def resume_status(plan: "ExperimentPlan", output_dir=None) -> ResumeStatus:
     from ..loggers.base import ExperimentLogger
 
     output_dir = Path(output_dir if output_dir is not None else plan.output_dir)
-    planned = {
-        (m.name, p.name, int(s))
+    planned_runs = [
+        (m.name, ExperimentLogger._get_clean_llm_model_name(None, m.llm), p.name, s)
         for m in plan.methods
         for p in plan.problems
         for s in plan.seeds
-    }
-    status = ResumeStatus(output_dir, planned)
+    ]
+    status = ResumeStatus(output_dir, {_identity(*run) for run in planned_runs})
     path = output_dir / "progress.json"
     if not path.is_file():
         return status
     try:
         runs = _progress_runs(path)
-        status.recorded = {
-            (r["method_name"], r["problem_name"], int(r["seed"])) for r in runs
-        }
+        with_llm = all(r.get("llm_name") for r in runs)
+        status.recorded = {_identity_of(r, with_llm) for r in runs}
+        if not with_llm:  # older progress files have no llm_name
+            status.planned = {_identity(m, None, p, s) for m, _, p, s in planned_runs}
     except (OSError, ValueError, KeyError, TypeError) as e:
         status.error = (
             f"Could not read the experiment progress file {path}: {e}. Fix or "
@@ -381,6 +386,20 @@ def resume_status(plan: "ExperimentPlan", output_dir=None) -> ResumeStatus:
     return status
 
 
+def _identity(method, llm, problem, seed) -> tuple:
+    """A run's identity: method, LLM (None if unknown), problem and seed.
+
+    One method name may be used with several LLMs, so the LLM is part of it.
+    """
+    return (method, llm, problem, int(seed))
+
+
+def _identity_of(run: dict, with_llm: bool = True) -> tuple:
+    """The identity of a progress entry (without the LLM for old files)."""
+    llm = run.get("llm_name") if with_llm else None
+    return _identity(run["method_name"], llm, run["problem_name"], run["seed"])
+
+
 def add_planned_runs(exp_logger, plan: "ExperimentPlan") -> int:
     """Add runs that are planned but not recorded to ``progress.json``.
 
@@ -398,13 +417,14 @@ def add_planned_runs(exp_logger, plan: "ExperimentPlan") -> int:
     runs = progress.get("runs") or []
     if not runs:
         return 0  # a new experiment; the logger plans all runs itself
-    recorded = {(r["method_name"], r["problem_name"], int(r["seed"])) for r in runs}
+    with_llm = all(r.get("llm_name") for r in runs)
+    recorded = {_identity_of(r, with_llm) for r in runs}
     new = [
         r
         for r in exp_logger._planned_runs(
             plan.methods, plan.problems, plan.seeds, plan.config.experiment.budget
         )
-        if (r["method_name"], r["problem_name"], r["seed"]) not in recorded
+        if _identity_of(r, with_llm) not in recorded
     ]
     if not new:
         return 0

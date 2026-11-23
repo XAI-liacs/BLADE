@@ -98,7 +98,7 @@ def test_run_with_fewer_runs_is_a_config_error_and_keeps_record(tmp_path, capsys
     err = capsys.readouterr().err
     assert "experiment.output_dir" in err
     assert "already holds 2 run(s)" in err and "plans 1" in err
-    assert "rs on c, seed 1" in err
+    assert "rs (m) on c, seed 1" in err
     assert "Seeds recorded: [0, 1]; planned: [0]" in err
     assert "new output directory" in err and "restore the previous" in err
     # Nothing was archived or overwritten.
@@ -128,7 +128,7 @@ def test_adding_runs_resumes_and_extends_progress(tmp_path):
     plan = load_plan(path, env={}, overrides=["experiment.runs=3"])
     status = resume_status(plan)
     assert status.compatible and status.finished == 1
-    assert status.added == {("rs", "c", 2)}
+    assert status.added == {("rs", "m", "c", 2)}
 
     experiment = plan.make_experiment()
     assert any("1 run(s) new" in w for w in plan.warnings)
@@ -573,3 +573,69 @@ def test_sources_json_is_relative_and_survives_moving(tmp_path):
     plan = load_plan(moved / "exp.yml", env={})
     plan.make_experiment()
     assert any("custom code changed" in w for w in plan.warnings)
+
+
+# ------------------------------------------- review feedback on #218 ---
+
+
+def test_non_utf8_dotenv_is_a_config_error(tmp_path, capsys):
+    path = write_yaml(tmp_path, base_config())
+    (tmp_path / ".env").write_bytes("KEY=Gr\xf6\xdfe\n".encode("latin-1"))
+    with pytest.raises(ConfigError) as exc:
+        load_yaml(path)
+    assert ".env file" in str(exc.value) and "UTF-8" in str(exc.value)
+    assert cli.main(["validate", str(path)]) == cli.EXIT_CONFIG
+
+
+def test_typed_env_values_are_redacted():
+    data = {"experiment": {"runs": 3}, "methods": [{"params": {"seed": [1, 2]}}]}
+    secrets = {("experiment", "runs"), ("methods", 0, "params", "seed")}
+    out = redact(data, secrets)
+    assert out["experiment"]["runs"] == "<redacted>"
+    assert out["methods"][0]["params"]["seed"] == "<redacted>"
+    assert data["experiment"]["runs"] == 3  # the input is not changed
+
+
+def test_typed_env_value_is_redacted_in_resolved_yml(tmp_path):
+    config = base_config(runs="${env:RUNS}")
+    path = tmp_path / "exp.yml"
+    text = yaml.safe_dump(config, sort_keys=False).replace(
+        "'${env:RUNS}'", "${env:RUNS}"
+    )
+    path.write_text(text, encoding="utf-8")
+    plan = load_plan(path, env={"RUNS": "2"})
+    assert plan.config.experiment.runs == 2
+    plan.make_experiment()
+    resolved = (tmp_path / "out" / "blade_config" / "resolved.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "runs: <redacted>" in resolved
+
+
+def test_same_method_name_with_a_new_llm_is_added(tmp_path):
+    # One method name used with two LLMs is allowed; adding the second LLM
+    # to an experiment recorded with the first must add its runs.
+    config = base_config(
+        runs=2, methods=[{"type": "random_search", "name": "rs", "llm": ["d", "e"]}]
+    )
+    config["llms"]["e"] = {"provider": "dummy", "model": "m2"}
+    path = write_yaml(tmp_path, config)
+    out = tmp_path / "out"
+    out.mkdir()
+    _record_runs(out, [0, 1], finished=[0, 1])  # recorded with LLM "m" only
+
+    plan = load_plan(path, env={})
+    status = resume_status(plan)
+    assert status.compatible
+    assert status.finished == 2
+    assert status.added == {("rs", "m2", "c", 0), ("rs", "m2", "c", 1)}
+
+    plan.make_experiment()
+    data = json.loads((out / "progress.json").read_text(encoding="utf-8"))
+    assert sorted((r["llm_name"], r["seed"]) for r in data["runs"]) == [
+        ("m", 0),
+        ("m", 1),
+        ("m2", 0),
+        ("m2", 1),
+    ]
+    assert data["total"] == 4
