@@ -112,6 +112,40 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Smaller fixes (#209).**
+  - **`Solution.set_scores`:** `solution.error` stayed empty for exceptions
+    raised outside the candidate code (numpy, the benchmark's own checks),
+    and kept a stale value when a solution was scored again; the error
+    counts in the run overview missed these. It now always records
+    `Type: message`.
+  - **Error feedback to the LLM** pointed at the wrong line of the
+    candidate's code for errors raised in other files.
+  - **`aoc_logger(scale_log=False)`** returned a function instead of a
+    number.
+  - **`wrap_problem`** passed the problem as the solution to functions such
+    as `evaluate(solution, logger=None)`. Its `eval_timeout` defaults are
+    now consistent (6000 s).
+  - **`Solution`:** the default `parent_ids` list was shared between
+    solutions, and `from_dict` dropped `task_prompt`.
+  - **`MCTS_Node`:** pickling and copying kept the search-tree fields, and
+    `parent_ids` is a list. MCTS-AHD evaluates a node without its tree
+    links, so the tree is not sent to the evaluation subprocess.
+  - **Kerneltuner:**
+    - `test()` always crashed;
+    - the cache path was hard-coded to a lab path; it now uses `cache_dir`.
+  - **`imports` argument:** ignored by BBOB-SBOX, MA-BBOB, Kerneltuner and
+    Photonics; it is now used.
+  - **AutoML:** `get_config()` crashed without an OpenML task.
+  - **TSP:** the feedback always said the best known distance was `inf`.
+  - **Euclidean Steiner tree:** the problem name was hard-coded
+    (`EucildianSteinerTree-n20`); it is now `EuclidianSteinerTree-n<id>`.
+  - **Graph colouring:** the prompt printed the whole node list instead of
+    the number of nodes.
+  - **`misc.ast`:** `print_results` and `process_file_paths` always raised
+    `KeyError`.
+  - **`prepare_namespace`:** it crashed on `from x import *`, on relative
+    imports and on version-pinned requirements; its docstring no longer
+    claims to isolate code (the subprocess does).
 - **YAML configuration and CLI (#208).**
   - **Resuming with other settings:**
     - running an existing `output_dir` with fewer or other runs, e.g.

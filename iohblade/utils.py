@@ -418,6 +418,11 @@ def correct_aoc(ioh_function, logger, budget):
     return 1 - aoc
 
 
+def _identity(x):
+    """Identity transform of ``aoc_logger(scale_log=False)``."""
+    return x
+
+
 class aoc_logger(logger.AbstractLogger):
     """aoc_logger class implementing the logging module for ioh."""
 
@@ -442,7 +447,7 @@ class aoc_logger(logger.AbstractLogger):
         self.upper = upper
         self.budget = budget
         self.stop_on_threshold = stop_on_threshold
-        self.transform = lambda x: np.log10(x) if scale_log else (lambda x: x)
+        self.transform = np.log10 if scale_log else _identity
 
     def __call__(self, log_info: LogInfo):
         """Subscalculate the aoc.

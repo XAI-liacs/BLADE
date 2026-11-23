@@ -29,35 +29,58 @@ from .utils import HarnessError, TimeoutException
 
 
 def simplify_subprocess_error(stderr: str, solution=None):
-    """
-    Parse a Python traceback string and produce a concise error summary.
-    Optionally include the offending line of code from `solution.code`.
+    """Parse a Python traceback string and produce a concise error summary.
+
+    The line number and the offending line of ``solution.code`` are only
+    reported for the last traceback frame that lies in the candidate code
+    (filename ``"<string>"`` or the solution's name). Frames in other files
+    (numpy, the benchmark, ...) have line numbers that do not refer to the
+    candidate code, so then only the exception type and message are given.
+
+    Args:
+        stderr (str): Standard error of the evaluation subprocess.
+        solution (Solution, optional): The evaluated solution.
+
+    Returns:
+        str: The summary.
     """
     if not stderr:
         return "Unknown error."
 
-    # Extract the last "File ..." block and the final exception line
-    # This regex catches the last occurrence of: File "...", line X, in Y
-    file_line_match = list(re.finditer(r'File ".*?", line (\d+), in (.+)', stderr))
-    exc_match = re.search(r"([A-Za-z_]+Error): (.*)", stderr.splitlines()[-1])
-
-    if not file_line_match or not exc_match:
-        # fallback: just return the final line
+    lines = stderr.strip().splitlines()
+    exc_match = re.search(r"([A-Za-z_][\w.]*(?:Error|Exception)): (.*)", lines[-1])
+    if not exc_match:
+        # fallback: just return the whole output
         return stderr.strip()
-
-    last = file_line_match[-1]
-    line_no = int(last.group(1))
-    func = last.group(2).strip()
     exc_type, exc_msg = exc_match.groups()
 
-    # Optional: fetch offending code line if available
+    names = {"<string>"}
+    sol_name = getattr(solution, "name", "") if solution is not None else ""
+    if sol_name:
+        names.add(sol_name)
+    frames = [
+        m
+        for m in re.finditer(r'File "(.*?)", line (\d+), in (.+)', stderr)
+        if m.group(1) in names
+    ]
+    if not frames:
+        return f"{exc_type}: {exc_msg}"
+
+    last = frames[-1]
+    line_no = int(last.group(2))
+    func = last.group(3).strip()
+
     code_line = ""
-    if solution and hasattr(solution, "code"):
-        code_lines = solution.code.splitlines()
+    code = getattr(solution, "code", None) if solution is not None else None
+    if isinstance(code, str):
+        code_lines = code.splitlines()
         if 1 <= line_no <= len(code_lines):
             code_line = code_lines[line_no - 1].strip()
 
-    msg = f"In the code, line {line_no}, in {func}, the following error occurred:\n{exc_type}: {exc_msg}"
+    msg = (
+        f"In the code, line {line_no}, in {func}, the following error "
+        f"occurred:\n{exc_type}: {exc_msg}"
+    )
     if code_line:
         msg += f"\nOn line: {code_line}"
     return msg
@@ -297,18 +320,10 @@ def evaluate_in_subprocess(problem, conn, solution):
                 }
             )
             return
-        tb = traceback.extract_tb(e.__traceback__)[-1]
-        line_no = tb.lineno
-        code_line = ""
-
-        code_lines = solution.code.split("\n")
-        if line_no and len(code_lines) >= line_no:
-            code_line = code_lines[line_no - 1]
-        error_type = type(e).__name__
-        error_msg = str(e)
-        error = f"{error_type}: {error_msg}.\n"
-        if code_lines:
-            error += f"On line {line_no}: {code_line}.\n"
+        # Raised after the candidate script finished (e.g. a missing or
+        # unreadable result pickle): the traceback lies in this file, so its
+        # line numbers say nothing about the candidate code.
+        error = f"{type(e).__name__}: {e}"
         conn.send(
             {
                 "error": error,
@@ -668,13 +683,35 @@ class Problem(ABC):
         """
 
 
+def _takes_problem_argument(fn) -> bool:
+    """Whether a wrapped ``evaluate`` function expects the problem first.
+
+    Only *required* positional parameters (no default value) are counted:
+    ``(solution)`` and ``(solution, logger=None)`` get the solution only,
+    ``(self, solution)`` or ``(problem, solution, extra=1)`` get the problem
+    and the solution. The name of the first parameter is not used, so
+    ``(problem, solution)`` works as well as ``(self, solution)``.
+    """
+    try:
+        params = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    required = [
+        p
+        for p in params
+        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        and p.default is p.empty
+    ]
+    return len(required) >= 2
+
+
 class WrappedProblem(Problem):
     def __init__(
         self,
         evaluate_fn,
         *,
         name="Problem",
-        eval_timeout=600,
+        eval_timeout=6000,
         training_instances=None,
         test_instances=None,
         dependencies=None,
@@ -699,7 +736,7 @@ class WrappedProblem(Problem):
 
         self._evaluate_fn = evaluate_fn
         # support both signatures: (solution) and (self, solution)
-        self._takes_self = len(inspect.signature(evaluate_fn).parameters) > 1
+        self._takes_self = _takes_problem_argument(evaluate_fn)
         # store by value
         self._evaluate_fn_bytes = cloudpickle.dumps(evaluate_fn)
         self._evaluate_fn = None  # reconstructed lazily

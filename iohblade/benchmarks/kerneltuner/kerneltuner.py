@@ -7,7 +7,7 @@ import re
 import textwrap
 import time
 import traceback
-from pathlib import Path
+from pathlib import Path, PurePath
 from typing import Any
 
 import numpy as np
@@ -117,6 +117,7 @@ class Kerneltuner(Problem):
             name,
             eval_timeout,
             dependencies,
+            imports,
         )
         self.budget = budget  # The budget for the optimization algorithms
         self.task_prompt = textwrap.dedent("""
@@ -281,7 +282,10 @@ from kernel_tuner.strategies.wrapper import OptAlg
                 "samples": 32,
                 "minimum_fraction_of_budget_valid": 0.01,
                 "pattern_for_full_search_space_filenames": {
-                    "regex": "/data/neocortex/repos/benchmark_hub/cachefiles/${applications}/${gpus}_T4.json"
+                    # A regular expression for kernel_tuner: use "/" also
+                    # on Windows, where "\\" would act as an escape.
+                    "regex": PurePath(self.cache_dir).as_posix().rstrip("/")
+                    + "/cachefiles/${applications}/${gpus}_T4.json"
                 },
             }
         }
@@ -315,7 +319,7 @@ from kernel_tuner.strategies.wrapper import OptAlg
 
         To evaluate kernel tuner solutions, use `autotuning_visualize <path to test file>`.
         """
-        return self.evaluate(solution, True, ioh_dir)
+        return self.evaluate(solution, test=True)
 
     def to_dict(self):
         """

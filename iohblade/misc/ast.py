@@ -350,42 +350,19 @@ def aggregate_stats(results):
 
 def print_results(stats, file):
     """
-    Prints detailed graph statistics for a single file or code snippet, including node
-    and edge counts, degree information, clustering, entropy, centralities, and more.
+    Prints the graph and complexity statistics of a single file or code
+    snippet, one line per statistic.
+
+    Only the statistics present in ``stats`` are printed, so this works with
+    whatever ``analyze_graph`` and ``analyse_complexity`` return.
 
     Args:
         stats (dict): A dictionary containing the graph and complexity stats.
         file (str): The name or identifier of the file (or code snippet) being analyzed.
     """
     print("Statistics for file:", file)
-    print("Number of nodes:", stats["Nodes"])
-    print("Number of Edges:", stats["Edges"])
-    print("Degrees:", stats["Degrees"])
-    print("Maximum Degree:", stats["Max Degree"])
-    print("Minimum Degree:", stats["Min Degree"])
-    print("Mean Degree:", stats["Mean Degree"])
-    print("Degree Variance:", stats["Degree Variance"])
-    print("Transitivity:", stats["Transitivity"])
-    print("Leaf Depths:", stats["Depths"])
-    print("Max Depth:", stats["Max Depth"])
-    print("Min Depth:", stats["Min Depth"])
-    print("Mean Depth:", stats["Mean Depth"])
-    print("Clustering Coefficients:", stats["Clustering Coefficients"])
-    print("Max Clustering:", stats["Max Clustering"])
-    print("Min Clustering:", stats["Min Clustering"])
-    print("Mean Clustering:", stats["Mean Clustering"])
-    print("Clustering Variance:", stats["Clustering Variance"])
-    print("Degree Entropy:", stats["Degree Entropy"])
-    print("Depth Entropy:", stats["Depth Entropy"])
-    print("Betweenness Centrality:", stats["Betweenness Centrality"])
-    print("Eigenvector Centrality:", stats["Eigenvector Centrality"])
-    print("Assortativity:", stats["Assortativity"])
-    print("Average Eccentricity:", stats["Average Eccentricity"])
-    print("Diameter:", stats["Diameter"])
-    print("Radius:", stats["Radius"])
-    print("Pagerank:", stats["Pagerank"])
-    print("Edge Density:", stats["Edge Density"])
-    print("Average Shortest Path:", stats["Average Shortest Path"])
+    for key, value in stats.items():
+        print(f"{key}:", value)
     print("")
 
 
@@ -397,6 +374,10 @@ def process_file_paths(file_paths, visualize):
     Args:
         file_paths (list): A list of file paths to Python scripts.
         visualize (bool): Whether to visualize each AST graph.
+
+    Returns:
+        list[dict]: The statistics of each file, in the order of
+        ``file_paths``.
     """
     results = []
     for file_path in file_paths:
@@ -404,3 +385,4 @@ def process_file_paths(file_paths, visualize):
         results.append(stats)
         print_results(stats, file_path)
     # aggregate_stats(results)
+    return results

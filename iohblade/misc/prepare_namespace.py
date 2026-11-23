@@ -1,5 +1,6 @@
 import ast
 import importlib
+import re
 from typing import Any
 
 
@@ -20,6 +21,7 @@ def _collect_imports(code: str):
                     {
                         "type": "from",
                         "module": node.module,
+                        "level": node.level,
                         "name": alias.name,
                         "alias": alias.asname,
                     }
@@ -48,13 +50,39 @@ def _add_builtins_into(allowed_list):
     ]
 
 
+def _requirement_name(requirement: str) -> str:
+    """Distribution name of a requirement such as ``"numpy>=2"``.
+
+    Version specifiers, extras, markers and direct references are removed:
+    ``"pkg==1.0"``, ``"pkg<2"``, ``"pkg[extra]"``, ``"pkg; python_version>'3'"``
+    and ``"pkg @ git+https://..."`` all give ``"pkg"``.
+    """
+    return re.split(r"[<>=!~\[; @]", requirement.strip(), maxsplit=1)[0]
+
+
+def _is_allowed(module: str, allowed: list[str]) -> bool:
+    return any(module == a or module.startswith(a + ".") for a in allowed)
+
+
 def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
-    """Prepare exec global_namespace, with the libraries imported in the text, `code` parameter accepts.
-        If the imports are not allowed in the environment, a generic object is provided.
+    """Prepare the globals for ``exec`` with the modules that `code` imports.
+
+    Modules that are allowed (in `allowed` or a few standard library
+    modules) are imported and put in the namespace; for any other module a
+    generic ``object`` placeholder is used. This only saves the generated
+    code from failing on the import statements themselves: it is **not** a
+    sandbox, the code still runs with full Python access. Isolation comes
+    from evaluating solutions in a separate subprocess (see
+    ``Problem.__call__``).
+
+    Star imports (``from math import *``) and relative imports
+    (``from . import x``) are not resolved here; they are left to the
+    ``exec`` of the code itself.
 
     Args:
         `code: str`: Code parameter that is to be passed to `exec` function.
-        `allowed: list[str]`: A list of allowed pip installable libraries, that are acceptable to be imported.
+        `allowed: list[str]`: Requirements (e.g. ``"numpy>=2"``) whose
+            modules may be imported; version specifiers are ignored.
 
     Returns:
         Returns a prepared global_namespace dictionary for exec, of type `dict[str, Any]`.
@@ -62,16 +90,14 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
     ns = {}
     imports = _collect_imports(code)
 
-    allowed = allowed.copy()
-    allowed = list(map(lambda x: x.split(">")[0], allowed))
+    allowed = [_requirement_name(a) for a in (allowed or [])]
+    allowed = [a for a in allowed if a]
     _add_builtins_into(allowed)
     for imp in imports:
         if imp["type"] == "import":
             module = imp["module"]
 
-            if allowed and not any(
-                module == a or module.startswith(a + ".") for a in allowed
-            ):
+            if allowed and not _is_allowed(module, allowed):
                 ns[imp["alias"] or module.split(".")[0]] = object
             else:
                 mod = importlib.import_module(module)
@@ -79,14 +105,19 @@ def prepare_namespace(code: str, allowed: list[str]) -> dict[str, Any]:
 
         elif imp["type"] == "from":
             module = imp["module"]
+            if module is None or imp.get("level", 0) or imp["name"] == "*":
+                # relative or star import: left to the exec of the code
+                continue
 
-            if allowed and not any(
-                module == a or module.startswith(a + ".") for a in allowed
-            ):
+            if allowed and not _is_allowed(module, allowed):
                 ns[imp["alias"] or imp["name"]] = object
             else:
                 mod = importlib.import_module(module)
-                obj = getattr(mod, imp["name"])
+                try:
+                    obj = getattr(mod, imp["name"])
+                except AttributeError:
+                    # a submodule that the package does not import itself
+                    obj = importlib.import_module(f"{module}.{imp['name']}")
                 ns[imp["alias"] or imp["name"]] = obj
 
     return ns

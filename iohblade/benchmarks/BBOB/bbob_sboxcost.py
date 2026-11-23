@@ -92,7 +92,13 @@ class BBOB_SBOX(Problem):
             # 10 test instances (iids 6-15), disjoint from the training iids
             test_instances = [(f, i) for f in range(1, 25) for i in range(6, 16)]
         super().__init__(
-            logger, training_instances, test_instances, name, eval_timeout, dependencies
+            logger,
+            training_instances,
+            test_instances,
+            name,
+            eval_timeout,
+            dependencies,
+            imports,
         )
         self.dims = dims  # The dimensionalities of the problem instances to run on
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget

@@ -30,9 +30,9 @@ class MCTS_Node(Solution):
 
         # Copy Solution parameters to self.
         self.__dict__.update(solution.__dict__)
-        self.parent_ids = (
-            solution.parent_ids[-1] if solution.parent_ids else None
-        )  # Only one parent exist here.
+        # Only one parent exists in the tree, kept as a one-element list
+        # like ``Solution.parent_ids``.
+        self.parent_ids = [solution.parent_ids[-1]] if solution.parent_ids else []
 
         # MCTS Specific Members:
         self.approach = approach
@@ -41,6 +41,39 @@ class MCTS_Node(Solution):
         self.visit = visit
         self.Q = Q
         self.children: list[MCTS_Node] = []
+
+    # Fields of the tree that ``Solution.to_dict`` does not hold.
+    _MCTS_FIELDS = ("approach", "depth", "parent", "visit", "Q", "children")
+
+    def __getstate__(self):
+        """State for pickle and ``copy``: the solution fields plus the tree.
+
+        ``Solution.__getstate__`` returns ``to_dict()``, which would drop the
+        MCTS fields. ``parent`` and ``children`` are kept as references;
+        pickle and ``copy.deepcopy`` memoise objects before restoring their
+        state, so the cycles between parent and children are preserved (a
+        pickled node takes its whole tree along).
+        """
+        state = super().__getstate__()
+        for field in self._MCTS_FIELDS:
+            state[field] = self.__dict__.get(field)
+        return state
+
+    def __setstate__(self, state):
+        state = dict(state)
+        defaults = {
+            "approach": "",
+            "depth": 0,
+            "parent": None,
+            "visit": 1,
+            "Q": None,
+            "children": None,
+        }
+        for field, default in defaults.items():
+            state.setdefault(field, default)
+        if state["children"] is None:
+            state["children"] = []
+        super().__setstate__(state)
 
     def copy_attributes(self, other: MCTS_Node):
         """
@@ -64,7 +97,7 @@ class MCTS_Node(Solution):
         `childNode: MCTS_Node`: MCTS_Node instance to be added as a child.
         """
         childNode.parent = self
-        childNode.parent_ids = self.id
+        childNode.parent_ids = [self.id]
         self.children.append(childNode)
 
     def __repr__(self):

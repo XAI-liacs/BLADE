@@ -133,16 +133,26 @@ one-line description, describing the main idea. Give the response in the format:
             cls = local_ns[name]
             paths = cls([customer.vectorise() for customer in self.customers])()
             length = self._calculate_length(paths)
-            self.best_known = min(
-                self.best_known,
-                length if not math.isfinite(length) else self.best_known,
-            )
-            solution = solution.set_scores(
-                length,
-                f"Got distance {length}, best known distance is {self.best_known}.",
-            )
+            if math.isfinite(length):
+                self.best_known = min(self.best_known, length)
+            feedback = f"Got distance {length}"
+            if math.isfinite(self.best_known):
+                feedback += f", best known distance is {self.best_known}"
+            solution = solution.set_scores(length, feedback + ".")
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"Got error {e}", e)
+        return solution
+
+    def __call__(self, solution: Solution, logger=None):
+        """Evaluate ``solution`` and remember the best distance found.
+
+        ``evaluate`` runs in a subprocess, so its update of ``best_known`` is
+        lost; it is repeated here so later evaluations report it.
+        """
+        solution = super().__call__(solution, logger)
+        fitness = solution.fitness
+        if isinstance(fitness, (int, float)) and math.isfinite(fitness):
+            self.best_known = min(self.best_known, float(fitness))
         return solution
 
     def test(self, solution: Solution):

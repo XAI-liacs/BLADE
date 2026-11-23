@@ -89,7 +89,13 @@ class Photonics(Problem):
         self.func_outputs = ["f_opt", "x_opt"]
 
         super().__init__(
-            logger, [self.problem], [self.problem], name, eval_timeout, dependencies
+            logger,
+            [self.problem],
+            [self.problem],
+            name,
+            eval_timeout,
+            dependencies,
+            imports,
         )
         self.budget_factor = budget_factor  # The factor to multiply the dimensionality with to get the budget
         self.description_prompt = problem_descriptions[self.problem_type]
