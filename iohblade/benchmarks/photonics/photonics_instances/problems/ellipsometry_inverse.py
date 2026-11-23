@@ -16,6 +16,7 @@ class ellipsometry(photonic_problem):
         max_eps,
         wavelengths,
         angle,
+        seed=42,
     ):
         self.n = nb_layers * 2
         self.mat_env = mat_env
@@ -33,7 +34,11 @@ class ellipsometry(photonic_problem):
         self.ub = np.array(
             [self.max_eps] * self.nb_layers + [self.max_thick] * self.nb_layers
         )
-        x_ref = np.random.uniform(self.lb, self.ub, self.n)
+        # Seeded, so the reference (target) spectrum is the same every time
+        # the problem is built (it is rebuilt on every copy/unpickle).
+        self.seed = seed
+        self.x_ref = np.random.default_rng(seed).uniform(self.lb, self.ub, self.n)
+        x_ref = self.x_ref
         struct_ref = self.setup_structure(x_ref)
         self.ref_ellipso = np.zeros(len(self.wavelengths), dtype=complex)
         for i, wav in enumerate(self.wavelengths):

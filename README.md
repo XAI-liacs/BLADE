@@ -287,7 +287,7 @@ make sure you have `uv` installed.
     problems = []
     # include all SBOX_COST functions with 5 instances for training and 10 for final validation as the benchmark problem.
     training_instances = [(f, i) for f in range(1,25) for i in range(1, 6)]
-    test_instances = [(f, i) for f in range(1,25) for i in range(5, 16)]
+    test_instances = [(f, i) for f in range(1,25) for i in range(6, 16)]
     problems.append(BBOB_SBOX(training_instances=training_instances, test_instances=test_instances, dims=[5], budget_factor=2000, name=f"SBOX_COST"))
     # Set up the experiment object with 5 independent runs per method/problem. (in this case 1 problem)
     logger = ExperimentLogger("results/SBOX")
