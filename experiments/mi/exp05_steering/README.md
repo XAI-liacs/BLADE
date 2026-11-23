@@ -1248,3 +1248,13 @@ over two; ~32% power for a 0.05 difference). Analysis:
 `06_llamea_analyze.py --tag llamea-combo`. Launched with
 `JOBS="llamea-combo:4" scripts/run_confirm.sh "2 3"` after the smoke
 campaign `llamea-combo-smoke`.
+
+### Result (`llamea-combo`, 2026-11-23; `results/llamea-combo/combo.md`)
+
+All 24 runs x 200 complete. **H2 supported:** adaptive_temp11 vs control
++0.059 [95% CI +0.009, +0.110], 15/24 seeds, t = 2.22, p = 0.018.
+Secondaries (Holm over two): vs adaptive −0.016 (Holm 1.0), vs temp11
+−0.002 (Holm 1.0). Interaction (combo − adaptive − temp11 + control)
+−0.077 [−0.162, +0.012]: sub-additive. Failure rate 22.4% (highest of
+the five arms); timeout rate 0.5%, the same as the confirmation arms, so
+no sign of a time confound. Mean dose 0.265.

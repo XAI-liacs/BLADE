@@ -141,12 +141,20 @@ shown. The means do differ in what they explore: the dial and the
 temperature widen the search (44 and 48 algorithm families per run,
 control 35), the prompt schedule does not (32).
 
+A fifth arm, pre-registered after this analysis, combines the dial with
+temperature 1.1 on the same seeds. It also beats control (+0.059, CI
++0.009 to +0.110, $p=0.018$), but not either component alone (Holm
+$p=1.0$): the two do not add up (interaction $-0.077$, CI $-0.162$ to
+$+0.012$), and the combination fails most often (22.4\%). Beyond a
+point, more variation buys failures, not better algorithms.
+
 \begin{table}[t]
   \caption{Pre-registered confirmation on MA-BBOB, 24 new seeds, 200
     evaluations: best \aocc (mean), paired difference to control with its
     95\% bootstrap CI, failure rate of the generated algorithms. Primary
     test (adaptive $>$ control): $p=0.005$; no secondary comparison
-    survives Holm's correction.}
+    survives Holm's correction. $^\ast$Pre-registered separately and
+    run afterwards: beats control ($p=0.018$), not its components.}
   \label{tab:confirm}
   \small
   \setlength{\tabcolsep}{4pt}
@@ -158,6 +166,7 @@ control 35), the prompt schedule does not (32).
     adaptive dial & 0.739 & \textbf{+0.075} [+0.023, +0.127] & 19.8\%\\
     adaptive prompt & 0.711 & +0.047 [$-$0.011, +0.108] & 14.8\%\\
     temperature 1.1 & 0.725 & +0.061 [$-$0.011, +0.133] & 17.9\%\\
+    dial + temp.\ 1.1$^\ast$ & 0.723 & +0.059 [+0.009, +0.110] & 22.4\%\\
     \bottomrule
   \end{tabular}
 \end{table}
