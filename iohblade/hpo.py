@@ -11,6 +11,9 @@ it. This module holds what those problems share:
 * :func:`import_smac`, a lazy import of smac with a clear error;
 * :func:`run_smac`, a small wrapper around SMAC's algorithm configuration
   facade;
+* :func:`hpo_instance_subset` and :func:`plain_config`, small helpers for
+  the problems that tune (a fixed subset of tuning instances, and an
+  incumbent that can be logged as JSON);
 * :func:`configure_hpo`, which enables HPO on the problems of an experiment
   whose methods sample configuration spaces.
 
@@ -35,6 +38,13 @@ HPO_DEPENDENCIES: list[str] = [
     "smac>=2.4.1,<2.5",
     "ConfigSpace>=1.2",
 ]
+
+
+# Feedback line of a solution whose configuration space was not tuned.
+UNUSED_CONFIGSPACE_FEEDBACK = (
+    "HPO is not enabled for this problem: the configuration space was "
+    "ignored and the default hyperparameters were used."
+)
 
 
 class HPOUnavailableError(ImportError):
@@ -138,6 +148,120 @@ def run_smac(
     if isinstance(incumbent, list):  # multi-objective: several incumbents
         incumbent = incumbent[0]
     return dict(incumbent)
+
+
+def hpo_instance_subset(
+    instances: Iterable, max_instances: int | None, seed: int = 42
+) -> list:
+    """A fixed, seeded subset of the instances to tune on.
+
+    Args:
+        instances: The candidate instances (e.g. a problem's training
+            instances).
+        max_instances: The maximum number of instances to keep; ``None``
+            (or a value of at least ``len(instances)``) keeps all of them.
+        seed: Seed of the shuffle, so every solution of a problem is tuned
+            on the same instances.
+
+    Returns:
+        list: The selected instances, in a seeded random order.
+    """
+    import numpy as np
+
+    instances = list(instances)
+    order = np.random.RandomState(seed).permutation(len(instances))
+    selected = [instances[i] for i in order]
+    if max_instances is not None:
+        selected = selected[: max(1, int(max_instances))]
+    return selected
+
+
+def smac_output_dir(problem) -> str:
+    """Directory for SMAC's output of a problem's tuning runs.
+
+    ``<log dir>/smac`` when the problem has a logger directory
+    (``Problem.logger_dir``), otherwise ``iohblade-smac`` in the system's
+    temporary directory (not the working directory of the evaluation).
+
+    Args:
+        problem: The problem that tunes.
+
+    Returns:
+        str: The directory (SMAC creates it).
+    """
+    import os
+    import tempfile
+
+    logger_dir = getattr(problem, "logger_dir", "") or ""
+    if logger_dir:
+        return os.path.join(logger_dir, "smac")
+    return os.path.join(tempfile.gettempdir(), "iohblade-smac")
+
+
+def plain_config(config) -> dict[str, Any]:
+    """A configuration (or dict) as a dict of plain Python values.
+
+    NumPy scalars are converted with ``.item()``, so the incumbent can be
+    stored in a solution's metadata (logged as JSON) and passed as keyword
+    arguments to the generated code.
+
+    Args:
+        config: A ``ConfigSpace.Configuration``, a dict or ``None``.
+
+    Returns:
+        dict: The hyperparameters by name (empty for ``None``).
+    """
+    if not config:
+        return {}
+    out = {}
+    for key, value in dict(config).items():
+        if hasattr(value, "item") and callable(value.item):
+            value = value.item()
+        out[str(key)] = value
+    return out
+
+
+def evaluation_config(
+    problem, solution, test: bool = False, incumbent: dict | None = None
+) -> tuple[dict[str, Any], str]:
+    """The hyperparameters to score a solution with, and a feedback line.
+
+    Shared by the benchmarks that tune (BBOB-SBOX, MA-BBOB, Kerneltuner):
+
+    * ``incumbent`` given (tuned in this evaluation): the incumbent;
+    * on the test instances (``test=True``): the incumbent recorded during
+      the search (``solution.metadata["incumbent"]``), if any;
+    * otherwise the generated code's defaults (an empty dict), with a note
+      when the solution's configuration space was not used.
+
+    Args:
+        problem: The problem (``hpo`` and ``hpo_trials`` are read).
+        solution: The solution being scored.
+        test: Whether the solution is scored on the test instances.
+        incumbent: The incumbent of a tuning run in this evaluation.
+
+    Returns:
+        tuple[dict, str]: The keyword arguments for the algorithm's
+        constructor, and a feedback line ("" when there is nothing to say).
+    """
+    if incumbent is not None:
+        config = plain_config(incumbent)
+        trials = getattr(problem, "hpo_trials", None)
+        budget = f", {trials} trials" if trials else ""
+        return config, f"HPO used (SMAC{budget}); scored with incumbent={config}."
+    configspace = getattr(solution, "configspace", None)
+    recorded = solution.get_metadata("incumbent") if test else None
+    if recorded:
+        config = plain_config(recorded)
+        return config, f"Scored with the HPO incumbent={config}."
+    if configspace is None:
+        return {}, ""
+    if not getattr(problem, "hpo", False):
+        return {}, UNUSED_CONFIGSPACE_FEEDBACK
+    return {}, (
+        "No HPO incumbent was recorded for this solution: the default "
+        "hyperparameters were used."
+    )
 
 
 def configure_hpo(methods: Iterable, problems: Iterable) -> tuple[list, list]:

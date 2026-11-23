@@ -156,6 +156,22 @@ Methodology class:
 
 - Contains a set of Black Box Optimisation problems from the `ioh benchmarks`_ library.
 - Includes both ``BBOB`` and ``mabbob`` benchmark families.
+- **Hyperparameter tuning (optional)** for ``BBOB_SBOX`` (``bbob_sbox``) and
+  ``MA_BBOB`` (``ma_bbob``): with ``hpo=True`` (enabled automatically for
+  methods that sample with ``HPO``, e.g. LLaMEA with ``HPO=True``), a
+  solution's configuration space is tuned with SMAC before it is scored.
+  Each SMAC trial runs the algorithm once, with the configuration as
+  constructor keyword arguments, on one (function, instance, dimension) of
+  a fixed, seeded subset of ``hpo_instances`` (default 12) training
+  combinations; its cost is ``1 - AOCC``. The incumbent is then scored like
+  any solution (mean AOCC on all training instances), stored in the
+  solution's metadata (``incumbent``) and named in the feedback;
+  ``test()`` uses it on the test instances without tuning again. The
+  budget is ``hpo_trials``: 100 for ``bbob_sbox`` (about 0.4 of a default
+  training evaluation, 240 runs) and 50 for ``ma_bbob`` (about 1.25 of a
+  default training evaluation, 40 runs), plus SMAC's overhead, so consider
+  a larger ``eval_timeout``. See "Hyperparameter tuning (HPO)" in
+  :doc:`yaml_experiments`.
 
 .. _ioh benchmarks: https://iohprofiler.github.io/IOHexp/
 
@@ -339,6 +355,14 @@ Methodology class: :ref:`Black-box Discrete/Mixed-Integer
     - runtime
     - throughput
     - custom matrices.
+- **Hyperparameter tuning (optional):** with ``hpo=True`` (or a method that
+  samples with ``HPO``), a solution's configuration space is tuned with SMAC
+  on a fixed subset of ``hpo_instances`` (default 12) training kernel-GPU
+  pairs, ``hpo_trials`` (default 50) autotuning-methodology runs of one pair
+  each, with cost ``1 - score``. The configuration is passed to the
+  strategy as its ``search_method_hyperparameters``; the incumbent is then
+  scored on all kernels and GPUs and recorded in the metadata
+  (``incumbent``).
 -----------
 
 Logistics

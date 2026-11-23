@@ -326,22 +326,49 @@ configuration found:
         params:
           HPO: true
 
-* Supported problems: ``automl``. Support for ``bbob_sbox``, ``ma_bbob`` and
-  ``kerneltuner`` is planned; until then their solutions are evaluated with
-  default hyperparameters (the configuration space is ignored).
+* Supported problems: ``automl``, ``bbob_sbox``, ``ma_bbob`` and
+  ``kerneltuner``. Each SMAC trial runs the solution, with the configuration
+  passed as constructor keyword arguments (for ``kerneltuner``: as the
+  strategy's hyperparameters), on one instance of a fixed, seeded subset of
+  the training instances, and returns a cost to minimise: ``1 - score``
+  (``1 - AOCC`` for ``bbob_sbox`` and ``ma_bbob``). The best configuration
+  (the incumbent) is then scored like any solution, stored in the
+  solution's metadata (``incumbent``) and named in the feedback; scoring on
+  the test instances (``test()``) reuses it and does not tune again (a
+  solution without a recorded incumbent is scored with its defaults).
+
+  ============== ============================ =========================
+  Problem        Trials per solution          Tuning instances
+  ============== ============================ =========================
+  automl         100                          up to 12 search splits
+  bbob_sbox      ``hpo_trials: 100``          ``hpo_instances: 12``
+  ma_bbob        ``hpo_trials: 50``           ``hpo_instances: 12``
+  kerneltuner    ``hpo_trials: 50``           ``hpo_instances: 12``
+  ============== ============================ =========================
+
+  ``hpo_instances: null`` tunes on all training instances. Tuning makes
+  every evaluation more expensive: a trial is one run on one instance, so
+  for the default ``bbob_sbox`` (240 runs per evaluation) tuning adds about
+  0.4 of an evaluation, for ``ma_bbob`` (40 runs) about 1.25 and for
+  ``kerneltuner`` (24 kernel-GPU pairs) about 2, plus SMAC's own overhead.
+  Raise ``eval_timeout`` accordingly.
 * HPO is enabled automatically on every supported problem of an experiment
   with a method that samples with ``HPO: true`` (also from Python, by
   :class:`~iohblade.experiment.Experiment`). ``iohblade validate`` prints a
   note for each problem with HPO enabled and a warning for each problem that
   cannot tune. The other methods of the experiment then use the same
   evaluation environment for that problem. HPO can also be enabled directly:
-  ``params: {hpo: true}`` for ``automl``, or ``problem.enable_hpo()`` in
+  ``params: {hpo: true}`` on the problem, or ``problem.enable_hpo()`` in
   Python.
 * With HPO the problem's evaluation environment also installs
   ``smac>=2.4.1,<2.5`` and ``ConfigSpace>=1.2``
   (:data:`iohblade.hpo.HPO_DEPENDENCIES`); problems without HPO do not
   install smac. (smac 2.4.0 does not import with scikit-learn 1.9; 2.4.1
   does.)
+  BLADE's own environment does not need smac (tuning runs in the
+  evaluation environments); install it there (``uv sync --group hpo``, or
+  ``pip install "smac>=2.4.1,<2.5"``) only to call
+  :func:`iohblade.hpo.run_smac` yourself.
 * If smac cannot be imported during an evaluation with HPO, the evaluation
   fails with ``HPOUnavailableError`` as a harness error (a problem of the
   environment, not of the generated code), and the run stops after

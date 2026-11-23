@@ -27,7 +27,6 @@ dependencies = [
     "seaborn>=0.13.2",
     "lizard>=1.17.31",
     "networkx>=3.5",
-    "smac>=2.4.1",
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
     "py-cpuinfo",
@@ -88,6 +87,12 @@ kerneltuner = [
 ]
 trackio = [
     "trackio>=0.3.2,<1",
+]
+# smac in BLADE's own environment, only needed to call iohblade.hpo.run_smac
+# directly: problems tune in their evaluation environments, which install
+# iohblade.hpo.HPO_DEPENDENCIES themselves when HPO is enabled.
+hpo = [
+    "smac>=2.4.1,<2.5",
 ]
 
 [tool.uv]

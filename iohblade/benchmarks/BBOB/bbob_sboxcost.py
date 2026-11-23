@@ -1,27 +1,31 @@
 import inspect
 import math
 import os
+import random
 import textwrap
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import ioh
 import numpy as np
 import pandas as pd
-from ConfigSpace import Configuration, ConfigurationSpace
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
-# smac is optional and only required for advanced configuration features
-try:
-    from smac import AlgorithmConfigurationFacade, Scenario  # pragma: no cover
-except Exception:  # pragma: no cover - allow absence in lightweight installs
-    AlgorithmConfigurationFacade = None
-    Scenario = None
-
+from iohblade.hpo import (
+    evaluation_config,
+    hpo_instance_subset,
+    import_smac,
+    plain_config,
+    run_smac,
+    smac_output_dir,
+)
 from iohblade.problem import BASE_DEPENDENCIES, Problem
 from iohblade.solution import Solution
 from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
+
+if TYPE_CHECKING:  # ConfigSpace is only installed for HPO (iohblade.hpo)
+    from ConfigSpace import Configuration
 
 
 class BBOB_SBOX(Problem):
@@ -37,7 +41,12 @@ class BBOB_SBOX(Problem):
     [HansenARMTB20] Nikolaus Hansen, Anne Auger, Raymond Ros, Olaf Mersmann, Tea Tusar, and Dimo Brockhoff. “COCO: A platform for comparing continuous optimizers in a black-box setting.” Optimization Methods and Software (2020): 1-31.
 
     [FinckHRA10] Steffen Finck, Nikolaus Hansen, Raymond Ros, and Anne Auger. “Real-parameter black-box optimization benchmarking 2009: Presentation of the noiseless functions.” Technical Report 2009/20, Research Center PPE, 2009. Updated February, 2010.
+
+    Supports hyperparameter tuning (HPO) of solutions with a configuration
+    space, see ``hpo`` and :mod:`iohblade.hpo`.
     """
+
+    supports_hpo = True
 
     def __init__(
         self,
@@ -55,9 +64,12 @@ class BBOB_SBOX(Problem):
         ioh_dir="",
         dependencies=None,
         imports=None,
+        hpo: bool = False,
+        hpo_trials: int = 100,
+        hpo_instances: int | None = 12,
     ):
         """
-        Initializes the MA-BBOB problem instance.
+        Initializes the BBOB / SBOX-COST problem instance.
         Args:
             logger (RunLogger): The logger to use for logging.
             training_instances (list): A list of tuples with (fid=function id, iid=instance id) for training instances to use.
@@ -72,14 +84,36 @@ class BBOB_SBOX(Problem):
             full_ioh_log (bool): If set to True, additional IOH logs are being kept for each run and each algorithm.
             dependencies (list, optional): a list of pypi packages to install before evaluation.
             imports (string, optional): the python string to manage imports in the evaluation file.
+            hpo (bool): Tune the hyperparameters of solutions that come with
+                a configuration space (``Solution.configspace``) with SMAC
+                before scoring them; also adds
+                :data:`iohblade.hpo.HPO_DEPENDENCIES` to the evaluation
+                environment. Enabled automatically (see
+                :meth:`~iohblade.problem.Problem.enable_hpo`) when a method
+                samples with HPO, e.g. LLaMEA with ``HPO=True``.
+            hpo_trials (int): SMAC's budget: the number of target runs per
+                tuned solution, each one run of the algorithm on one
+                (function, instance, dimension) of the tuning instances with
+                the usual budget (``budget_factor * dim``). The default
+                (100) is the trial count AutoML uses; with the default 24 x
+                5 training instances in 2 dimensions (240 runs per
+                evaluation) tuning adds about 0.4 of a training evaluation
+                plus SMAC's own overhead (typically tens of seconds), so a
+                tuned evaluation costs roughly 1.5 untuned ones. Consider
+                raising ``eval_timeout`` (default 120 s) with HPO.
+            hpo_instances (int | None): Tune on a fixed, seeded subset of
+                this many (function, instance, dimension) combinations of
+                the training instances (default 12, as AutoML; ``None``: all
+                of them). With 100 trials, SMAC's intensification only
+                compares configurations on a few instances each, so a small
+                fixed set gives more comparable costs.
         """
         if dependencies is None:
             dependencies = [
                 "pandas==2.2.3",
                 "ioh==0.3.22",
-                "configspace==1.2.1",
-                "swig",  # builds pyrfr, a dependency of smac
-                "smac==2.3.1",
+                # smac and ConfigSpace are only installed with HPO, see
+                # enable_hpo and iohblade.hpo.HPO_DEPENDENCIES.
             ]
         if imports is None:
             imports = (
@@ -106,6 +140,10 @@ class BBOB_SBOX(Problem):
         self.specific_group = specific_group
         self.full_ioh_log = full_ioh_log
         self.ioh_dir = ioh_dir
+        self.hpo_trials = int(hpo_trials)
+        self.hpo_instances = hpo_instances
+        if hpo:
+            self.enable_hpo(True)
 
         self.func_name = "__call__"
         self.init_inputs = ["budget", "dim"]
@@ -223,20 +261,119 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         return self.task_prompt + self.example_prompt + self.format_prompt
 
+    def _run_once(self, alg_cls, fid, iid, dim, config, analyzer_id=None):
+        """Run the algorithm once on one function instance.
+
+        Args:
+            alg_cls: The class of the generated algorithm.
+            fid (int): The function id.
+            iid (int): The instance id.
+            dim (int): The dimensionality.
+            config (dict): Hyperparameters, passed to the constructor as
+                keyword arguments.
+            analyzer_id (str, optional): If given, also log the run with an
+                IOH Analyzer logger under this name.
+
+        Returns:
+            float: The normalised AOCC of the run (higher is better).
+        """
+        budget = self.budget_factor * dim
+        f_new = get_problem(
+            fid, instance=iid, dimension=dim, problem_class=self.problem_type
+        )
+        l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+        if analyzer_id is not None:
+            l1 = ioh.logger.Analyzer(
+                root=self.ioh_dir,
+                folder_name=analyzer_id,
+                algorithm_name=analyzer_id,
+                store_positions=True,
+                triggers=[ioh_logger.trigger.ALWAYS],
+            )
+            # Keep a reference: ioh does not keep the Combine alive, and
+            # the run crashes (segfault) once it is garbage collected.
+            combined_logger = ioh.logger.Combine([l1, l2])
+            f_new.attach_logger(combined_logger)
+        else:
+            f_new.attach_logger(l2)
+
+        try:
+            algorithm = alg_cls(budget=budget, dim=dim, **config)
+            algorithm(f_new)
+        except OverBudgetException:
+            pass
+
+        corrected_aoc = correct_aoc(f_new, l2, budget)
+        l2.reset(f_new)
+        f_new.reset()
+        return corrected_aoc
+
+    def _tune(self, alg_cls, solution: Solution) -> dict[str, Any]:
+        """Tune the solution's configuration space with SMAC.
+
+        The cost of a configuration on one (function, instance, dimension)
+        is ``1 - AOCC`` of one run (SMAC minimises; the fitness, mean AOCC,
+        is maximised).
+
+        Returns:
+            dict: The incumbent configuration.
+        """
+        combos = [(f, i, d) for d in self.dims for (f, i) in self.training_instances]
+        combos = hpo_instance_subset(combos, self.hpo_instances)
+        instance_ids = [f"f{f}_i{i}_d{d}" for (f, i, d) in combos]
+        features = {
+            iid: [float(f), float(i), float(d)]
+            for iid, (f, i, d) in zip(instance_ids, combos)
+        }
+
+        def target(cfg: "Configuration", instance: str, seed: int = 0) -> float:
+            fid, iid, dim = (int(part[1:]) for part in instance.split("_"))
+            np.random.seed(seed)  # deterministic=True: one run per instance
+            random.seed(seed)
+            try:
+                aocc = self._run_once(alg_cls, fid, iid, dim, plain_config(cfg))
+            except Exception:
+                return 1.0  # the worst cost: a failing configuration
+            return float(min(1.0, max(0.0, 1.0 - aocc)))
+
+        incumbent = run_smac(
+            solution.configspace,
+            target,
+            instances=instance_ids,
+            instance_features=features,
+            n_trials=self.hpo_trials,
+            output_dir=smac_output_dir(self),
+            deterministic=True,
+            name=f"{self.name}-{solution.id}",
+        )
+        return plain_config(incumbent)
+
     def evaluate(self, solution: Solution, test=False):
         """
         Evaluates a solution on the SBOX or BBOB benchmark using AOCC.
+
+        With HPO enabled (``hpo``) and a solution with a configuration
+        space, the hyperparameters are first tuned with SMAC on a subset of
+        the training instances; the incumbent is then scored like any
+        solution (mean AOCC on all training instances) and stored in the
+        metadata (``incumbent``). On the test instances (``test=True``) the
+        solution is not tuned again: the incumbent recorded during the
+        search is used (default hyperparameters if there is none).
         """
-        auc_mean = 0
-        auc_std = 0
+        cs = getattr(solution, "configspace", None)
+        tune = cs is not None and self.hpo and not test
+        if tune:
+            # Before the generated code is used: a missing smac is a problem
+            # of the evaluation environment (a harness error), not of the code.
+            import_smac()
+
         code = solution.code
         algorithm_name = solution.name
         algorithm_id = solution.id
         safe_globals = {"np": np, "ioh": ioh, "math": math}
         local_env = {}
         exec(code, safe_globals, local_env)
-
-        algorithm = None
+        alg_cls = local_env[algorithm_name]
 
         # Small test run to catch code errors
         try:
@@ -245,10 +382,16 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                 1, instance=1, dimension=2, problem_class=self.problem_type
             )
             problem.attach_logger(l2_temp)
-            algorithm = local_env[algorithm_name](budget=100, dim=2)
+            algorithm = alg_cls(budget=100, dim=2)
             algorithm(problem)
         except OverBudgetException:
             pass
+
+        incumbent = None
+        if tune:
+            incumbent = self._tune(alg_cls, solution)
+            solution.add_metadata("incumbent", incumbent)
+        config, hpo_note = evaluation_config(self, solution, test, incumbent)
 
         # Final validation
         instances = self.test_instances if test else self.training_instances
@@ -257,44 +400,22 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         for dim in self.dims:
             for instance in instances:
                 fid, iid = instance  # we expact a tuple of (fid, iid)
-                budget = self.budget_factor * dim
-                f_new = get_problem(
-                    fid, instance=iid, dimension=dim, problem_class=self.problem_type
+                log_id = algorithm_id if (test or self.full_ioh_log) else None
+                corrected_aoc = self._run_once(
+                    alg_cls, fid, iid, dim, config, analyzer_id=log_id
                 )
-                l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
-                if test or self.full_ioh_log:
-                    l1 = ioh.logger.Analyzer(
-                        root=self.ioh_dir,
-                        folder_name=algorithm_id,
-                        algorithm_name=algorithm_id,
-                        store_positions=True,
-                        triggers=[ioh_logger.trigger.ALWAYS],
-                    )
-                    combined_logger = ioh.logger.Combine([l1, l2])
-                    f_new.attach_logger(combined_logger)
-                else:
-                    f_new.attach_logger(l2)
-
-                try:
-                    algorithm = local_env[algorithm_name](budget=budget, dim=dim)
-                    algorithm(f_new)
-                except OverBudgetException:
-                    pass
-
-                corrected_aoc = correct_aoc(f_new, l2, budget)
                 performance_data.append(
                     {"fid": fid, "iid": iid, "dim": dim, "auc": corrected_aoc}
                 )
                 aucs.append(corrected_aoc)
-                l2.reset(f_new)
-                f_new.reset()
 
         auc_mean = np.mean(aucs)
         solution.add_metadata("performance_data", performance_data)
         solution.add_metadata("aucs", aucs)
         solution.set_scores(
             auc_mean,
-            f"The algorithm {algorithm_name} scored {auc_mean:.3f} on AOCC (higher is better, 1.0 is the best).",
+            f"The algorithm {algorithm_name} scored {auc_mean:.3f} on AOCC (higher is better, 1.0 is the best)."
+            + (f"\n{hpo_note}" if hpo_note else ""),
         )
 
         return solution
@@ -302,6 +423,10 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
     def test(self, solution: Solution):
         """
         Runs the solution on test instances and returns the fitness score.
+
+        Uses the HPO incumbent of the search (``incumbent`` in the
+        solution's metadata) when there is one; the solution is not tuned
+        on the test instances.
         """
         return self.evaluate(solution, True)
 
@@ -320,6 +445,15 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             ),
             "specific_fid": self.specific_fid,
             "specific_group": self.specific_group,
+            **(
+                {
+                    "hpo": True,
+                    "hpo_trials": self.hpo_trials,
+                    "hpo_instances": self.hpo_instances,
+                }
+                if self.hpo
+                else {}
+            ),
         }
 
     def get_config(self) -> dict[str, Any]:
