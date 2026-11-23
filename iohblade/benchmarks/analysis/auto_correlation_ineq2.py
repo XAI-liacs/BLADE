@@ -55,20 +55,29 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
         try:
             if f.ndim != 1 or f.size == 0:
                 raise ValueError("f must be a non-empty 1D array")
+            if not np.all(np.isfinite(f)):
+                raise ValueError("f must contain only finite values (no nan/inf)")
             if self.require_non_negative and np.any(f < 0):
                 raise ValueError("C2 requires f ≥ 0")
 
             dx = self.dx
+            # f is piecewise constant on bins of width dx, so g = f*f is
+            # piecewise linear; g holds its values at the knots, and it is
+            # zero at the two outer knots. Integrate it exactly.
             g = dx * np.convolve(f, f, mode="full")
+            gp = np.concatenate(([0.0], g, [0.0]))
+            g0, g1 = gp[:-1], gp[1:]
 
-            L1 = dx * float(np.sum(np.abs(g)))  # ∫|g|
-            L2sq = dx * float(np.sum(g * g))  # ∫g^2
-            Linf = float(np.max(g))  # max_t g(t)
+            L1 = dx * float(np.sum(np.abs(g)))  # ∫|g| (exact as g ≥ 0)
+            L2sq = dx / 3.0 * float(np.sum(g0 * g0 + g0 * g1 + g1 * g1))  # ∫g^2
+            Linf = float(np.max(g))  # max_t g(t), attained at a knot
             den = L1 * Linf
             if den == 0.0:
                 raise ValueError("Denominator zero in C2 ratio")
 
             score = L2sq / den  # maximize in paper
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite C2 ratio {score}")
             solution = solution.set_scores(
                 score, f"C2 ratio = {score:.6g}, best known = {self.best_known:.6g}"
             )

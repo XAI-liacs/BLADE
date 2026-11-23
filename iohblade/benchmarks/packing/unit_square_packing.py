@@ -72,6 +72,11 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
                 raise ValueError(
                     f"Format error: expected ({self.n_circles},3), got {U.shape}"
                 )
+            if not np.isfinite(U).all():
+                idx = int(np.where(~np.isfinite(U).all(axis=1))[0][0])
+                raise ValueError(
+                    f"Non-finite value (nan or inf) in circle {idx}: {U[idx]}."
+                )
 
             # radii positive
             if np.any(U[:, 2] <= 0):
@@ -97,6 +102,8 @@ Instantiated Unit Square Packing problem, with {self.n_circles} circles, best kn
                         raise ValueError(f"circles {i} and {j} overlap.")
 
             score = float(np.sum(U[:, 2]))
+            if not np.isfinite(score):
+                raise ValueError(f"Non-finite sum of radii {score}.")
             solution.set_scores(
                 score,
                 f"sum_of_radii={score:.6f}; n={self.n_circles}, best known={self.best_known}",

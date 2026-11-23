@@ -62,6 +62,8 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         try:
             if f.ndim != 1 or f.size != self.n_bins:
                 raise ValueError(f"f must be 1D with length N={self.n_bins}")
+            if not np.all(np.isfinite(f)):
+                raise ValueError("f must contain only finite values (no nan/inf)")
             if self.require_non_negative and np.any(f < 0):
                 raise ValueError("C1 requires f ≥ 0")
 
@@ -72,6 +74,8 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
                 raise ValueError("Integral ∫f must be > 0 for C1")
 
             score = float(np.max(g) / (I * I))  # minimize
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite C1 ratio {score}")
             solution = solution.set_scores(
                 score,
                 f"C1 ratio = {score:.6g}, best known = {self.best_known:.6g}; soln={f}",

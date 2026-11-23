@@ -81,7 +81,8 @@ benchmark registry to run problems. For matrix multiplication:
    sets the starting rank for each size via `_max_rank_minus_1(n,m,p)`, which
    looks up the literature best-known rank from
    [`constants.py`](constants.py) when available, i.e.
-   `MATMUL_RANKS[(m,n,p)]['best_known']`.
+   `MATMUL_RANKS[tuple(sorted((n,m,p)))]['best_known']` (the rank does not
+   depend on the order of the dimensions), capped at the naive `n*m*p - 1`.
    The main driver (`src/main.py`) always performs a decremental rank search:
    it runs rank r, and if an exact solution is found (within tol = 1e-12), it
    tries rank r−1; otherwise it repeats rank r until the budget is exhausted.

@@ -112,6 +112,45 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Benchmark scores that could be gamed or were wrong (#203).**
+  - **Steiner tree:** the fitness is now `steiner_mst / normal_mst`
+    (minimised). The old ratio and check were inverted, so real
+    improvements were rejected and far-away points scored best.
+  - **NaN/inf inputs:** they passed the validity checks of Erdős, graph
+    colouring, unit square and rectangle packing, auto-correlation 1–3 and
+    matrix multiplication (e.g. a NaN colouring used "1 colour"). They are
+    now invalid.
+  - **Graph colouring:** colours must also be ints >= 1 for every node.
+  - **Toy multi-objective:** the score was whatever the candidate reported.
+    The harness now provides the objective (`run(objective, budget)`),
+    enforces the budget and scores the values it observed.
+  - **Hexagon packing:** the outer side was a lower bound (e.g. 2.02
+    instead of 2.31 for 3 hexagons). It is now exact, and the prompt
+    states the outer hexagon's orientation.
+  - **Min/max distance ratio:** distances are computed without
+    cancellation error far from the origin.
+  - **Auto-correlation 2:** the integral of (f*f)^2 is exact; an indicator
+    function scores 2/3, not 1.
+  - **Auto-correlation 3:** the length of f is checked.
+  - **Heilbronn triangle:** the points are rescaled with the triangle.
+  - **Matrix multiplication:**
+    - the rank targets looked up the table with swapped dimensions (27 of
+      54 problems had wrong targets); targets are now capped at the naive
+      rank;
+    - the class named by the solution is used, not the first class.
+  - **BBOB-SBOX:** the default test instances are iids 6–15; iid 5 was in
+    both training and test.
+  - **MA-BBOB and photonics:** going over budget no longer skips the
+    remaining instances.
+  - **Photonics:**
+    - the ellipsometry target is seeded (`reference_seed`, default 42); it
+      was random on every evaluation, so ellipsometry scores differ from
+      earlier versions;
+    - the per-problem AOCC bounds are used, and runs are seeded.
+  - **AutoML:**
+    - a failed fold counts as the metric's worst value instead of being
+      dropped;
+    - binary AUC with `predict_proba` no longer fails.
 - Every run appeared twice in `progress.json`, and in the run overview and
   web app: the planned entries had no `llm_name`, so the entry a run used
   was added separately. Planned entries now carry `llm_name`, and progress

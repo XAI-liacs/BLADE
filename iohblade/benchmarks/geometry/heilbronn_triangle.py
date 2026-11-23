@@ -2,6 +2,8 @@ import inspect
 import textwrap
 from typing import Any, Optional
 
+import numpy as np
+
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
@@ -160,8 +162,16 @@ one-line description, describing the main idea. Give the response in the format:
                 T, P = self._parse_candidate((triangle, points))
             else:
                 T, P = self._parse_candidate(points)
-            T = self._ensure_unit_area(self.to_np_points(T, expected_n=3))
+            T = self.to_np_points(T, expected_n=3)
             P = self.to_np_points(P, expected_n=self.n_points)
+            # Rescale the triangle and the points by the same factor, so the
+            # triangle has area 1 and the configuration keeps its shape.
+            area = abs(self.polygon_area(T))
+            if not area > 0:
+                raise ValueError("triangle area is zero")
+            scale = 1.0 / np.sqrt(area)
+            T = T * scale
+            P = P * scale
 
             a, b, c = T[0], T[1], T[2]
             for i, p in enumerate(P):
@@ -170,6 +180,8 @@ one-line description, describing the main idea. Give the response in the format:
 
             min_area = self.min_triangle_area(P, tol=self.tolerance)
             score = float(min_area)  # maximize
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite minimum area {score}")
             solution.set_scores(
                 score,
                 f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
@@ -200,7 +212,7 @@ one-line description, describing the main idea. Give the response in the format:
         evaluator = "\n\n".join(
             [
                 inspect.getsource(self._parse_candidate),
-                inspect.getsource(self._ensure_unit_area),
+                inspect.getsource(self.polygon_area),
                 inspect.getsource(self.to_np_points),
                 inspect.getsource(self.point_in_triangle),
                 inspect.getsource(self.min_triangle_area),
