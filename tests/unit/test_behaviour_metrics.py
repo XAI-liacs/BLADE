@@ -31,7 +31,9 @@ def test_individual_metrics(sample_df):
     rng = np.random.default_rng(0)
     assert bm.coverage_dispersion(df, bounds=bounds, n_samples=5, rng=rng) >= 0
     assert bm.spatial_entropy(df) > 0
-    assert bm.average_distance_to_best_so_far(df) == pytest.approx(0.47140452)
+    # distances of evaluations 1..3 to the best of the evaluations before
+    # them: |x1-x0| = 1, |x2-x1| = sqrt(2), |x3-x1| = 1
+    assert bm.average_distance_to_best_so_far(df) == pytest.approx((2 + np.sqrt(2)) / 3)
     assert bm.closed_form_random_search_diversity(bounds) == pytest.approx(0.86602540)
     rng = np.random.default_rng(0)
     assert bm.estimate_random_search_diversity(bounds, n=3, samples=5, rng=rng) > 0

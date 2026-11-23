@@ -13,7 +13,7 @@ import seaborn as sns
 from scipy.stats import ttest_ind
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
-from sklearn.preprocessing import StandardScaler, minmax_scale
+from sklearn.preprocessing import StandardScaler
 
 from .loggers import ExperimentLogger
 from .misc.ast import analyse_complexity, process_code
@@ -41,6 +41,7 @@ def plot_speedup(
     budget: int = 100,
     save: bool = True,
     return_fig: bool = False,
+    minimisation: bool | None = None,
 ):
     """
     Plots speed-up of method_fast over method_slow.
@@ -59,6 +60,8 @@ def plot_speedup(
         budget (int): max evaluations
         save (bool)
         return_fig (bool)
+        minimisation (bool, optional): Whether lower fitness is better.
+            Defaults to the direction logged for each problem.
     """
 
     methods, problems = logger.get_methods_problems()
@@ -73,23 +76,18 @@ def plot_speedup(
         axes = [axes]
 
     for ax, problem in zip(axes, problems):
-        data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
-        fitness_col = _get_scalar_fitness_column(data)
-        data.replace([-np.inf, np.inf], 0, inplace=True)
-        data.fillna(0, inplace=True)
+        data = logger.get_problem_data(problem_name=problem).drop(
+            columns=["code"], errors="ignore"
+        )
+        minimise = _resolve_minimisation(logger, problem, minimisation)
+        curves = best_so_far(data, minimisation=minimise)
 
-        def compute_summary(method, fitness_col=fitness_col):
-            df = data[data["method_name"] == method].copy()
-            df = df.sort_values(by=["seed", "_id"])
-            df["cummax_fitness"] = df.groupby("seed")[fitness_col].cummax()
-
-            summary = (
-                df.groupby("_id")["cummax_fitness"]
-                .agg([aggregation, variance_aggregation])
-                .reset_index()
-            )
-            summary["_id"] += 1
-            return summary
+        def compute_summary(method):
+            return aggregate_best_so_far(
+                curves[curves["method_name"] == method],
+                aggregation,
+                variance_aggregation,
+            ).rename(columns={"eval": "_id"})
 
         fast = compute_summary(method_fast)
         slow = compute_summary(method_slow)
@@ -104,8 +102,12 @@ def plot_speedup(
         slow_fit = slow[aggregation].values
 
         for n, f in zip(fast["_id"], fast[aggregation]):
-            # Find earliest m where slow reaches >= f
-            idx = np.where(slow_fit >= f)[0]
+            # Find earliest m where slow reaches f (at least as good)
+            if np.isnan(f):
+                speedups.append(np.nan)
+                continue
+            reached = slow_fit <= f if minimise else slow_fit >= f
+            idx = np.where(reached)[0]
             if len(idx) == 0:
                 speedups.append(np.nan)
             else:
@@ -135,6 +137,9 @@ def plot_speedup(
     plt.close()
 
 
+RUN_COLUMNS = ("method_name", "llm_name", "problem_name", "seed")
+
+
 def _get_scalar_fitness_column(data: pd.DataFrame) -> str:
     """Return the column name to use for scalar fitness comparisons.
 
@@ -151,6 +156,244 @@ def _get_scalar_fitness_column(data: pd.DataFrame) -> str:
     return "fitness_scalar" if "fitness_scalar" in data.columns else "fitness"
 
 
+def _fitness_value(value) -> float:
+    """A fitness value as a float, ``NaN`` for a failed evaluation.
+
+    Failed evaluations score ``inf`` / ``-inf`` (the worst value for the
+    problem's direction) or ``NaN``; serialisation can turn these into
+    strings such as ``"-inf"``. Multi-objective fitness dicts are reduced to
+    their scalar summary (see :meth:`ExperimentLogger._fitness_to_scalar`).
+
+    Args:
+        value: A float, int, numeric string or (serialised) ``Fitness``.
+
+    Returns:
+        float: The finite fitness value, or ``NaN`` for a failure or a value
+        that is not a number.
+    """
+    if isinstance(value, dict) or hasattr(value, "to_dict"):
+        if not isinstance(value, dict):
+            value = value.to_dict()
+        try:
+            value = ExperimentLogger._fitness_to_scalar(value)
+        except Exception:
+            return np.nan
+    elif isinstance(value, bool):
+        return np.nan
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return np.nan
+    return value if np.isfinite(value) else np.nan
+
+
+def clean_fitness(values) -> pd.Series:
+    """Convert fitness values to floats with failures (±inf, NaN, junk) as NaN.
+
+    Args:
+        values (pd.Series | list): Fitness values.
+
+    Returns:
+        pd.Series: Float series of the same index, ``NaN`` for failures.
+    """
+    if not isinstance(values, pd.Series):
+        values = pd.Series(list(values))
+    return values.apply(_fitness_value).astype(float)
+
+
+def run_columns(data: pd.DataFrame) -> list[str]:
+    """The columns that identify a run in a DataFrame of evaluations.
+
+    ``run`` (the run folder, see ``ExperimentLogger.get_problem_data``) when
+    present; otherwise the available columns of method, LLM, problem and seed.
+    """
+    if "run" in data.columns:
+        return ["run"]
+    return [c for c in RUN_COLUMNS if c in data.columns]
+
+
+def _resolve_minimisation(logger, problem, minimisation=None) -> bool:
+    """The optimisation direction: the override if given, else as logged."""
+    if minimisation is not None:
+        return bool(minimisation)
+    get_min = getattr(logger, "get_minimisation", None)
+    if callable(get_min):
+        try:
+            return bool(get_min(problem))
+        except Exception:
+            return False
+    return False
+
+
+def add_method_labels(data: pd.DataFrame, column: str = "method_label") -> pd.DataFrame:
+    """Add a label per method that names the LLM when a method used several.
+
+    The label is ``method`` when a method name was used with one LLM, and
+    ``method (llm)`` when the same method name was run with several LLMs.
+
+    Args:
+        data (pd.DataFrame): Rows with ``method_name`` (and ``llm_name``).
+        column (str): The name of the column to add.
+
+    Returns:
+        pd.DataFrame: ``data`` with the label column (modified in place).
+    """
+    if "llm_name" not in data.columns or data.empty:
+        data[column] = data["method_name"].astype(str)
+        return data
+    llms = data["llm_name"].fillna("?").astype(str)
+    n_llms = llms.groupby(data["method_name"]).transform("nunique")
+    data[column] = np.where(
+        n_llms > 1,
+        data["method_name"].astype(str) + " (" + llms + ")",
+        data["method_name"].astype(str),
+    )
+    return data
+
+
+def best_so_far(
+    data: pd.DataFrame,
+    minimisation: bool = False,
+    fitness_col: str | None = None,
+    run_cols: list[str] | None = None,
+) -> pd.DataFrame:
+    """Per-run best-so-far curves of the evaluated solutions.
+
+    Failed evaluations (±inf, NaN, strings such as ``"-inf"``) are treated
+    as missing: they never improve the curve and are never shown as 0. The
+    curve is ``NaN`` until the first valid evaluation of a run.
+
+    Args:
+        data (pd.DataFrame): One row per evaluation with a fitness column,
+            the run-identity columns and ``_id`` (evaluation order).
+        minimisation (bool): ``True`` when lower fitness is better (curve is
+            a cumulative minimum), otherwise a cumulative maximum.
+        fitness_col (str, optional): The fitness column; by default
+            ``fitness_scalar`` if present, else ``fitness``.
+        run_cols (list[str], optional): Columns identifying a run; by
+            default :func:`run_columns`.
+
+    Returns:
+        pd.DataFrame: A copy of ``data`` sorted by run and ``_id``, with
+        ``fitness_value`` (cleaned float fitness), ``best_so_far`` and
+        ``eval`` (the 1-based evaluation index within the run).
+    """
+    if fitness_col is None:
+        fitness_col = _get_scalar_fitness_column(data)
+    if run_cols is None:
+        run_cols = run_columns(data)
+    df = data.copy()
+    if df.empty:
+        for col in ("fitness_value", "best_so_far", "eval"):
+            df[col] = pd.Series(dtype=float)
+        return df
+    df["fitness_value"] = clean_fitness(df[fitness_col])
+    order = list(run_cols) + (["_id"] if "_id" in df.columns else [])
+    df = df.sort_values(by=order, kind="stable").reset_index(drop=True)
+    if run_cols:
+        groups = df.groupby(run_cols, sort=False, dropna=False)
+        cum = (
+            groups["fitness_value"].cummin()
+            if minimisation
+            else (groups["fitness_value"].cummax())
+        )
+        df["best_so_far"] = cum.groupby(
+            [df[c] for c in run_cols], sort=False, dropna=False
+        ).ffill()
+        df["eval"] = groups.cumcount() + 1
+    else:
+        vals = df["fitness_value"]
+        cum = vals.cummin() if minimisation else vals.cummax()
+        df["best_so_far"] = cum.ffill()
+        df["eval"] = np.arange(1, len(df) + 1)
+    return df
+
+
+def aggregate_best_so_far(
+    curves: pd.DataFrame,
+    aggregation: str = "mean",
+    variance_aggregation: str = "std",
+    run_cols: list[str] | None = None,
+    max_eval: int | None = None,
+) -> pd.DataFrame:
+    """Aggregate best-so-far curves of several runs per evaluation.
+
+    Each run's curve is carried forward (its last best value) to the common
+    maximum evaluation count, so runs that stopped early still count and the
+    mean of best-so-far curves stays monotone. Before a run's first valid
+    evaluation its curve is missing and it is left out of the aggregate.
+
+    Args:
+        curves (pd.DataFrame): Output of :func:`best_so_far` (for one group).
+        aggregation (str): Aggregation over runs (``mean``, ``median``, ...).
+        variance_aggregation (str): Spread over runs (``std``, ``sem``, ...).
+        run_cols (list[str], optional): Columns identifying a run.
+        max_eval (int, optional): Extend the curves to this evaluation count
+            (default: the longest run).
+
+    Returns:
+        pd.DataFrame: Columns ``eval``, ``aggregation``,
+        ``variance_aggregation`` and ``n_runs`` (runs with a valid value).
+    """
+    if run_cols is None:
+        run_cols = run_columns(curves)
+    if curves.empty:
+        return pd.DataFrame(columns=["eval", aggregation, variance_aggregation])
+    df = curves.copy()
+    if run_cols:
+        df["_run_key"] = df.groupby(run_cols, sort=False, dropna=False).ngroup()
+    else:
+        df["_run_key"] = 0
+    wide = df.pivot(index="eval", columns="_run_key", values="best_so_far")
+    if max_eval is None:
+        max_eval = int(df["eval"].max())
+    wide = wide.reindex(range(1, max_eval + 1)).ffill()
+    summary = wide.agg([aggregation, variance_aggregation], axis=1)
+    summary["n_runs"] = wide.notna().sum(axis=1)
+    summary.index.name = "eval"
+    return summary.reset_index()
+
+
+def final_best_per_run(
+    curves: pd.DataFrame, run_cols: list[str] | None = None
+) -> pd.DataFrame:
+    """The last row of each run's best-so-far curve (its best fitness).
+
+    Args:
+        curves (pd.DataFrame): Output of :func:`best_so_far`.
+        run_cols (list[str], optional): Columns identifying a run.
+
+    Returns:
+        pd.DataFrame: One row per run; ``best_so_far`` is ``NaN`` for a run
+        in which every evaluation failed.
+    """
+    if run_cols is None:
+        run_cols = run_columns(curves)
+    if curves.empty:
+        return curves.copy()
+    ordered = curves.sort_values(by=list(run_cols) + ["eval"], kind="stable")
+    if not run_cols:
+        return ordered.tail(1).reset_index(drop=True)
+    return (
+        ordered.groupby(run_cols, sort=False, dropna=False)
+        .tail(1)
+        .reset_index(drop=True)
+    )
+
+
+def _solution_fitness(df: pd.DataFrame) -> pd.Series:
+    """Cleaned final fitness per run of ``ExperimentLogger.get_data()``."""
+    if "fitness" in df.columns:
+        values = df["fitness"]
+    elif "solution" in df.columns:
+        values = df["solution"].apply(
+            lambda sol: sol.get("fitness", np.nan) if isinstance(sol, dict) else np.nan
+        )
+    else:
+        return pd.Series(np.nan, index=df.index)
+    return clean_fitness(values).set_axis(df.index)
+
+
 def plot_convergence(
     logger: ExperimentLogger,
     metric: str = "Fitness",
@@ -162,9 +405,17 @@ def plot_convergence(
     return_fig: bool = False,
     separate_lines: bool = False,
     show_std: bool = True,
+    minimisation: bool | None = None,
 ):
     """
     Plots the convergence of all methods for each problem from an experiment log.
+
+    Each run's best-so-far fitness (cumulative maximum, or minimum for a
+    minimisation problem) is plotted against the 1-based evaluation index.
+    Failed evaluations never improve the curve. Runs are told apart by their
+    run folder (or method, LLM and seed); a method used with several LLMs
+    gets one line per LLM. For the aggregate, shorter runs are carried
+    forward with their final best value.
 
     For multi-objective problems the scalar summary (mean of all objectives) is
     used as the convergence metric.  Use :func:`plot_pareto_front` to visualise
@@ -181,6 +432,8 @@ def plot_convergence(
         return_fig (bool, optional): Whether to return the figure object.
         separate_lines (bool, optional): If True, plots each run using separate line.
         show_std (bool, optional): If True, shows standard deviation as shaded area.
+        minimisation (bool, optional): Whether lower fitness is better.
+            Defaults to the direction logged for each problem.
     """
     methods_to_use = methods
     methods, problems = logger.get_methods_problems()
@@ -190,57 +443,41 @@ def plot_convergence(
     )
     problem_i = 0
     for problem in problems:
-        # Ensure the data is sorted by 'id' and 'fitness'
         data = logger.get_problem_data(problem_name=problem).drop(
-            columns=["code"]
+            columns=["code"], errors="ignore"
         )  # for efficiency we drop code for now
+        minimise = _resolve_minimisation(logger, problem, minimisation)
+        curves = best_so_far(data, minimisation=minimise)
+        add_method_labels(curves)
+        run_cols = run_columns(curves)
 
-        fitness_col = _get_scalar_fitness_column(data)
-
-        data.replace([-np.inf, np.inf], 0, inplace=True)
-        data.fillna(0, inplace=True)
-
-        # Get unique method names
-        methods = data["method_name"].unique()
         if methods_to_use is not None:
-            methods = [m for m in methods if m in methods_to_use]
+            curves = curves[curves["method_name"].isin(methods_to_use)]
         ax = axes[problem_i] if len(problems) > 1 else axes
-        for method in methods:
-            method_data = data[data["method_name"] == method].copy()
-            method_data = method_data.sort_values(by=["seed", "_id"])
+        for label in pd.unique(curves["method_label"]):
+            method_data = curves[curves["method_label"] == label]
 
-            # Group by 'seed' and calculate the cumulative max fitness
-            method_data["cummax_fitness"] = method_data.groupby("seed")[
-                fitness_col
-            ].cummax()
-
-            # Calculate mean and std deviation of the cumulative max fitness
             if separate_lines:
-                for seed in method_data["seed"].unique():
-                    seed_data = method_data[method_data["seed"] == seed]
+                for _, run_data in method_data.groupby(
+                    run_cols, sort=False, dropna=False
+                ):
+                    seed = run_data["seed"].iloc[0] if "seed" in run_data else ""
                     ax.plot(
-                        seed_data["_id"],
-                        seed_data["cummax_fitness"],
-                        label=f"{method} (Run {seed})",
+                        run_data["eval"],
+                        run_data["best_so_far"],
+                        label=f"{label} (Run {seed})",
                         alpha=0.5,
                     )
             else:
-                summary = (
-                    method_data.groupby("_id")["cummax_fitness"]
-                    .agg([aggregation, variance_aggregation])
-                    .reset_index()
+                summary = aggregate_best_so_far(
+                    method_data, aggregation, variance_aggregation, run_cols
                 )
-                # Shift X-axis so that _id starts at 1
-                summary["_id"] += 1  # Ensures _id starts at 1 instead of 0
-
-                # Plot the mean fitness
-                method_label = method
-                ax.plot(summary["_id"], summary[aggregation], label=method_label)
+                ax.plot(summary["eval"], summary[aggregation], label=label)
 
                 # Plot the shaded error region
                 if show_std:
                     ax.fill_between(
-                        summary["_id"],
+                        summary["eval"],
                         summary[aggregation] - summary[variance_aggregation],
                         summary[aggregation] + summary[variance_aggregation],
                         alpha=0.2,
@@ -437,6 +674,7 @@ def plot_experiment_CEG(
     budget: int = 100,
     save: bool = True,
     max_seeds=5,
+    minimisation: bool | None = None,
 ):
     """
     Plot the Code evolution graphs for each run in an experiment, splitted by problem.
@@ -449,26 +687,27 @@ def plot_experiment_CEG(
         budget (int): The number of evaluations to plot.
         save (bool, optional): Whether to save or show the plot.
         max_seeds (int, optional): The maximum number of runs to plot.
+        minimisation (bool, optional): Whether lower fitness is better (used
+            for the marker colours). Defaults to the logged direction.
     """
     methods_to_use = methods
     methods, problems = logger.get_methods_problems()
 
     problem_i = 0
     for problem in problems:
-        # Ensure the data is sorted by 'id' and 'fitness'
         data = logger.get_problem_data(problem_name=problem)
-        data.replace([-np.inf], 0, inplace=True)
-        data.fillna(0, inplace=True)
+        minimise = _resolve_minimisation(logger, problem, minimisation)
+        add_method_labels(data)
 
         # Get unique runs (seeds)
         seeds = data["seed"].unique()
         # sort the seeds
         seeds = sorted(seeds)
         num_seeds = min(len(seeds), max_seeds)
-        # Get unique method names
-        methods = data["method_name"].unique()
+        # One row per method (and LLM, when a method used several)
         if methods_to_use is not None:
-            methods = [m for m in methods if m in methods_to_use]
+            data = data[data["method_name"].isin(methods_to_use)]
+        methods = list(pd.unique(data["method_label"]))
         fig, axes = plt.subplots(
             figsize=(5 * num_seeds, 5 * len(methods)),
             nrows=len(methods),
@@ -483,7 +722,7 @@ def plot_experiment_CEG(
             for seed in seeds[:num_seeds]:
                 ax = axes[method_i, seed_i]
                 run_data = data[
-                    (data["method_name"] == method) & (data["seed"] == seed)
+                    (data["method_label"] == method) & (data["seed"] == seed)
                 ].copy()
                 if len(run_data) == 0:
                     continue
@@ -494,6 +733,7 @@ def plot_experiment_CEG(
                     markersize=markersize,
                     save=False,
                     ax=ax,
+                    minimisation=minimise,
                 )
                 ax.set_xlim([0, budget])
                 ax.set_xticks(np.arange(0, budget + 1, 20))
@@ -512,6 +752,17 @@ def plot_experiment_CEG(
         else:
             plt.show()
         plt.close()
+
+
+def _fitness_colour_scale(fitness, minimisation: bool = False) -> pd.Series:
+    """Fitness scaled to [0, 1] with 1 the best; failures get 0 (worst)."""
+    values = clean_fitness(fitness)
+    if minimisation:
+        values = -values
+    if values.notna().any():
+        lo, hi = values.min(), values.max()
+        values = (values - lo) / (hi - lo) if hi > lo else values * 0 + 1.0
+    return values.fillna(0.0)
 
 
 # Helper function for key normalization to solve the mismatch issue
@@ -547,7 +798,13 @@ def safe_parse_parent_ids(x):
 
 
 def plot_code_evolution_graphs(
-    run_data, expfolder=None, plot_features=None, markersize=None, save=True, ax=None
+    run_data,
+    expfolder=None,
+    plot_features=None,
+    markersize=None,
+    save=True,
+    ax=None,
+    minimisation: bool = False,
 ):
     """
     Plots optimization progress and relationships between successive solutions in an
@@ -560,24 +817,29 @@ def plot_code_evolution_graphs(
         markersize (int. optional): The size of the markers, if not set it will be dynamic based on the degree.
         save (bool): If True, saves the plots otherwise shows them.
         ax (matplotlib.axes.Axes, optional): The axis to plot on. If None, creates new plots.
+        minimisation (bool): Whether lower fitness is better; the marker
+            colour shows the best fitness brightest either way, failed
+            evaluations get the colour of the worst.
     """
     if ax is not None and (plot_features is None or len(plot_features) > 1):
         raise ValueError(
             "If an axis is provided, the length of plot_features must be 1."
         )
 
+    # Define default features if not provided
+    if plot_features is None:
+        plot_features = [
+            "tsne",
+            "pca",
+            "total_complexity",
+            "total_token_count",
+            "total_parameter_count",
+        ]
+
     data = run_data.copy().reset_index(drop=True)
     data["eval_index"] = data.index + 1
-    data.replace([np.inf, -np.inf], np.nan, inplace=True)
-    # For multi-objective fitness (stored as dict), derive a scalar before scaling
-    if (
-        "fitness" in data.columns
-        and data["fitness"].apply(lambda v: isinstance(v, dict)).any()
-    ):
-        from .loggers import ExperimentLogger
-
-        data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
-    data["fitness"] = minmax_scale(data["fitness"])
+    # Failures (inf, NaN, "-inf"), multi-objective dicts -> scaled to [0, 1]
+    data["fitness"] = _fitness_colour_scale(data["fitness"], minimisation)
     data.fillna(0, inplace=True)
 
     complexity_features = [
@@ -620,18 +882,6 @@ def plot_code_evolution_graphs(
     data = pd.concat([data, df_stats], axis=1)
     data.fillna(0, inplace=True)
 
-    # Define default features if not provided
-    if plot_features is None:
-        plot_features = [
-            "tsne",
-            "pca",
-            "total_complexity",
-            "total_token_count",
-            "total_parameter_count",
-        ]
-    else:
-        plot_features = plot_features
-
     # check that plot_features are all included in stat_features
     missing = [
         f for f in plot_features if f not in stat_features and f not in {"pca", "tsne"}
@@ -648,6 +898,7 @@ def plot_code_evolution_graphs(
     features_scaled = scaler.fit_transform(features)
 
     # Perform PCA and t-SNE for dimensionality reduction
+    pca_projection = None
     if "pca" in plot_features:
         pca = PCA(n_components=1)
         pca_projection = pca.fit_transform(features_scaled)
@@ -659,6 +910,8 @@ def plot_code_evolution_graphs(
             tsne_projection = tsne.fit_transform(features_scaled)
         except Exception:
             # TNSE did not work, probably too small data, just use pca
+            if pca_projection is None:
+                pca_projection = PCA(n_components=1).fit_transform(features_scaled)
             tsne_projection = pca_projection
 
         data["tsne"] = tsne_projection[:, 0]
@@ -732,10 +985,10 @@ def plot_code_evolution_graphs(
         if save and expfolder is not None:
             plt.tight_layout()
             plt.savefig(f"{expfolder}/{x_data}_Evolution.png")
-        elif ax is None:
+        elif no_axis:
             plt.show()
-        if ax is None:
-            plt.close()
+        if no_axis:
+            plt.close(fig)
 
 
 CEG_FEATURES = [
@@ -783,22 +1036,24 @@ CEG_FEATURE_LABELS = {
 
 
 def plotly_code_evolution(
-    run_data: pd.DataFrame, feature: str = "total_token_count"
+    run_data: pd.DataFrame,
+    feature: str = "total_token_count",
+    minimisation: bool = False,
 ) -> go.Figure:
-    """Create an interactive code evolution graph using Plotly."""
+    """Create an interactive code evolution graph using Plotly.
+
+    Args:
+        run_data (pd.DataFrame): The evaluations of one run.
+        feature (str): The code feature on the y-axis.
+        minimisation (bool): Whether lower fitness is better; the colour
+            scale shows the best fitness brightest, failures as the worst.
+    """
 
     data = run_data.copy().reset_index(drop=True)
+    if "_id" in data.columns:
+        data = data.sort_values("_id", kind="stable").reset_index(drop=True)
     data["eval_index"] = data.index + 1
-    data.replace([np.inf, -np.inf], np.nan, inplace=True)
-    # For multi-objective fitness (stored as dict), derive a scalar before scaling
-    if (
-        "fitness" in data.columns
-        and data["fitness"].apply(lambda v: isinstance(v, dict)).any()
-    ):
-        from .loggers import ExperimentLogger
-
-        data["fitness"] = data["fitness"].apply(ExperimentLogger._fitness_to_scalar)
-    data["fitness"] = minmax_scale(data["fitness"])
+    data["fitness"] = _fitness_colour_scale(data["fitness"], minimisation)
     data.fillna(0, inplace=True)
 
     complexity_features = [
@@ -894,13 +1149,13 @@ def plot_boxplot_fitness(
         y_label
         x_label
         problems
+
+    Failed runs (a final fitness of ±inf or NaN) are left out; a method
+    used with several LLMs gets one box per LLM.
     """
     df = logger.get_data().copy()
-    # If not already present, create a "fitness" column from the "solution" dictionary
-    if "fitness" not in df.columns:
-        df["fitness"] = df["solution"].apply(
-            lambda sol: sol.get("fitness", float("nan"))
-        )
+    df["fitness"] = _solution_fitness(df)
+    add_method_labels(df)
 
     if problems is None:
         problems = sorted(df["problem_name"].unique())
@@ -916,7 +1171,7 @@ def plot_boxplot_fitness(
     for i, problem in enumerate(problems):
         subset = df[df["problem_name"] == problem]
         # Plot with Seaborn
-        sns.boxplot(x="method_name", y="fitness", data=subset, ax=axes[i])
+        sns.boxplot(x="method_label", y="fitness", data=subset, ax=axes[i])
         axes[i].set_title(problem)
         axes[i].set_xlabel(x_label)
         if i == 0:
@@ -940,16 +1195,17 @@ def plot_boxplot_fitness_hue(
 ):
     """
     Plots boxplots of fitness grouped by `hue` and method_name `x`.
-    Produces one plot with grouped boxplots per `x`.
+    Produces one plot with grouped boxplots per `x`. Failed runs (a final
+    fitness of ±inf or NaN) are left out.
+
     Args:
         logger
     """
     df = logger.get_data().copy()
-    # If not already present, create a "fitness" column from the "solution" dictionary
-    if "fitness" not in df.columns:
-        df["fitness"] = df["solution"].apply(
-            lambda sol: sol.get("fitness", float("nan"))
-        )
+    df["fitness"] = _solution_fitness(df)
+    if hue == "method_name":
+        add_method_labels(df)
+        hue = "method_label"
 
     if problems is None:
         problems = sorted(df["problem_name"].unique())
@@ -987,32 +1243,43 @@ def plot_boxplot_fitness_hue(
     plt.show()
 
 
-def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False):
+def fitness_table(
+    logger: ExperimentLogger,
+    alpha=0.05,
+    smaller_is_better: bool | None = None,
+    minimisation: bool | None = None,
+):
     """
     Creates a LaTeX table with rows = methods, columns = problems.
     Each cell shows mean ± std (p=...).
     Cells are bolded if that method is significantly better than all others (p < alpha)
     for the given problem.
 
+    Runs whose final fitness is a failure (±inf or NaN) are left out of the
+    statistics and counted in the cell (``k failed``).
+
     Args:
         logger (ExperimentLogger): the experiment logger to process.
         alpha (float): Significance level for p-value cutoff.
-        smaller_is_better (bool): If True, we treat lower fitness as “better.” Otherwise, higher is “better.”
+        smaller_is_better (bool, optional): If True, we treat lower fitness
+            as “better”, if False higher is “better”. Defaults to the
+            direction logged for each problem.
+        minimisation (bool, optional): Alias of ``smaller_is_better``.
     """
-    # Ensure there's a 'fitness' column
+    if smaller_is_better is None:
+        smaller_is_better = minimisation
     df = logger.get_data().copy()
-    if "fitness" not in df.columns:
-        df["fitness"] = df["solution"].apply(
-            lambda sol: sol.get("fitness", float("nan"))
-        )
+    df["fitness"] = _solution_fitness(df)
+    add_method_labels(df)
 
-    # Group data by (problem_name, method_name)
+    # Group data by (problem_name, method)
     # We'll store the runs for each combination so we can compute stats and pairwise tests
-    grouped = df.groupby(["problem_name", "method_name"])["fitness"]
+    grouped = df.groupby(["problem_name", "method_label"])["fitness"]
     stats_dict = {(p, m): grouped.get_group((p, m)).values for p, m in grouped.groups}
 
     problems = sorted(df["problem_name"].unique())
-    methods = sorted(df["method_name"].unique())
+    methods = sorted(df["method_label"].unique())
+    smaller = {p: _resolve_minimisation(logger, p, smaller_is_better) for p in problems}
 
     # Prepare a 2D structure for the table: rows=methods, cols=problems
     table_values = []
@@ -1021,9 +1288,14 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
         row_entries = []
         for problem in problems:
             # Retrieve all runs for (problem, method)
-            arr = stats_dict.get((problem, method), np.array([]))
-            if len(arr) == 0:
+            runs = stats_dict.get((problem, method), np.array([]))
+            if len(runs) == 0:
                 row_entries.append("N/A")
+                continue
+            arr = runs[~np.isnan(runs)]
+            n_failed = len(runs) - len(arr)
+            if len(arr) == 0:
+                row_entries.append(f"N/A ({n_failed} failed)")
                 continue
 
             mean_val = np.mean(arr)
@@ -1033,13 +1305,14 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
             # We'll do a t-test and check p-value
             # For "significantly better than all others" we need:
             # 1) The comparison with each other method's distribution has p < alpha
-            # 2) The mean is "better" (depending on smaller_is_better).
+            # 2) The mean is "better" (depending on the direction).
             all_better = True
             pvals = []
             for other_method in methods:
                 if other_method == method:
                     continue
                 other_arr = stats_dict.get((problem, other_method), np.array([]))
+                other_arr = other_arr[~np.isnan(other_arr)]
                 if len(other_arr) == 0:
                     # If there’s no data for the other method, skip
                     continue
@@ -1048,7 +1321,7 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
                 other_mean = np.mean(other_arr)
                 is_better = (
                     (mean_val < other_mean)
-                    if smaller_is_better
+                    if smaller[problem]
                     else (mean_val > other_mean)
                 )
                 if not is_better:
@@ -1064,7 +1337,8 @@ def fitness_table(logger: ExperimentLogger, alpha=0.05, smaller_is_better=False)
             # *every* p-value must be below alpha.
             max_p = max(pvals) if pvals else 1.0
 
-            cell_str = f"{mean_val:.2f} ± {std_val:.2f} (p={max_p:.3f})"
+            failed = f", {n_failed} failed" if n_failed else ""
+            cell_str = f"{mean_val:.2f} ± {std_val:.2f} (p={max_p:.3f}{failed})"
             if all_better and (max_p < alpha):
                 cell_str = "\\textbf{" + cell_str + "}"
             row_entries.append(cell_str)

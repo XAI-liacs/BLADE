@@ -68,6 +68,52 @@ def _record_outcome(entry: dict, solution) -> None:
         entry["best_fitness"] = fitness
 
 
+def _llm_name_from_dict(llm) -> str | None:
+    """The cleaned model name of a logged LLM record (``None`` if unknown)."""
+    if not isinstance(llm, dict) or not llm.get("model"):
+        return None
+    return str(llm["model"]).replace("/", "-").replace(":", "-")
+
+
+def _jsonl_lines(path) -> list[str]:
+    """The parsable lines of a jsonl file.
+
+    An unparsable *last* line is skipped: it is a record that is still being
+    written (e.g. an experiment that is running). An unparsable line before
+    the last one means the file is corrupt and raises an error.
+
+    Raises:
+        ValueError: A line other than the last one is not valid JSON.
+    """
+    with open(path, encoding="utf-8") as f:
+        lines = [line for line in f.read().splitlines() if line.strip()]
+    good = []
+    for i, line in enumerate(lines):
+        try:
+            json.loads(line)
+        except ValueError as e:
+            if i == len(lines) - 1:
+                break  # half-written trailing record
+            raise ValueError(f"{path}: line {i + 1} is not valid JSON: {e}") from e
+        good.append(line)
+    return good
+
+
+def read_jsonl_records(path) -> list[dict]:
+    """The records of a jsonl file, skipping a half-written last line."""
+    return [json.loads(line) for line in _jsonl_lines(path)]
+
+
+def read_jsonl_dataframe(path) -> pd.DataFrame:
+    """A jsonl file as a DataFrame, skipping a half-written last line."""
+    from io import StringIO
+
+    lines = _jsonl_lines(path)
+    if not lines:
+        return pd.DataFrame()
+    return pd.read_json(StringIO("\n".join(lines)), lines=True)
+
+
 def _accepts_argument(callback) -> bool:
     import inspect
 
@@ -287,6 +333,11 @@ class ExperimentLogger:
         """
         Retrieves the data from the experiment log and returns a pandas dataframe.
 
+        An ``llm_name`` column is added (from the logged LLM) when the log was
+        written without one, so runs of one method with several LLMs can be
+        told apart. An unparsable last line (a run being written while the
+        log is read) is skipped.
+
         Returns:
             dataframe: Pandas DataFrame of the experimentlog.
         """
@@ -294,8 +345,75 @@ class ExperimentLogger:
         for d in self.dirs:
             path = os.path.join(d, "experimentlog.jsonl")
             if os.path.exists(path):
-                frames.append(pd.read_json(path, lines=True))
-        return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
+                df = read_jsonl_dataframe(path)
+                if not df.empty:
+                    frames.append(df)
+        if not frames:
+            return pd.DataFrame()
+        df = pd.concat(frames, ignore_index=True)
+        if "llm" in df.columns:
+            from_llm = df["llm"].apply(_llm_name_from_dict)
+            if "llm_name" in df.columns:
+                df["llm_name"] = df["llm_name"].fillna(from_llm)
+            else:
+                df["llm_name"] = from_llm
+        return df
+
+    def get_minimisation(self, problem_name) -> bool:
+        """Whether lower fitness is better for a problem, as logged.
+
+        The direction is read from (in this order) the run entries of
+        ``progress.json``, the ``problem`` record in ``experimentlog.jsonl``
+        and the ``problem.json`` file in the run folders, of every read
+        directory.
+
+        Args:
+            problem_name (str): The name of the problem.
+
+        Returns:
+            bool: ``True`` when the problem is minimised; ``False`` when it is
+            maximised or the direction was not logged.
+        """
+        for d in self.dirs:
+            progress_path = os.path.join(d, "progress.json")
+            if os.path.exists(progress_path):
+                try:
+                    with open(progress_path) as f:
+                        progress = json.load(f)
+                except (OSError, ValueError):
+                    progress = {}
+                for r in progress.get("runs", []) or []:
+                    if (
+                        r.get("problem_name") == problem_name
+                        and r.get("minimisation") is not None
+                    ):
+                        return bool(r["minimisation"])
+        for d in self.dirs:
+            for line in self._read_experiment_log(d):
+                if line.get("problem_name") != problem_name:
+                    continue
+                problem = line.get("problem")
+                if isinstance(problem, dict) and "minimisation" in problem:
+                    return bool(problem["minimisation"])
+                log_dir = line.get("log_dir")
+                if log_dir:
+                    path = os.path.join(d, log_dir, "problem.json")
+                    if os.path.exists(path):
+                        try:
+                            with open(path) as f:
+                                config = json.load(f)
+                        except (OSError, ValueError):
+                            config = {}
+                        if isinstance(config, dict) and "minimisation" in config:
+                            return bool(config["minimisation"])
+        return False
+
+    @staticmethod
+    def _read_experiment_log(d) -> list[dict]:
+        path = os.path.join(d, "experimentlog.jsonl")
+        if not os.path.exists(path):
+            return []
+        return read_jsonl_records(path)
 
     @staticmethod
     def _fitness_to_scalar(fitness_val) -> float:
@@ -304,7 +422,9 @@ class ExperimentLogger:
         Handles both plain ``float`` values and multi-objective
         :class:`~iohblade.fitness.Fitness` dicts that were serialised to JSON.
         When the value is a dict (serialised ``Fitness``), the scalar is the
-        mean of all objectives — matching ``Fitness.__float__``.
+        mean of all objectives — matching ``Fitness.__float__``. Objective
+        values that are not numbers (``null``, serialised ``"nan"``) count as
+        NaN.
 
         Args:
             fitness_val: A float, int, or dict representing a fitness value.
@@ -312,18 +432,24 @@ class ExperimentLogger:
         Returns:
             float: A scalar fitness value.
         """
+        import math
+
         if isinstance(fitness_val, dict):
             from ..fitness import Fitness
 
-            return float(Fitness.from_dict(fitness_val))
+            values = {}
+            for key, value in fitness_val.items():
+                try:  # serialised failures: "nan", "-inf", null
+                    values[key] = float(value)
+                except (TypeError, ValueError):
+                    values[key] = math.nan
+            return float(Fitness.from_dict(values))
         try:
             return float(fitness_val)
         except (TypeError, ValueError):
-            import math
-
             return math.nan
 
-    def get_problem_data(self, problem_name):
+    def get_problem_data(self, problem_name, include_running=False):
         """
         Retrieves the data for a specific method and problem from the experiment log.
 
@@ -332,38 +458,80 @@ class ExperimentLogger:
         added that holds a single float for use in plots that require a scalar metric
         (e.g. convergence curves).
 
+        Every row also gets the run it belongs to: ``method_name``,
+        ``llm_name``, ``problem_name``, ``seed``, ``log_dir`` (relative to
+        its experiment folder), ``run`` (the run folder path, unique across
+        read directories) and ``_id`` (the evaluation index in the run,
+        starting at 0). An unparsable last line of a ``log.jsonl`` (a run that
+        is being written) is skipped.
+
         Args:
             problem_name (str): The name of the problem.
+            include_running (bool): Also include runs that started but are not
+                finished yet (from ``progress.json``), e.g. to watch a running
+                experiment.
 
         Returns:
             pd.DataFrame: DataFrame of run data for the specified problem.
         """
-        bigdf = pd.DataFrame()
+        frames = []
         for d in self.dirs:
-            exp_log = os.path.join(d, "experimentlog.jsonl")
-            if not os.path.exists(exp_log):
-                continue
-            with jsonlines.open(exp_log) as file:
-                for line in file:
-                    if line["problem_name"] != problem_name:
-                        continue
-                    logdir = os.path.join(
-                        d, line["log_dir"]
-                    )  # relative to *that* experiment
-                    run_log = os.path.join(logdir, "log.jsonl")
-                    if os.path.exists(run_log):
-                        df = pd.read_json(run_log, lines=True)
-                        df["method_name"] = line["method_name"]
-                        df["problem_name"] = line["problem_name"]
-                        df["seed"] = line["seed"]
-                        df["_id"] = df.index
-                        # Add scalar fitness column for multi-objective support
-                        if "fitness" in df.columns:
-                            df["fitness_scalar"] = df["fitness"].apply(
-                                self._fitness_to_scalar
-                            )
-                        bigdf = pd.concat([bigdf, df], ignore_index=True)
-        return bigdf
+            runs = [
+                line
+                for line in self._read_experiment_log(d)
+                if line.get("problem_name") == problem_name
+            ]
+            if include_running:
+                runs += self._running_runs(d, problem_name, runs)
+            for line in runs:
+                if not line.get("log_dir"):
+                    continue
+                logdir = os.path.join(d, line["log_dir"])  # relative to *that* exp
+                run_log = os.path.join(logdir, "log.jsonl")
+                if not os.path.exists(run_log):
+                    continue
+                df = read_jsonl_dataframe(run_log)
+                if df.empty:
+                    continue
+                df["method_name"] = line.get("method_name")
+                llm_name = line.get("llm_name") or _llm_name_from_dict(line.get("llm"))
+                df["llm_name"] = llm_name
+                df["problem_name"] = line.get("problem_name")
+                df["seed"] = line.get("seed")
+                df["log_dir"] = line["log_dir"]
+                df["run"] = os.path.normpath(logdir)
+                df["_id"] = df.index
+                # Add scalar fitness column for multi-objective support
+                if "fitness" in df.columns:
+                    df["fitness_scalar"] = df["fitness"].apply(self._fitness_to_scalar)
+                frames.append(df)
+        if not frames:
+            return pd.DataFrame()
+        return pd.concat(frames, ignore_index=True)
+
+    @staticmethod
+    def _running_runs(d, problem_name, finished) -> list[dict]:
+        """Run entries of ``progress.json`` that started but did not finish."""
+        path = os.path.join(d, "progress.json")
+        if not os.path.exists(path):
+            return []
+        try:
+            with open(path) as f:
+                progress = json.load(f)
+        except (OSError, ValueError):
+            return []
+        seen = {os.path.normpath(r.get("log_dir") or "") for r in finished}
+        running = []
+        for r in progress.get("runs", []) or []:
+            if (
+                r.get("problem_name") == problem_name
+                and r.get("start_time")
+                and not r.get("end_time")
+                and r.get("log_dir")
+                and os.path.normpath(r["log_dir"]) not in seen
+            ):
+                running.append(r)
+        return running
 
     def get_methods_problems(self):
         """
@@ -377,10 +545,9 @@ class ExperimentLogger:
             exp_log = os.path.join(d, "experimentlog.jsonl")
             if not os.path.exists(exp_log):
                 continue
-            with jsonlines.open(exp_log) as file:
-                for line in file:
-                    methods.add(line["method_name"])
-                    problems.add(line["problem_name"])
+            for line in read_jsonl_records(exp_log):
+                methods.add(line["method_name"])
+                problems.add(line["problem_name"])
         return list(methods), list(problems)
 
     # Progress helpers -------------------------------------------------
