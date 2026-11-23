@@ -132,6 +132,7 @@ class LHNS:
                     [{"role": "user", "content": initialisation_prompt}]
                 )
                 self.current_solution = solution
+                break  # One successful (paid) LLM call is enough.
             except Exception as e:
                 if i == 4:
                     raise e
@@ -336,15 +337,16 @@ class LHNS:
                 prompt = self.prompt_generator.get_prompt_destroy_repair(
                     current, destroyed_code, destruction_count
                 )
-                for i in range(5):
-                    try:
-                        new = self.llm.sample_solution(
-                            [{"role": "user", "content": prompt}]
-                        )
-                        return new
-                    except Exception as e:
-                        if i == 4:
-                            raise e
+            # Send whichever prompt was built (taboo or destroy-repair).
+            for i in range(5):
+                try:
+                    new = self.llm.sample_solution(
+                        [{"role": "user", "content": prompt}]
+                    )
+                    return new
+                except Exception as e:
+                    if i == 4:
+                        raise e
         else:
             current = self.current_solution
             destroyed_code = self.get_destroyed_code(0.5, current)
@@ -368,11 +370,15 @@ class LHNS:
     def run(self) -> Solution:
         """
         Run the algorithm.
+
+        Makes exactly `budget` evaluations: the initial solution plus
+        `budget - 1` destroy-repair iterations.
         """
         self.initialise()
         current = self.evaluate(self.current_solution)
         self.current_solution = current
-        for iteration_number in range(1, self.budget + 1):
+        # The initial evaluation above uses one unit of the budget.
+        for iteration_number in range(1, self.budget):
             print(
                 f"Gen {iteration_number}: Current: ({current.id}, {current.fitness}, {current.feedback}); Best: ({self.best_solution.id}, {self.best_solution.fitness}, {self.best_solution.feedback})"
             )

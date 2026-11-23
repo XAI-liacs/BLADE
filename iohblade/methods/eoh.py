@@ -1,9 +1,12 @@
 import ast
 import json
 import logging
+import math
 import os
 import re
 import textwrap
+import threading
+import warnings
 from typing import Any, Optional, Tuple
 
 from ..fitness import from_minimised, to_minimised
@@ -59,18 +62,84 @@ class _BladePrompts:
         )
 
 
-class _BladeProblemAdapter:
-    """Wraps a BLADE problem for use with EoH."""
+# Evaluations EoH makes, read from the installed ``eoh`` package
+# (``eoh/methods/eoh/eoh.py`` and ``eoh_interface_EC.py``):
+#
+# * initialisation: ``population_generation`` calls
+#   ``get_algorithm([], "i1")`` ``n_create = 2`` times, and each call makes
+#   ``pop_size`` offspring, so ``2 * pop_size`` evaluations;
+# * each generation: every operator (default ``e1, e2, m1, m2``, all with
+#   weight 1) calls ``get_algorithm`` once, so ``n_operators * pop_size``
+#   evaluations.
+#
+# Every offspring is evaluated exactly once: a duplicate is regenerated (more
+# LLM calls) before its single evaluation, and a failed evaluation still
+# counts. Only an exception before the evaluation (for example an LLM error)
+# skips it, so the real total can be lower, never higher.
+_EOH_INIT_BATCHES = 2
 
-    def __init__(self, problem: Problem):
+
+def _eoh_schedule(budget: int, pop_size: int, n_operators: int) -> tuple[int, int]:
+    """Population size and number of generations that fit in ``budget``.
+
+    EoH makes ``2 * pop_size`` evaluations to initialise and
+    ``n_operators * pop_size`` per generation, so the number of generations is
+    ``(budget - 2 * pop_size) // (n_operators * pop_size)``: the most whole
+    generations within the budget. The remainder (less than one generation)
+    is not used. When the budget does not cover the initialisation, the
+    population size is reduced to ``budget // 2`` (at least 1) and no
+    generation is run; with a budget of 1 the second initial evaluation is
+    stopped by the adapter's budget cap.
+
+    Args:
+        budget: Number of evaluations the method may make (at least 1).
+        pop_size: Requested EoH population size (at least 1).
+        n_operators: Number of EoH operators applied per generation.
+
+    Returns:
+        ``(pop_size, n_generations)`` to give to EoH.
+
+    Raises:
+        ValueError: If ``budget`` or ``pop_size`` is smaller than 1.
+    """
+    if budget < 1:
+        raise ValueError(f"EoH needs a budget of at least 1, got {budget}.")
+    if pop_size < 1:
+        raise ValueError(f"EoH needs pop_size of at least 1, got {pop_size}.")
+    init_evals = _EOH_INIT_BATCHES * pop_size
+    if budget < init_evals:
+        return max(1, budget // _EOH_INIT_BATCHES), 0
+    n_generations = (budget - init_evals) // (max(1, n_operators) * pop_size)
+    return pop_size, n_generations
+
+
+class _BladeProblemAdapter:
+    """Wraps a BLADE problem for use with EoH.
+
+    Args:
+        problem: The BLADE problem.
+        budget: Maximum number of calls to ``problem``; once used, further
+            evaluations return the failure objective (``inf``, EoH minimises)
+            without calling the problem. ``None`` means no limit.
+    """
+
+    def __init__(self, problem: Problem, budget: int | None = None):
         self.problem = problem
         self.prompts = _BladePrompts(problem)
+        self.budget = budget
+        self.evaluations = 0
+        self._lock = threading.Lock()
 
         # Get optimisation direction/ set default as maximisaiton.
         minimisation = getattr(problem, "minimisation", False)
         self.minimisation = minimisation
 
     def evaluate(self, code_string):
+        with self._lock:
+            if self.budget is not None and self.evaluations >= self.budget:
+                # Safety net: the budget is used, do not call the problem.
+                return math.inf
+            self.evaluations += 1
         solution = Solution(
             code=code_string,
             name=first_class_name(code_string) or "AlgorithmName",
@@ -123,30 +192,55 @@ class EoH(Method):
                 self.llm
             )
 
+        requested_pop_size = self.kwargs.get("pop_size", 4)
         paras = Paras()
         paras.set_paras(
             method="eoh",
-            problem=_BladeProblemAdapter(problem),
+            problem=_BladeProblemAdapter(problem, budget=self.budget),
             llm_api_endpoint="unused",
             llm_api_key="unused",
             llm_model=self.llm.model,
-            ec_pop_size=self.kwargs.get("pop_size", 4),
-            ec_n_pop=max(1, self.budget // self.kwargs.get("pop_size", 4)),
+            ec_pop_size=requested_pop_size,
             exp_output_path=self.kwargs.get("output_path", "./"),
             exp_n_proc=1,
             exp_debug_mode=False,
             eva_timeout=self.kwargs.get("timeout", 600),
         )
+        # Fit the population size and generation count to the budget (see
+        # _eoh_schedule); EoH's operator list is known after set_paras.
+        pop_size, n_generations = _eoh_schedule(
+            self.budget, requested_pop_size, len(paras.ec_operators)
+        )
+        if pop_size != requested_pop_size:
+            warnings.warn(
+                f"EoH budget {self.budget} does not cover the initial "
+                f"population ({_EOH_INIT_BATCHES} * pop_size = "
+                f"{_EOH_INIT_BATCHES * requested_pop_size} evaluations); "
+                f"using pop_size={pop_size}.",
+                stacklevel=2,
+            )
+        paras.ec_pop_size = pop_size
+        paras.ec_n_pop = n_generations
 
         evol = eoh_main.EVOL(paras, prob=paras.problem)
         evol.run()
 
-        result_file = os.path.join(
-            paras.exp_output_path,
-            "results",
-            "pops_best",
-            f"population_generation_{paras.ec_n_pop}.json",
-        )
+        if n_generations > 0:
+            result_file = os.path.join(
+                paras.exp_output_path,
+                "results",
+                "pops_best",
+                f"population_generation_{n_generations}.json",
+            )
+        else:
+            # No generation ran: the initial population (sorted best first
+            # by EoH's population management) holds the result.
+            result_file = os.path.join(
+                paras.exp_output_path,
+                "results",
+                "pops",
+                "population_generation_0.json",
+            )
         if not os.path.exists(result_file):
             raise FileNotFoundError(result_file)
 
@@ -154,6 +248,10 @@ class EoH(Method):
             best = json.load(f)
 
         if isinstance(best, list):
+            if not best:
+                raise RuntimeError(
+                    f"EoH produced no evaluated individual ({result_file})."
+                )
             best = best[0]
 
         code = best.get("code", "")

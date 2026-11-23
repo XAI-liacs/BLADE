@@ -2,7 +2,6 @@
 # Omit all Python files in these directories
 omit =
     iohblade/baselines/*
-    iohblade/methods/eoh.py
     iohblade/methods/funsearch.py
     iohblade/methods/reevo.py
     iohblade/methods/llamea.py
