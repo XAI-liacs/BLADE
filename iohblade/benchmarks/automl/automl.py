@@ -32,6 +32,22 @@ from iohblade.tabpfn_utils import VALID_TABPFN_MODES
 from iohblade.tags import Benchmark, PrimaryCategories
 
 VALID_TABPFN_EVAL_SOURCES = ("env", "pip")
+# Metrics where lower is better; all other metrics are maximised.
+ERROR_METRICS = {"root_mean_squared_error", "mean_absolute_error"}
+
+
+def _roc_auc(y_true, scores):
+    """ROC AUC from ``predict_proba`` or ``decision_function`` output.
+
+    For two classes sklearn expects the score of the positive class (a 1-d
+    array), not an (n, 2) matrix; more classes use one-vs-rest.
+    """
+    scores = np.asarray(scores)
+    if scores.ndim == 2 and scores.shape[1] == 2:
+        return roc_auc_score(y_true, scores[:, 1])
+    if scores.ndim == 2 and scores.shape[1] > 2:
+        return roc_auc_score(y_true, scores, multi_class="ovr")
+    return roc_auc_score(y_true, np.ravel(scores))
 
 
 def _summarize_dataset(X, y):
@@ -530,16 +546,10 @@ class AutoML(Problem):
 
         if metric_name == "area_under_roc_curve":
             if hasattr(alg, "predict_proba"):
-                proba = alg.predict_proba(X_ev)
-                if np.ndim(proba) == 2 and proba.shape[1] > 1:
-                    return roc_auc_score(y_ev, proba, multi_class="ovr")
-                return roc_auc_score(y_ev, np.ravel(proba))
+                return _roc_auc(y_ev, alg.predict_proba(X_ev))
 
             if hasattr(alg, "decision_function"):
-                scores = alg.decision_function(X_ev)
-                if np.ndim(scores) == 2 and scores.shape[1] > 1:
-                    return roc_auc_score(y_ev, scores, multi_class="ovr")
-                return roc_auc_score(y_ev, scores)
+                return _roc_auc(y_ev, alg.decision_function(X_ev))
 
             y_pred = alg(X_ev)
             if hasattr(y_pred, "shape") and getattr(y_pred, "ndim", 1) == 2:
@@ -601,18 +611,33 @@ class AutoML(Problem):
         solution: Solution | None = None,
         max_failures: int = 3,
     ):
+        """Score the pipeline on each split.
+
+        A split that raises, or gives a non-finite score (e.g. from NaN or
+        inf predictions), counts as the worst value of the metric (see
+        ``_worst_split_score``), so every split contributes to the mean and
+        a pipeline cannot be scored only on the splits where it works.
+
+        Returns:
+            tuple: (scores, n_failed, failures), with one score per split.
+        """
         scores = []
         n_failed = 0
         failures = []
 
         for repeat, fold, sample in splits:
             try:
-                score = self._evaluate_single_split(
-                    alg_cls, config_dict, repeat, fold, sample, split_role
+                score = float(
+                    self._evaluate_single_split(
+                        alg_cls, config_dict, repeat, fold, sample, split_role
+                    )
                 )
-                scores.append(float(score))
+                if not math.isfinite(score):
+                    raise ValueError(f"The {self.eval_name} score is {score}.")
+                scores.append(score)
             except Exception as exc:
                 n_failed += 1
+                scores.append(self._worst_split_score())
                 if len(failures) < max_failures:
                     failures.append(
                         {
@@ -624,6 +649,37 @@ class AutoML(Problem):
                     )
 
         return scores, n_failed, failures
+
+    def _is_error_metric(self) -> bool:
+        return self.eval_name in ERROR_METRICS
+
+    def _worst_split_score(self) -> float:
+        """Score of a failed split: the worst value of the metric.
+
+        0 for accuracy, F1 and AUC (higher is better), ``inf`` for RMSE and
+        MAE (lower is better; a failed split then gives failure fitness).
+        """
+        return math.inf if self._is_error_metric() else 0.0
+
+    def _fitness_from_scores(self, scores, n_failed=0):
+        """Aggregate per-split scores into (mean, std, fitness).
+
+        Fitness is maximised: the mean score, or minus the mean error for
+        error metrics. It is ``self.failure_fitness()`` when there are no
+        scores, when every split failed, or when the mean is not finite (a
+        failed split on RMSE/MAE).
+        """
+        if not scores:
+            worst = self._worst_split_score()
+            return worst, float("nan"), self.failure_fitness()
+        mean_score = float(np.mean(scores))
+        if not math.isfinite(mean_score):
+            return mean_score, float("nan"), self.failure_fitness()
+        std_score = float(np.std(scores))
+        if n_failed >= len(scores):
+            return mean_score, std_score, self.failure_fitness()
+        fitness = -mean_score if self._is_error_metric() else mean_score
+        return mean_score, std_score, fitness
 
     def _get_outer_split_indices(self, repeat: int, fold: int, sample: int):
         return self.task.get_train_test_split_indices(
@@ -720,17 +776,9 @@ class AutoML(Problem):
         # AUC handled first
         if metric_name == "area_under_roc_curve":
             if hasattr(alg, "predict_proba"):
-                proba = alg.predict_proba(self.X_test)
-                if proba.ndim == 2 and proba.shape[1] > 1:
-                    score = roc_auc_score(self.y_test, proba, multi_class="ovr")
-                else:
-                    score = roc_auc_score(self.y_test, proba.ravel())
+                score = _roc_auc(self.y_test, alg.predict_proba(self.X_test))
             elif hasattr(alg, "decision_function"):
-                scores = alg.decision_function(self.X_test)
-                if np.ndim(scores) == 2 and scores.shape[1] > 1:
-                    score = roc_auc_score(self.y_test, scores, multi_class="ovr")
-                else:
-                    score = roc_auc_score(self.y_test, scores)
+                score = _roc_auc(self.y_test, alg.decision_function(self.X_test))
             else:
                 # fallback
                 if hasattr(y_pred, "shape") and getattr(y_pred, "ndim", 1) == 2:
@@ -763,11 +811,7 @@ class AutoML(Problem):
     def _evaluate_search(self, solution: Solution, ioh_dir=""):
         alg_cls = self._compile_solution(solution)
 
-        metric_name = self.eval_name
-        is_error_metric = metric_name in {
-            "root_mean_squared_error",
-            "mean_absolute_error",
-        }
+        is_error_metric = self._is_error_metric()
 
         all_splits = self._all_official_splits()
 
@@ -837,9 +881,10 @@ class AutoML(Problem):
             solution=solution,
         )
 
-        mean_score = float(np.mean(search_scores)) if search_scores else float("-inf")
-        std_score = float(np.std(search_scores)) if search_scores else float("nan")
-        fitness = -mean_score if is_error_metric else mean_score
+        mean_score, std_score, fitness = self._fitness_from_scores(
+            search_scores, n_failed
+        )
+        all_failed = n_failed == len(search_scores)
 
         solution.add_metadata("search_eval_mode", self.search_eval_mode)
         solution.add_metadata("search_scores", search_scores)
@@ -869,18 +914,12 @@ class AutoML(Problem):
         solution.set_scores(
             fitness,
             msg,
-            error=error_msg if not search_scores else "",
+            error=error_msg if all_failed else "",
         )
         return solution
 
     def _evaluate_final(self, solution: Solution, ioh_dir=""):
         alg_cls = self._compile_solution(solution)
-
-        metric_name = self.eval_name
-        is_error_metric = metric_name in {
-            "root_mean_squared_error",
-            "mean_absolute_error",
-        }
 
         incumbent_dict = solution.get_metadata("incumbent") or {}
         all_splits = self._all_official_splits()
@@ -893,9 +932,10 @@ class AutoML(Problem):
             solution=solution,
         )
 
-        mean_score = float(np.mean(final_scores)) if final_scores else float("-inf")
-        std_score = float(np.std(final_scores)) if final_scores else float("nan")
-        fitness = -mean_score if is_error_metric else mean_score
+        mean_score, std_score, fitness = self._fitness_from_scores(
+            final_scores, n_failed
+        )
+        all_failed = n_failed == len(final_scores)
 
         solution.add_metadata("selection_fitness", solution.fitness)
         solution.add_metadata("selection_feedback", solution.feedback)
@@ -937,7 +977,7 @@ class AutoML(Problem):
         solution.set_scores(
             fitness,
             msg,
-            error=error_msg if not final_scores else "",
+            error=error_msg if all_failed else "",
         )
         return solution
 

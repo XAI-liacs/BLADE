@@ -102,6 +102,8 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
             return solution
 
         try:
+            if not (np.isfinite(width) and np.isfinite(height)):
+                raise ValueError(f"non-finite rectangle dimensions {width} x {height}")
             # perimeter equality
             if width <= 0 or height <= 0:
                 raise ValueError(
@@ -115,6 +117,11 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
             U = np.asarray(U, dtype=float)
             if U.shape != (self.n_circles, 3):
                 raise ValueError(f"expected ({self.n_circles},3), got {U.shape}")
+            if not np.isfinite(U).all():
+                idx = int(np.where(~np.isfinite(U).all(axis=1))[0][0])
+                raise ValueError(
+                    f"non-finite value (nan or inf) in circle {idx}: {U[idx]}"
+                )
 
             if np.any(U[:, 2] <= 0):
                 idx = int(np.where(U[:, 2] <= 0)[0][0])
@@ -140,6 +147,8 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
                         raise ValueError(f"circles {i} and {j} overlap.")
 
             score = float(np.sum(U[:, 2]))
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite sum of radii {score}")
             solution.set_scores(
                 score,
                 f"sum_of_radii={score:.6f}; dims={width:.6f}×{height:.6f}; n={self.n_circles}, best known={self.best_known}",

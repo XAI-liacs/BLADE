@@ -41,10 +41,11 @@ class PackingBase:
 - Write a Python class with a __call__ method that generates and returns a NumPy array of shape (n, 3). Each row of the array represents one inner hexagon that is fitted inside a larger outer hexagon, with the following values:
     - x: the x-coordinate of the hexagon’s center.
     - y: the y-coordinate of the hexagon’s center.
-    - theta: the rotation angle of the hexagon (in radians)
+    - theta: the rotation angle of the hexagon (in radians); its vertices are at (x + cos(theta + k*pi/3), y + sin(theta + k*pi/3)) for k = 0..5.
 - The constranits on the hexagons are:
     - No two hexagons must overlap.
-    - Hexagon must lie fully inside outer regular hexagon, with side s, and theta 0.
+    - Hexagons must lie fully inside an outer regular hexagon with side s and a fixed orientation: its vertices are at angles pi/6 + k*pi/3 (30, 90, 150, ... degrees) from its centre, i.e. it has two vertical edges and is rotated by 30 degrees relative to an inner hexagon with theta 0.
+    - The evaluator places the outer hexagon's centre optimally, so only the relative positions of the inner hexagons matter.
     - Each hexagons are assumed to be regular, with side 1.
     - The tolerance for evaluation in given by {tolerance}.
 - Objective is to minimise s; the side of outer hexagon.

@@ -100,8 +100,15 @@ def get_evaluator(
             exec(code, safe_globals, local_ns)
             local_ns = clean_local_namespace(local_ns, safe_globals)
 
-            # get the first class defined by the candidate
-            cls = next(v for v in local_ns.values() if isinstance(v, type))
+            # use the class named in the solution; if that name is missing,
+            # fall back to the last class the candidate defines (helper
+            # classes usually come before the solver class).
+            cls = local_ns.get(algorithm_name) if algorithm_name else None
+            if not isinstance(cls, type):
+                classes = [v for v in local_ns.values() if isinstance(v, type)]
+                if not classes:
+                    raise ValueError("no class defined in the code")
+                cls = classes[-1]
             # Call the class to get an instance, which should return factor_matrics / decomposition
             # If the class has a __call__ method, it will be executed
             decomposition = cls()()
@@ -126,12 +133,20 @@ def get_evaluator(
                 return individual
         else:
             # already a flat decomposition
-            x = np.asarray(decomposition, dtype=np.float64)
+            try:
+                x = np.asarray(decomposition, dtype=np.float64)
+            except Exception as e:
+                individual.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
+                return individual
 
-        # quick size check
+        # quick size and finiteness check
         try:
             if x.size != total_vars:
                 raise ValueError(f"Size mismatch: expected {total_vars}, got {x.size}")
+            if not np.all(np.isfinite(x)):
+                raise ValueError(
+                    "Decomposition contains non-finite values (nan or inf)"
+                )
         except Exception as e:
             individual.set_scores(float("inf"), f"exec-error {e}", "exec-failed")
             return individual
@@ -153,7 +168,14 @@ def get_evaluator(
         except AssertionError:
             # not exact – compute Frobenius error
             t_hat = np.einsum("il,jl,kl->ijk", f1, f2, f3)
-            err = np.linalg.norm(t_hat - t_target)
+            err = float(np.linalg.norm(t_hat - t_target))
+            if not np.isfinite(err):
+                individual.set_scores(
+                    float("inf"),
+                    f"The algorithm {algorithm_name} gives a non-finite error {err}",
+                    "non-finite-error",
+                )
+                return individual
 
         # ------------------------------------------------------------------ #
         # 3. set fitness ( minimise: lower is better )

@@ -19,16 +19,20 @@ except Exception:  # pragma: no cover - fallback for type checking only
 
 
 def _max_rank_minus_1(n: int, m: int, p: int) -> int:
-    """Return best-known rank for (m,n,p) if available; otherwise fall back to n*m*p-1.
+    """Return the target rank for the <n,m,p> matrix-multiplication tensor.
 
-    Note: Function takes the literature best-known rank
-    from constants.MATMUL_RANKS.
+    The target is the literature best-known rank from
+    ``constants.MATMUL_RANKS``, which is keyed by the sorted dimensions
+    (the rank of <n,m,p> does not depend on the order of n, m and p). Without
+    a table entry it falls back to ``n*m*p - 1``, one below the naive rank,
+    and a table entry is never allowed to exceed that fallback.
     """
-    key: Tuple[int, int, int] = (m, n, p)
+    naive_minus_1 = n * m * p - 1
+    key: Tuple[int, int, int] = tuple(sorted((n, m, p)))  # type: ignore[assignment]
     info = MATMUL_RANKS.get(key)
     if info and "best_known" in info:
-        return int(info["best_known"])  # authoritative best-known
-    return n * m * p - 1
+        return min(int(info["best_known"]), naive_minus_1)
+    return naive_minus_1
 
 
 def default_problems() -> List[MatMulTensorDecomposition]:
@@ -105,8 +109,8 @@ def default_problems() -> List[MatMulTensorDecomposition]:
     ]
 
     problems = [
-        MatMulTensorDecomposition(m, n, p, grid=grid, rank=_max_rank_minus_1(m, n, p))
-        for (m, n, p) in sizes
+        MatMulTensorDecomposition(n, m, p, grid=grid, rank=_max_rank_minus_1(n, m, p))
+        for (n, m, p) in sizes
     ]
     print(
         f"Running full benchmark suite: {len(problems)} matrix-multiplication problems"

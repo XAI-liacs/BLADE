@@ -51,8 +51,10 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
             return solution
 
         try:
-            if f.ndim != 1 or f.size == 0:
-                raise ValueError("f must be a non-empty 1D array")
+            if f.ndim != 1 or f.size != self.n_bins:
+                raise ValueError(f"f must be 1D with length N={self.n_bins}")
+            if not np.all(np.isfinite(f)):
+                raise ValueError("f must contain only finite values (no nan/inf)")
 
             dx = self.dx
             g = dx * np.convolve(f, f, mode="full")
@@ -61,6 +63,8 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
                 raise ValueError("Integral ∫f must be nonzero for C3")
 
             score = float(np.max(np.abs(g)) / (I * I))  # minimize
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite C3 ratio {score}")
             solution = solution.set_scores(
                 score, f"C3 ratio = {score:.6g}, best known = {self.best_known:.6g}"
             )

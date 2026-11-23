@@ -18,7 +18,9 @@ class HexagonPacking(PackingBase, Problem):
     """
     Pack n disjoint unit regular hexagons (side length = 1) inside a regular outer hexagon.
     Candidate returns an array with shape (n,3): rows [x, y, theta] for each inner hex.
-    Score (to minimise) = outer_side_length required to contain all inner hexes.
+    Score (to minimise) = side length of the smallest outer hexagon, in a fixed
+    orientation (vertices at 30 + k*60 degrees) and with an optimally placed
+    centre, that contains all inner hexes.
     Boundary contact allowed; interiors must be disjoint.
     """
 
@@ -62,21 +64,35 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
             verts.append([cx + math.cos(a), cy + math.sin(a)])
         return np.asarray(verts, dtype=np.float64)
 
-    def _projections_ranges(self, V: np.ndarray):
-        u0 = np.array([1.0, 0.0])
-        u1 = np.array([0.5, math.sqrt(3) / 2.0])
-        u2 = np.array([-0.5, math.sqrt(3) / 2.0])
-        ranges = []
-        for u in (u0, u1, u2):
-            p = V @ u
-            ranges.append(float(p.max() - p.min()))
-        return tuple(ranges)
+    def _support_values(self, V: np.ndarray) -> np.ndarray:
+        # h_k = max_v n_k . v for the six outward edge normals of the outer
+        # hexagon, n_k = (cos(k*60deg), sin(k*60deg)), k = 0..5.
+        angles = np.arange(6) * (math.pi / 3.0)
+        normals = np.stack([np.cos(angles), np.sin(angles)], axis=1)
+        return (V @ normals.T).max(axis=0)
 
     def _outer_side_from_vertices(self, V: np.ndarray) -> float:
-        # Minimal apothem a* = max_i range_i / 2. Side length L = 2 a* / sqrt(3).
-        r0, r1, r2 = self._projections_ranges(V)
-        a = 0.5 * max(r0, r1, r2)
-        return 2.0 * a / math.sqrt(3.0)
+        """Exact side of the smallest enclosing outer hexagon.
+
+        The outer hexagon has a fixed orientation (edge normals at
+        k * 60 degrees, so vertices at 30 + k * 60 degrees) and its centre c
+        is free. It contains every point v iff n_k . (v - c) <= a for all k,
+        with apothem a = s * sqrt(3) / 2. Writing t_k = n_k . c and using
+        n_1 = n_0 + n_2, n_{k+3} = -n_k, a centre exists iff
+        t_k in [h_k - a, a - h_{k+3}] (k = 0, 1, 2) has a solution with
+        t_1 = t_0 + t_2, which gives the exact minimal apothem
+        a* = max(max_k (h_k + h_{k+3}) / 2, (h_0 + h_2 + h_4) / 3,
+        (h_1 + h_3 + h_5) / 3).
+        """
+        h = self._support_values(V)
+        a = max(
+            0.5 * (h[0] + h[3]),
+            0.5 * (h[1] + h[4]),
+            0.5 * (h[2] + h[5]),
+            (h[0] + h[2] + h[4]) / 3.0,
+            (h[1] + h[3] + h[5]) / 3.0,
+        )
+        return 2.0 * float(a) / math.sqrt(3.0)
 
     def _intervals_overlap_strict(
         self, a_min, a_max, b_min, b_max, tolerance: float
@@ -152,6 +168,8 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
             V = np.vstack(polys)
             side = self._outer_side_from_vertices(V)
             score = float(side)
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite outer side length {score}")
             solution.set_scores(
                 score,
                 f"outer_side_length={side:.6g}, best known side length={self.best_known}",
@@ -172,7 +190,7 @@ Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and 
         evaluator = "\n\n".join(
             [
                 inspect.getsource(self._unit_hex_vertices),
-                inspect.getsource(self._projections_ranges),
+                inspect.getsource(self._support_values),
                 inspect.getsource(self._outer_side_from_vertices),
                 inspect.getsource(self._intervals_overlap_strict),
                 inspect.getsource(self._overlap_strict),

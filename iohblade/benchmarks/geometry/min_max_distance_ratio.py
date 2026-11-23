@@ -125,11 +125,14 @@ one-line description, describing the main idea. Give the response in the format:
 
     @staticmethod
     def _pairwise_d2(P: np.ndarray) -> np.ndarray:
-        G = P @ P.T
-        diag = np.diag(G)
-        D2 = diag[:, None] + diag[None, :] - 2.0 * G
-        np.fill_diagonal(D2, np.inf)
-        return D2
+        """Squared distances of all pairs i < j (condensed form).
+
+        Computed from coordinate differences, so precision does not depend on
+        how far the points are from the origin (unlike the Gram-matrix form).
+        """
+        from scipy.spatial.distance import pdist
+
+        return pdist(P, metric="sqeuclidean")
 
     def evaluate(self, solution, explogger=None):
         code = solution.code
@@ -160,9 +163,11 @@ one-line description, describing the main idea. Give the response in the format:
             d2_min = float(np.min(D2))
             if not np.isfinite(d2_min) or d2_min <= self.tolerance:
                 raise ValueError("minimum distance too small or zero")
-            d2_max = float(np.max(D2[np.isfinite(D2)]))
+            d2_max = float(np.max(D2))
             ratio_sq = d2_max / d2_min
             score = float(ratio_sq)
+            if not np.isfinite(score):
+                raise ValueError(f"non-finite ratio {score}")
             msg = f"ratio_sq={ratio_sq:.12g}."
             if self.best_known is not None:
                 msg += f" Best known score is {self.best_known}."

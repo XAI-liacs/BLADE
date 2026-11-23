@@ -129,7 +129,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         fids = [1, 3, 6, 8, 10, 13, 15, 17, 21, 23]
 
         training_instances = [(f, i) for f in fids for i in range(1, 6)]
-        test_instances = [(f, i) for f in fids for i in range(5, 16)]
+        test_instances = [(f, i) for f in fids for i in range(6, 16)]
 
         logger = ExperimentLogger("results/BBOB")
 

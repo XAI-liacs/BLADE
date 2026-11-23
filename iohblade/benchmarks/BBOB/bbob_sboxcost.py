@@ -89,9 +89,8 @@ class BBOB_SBOX(Problem):
         if training_instances is None:
             training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
         if test_instances is None:
-            test_instances = [
-                (f, i) for f in range(1, 25) for i in range(5, 16)
-            ]  # 10 test instances
+            # 10 test instances (iids 6-15), disjoint from the training iids
+            test_instances = [(f, i) for f in range(1, 25) for i in range(6, 16)]
         super().__init__(
             logger, training_instances, test_instances, name, eval_timeout, dependencies
         )

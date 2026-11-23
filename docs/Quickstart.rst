@@ -107,7 +107,7 @@ The same experiment in Python, e.g. for scripting or inside a notebook:
        LLaMEA(llm, budget=budget, name="LLaMEA", n_parents=4, n_offspring=12, elitism=False),
    ]
    training_instances = [(f, i) for f in range(1, 25) for i in range(1, 6)]
-   test_instances = [(f, i) for f in range(1, 25) for i in range(5, 16)]
+   test_instances = [(f, i) for f in range(1, 25) for i in range(6, 16)]
    problems = [
        BBOB_SBOX(training_instances=training_instances, test_instances=test_instances,
                  dims=[5], budget_factor=2000, name="SBOX_COST")

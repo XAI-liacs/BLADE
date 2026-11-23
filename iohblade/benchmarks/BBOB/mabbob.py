@@ -190,8 +190,10 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
                     algorithm = local_env[algorithm_name](budget=budget, dim=dim)
                     algorithm(f_new)
                 except OverBudgetException:
-                    aucs.append(0)
-                    break
+                    # Same as BBOB_SBOX: the run is scored on the evaluations
+                    # within the budget, and the remaining instances are still
+                    # evaluated so that every instance counts in the mean.
+                    pass
 
                 aucs.append(correct_aoc(f_new, l2, budget))
                 l2.reset(f_new)

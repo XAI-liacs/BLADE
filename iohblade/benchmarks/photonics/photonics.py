@@ -1,5 +1,6 @@
 import inspect
 import os
+import random
 import textwrap
 import traceback
 from typing import Any
@@ -11,6 +12,7 @@ from ioh import get_problem
 from ioh import logger as ioh_logger
 
 from iohblade.benchmarks.photonics.photonics_instances import (
+    ELLIPSOMETRY_REFERENCE_SEED,
     algorithmic_insights,
     get_photonic_instance,
     problem_descriptions,
@@ -18,6 +20,13 @@ from iohblade.benchmarks.photonics.photonics_instances import (
 from iohblade.problem import BASE_DEPENDENCIES, Problem
 from iohblade.solution import Solution
 from iohblade.utils import OverBudgetException, aoc_logger, correct_aoc
+
+# (lower, upper) bounds of the AOC logger for each problem type.
+AOC_BOUNDS = {
+    "bragg": (0.1648, 1.0),
+    "ellipsometry": (1e-8, 40.0),
+    "photovoltaic": (0.1, 1.0),
+}
 
 
 class Photonics(Problem):
@@ -36,6 +45,7 @@ class Photonics(Problem):
         seeds=5,
         dependencies=None,
         imports=None,
+        reference_seed=ELLIPSOMETRY_REFERENCE_SEED,
     ):
         """
         Initializes the MA-BBOB problem instance.
@@ -45,7 +55,11 @@ class Photonics(Problem):
             name (str): The name of the problem.
             eval_timeout (int): The evaluation timeout in seconds.
             budget_factor (int): The factor to multiply the dimensionality with to get the budget.
-            seeds (int): Number of random runs.
+            seeds (int): Number of random runs. Run ``i`` seeds numpy's and
+                Python's global random generators with ``i``.
+            reference_seed (int): Seed of the random reference structure of
+                the ellipsometry problem; fixed so all evaluations use the
+                same target spectrum.
         """
         if dependencies is None:
             dependencies = [
@@ -63,7 +77,12 @@ class Photonics(Problem):
             )
 
         self.problem_type = problem_type
-        self.problem = get_photonic_instance(self.problem_type)
+        # Fixed seed of the random reference structure (ellipsometry), so that
+        # every copy of the problem scores against the same target.
+        self.reference_seed = reference_seed
+        self.problem = get_photonic_instance(
+            self.problem_type, reference_seed=self.reference_seed
+        )
         self.func_name = "__call__"
         self.init_inputs = ["budget", "dim"]
         self.func_inputs = ["func"]
@@ -131,15 +150,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         """
         Evaluates a solution on the different problems.
         """
-        if self.problem_type == "bragg":
-            auc_lower = 0.1648
-            auc_upper = 1.0
-        elif self.problem_type == "ellipsometry":
-            auc_lower = 1e-8
-            auc_upper = 40.0
-        elif self.problem_type == "photovoltaic":
-            auc_lower = 0.1
-            auc_upper = 1.0
+        auc_lower, auc_upper = AOC_BOUNDS[self.problem_type]
         auc_mean = 0
         auc_std = 0
 
@@ -169,7 +180,12 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         # Final validation
 
         aucs = []
-        l2 = aoc_logger(budget, upper=1e2, triggers=[ioh_logger.trigger.ALWAYS])
+        l2 = aoc_logger(
+            budget,
+            lower=auc_lower,
+            upper=auc_upper,
+            triggers=[ioh_logger.trigger.ALWAYS],
+        )
         # add also a normal IOH logger if test = True and set the directory accordingly
         if test:
             l1 = ioh.logger.Analyzer(
@@ -184,12 +200,18 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         for seed in self.seeds:
             budget = self.budget_factor * dim
+            # Each run gets its own seed, so the runs differ from each other
+            # but an evaluation is reproducible.
+            np.random.seed(seed)
+            random.seed(seed)
             try:
                 algorithm = local_env[algorithm_name](budget=budget, dim=dim)
                 algorithm(self.problem)
             except OverBudgetException:
-                aucs.append(0)
-                break
+                # Same as BBOB_SBOX: the run is scored on the evaluations
+                # within the budget, and the remaining runs still take place
+                # so that every run counts in the mean.
+                pass
 
             aucs.append(correct_aoc(self.problem, l2, budget))
             l2.reset(self.problem)
@@ -221,11 +243,15 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "name": self.name,
             "problem_type": self.problem_type,
             "budget_factor": self.budget_factor,
+            "reference_seed": self.reference_seed,
         }
 
     def _rebuild_problem(self):
         """(Re)create the IOH/photonic instance after unpickling/copying."""
-        self.problem = get_photonic_instance(self.problem_type)
+        self.problem = get_photonic_instance(
+            self.problem_type,
+            reference_seed=getattr(self, "reference_seed", ELLIPSOMETRY_REFERENCE_SEED),
+        )
         self.training_instances = [self.problem]
         self.test_instances = [self.problem]
 
@@ -251,12 +277,11 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
         cls = self.__class__
         new = cls.__new__(cls)
         memo[id(self)] = new
-        self.problem = None
-        self.training_instances = None
-        self.test_instances = None
-        # deepcopy everything except the C++ problem
+        # deepcopy everything except the C++ problem (the original keeps it)
+        skip = {"problem", "training_instances", "test_instances"}
         for k, v in self.__dict__.items():
-            setattr(new, k, copy.deepcopy(v, memo))
+            if k not in skip:
+                setattr(new, k, copy.deepcopy(v, memo))
         new._rebuild_problem()
         return new
 
@@ -289,6 +314,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             "config": {
                 "problem_type": self.problem_type,
                 "budget_factor": self.budget_factor,
+                "reference_seed": self.reference_seed,
                 "depencencies": self.dependencies,
                 "imports": self.imports,
             },

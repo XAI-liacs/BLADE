@@ -12,6 +12,10 @@ from .problems.sophisticated_antireflection_design import (
     sophisticated_antireflection_design,
 )
 
+# Seed of the random reference structure of the ellipsometry problem. It is
+# fixed so that every (re)built instance has the same target spectrum.
+ELLIPSOMETRY_REFERENCE_SEED = 42
+
 problem_descriptions = {
     "bragg": "The Bragg mirror optimization aims to maximize reflectivity at a wavelength of 600 nm using a multilayer structure with alternating refractive indices (1.4 and 1.8). The structure's thicknesses are varied to find the configuration with the highest reflectivity. The problem involves two cases: one with 10 layers (minibragg) and another with 20 layers (bragg), with the latter representing a more complex inverse design problem. The known optimal solution is a periodic Bragg mirror, which achieves the best reflectivity by leveraging constructive interference. This case exemplifies challenges such as multiple local minima in the optimization landscape. ",
     "ellipsometry": "The ellipsometry problem involves retrieving the material and thickness of a reference layer by matching its reflectance properties using a known spectral response. The optimization minimizes the difference between the calculated and measured ellipsometric parameters for wavelengths between 400 and 800 nm and a fixed incidence angle of 40°. The parameters to be optimized include the thickness (30 to 250 nm) and refractive index (1.1 to 3) of the test layer. This relatively straightforward problem models a practical scenario where photonics researchers fine-tune a small number of parameters to achieve a desired spectral fit. ",
@@ -24,7 +28,19 @@ algorithmic_insights = {
 }
 
 
-def get_photonic_instance(problem_name="bragg"):
+def get_photonic_instance(
+    problem_name="bragg", reference_seed=ELLIPSOMETRY_REFERENCE_SEED
+):
+    """Build the IOH problem for a photonic benchmark.
+
+    Args:
+        problem_name (str): "bragg", "ellipsometry" or "photovoltaic".
+        reference_seed (int): Seed of the random reference structure of the
+            ellipsometry problem (unused by the other problems).
+
+    Returns:
+        The wrapped IOH problem.
+    """
     if problem_name == "bragg":
         # ------- define "mini-bragg" optimization problem
         nb_layers = 10  # number of layers of full stack
@@ -60,6 +76,7 @@ def get_photonic_instance(problem_name="bragg"):
             max_eps,
             wavelengths,
             angle,
+            seed=reference_seed,
         )
         ioh.problem.wrap_real_problem(
             prob,

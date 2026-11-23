@@ -38,7 +38,7 @@ problems:
     name: SBOX_COST_fid2
     params:
       training_instances: [[2, 1], [2, 2], [2, 3], [2, 4], [2, 5]]
-      test_instances: [[2, 5], [2, 6], [2, 7], [2, 8], [2, 9], [2, 10]]
+      test_instances: [[2, 6], [2, 7], [2, 8], [2, 9], [2, 10], [2, 11]]
       dims: [5]
       budget_factor: 2000
       specific_fid: 2

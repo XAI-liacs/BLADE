@@ -71,7 +71,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
     problems = []
     for fid in [2]:  # a selection of single functions , 5, 13, 15, 21
         training_instances = [(fid, i) for i in range(1, 6)]
-        test_instances = [(fid, i) for i in range(5, 16)]  # 10 test instances
+        test_instances = [(fid, i) for i in range(6, 16)]  # 10 test instances
         problems.append(
             BBOB_SBOX(
                 training_instances=training_instances,
@@ -86,7 +86,7 @@ if __name__ == "__main__":  # prevents weird restarting behaviour
         training_instances = [
             (f, i) for f in group_functions[group] for i in range(1, 6)
         ]
-        test_instances = [(f, i) for f in group_functions[group] for i in range(5, 16)]
+        test_instances = [(f, i) for f in group_functions[group] for i in range(6, 16)]
         problems.append(
             BBOB_SBOX(
                 training_instances=training_instances,
