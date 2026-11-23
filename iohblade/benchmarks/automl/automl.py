@@ -1038,9 +1038,13 @@ class AutoML(Problem):
         return d
 
     def get_config(self) -> dict[str, Any]:
-        task_type = (
-            "classification" if _is_classification_task(self.task) else "regression"
-        )
+        task = getattr(self, "task", None)  # unset without an OpenML task
+        if task is None:
+            task_type = None
+        else:
+            task_type = (
+                "classification" if _is_classification_task(task) else "regression"
+            )
         config = {
             "dependencies": self.dependencies,
             "imports": self.imports,
@@ -1053,7 +1057,8 @@ class AutoML(Problem):
             "tabpfn_version": self.tabpfn_version,
         }
         tags = [Benchmark.AUTOML, PrimaryCategories.PD]
-        tags.extend(self.task.class_labels or [])
+        if task is not None:
+            tags.extend(getattr(task, "class_labels", None) or [])
         return {
             "tags": tags,
             "name": self.name or f"OpenML task {self.openml_task_id}",

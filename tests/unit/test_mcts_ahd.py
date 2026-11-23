@@ -182,8 +182,10 @@ def test_mcts_node_adds_child_correctly():
     assert a.parent == None
     assert b.parent == a
 
-    assert a.parent_ids == None
-    assert b.parent_ids == a.id
+    # parent_ids is a list, like Solution.parent_ids (was None / a bare
+    # string, issue #209)
+    assert a.parent_ids == []
+    assert b.parent_ids == [a.id]
 
     assert a.children == [b]
     assert b.children == []

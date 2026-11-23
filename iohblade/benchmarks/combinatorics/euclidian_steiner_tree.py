@@ -48,7 +48,7 @@ class EuclidianSteinerTree(Problem):
         self.points = {}
         self.tolerance = tolerance
         self._read_file()
-        Problem.__init__(self, name=f"EucildianSteinerTree-n{20}")
+        Problem.__init__(self, name=f"EuclidianSteinerTree-n{benchmark_id}")
         self.best_so_far = [float("nan")] * len(self.points)
         self.minimisation = True
 
@@ -183,8 +183,6 @@ one-line description, describing the main idea. Give the response in the format:
             )
         except Exception as e:
             solution = solution.set_scores(self.failure_fitness(), f"Got error {e}", e)
-            if not solution.error:  # harness-side error: keep a message
-                solution.error = f"{type(e).__name__}: {e}"
         return solution
 
     def test(self, solution: Solution):

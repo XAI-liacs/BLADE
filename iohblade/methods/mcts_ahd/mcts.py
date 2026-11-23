@@ -1,3 +1,4 @@
+import copy
 import inspect
 import math
 import random
@@ -328,8 +329,21 @@ class MCTS:
             # Q = None, so the selection treats it as least attractive.
             return node
         self.eval_remain -= 1
-        new_node = self.problem(node)
-        new_node.copy_attributes(node)
+        # Evaluate a copy without tree links: pickling a node carries its
+        # parent and children, so the whole tree would otherwise be sent to
+        # the evaluation subprocess. copy_attributes restores the links.
+        detached = copy.copy(node)
+        detached.parent = None
+        detached.children = []
+        new_node = self.problem(detached)
+        if new_node is detached:
+            # Evaluated in place: carry the results back to the tree node.
+            for key, value in vars(detached).items():
+                if key not in ("parent", "children"):
+                    setattr(node, key, value)
+            new_node = node
+        else:
+            new_node.copy_attributes(node)
 
         if math.isnan(new_node.fitness) or math.isinf(new_node.fitness):
             new_node.Q = None

@@ -242,8 +242,6 @@ class ToyMultiObjective(Problem):
                 feedback=f"run() raised an exception: {exc}",
                 error=exc,
             )
-            if not solution.error:  # raised by the harness objective
-                solution.error = f"{type(exc).__name__}: {exc}"
             return solution
         if objective.over_budget_calls and not note:
             note = (

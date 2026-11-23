@@ -31,7 +31,7 @@ class GraphColoring(Problem):
         self.task_prompt = textwrap.dedent(f"""
 Write a python class with function `__call__`, that generates optimal Graph Coloring for a given set of vertices and edges.
 - The class must initialise with 2 positional parameter:
-    1. `nodes: list[int]`: A list of nodes id'd 1...{self.nodes}.
+    1. `nodes: list[int]`: A list of nodes id'd 1...{len(self.nodes)}.
     2. `edges: list[tuple[int, int]]`: A list of edges in the undirected graph denotes as (u, v) where u and v are one of the `nodes`.
 - The `__call__` method must return:
     - `color_mapping : dict[int, int]`: A node -> color mapping, i.e. `color_mapping[node_id] = color_id.
@@ -155,8 +155,6 @@ one-line description, describing the main idea. Give the response in the format:
             solution = solution.set_scores(
                 self.failure_fitness(), f"Encountered error {e}", e
             )
-            if not solution.error:  # harness-side error: keep a message
-                solution.error = f"{type(e).__name__}: {e}"
         return solution
 
     def test(self, solution: Solution):

@@ -141,8 +141,6 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
                 f = np.asarray(cls()(), dtype=np.float64)
         except Exception as e:
             solution = solution.set_scores(self.failure_fitness(), f"exec-error {e}", e)
-            if not solution.error:  # harness-side error: keep a message
-                solution.error = f"{type(e).__name__}: {e}"
             return solution
 
         try:
@@ -168,8 +166,6 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             solution = solution.set_scores(score, msg)
         except Exception as e:
             solution = solution.set_scores(self.failure_fitness(), f"calc-error {e}", e)
-            if not solution.error:  # harness-side error: keep a message
-                solution.error = f"{type(e).__name__}: {e}"
 
         return solution
 

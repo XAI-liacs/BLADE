@@ -21,7 +21,7 @@ class Solution:
         description="",
         configspace=None,
         generation=0,
-        parent_ids=[],
+        parent_ids=None,
         operator=None,
         task_prompt="",
     ):
@@ -47,7 +47,7 @@ class Solution:
         self.fitness: float | Fitness = float("nan")
         self.feedback = ""
         self.error = ""
-        self.parent_ids = parent_ids
+        self.parent_ids = parent_ids if parent_ids is not None else []
         self.metadata = {}  # Dictionary to store additional metadata
         self.operator = operator
         self.operator_id = None  # Operator.id, set by set_operator()
@@ -127,47 +127,52 @@ class Solution:
         """
         return self.metadata[key] if key in self.metadata.keys() else None
 
-    def set_scores(self, fitness: float | Fitness, feedback="", error=""):
-        self.fitness = fitness
-        self.feedback = feedback
-        self.error = error
-        return self
-
     def set_scores(
         self, fitness: float | Fitness, feedback="", error: Optional[Exception] = None
     ):
         """
-            Set the score of current instance of individual.
+        Set the score of current instance of individual.
+
         Args:
-            `fitness: float | Fitness`: Fitness/Score of the individual. It is of type `float` when single objective, or `Fitness` when multi-objective.
-            `Feedback: str` feedback for the LLM, suggest improvements or target score.
-            `error: Exception`: Exception object encountered during `exec` of the code block.
+            fitness (float | Fitness): Fitness/Score of the individual. It is
+                of type `float` when single objective, or `Fitness` when
+                multi-objective.
+            feedback (str): Feedback for the LLM, suggest improvements or
+                target score.
+            error (Exception | str | None): Exception encountered while
+                evaluating the code, or an error message. Any previous error
+                is cleared; ``None`` or ``""`` means no error.
+
+        Returns:
+            Solution: ``self``.
         """
         self.fitness = fitness
         self.feedback = feedback
+        self.error = ""
 
-        if error is not None:
-            if not isinstance(error, Exception):
-                self.error = str(error)
-                return self
+        if error is None or (isinstance(error, str) and error == ""):
+            return self
+        if not isinstance(error, BaseException):
+            self.error = str(error)
+            return self
 
-            error_type = type(error).__name__
-            error_msg = str(error)
-            try:
-                tb = traceback.extract_tb(error.__traceback__)[-1]
-
-                if tb.filename in ("<string>", self.name):
-                    code_lines = self.code.splitlines()
-                    line_no = tb.lineno
-
-                    if line_no in range(1, len(code_lines) + 1):
-                        code_line = code_lines[line_no - 1]
-                        self.error = (
-                            f"{error_type}: {error_msg}.\n"
-                            f"\tOn line {line_no}: {code_line}.\n"
-                        )
-            except:
-                self.error = repr(error)
+        self.error = f"{type(error).__name__}: {error}"
+        try:
+            frames = traceback.extract_tb(error.__traceback__)
+            names = {"<string>"}
+            if self.name:
+                names.add(self.name)
+            frame = next((f for f in reversed(frames) if f.filename in names), None)
+            if frame is not None:
+                code_lines = (self.code or "").splitlines()
+                line_no = frame.lineno
+                if line_no is not None and 1 <= line_no <= len(code_lines):
+                    self.error = (
+                        f"{self.error}.\n"
+                        f"\tOn line {line_no}: {code_lines[line_no - 1]}.\n"
+                    )
+        except Exception:
+            pass  # keep the type and message set above
 
         return self
 
@@ -293,6 +298,7 @@ class Solution:
         self.operator = data.get("operator")
         self.operator_id = data.get("operator_id")
         self.metadata = data.get("metadata", {})
+        self.task_prompt = data.get("task_prompt", "")
 
     def to_json(self):
         """
