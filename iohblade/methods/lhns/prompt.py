@@ -1,3 +1,4 @@
+from iohblade.methods.prompt_utils import task_context
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -20,7 +21,7 @@ Algorithm description: " + {individual.description}\\
 Code:\n
 {individual.code}\\
 Modify the provided algorithm to improve its performance, where you can determine the degree of modification needed.\\
-{self.problem.task_prompt}\\
+{task_context(self.problem)}\\
 {self.problem.example_prompt}\\
 {self.problem.format_prompt}\\"""
 
@@ -33,7 +34,7 @@ Algorithm description: {individual.description} \\
 Code:\\
 {destroyed_code}\\
 {deleted_line_count} lines have been removed from the provided code. Please review the code, add the necessary lines to get a better result.\\
-{self.problem.task_prompt}\\
+{task_context(self.problem)}\\
 {self.problem.format_prompt}\\
 {self.problem.example_prompt}\\
 """
@@ -50,6 +51,6 @@ Code:\\
 Algorithm B description: {taboo_element.description}\\
 Algorithm B's features: {b_features}
 Please review the given code, integrating two algorithm descriptions provided to rearrange it to get a better result for following task.\\
-{self.problem.task_prompt}
+{task_context(self.problem)}
 {self.problem.example_prompt}
 {self.problem.format_prompt}"""

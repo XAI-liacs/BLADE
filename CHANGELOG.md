@@ -133,6 +133,9 @@ see "Breaking changes" for the two exceptions.
 - FunSearch and ShinkaEvolve prompts include the context a problem adds
   in `get_prompt()` (such as the photonics descriptions and insights), not
   only its `task_prompt` (`iohblade.methods.prompt_utils.task_context`).
+  The same applies to MCTS-AHD (all prompts), LHNS (its variation prompts)
+  and MoEH, whose mutation and crossover prompts now also start with the
+  task description, as in EoH.
 
 ### Bug fixes
 
