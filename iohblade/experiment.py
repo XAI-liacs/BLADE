@@ -232,6 +232,23 @@ class Experiment(ABC):
         if exp_logger is None:
             exp_logger = ExperimentLogger("results/experiment")
         self.exp_logger = exp_logger
+        # Methods that sample configuration spaces need problems that tune
+        # them; enable HPO before any evaluation environment is built.
+        _, hpo_warnings = self._configure_hpo()
+        for message in hpo_warnings:
+            warnings.warn(message, UserWarning, stacklevel=2)
+
+    def _configure_hpo(self) -> tuple[list[str], list[str]]:
+        """Enable HPO on the problems of methods that sample with HPO.
+
+        See :func:`iohblade.hpo.configure_hpo`; idempotent.
+
+        Returns:
+            tuple[list[str], list[str]]: Notes and warnings.
+        """
+        from .hpo import configure_hpo
+
+        return configure_hpo(self.methods, self.problems)
 
     @classmethod
     def from_yaml(cls, source, *, overrides=None, env=None) -> "Experiment":
@@ -373,6 +390,13 @@ class Experiment(ABC):
             len(self.problems),
             len(self.seeds),
         )
+        # Again here (methods or problems may have changed since __init__),
+        # and to record the outcome in experiment.log.
+        hpo_notes, hpo_warnings = self._configure_hpo()
+        for message in hpo_notes:
+            log.info(message)
+        for message in hpo_warnings:
+            log.warning(message)
         self._prepare_environments()
         if self.n_jobs is not None and self.n_jobs > 1 and total_runs > 1:
             self._warn_parallel_seeds()

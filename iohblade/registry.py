@@ -369,7 +369,7 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         BuiltinProblem.AUTOML,
         f"{_B}.automl.automl:AutoML",
         "Design ML pipelines for a tabular dataset.",
-        None,
+        "extraproblems",  # openml
     ),
     (
         ComponentKind.PROBLEM,
@@ -763,9 +763,7 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
 ]
 
 # Packages needed by built-ins that are not part of any dependency group.
-_REQUIRES: dict[tuple[ComponentKind, str], tuple[str, ...]] = {
-    (ComponentKind.PROBLEM, BuiltinProblem.AUTOML): ("openml",),
-}
+_REQUIRES: dict[tuple[ComponentKind, str], tuple[str, ...]] = {}
 
 # Optional modules imported behind a guard: the component's module imports
 # without them, so check them explicitly.

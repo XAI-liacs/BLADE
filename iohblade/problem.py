@@ -353,6 +353,55 @@ class Problem(ABC):
     """
 
     minimisation: bool = False
+    # Whether the problem can tune a solution's hyperparameters (its
+    # ``configspace``) with SMAC; see enable_hpo and iohblade.hpo.
+    supports_hpo: bool = False
+    # Whether tuning is enabled (set with enable_hpo).
+    hpo: bool = False
+
+    def enable_hpo(self, enabled: bool = True) -> None:
+        """Enable (or disable) hyperparameter tuning of solutions.
+
+        Enabling adds :data:`iohblade.hpo.HPO_DEPENDENCIES` (smac and the
+        packages it needs) to ``self.dependencies``; disabling removes the
+        ones enabling added. The dependencies are part of the evaluation
+        environment's cache key, so the problem then uses an environment
+        with (or without) smac. Call it before the environment is built; if
+        it was built already, it is rebuilt at the next evaluation.
+
+        Args:
+            enabled: True to enable tuning, False to disable it.
+
+        Raises:
+            ValueError: If ``enabled`` is True and the problem does not
+                support tuning (``supports_hpo`` is False).
+        """
+        from .hpo import HPO_DEPENDENCIES
+
+        if enabled and not self.supports_hpo:
+            raise ValueError(
+                f"Problem '{getattr(self, 'name', type(self).__name__)}' "
+                f"({type(self).__name__}) does not support hyperparameter "
+                "tuning (supports_hpo is False)."
+            )
+        deps = list(getattr(self, "dependencies", None) or [])
+        added = list(getattr(self, "_hpo_added_dependencies", []))
+        if enabled:
+            for dep in HPO_DEPENDENCIES:
+                if dep not in deps:
+                    deps.append(dep)
+                    added.append(dep)
+        else:
+            deps = [d for d in deps if d not in added]
+            added = []
+        if deps != list(getattr(self, "dependencies", None) or []):
+            if getattr(self, "_env_path", None) is not None:
+                self.cleanup()  # a private environment is deleted
+                self._env_path = None
+                self._python_bin = None
+        self.dependencies = deps
+        self._hpo_added_dependencies = added
+        self.hpo = bool(enabled)
 
     def failure_fitness(self) -> float:
         """Fitness given to a failed evaluation: the worst possible value.
@@ -448,6 +497,8 @@ class Problem(ABC):
         if logger != None:
             print("LOGGER is NOT NONE (UNEXPECTED)")
             self.logger = logger
+
+        self._warn_unused_configspace(solution)
 
         if self.logger != None:
             if self.logger.budget_exhausted():
@@ -563,6 +614,26 @@ class Problem(ABC):
             self.logger.log_individual(solution)
         self._track_harness_error(harness_error, solution)
         return solution
+
+    def _warn_unused_configspace(self, solution: Solution) -> None:
+        """Warn (once per problem) that a configuration space is not tuned."""
+        if getattr(solution, "configspace", None) is None:
+            return
+        if getattr(self, "hpo", False) or getattr(self, "_hpo_unused_warned", False):
+            return
+        self._hpo_unused_warned = True
+        from .runlog import log
+
+        if getattr(self, "supports_hpo", False):
+            reason = "HPO is not enabled for it (see Problem.enable_hpo)"
+        else:
+            reason = "it does not support hyperparameter tuning"
+        log.warning(
+            "Solutions for problem '%s' come with a configuration space, but "
+            "%s: they are evaluated with their default hyperparameters.",
+            self.name,
+            reason,
+        )
 
     def _track_harness_error(self, harness_error: bool, solution: Solution):
         """Count consecutive harness errors and abort the run past the limit.

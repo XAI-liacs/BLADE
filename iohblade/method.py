@@ -20,6 +20,16 @@ class Method(ABC):
         self.budget = budget
         self.name = name
 
+    @property
+    def uses_hpo(self) -> bool:
+        """Whether the method samples solutions with a configuration space.
+
+        Such solutions are meant to be tuned (HPO) by the problem; an
+        :class:`~iohblade.experiment.Experiment` enables HPO on the problems
+        that support it (see :func:`iohblade.hpo.configure_hpo`).
+        """
+        return False
+
     @abstractmethod
     def __call__(self, problem: Problem) -> Solution:
         """

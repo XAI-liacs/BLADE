@@ -7,13 +7,12 @@ import re
 import textwrap
 import time
 import traceback
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import openml
 import pandas as pd
 import sklearn
-from ConfigSpace import Configuration, ConfigurationSpace
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
     accuracy_score,
@@ -24,12 +23,15 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OrdinalEncoder
-from smac import AlgorithmConfigurationFacade, Scenario
 
+from iohblade.hpo import import_smac, run_smac
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 from iohblade.tabpfn_utils import VALID_TABPFN_MODES
 from iohblade.tags import Benchmark, PrimaryCategories
+
+if TYPE_CHECKING:  # ConfigSpace is only installed for HPO (iohblade.hpo)
+    from ConfigSpace import Configuration, ConfigurationSpace
 
 VALID_TABPFN_EVAL_SOURCES = ("env", "pip")
 # Metrics where lower is better; all other metrics are maximised.
@@ -276,7 +278,11 @@ class AutoML(Problem):
     """
     Problem class for evaluating AutoML pipelines (sample).
 
+    Supports hyperparameter tuning (HPO) of solutions with a configuration
+    space, see ``hpo`` and :mod:`iohblade.hpo`.
     """
+
+    supports_hpo = True
 
     def __init__(
         self,
@@ -298,10 +304,17 @@ class AutoML(Problem):
         tabpfn_eval_source: str = "env",
         tabpfn_signature: str | None = None,
         tabpfn_allowed_kwargs: list[str] | None = None,
+        hpo: bool = False,
     ):
         """
         If openml_task_id is provided, this problem loads the OpenML task
         and uses the official train/test split.
+
+        With ``hpo=True`` (or :meth:`enable_hpo`, which an experiment calls
+        when a method samples configuration spaces), solutions that come
+        with a ``configspace`` are tuned with SMAC before they are scored,
+        and the evaluation environment also installs
+        :data:`iohblade.hpo.HPO_DEPENDENCIES`.
         """
 
         if tabpfn_mode not in VALID_TABPFN_MODES:
@@ -321,10 +334,11 @@ class AutoML(Problem):
                 "pandas>=2",
                 "scipy>=1.10",
                 "scikit-learn>=1.4",
+                # The pickled problem holds the OpenML task (and imports
+                # openml), so the evaluation environment needs it as well.
                 "openml>=0.14",
-                "ConfigSpace>=1.2",
-                "swig",  # builds pyrfr, a dependency of smac
-                "smac>=2.1",
+                # smac, ConfigSpace and swig are only installed with HPO,
+                # see enable_hpo and iohblade.hpo.HPO_DEPENDENCIES.
             ]
         else:
             dependencies = list(dependencies)
@@ -351,6 +365,8 @@ class AutoML(Problem):
             dependencies=dependencies,
             imports=imports,
         )
+        if hpo:
+            self.enable_hpo(True)
         self.openml_task_id = openml_task_id
         self.eval_name = None
         self.split_info = {}
@@ -809,6 +825,13 @@ class AutoML(Problem):
             return score, metric_name, False  # higher is better
 
     def _evaluate_search(self, solution: Solution, ioh_dir=""):
+        cs: "ConfigurationSpace | None" = getattr(solution, "configspace", None)
+        tune = cs is not None and getattr(self, "hpo", False)
+        if tune:
+            # Before the generated code is used: a missing smac is a problem
+            # of the evaluation environment (a harness error), not of the code.
+            import_smac()
+
         alg_cls = self._compile_solution(solution)
 
         is_error_metric = self._is_error_metric()
@@ -818,8 +841,7 @@ class AutoML(Problem):
         incumbent_dict = {}
         did_hpo = False
 
-        cs: ConfigurationSpace | None = getattr(solution, "configspace", None)
-        if cs is not None:
+        if tune:
             rng = np.random.RandomState(42)
             max_hpo_instances = min(12, len(all_splits))
             hpo_instances = all_splits.copy()
@@ -831,7 +853,7 @@ class AutoML(Problem):
                 iid: [r, f, s] for iid, (r, f, s) in zip(instance_ids, hpo_instances)
             }
 
-            def target(cfg: Configuration, instance: str, seed: int = 0) -> float:
+            def target(cfg: "Configuration", instance: str, seed: int = 0) -> float:
                 r_str, f_str, s_str = instance.split(",")
                 r = int(r_str[1:])
                 f = int(f_str[1:])
@@ -855,21 +877,16 @@ class AutoML(Problem):
             else:
                 out_dir = "smac3_output"
 
-            scenario = Scenario(
+            incumbent_dict = run_smac(
                 cs,
-                name=f"automl-{self.openml_task_id}-{int(time.time())}",
-                deterministic=True,
-                n_trials=100,
+                target,
                 instances=instance_ids,
                 instance_features=inst_feats,
-                output_directory=out_dir,
+                n_trials=100,
+                output_dir=out_dir,
+                deterministic=True,
+                name=f"automl-{self.openml_task_id}-{int(time.time())}",
             )
-
-            smac = AlgorithmConfigurationFacade(
-                scenario, target_function=target, logging_level=30
-            )
-            incumbent = smac.optimize()
-            incumbent_dict = dict(incumbent)
             solution.add_metadata("incumbent", incumbent_dict)
             did_hpo = True
 
@@ -903,6 +920,11 @@ class AutoML(Problem):
         )
         if did_hpo:
             msg += f" | HPO used; incumbent={incumbent_dict}"
+        elif cs is not None:
+            msg += (
+                "\nHPO is not enabled for this problem: the configuration "
+                "space was ignored and the default hyperparameters were used."
+            )
 
         error_msg = ""
         if failures:
@@ -1035,6 +1057,7 @@ class AutoML(Problem):
             d["tabpfn_signature"] = self.tabpfn_signature
             d["tabpfn_allowed_kwargs"] = self.tabpfn_allowed_kwargs
             d["use_system_site_packages"] = self.use_system_site_packages
+            d["hpo"] = self.hpo
         return d
 
     def get_config(self) -> dict[str, Any]:
@@ -1055,6 +1078,7 @@ class AutoML(Problem):
             "inner_val_seed": self.inner_val_seed,
             "tabpfn_mode": self.tabpfn_mode,
             "tabpfn_version": self.tabpfn_version,
+            "hpo": self.hpo,
         }
         tags = [Benchmark.AUTOML, PrimaryCategories.PD]
         if task is not None:
