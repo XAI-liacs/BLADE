@@ -27,19 +27,13 @@ log = logging.getLogger("iohblade")
 # Requirements added to a problem's evaluation environment when HPO is
 # enabled (see Problem.enable_hpo); runs without HPO do not install them.
 HPO_DEPENDENCIES: list[str] = [
-    # 2.3.1 is the version pinned by the other benchmarks and the lower bound
-    # of BLADE's own dependency; 2.3.1 - 2.4.1 share the Scenario /
-    # AlgorithmConfigurationFacade API used by run_smac. Capped below 2.5 so
-    # that a new SMAC release (API or scikit-learn changes) is adopted on
-    # purpose, together with the scikit-learn cap below.
-    "smac>=2.3.1,<2.5",
-    "swig",  # builds pyrfr, the random forest of smac < 2.4
-    "ConfigSpace>=1.2",
     # smac 2.4.0 imports sklearn.tree._tree.DTYPE, which scikit-learn 1.9
-    # removed, so `import smac` fails with scikit-learn 1.9 (issue #220).
-    # Only the HPO environment is capped; evaluations without HPO keep the
-    # latest scikit-learn.
-    "scikit-learn<1.9",
+    # removed, so it fails to import with scikit-learn 1.9 (issue #220);
+    # 2.4.1 works with it and no longer needs pyrfr (so no swig either).
+    # Capped below 2.5 so that a new SMAC release (API changes to Scenario /
+    # AlgorithmConfigurationFacade, used by run_smac) is adopted on purpose.
+    "smac>=2.4.1,<2.5",
+    "ConfigSpace>=1.2",
 ]
 
 
@@ -72,7 +66,7 @@ def import_smac():
             hint = (
                 " This smac version is not compatible with the installed "
                 "scikit-learn (smac 2.4.0 does not import with "
-                "scikit-learn 1.9)."
+                "scikit-learn 1.9; smac >= 2.4.1 does)."
             )
         raise HPOUnavailableError(
             "Hyperparameter tuning (HPO) needs smac, which cannot be imported "

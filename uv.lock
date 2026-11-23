@@ -2294,7 +2294,7 @@ requires-dist = [
     { name = "python-constraint2", specifier = ">=2.2.3,<3" },
     { name = "pyyaml", specifier = ">=6.0,<7" },
     { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "smac", specifier = ">=2.3.1" },
+    { name = "smac", specifier = ">=2.4.1" },
     { name = "streamlit", specifier = ">=1.35.0,<2" },
     { name = "tokencost", specifier = ">=0.1.26,<0.2" },
     { name = "virtualenv", specifier = ">=20.34.0" },
@@ -6170,7 +6170,7 @@ wheels = [
 
 [[package]]
 name = "smac"
-version = "2.4.0"
+version = "2.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "configspace" },
@@ -6187,9 +6187,7 @@ dependencies = [
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "scipy", version = "1.18.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/01/3f/1154b649c899f134006b8fb1e79e1a7cccafde7e2ee6b6064023773c4dab/smac-2.4.0-py3-none-any.whl", hash = "sha256:670fb21b812f2130fc5b07d31a9da51821685c5edcccacc9720a199291273b2c", size = 278108, upload-time = "2026-04-22T19:25:23.114Z" },
-]
+sdist = { url = "https://files.pythonhosted.org/packages/7e/ba/520ea583255c99402ce86914ee4749410dd44ccb01c5e73b81cadb84decf/smac-2.4.1.tar.gz", hash = "sha256:7e60f4914ffe92dea7559990f08205a180924f6bac3384e97452df1870a3995d", size = 172851, upload-time = "2026-09-10T15:12:24.139Z" }
 
 [[package]]
 name = "smmap"

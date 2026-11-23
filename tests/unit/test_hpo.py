@@ -150,8 +150,10 @@ class _Method(Method):
 
 def test_hpo_dependencies():
     names = [d.split(">")[0].split("<")[0].split("=")[0] for d in HPO_DEPENDENCIES]
-    assert names == ["smac", "swig", "ConfigSpace", "scikit-learn"]
-    assert "scikit-learn<1.9" in HPO_DEPENDENCIES
+    assert names == ["smac", "ConfigSpace"]
+    # smac >= 2.4.1 imports with scikit-learn 1.9 and needs no pyrfr/swig.
+    assert "smac>=2.4.1,<2.5" in HPO_DEPENDENCIES
+    assert not any(d.startswith(("scikit-learn", "swig")) for d in HPO_DEPENDENCIES)
     assert issubclass(HPOUnavailableError, ImportError)
 
 
@@ -161,7 +163,7 @@ def test_import_smac_unavailable(monkeypatch):
         hpo.import_smac()
     text = str(exc.value)
     assert "DTYPE" in text and "scikit-learn" in text
-    assert "scikit-learn<1.9" in text and "enable_hpo" in text
+    assert "smac>=2.4.1" in text and "enable_hpo" in text
 
 
 def test_run_smac_returns_incumbent(monkeypatch):
@@ -210,10 +212,10 @@ def test_enable_hpo_adds_and_removes_dependencies():
 
 
 def test_enable_hpo_keeps_dependencies_it_did_not_add():
-    problem = _TunableProblem(dependencies=["swig"])
+    problem = _TunableProblem(dependencies=["ConfigSpace>=1.2"])
     problem.enable_hpo(True)
     problem.enable_hpo(False)
-    assert "swig" in problem.dependencies
+    assert "ConfigSpace>=1.2" in problem.dependencies
 
 
 def test_enable_hpo_resets_a_built_environment(tmp_path):
@@ -308,9 +310,7 @@ def test_automl_uses_run_smac_incumbent(monkeypatch, automl_module):
     assert record["logging_level"] == 30
 
 
-def test_automl_hpo_without_smac_fails_before_code_is_read(
-    monkeypatch, automl_module
-):
+def test_automl_hpo_without_smac_fails_before_code_is_read(monkeypatch, automl_module):
     _block_smac(monkeypatch)
     X, y = _binary_data()
     problem = _automl_problem(automl_module, "predictive_accuracy", X, y)
@@ -373,7 +373,7 @@ def test_automl_hpo_without_smac_is_a_harness_error(tmp_path, automl_module):
     )
     assert proc.returncode != 0
     assert "HPOUnavailableError" in proc.stderr
-    assert "scikit-learn<1.9" in proc.stderr
+    assert "smac>=2.4.1" in proc.stderr
     assert marker.exists(), proc.stderr  # harness error, not a candidate one
 
     feedback = _harness_feedback(proc.stderr)
@@ -401,7 +401,7 @@ def test_configure_hpo():
     notes, warns = hpo.configure_hpo([_Method(hpo=True, name="L")], [tunable, plain])
     assert tunable.hpo is True
     assert tunable.dependencies[-len(HPO_DEPENDENCIES) :] == HPO_DEPENDENCIES
-    assert len(notes) == 1 and "'t'" in notes[0] and "scikit-learn<1.9" in notes[0]
+    assert len(notes) == 1 and "'t'" in notes[0] and "smac>=2.4.1" in notes[0]
     assert len(warns) == 1 and "'plain'" in warns[0] and "L" in warns[0]
     assert plain.hpo is False
 
@@ -453,7 +453,7 @@ def test_experiment_enables_hpo_before_environments():
     exp._prepare_environments = prepare
     with pytest.raises(KeyboardInterrupt):
         exp._run_all()
-    (hpo_enabled, deps), = seen
+    ((hpo_enabled, deps),) = seen
     assert hpo_enabled is True
     assert deps[-len(HPO_DEPENDENCIES) :] == HPO_DEPENDENCIES
 

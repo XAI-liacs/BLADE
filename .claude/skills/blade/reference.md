@@ -187,6 +187,11 @@ the reply text) and `get_config()` (a list with one
 
 `prompt` is required; `number_of_parents` must not exceed `n_parents`.
 
+`params: {HPO: true}` makes LLaMEA also generate a configuration space;
+problems that support tuning (`automl`) then tune it with SMAC, and their
+evaluation environment adds `smac>=2.4.1` and `ConfigSpace`. `validate` notes which problems tune and warns for the
+others (evaluated with default hyperparameters).
+
 ## Python API
 
 `from iohblade.experiment import Experiment; Experiment.from_yaml("experiment.yml")()`
@@ -206,6 +211,7 @@ runs a YAML file from Python. Scripts that start BLADE themselves must set
 | `[FAIL] method ...` in `check` | Method crashes with a valid solution; fix the method |
 | `check --llm` fails | Wrong key, model name or server not running (`ollama serve`) |
 | Run stops with `HarnessError` | 3 harness errors in a row; see the run's `error.txt` and `run.log` |
+| `HPOUnavailableError` (harness error) | smac cannot be imported in the evaluation env; let HPO be enabled on the problem (LLaMEA `HPO: true`, `problem.enable_hpo()`) so its env installs `smac>=2.4.1`; `iohblade cache clear` if that env is stale |
 | Mostly `c`/`t` errors | Generated code fails or is slow: clarify prompts, give a working example, raise `eval_timeout` |
 | Resumed run warns the configuration changed | Previous record kept as `blade_config-<timestamp>/`; use a new `output_dir` for a different experiment |
 | `run` (exit 2): output directory already holds runs of a different setup | Fewer runs/seeds or a renamed/removed method or problem than recorded there. Use a new `output_dir` (`--set experiment.output_dir=results/trial`) or restore the settings. Adding runs, seeds, methods or problems is fine: finished runs are kept, new ones start |

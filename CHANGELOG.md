@@ -112,6 +112,21 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **AutoML benchmark and optional hyperparameter tuning (#220).**
+  - **AutoML could not be loaded:** it imported smac at module level, and
+    smac 2.4.0 fails to import with scikit-learn 1.9. smac is now imported
+    only when tuning runs (`iohblade.hpo`), and BLADE requires
+    `smac>=2.4.1`, which works with scikit-learn 1.9.
+  - **Tuning dependencies are optional:** a problem's evaluation
+    environment installs `smac>=2.4.1,<2.5` and `ConfigSpace` only when HPO
+    is enabled (`Problem.enable_hpo()`, AutoML `hpo=True`).
+  - **Automatic enabling:** HPO is turned on for supported problems when a
+    method samples configuration spaces (LLaMEA `HPO: true`).
+    `iohblade validate` notes this and warns for problems that cannot tune.
+  - **Failures are reported clearly:** tuning without smac is a clear
+    harness error (`HPOUnavailableError`). A configuration space evaluated
+    without HPO uses default hyperparameters, and its feedback says so.
+  - **`openml`** is in the `extraproblems` dependency group.
 - **Best-known seeds and reference values (#204).** All values were
   checked against the AlphaEvolve paper (Table 3) and its results
   notebook. Results of earlier versions on these benchmarks are not

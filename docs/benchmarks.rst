@@ -137,6 +137,14 @@ learning tasks hosted on the `OpenML <https://www.openml.org/>`_ platform.
 - **Evaluation protocol:** uses the **official OpenML split definition**
   (repeat/fold/sample) and the task’s default evaluation measure (e.g., accuracy, AUC,
   RMSE/MAE). Scores are aggregated across all official splits.
+- **Hyperparameter tuning (optional):** with ``hpo=True`` (enabled
+  automatically for methods that sample with ``HPO``, e.g. LLaMEA with
+  ``HPO=True``), a solution's configuration space is tuned with SMAC on up to
+  12 of the search splits before it is scored. smac is only installed in the
+  evaluation environment when tuning is enabled; see "Hyperparameter tuning
+  (HPO)" in :doc:`yaml_experiments`.
+- **Dependencies:** ``openml`` (``uv sync --group extraproblems``) to load
+  the tasks.
 
 -----------
 
