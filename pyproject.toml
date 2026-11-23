@@ -27,7 +27,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "lizard>=1.17.31",
     "networkx>=3.5",
-    "smac>=2.3.1",
+    "smac>=2.4.1",
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
     "py-cpuinfo",
@@ -75,6 +75,7 @@ methods = [
 extraproblems = [
     "pymoosh==3.2",
     "pyGDM2==1.1.12",
+    "openml>=0.14",
 ]
 apple-silicon = [
     "lmstudio>=1.5.0,<2; platform_system == 'Darwin' and platform_machine == 'arm64'",

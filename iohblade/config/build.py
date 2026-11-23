@@ -161,6 +161,10 @@ class ExperimentPlan:
         seeds: Seeds of the runs.
         sources: Custom code loaded for this experiment.
         smoke_tests: For each problem, its ``smoke_test_solution`` file.
+        warnings: Warnings about the configuration (e.g. HPO requested for
+            a problem that does not support it); replaced by the warnings of
+            recording the experiment in :meth:`make_experiment`.
+        notes: Informational notes (e.g. HPO enabled for a problem).
     """
 
     config: ExperimentConfig
@@ -173,6 +177,7 @@ class ExperimentPlan:
     seeds: list[int] = field(default_factory=list)
     sources: list[LoadedSource] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
     smoke_tests: list[Path | None] = field(default_factory=list)
 
     @property
@@ -884,6 +889,11 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
     builder.check_logger()
     if builder.issues:
         raise ConfigError(builder.issues)
+    # Enable HPO now, so that `iohblade check` builds the right environments
+    # (Experiment does the same for the Python API).
+    from ..hpo import configure_hpo
+
+    notes, hpo_warnings = configure_hpo(methods, problems)
     section = config.experiment
     seeds = list(section.seeds) if section.seeds else list(range(section.runs))
     output_dir = Path(section.output_dir)
@@ -900,6 +910,8 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
         seeds=seeds,
         sources=list(builder.sources.values()),
         smoke_tests=builder.smoke_tests,
+        warnings=hpo_warnings,
+        notes=notes,
     )
 
 

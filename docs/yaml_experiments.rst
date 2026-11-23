@@ -309,6 +309,46 @@ needs more parents than ``n_parents``. In Python:
     ]
     method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
 
+Hyperparameter tuning (HPO)
+---------------------------
+
+LLaMEA can ask the LLM for a configuration space (a ``ConfigSpace``
+definition of the solution's hyperparameters) next to the code. A problem
+that supports tuning then tunes each solution's hyperparameters with
+`SMAC <https://github.com/automl/SMAC3>`_ before scoring it with the best
+configuration found:
+
+.. code-block:: yaml
+
+    methods:
+      - type: llamea
+        llm: gemma
+        params:
+          HPO: true
+
+* Supported problems: ``automl``. Support for ``bbob_sbox``, ``ma_bbob`` and
+  ``kerneltuner`` is planned; until then their solutions are evaluated with
+  default hyperparameters (the configuration space is ignored).
+* HPO is enabled automatically on every supported problem of an experiment
+  with a method that samples with ``HPO: true`` (also from Python, by
+  :class:`~iohblade.experiment.Experiment`). ``iohblade validate`` prints a
+  note for each problem with HPO enabled and a warning for each problem that
+  cannot tune. The other methods of the experiment then use the same
+  evaluation environment for that problem. HPO can also be enabled directly:
+  ``params: {hpo: true}`` for ``automl``, or ``problem.enable_hpo()`` in
+  Python.
+* With HPO the problem's evaluation environment also installs
+  ``smac>=2.4.1,<2.5`` and ``ConfigSpace>=1.2``
+  (:data:`iohblade.hpo.HPO_DEPENDENCIES`); problems without HPO do not
+  install smac. (smac 2.4.0 does not import with scikit-learn 1.9; 2.4.1
+  does.)
+* If smac cannot be imported during an evaluation with HPO, the evaluation
+  fails with ``HPOUnavailableError`` as a harness error (a problem of the
+  environment, not of the generated code), and the run stops after
+  ``max_harness_errors`` of them. A solution with a configuration space
+  evaluated without HPO uses its default hyperparameters; its feedback says
+  so and a warning is logged.
+
 Secrets and environment variables
 ---------------------------------
 

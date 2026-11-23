@@ -24,6 +24,11 @@ class LLaMEA(Method):
         super().__init__(llm, budget, name)
         self.kwargs = kwargs
 
+    @property
+    def uses_hpo(self) -> bool:
+        """True when LLaMEA samples configuration spaces (``HPO=True``)."""
+        return bool(self.kwargs.get("HPO"))
+
     def __call__(self, problem: Problem):
         """
         Executes the evolutionary search process via LLaMEA.

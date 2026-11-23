@@ -157,6 +157,10 @@ def _load_plan(args):
 def _cmd_validate(args) -> int:
     plan = _load_plan(args)
     print(plan.summary())
+    for note in plan.notes:
+        print(f"Note: {note}")
+    for warning in plan.warnings:
+        print(f"Warning: {warning}")
     print("\nConfiguration is valid.")
     return EXIT_OK
 
