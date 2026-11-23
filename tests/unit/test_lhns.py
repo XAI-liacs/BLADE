@@ -731,7 +731,10 @@ def test_mutate_lhns_vns_calls_methods_properly(monkeypatch):
         fake_destruction_prompt,
     )
     _ = lhns_instance.run()
-    for index in range(lhns_instance.budget):
+    # The initial solution uses one evaluation, so there are budget - 1
+    # destroy-repair iterations (issue #206).
+    assert len(destruction_ratio) == lhns_instance.budget - 1
+    for index in range(lhns_instance.budget - 1):
         assert f"{destruction_ratio[index]:2}" == f"{0.1 * (1 + ((index + 1) % 10)):2}"
         assert (
             destroyed_code_arr[index]
@@ -908,12 +911,13 @@ def test_taboo_search_calls_functions_appripriately(monkeypatch):
             f"{index}| {destruction_ratio[index]} | {prompt[index]} | {destroyed_code_arr[index]} | {taboo_elements[index]}"
         )
         if destruction_ratio[index] is not None:
-            assert (
-                destroyed_code_arr[index]
-                == "destruction prompt with code destroyed code r=0.5."
+            # Every 10th iteration (index % 10 == 9) uses the taboo prompt.
+            expected = (
+                "destruction prompt with code destroyed code r=0.5."
                 if index % 10 != 9
                 else "taboo prompt with code destroyed code r=0.5."
             )
+            assert prompt[index].startswith(expected)
         else:
             # Initialisation step
             assert destroyed_code_arr[index] is None

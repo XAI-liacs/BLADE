@@ -45,9 +45,13 @@ class MoEH:
         - The algorithm quits running when either of the conditons are met (||):
             - `iterations` count of generations are iterated over.
             - `max_sample_nums` count of samples are generated.
+        - `max_sample_nums` is the evaluation budget: initialisation and the
+          generations share one counter, and a generation only evaluates as
+          many offspring as there is budget left, so `problem(...)` is called
+          at most `max_sample_nums` times.
         """
 
-        assert max_sample_nums > 1, "Max sample number must be positive integer."
+        assert max_sample_nums >= 1, "Max sample number must be positive integer."
         assert (
             type(max_sample_nums) == int
         ), "Max sample number must be positive integer."
@@ -62,10 +66,10 @@ class MoEH:
         self.llm = llm
         self.problem = problem
         self.iterations = iterations
+        # Total evaluation budget (constant) and the single counter of
+        # evaluations left, shared by initialisation and the main loop.
         self.max_sample_nums = max_sample_nums
-
-        self.max_sample_nums = max_sample_nums
-        self._remianing_budget = max_sample_nums
+        self._remaining_budget = max_sample_nums
         self.population_size = population_size
         self.iterations = iterations
 
@@ -111,14 +115,15 @@ class MoEH:
         # TODO: Parallel this.....
         while (
             len(self.population.population) < self.population_size
-            and self._remianing_budget > 0
+            and self._remaining_budget > 0
         ):
             individual = self._sample_solution(prompt, [])
             individual = self.get_fitness(individual)
             self.population.append(individual)
-            self._remianing_budget -= 1
 
     def get_fitness(self, individual: Solution):
+        """Evaluate `individual`, using one unit of the evaluation budget."""
+        self._remaining_budget -= 1
         individual = self.problem(individual)
         return individual
 
@@ -177,7 +182,6 @@ class MoEH:
             case _:
                 solution = self.query_individual(mutation_type, [pop[population_index]])
         solution = self.get_fitness(solution)
-        self.max_sample_nums -= 1
         return solution
 
     def run(self) -> list[Solution]:
@@ -187,14 +191,16 @@ class MoEH:
         print(f"Started MoEH with {len(self.population._population)} individuals.")
 
         while (self._current_iteration < self.iterations) and (
-            self.max_sample_nums > 0
+            self._remaining_budget > 0
         ):
             print(
-                f"Generation {self._current_iteration + 1} / {self.iterations}: {len(self.population.population)} individuals. Best solution = {[individual.fitness for individual in self.population.get_best()]} Attempts remaining {self.max_sample_nums}."
+                f"Generation {self._current_iteration + 1} / {self.iterations}: {len(self.population.population)} individuals. Best solution = {[individual.fitness for individual in self.population.get_best()]} Attempts remaining {self._remaining_budget}."
             )
             new_population = []
             old_population = self.population.parent_selection(self.population_size)
-            for index in range(len(old_population)):
+            # The last generation is truncated to the budget that is left.
+            n_offspring = min(len(old_population), self._remaining_budget)
+            for index in range(n_offspring):
                 new_individual = self.evolve_solution(index, old_population)
                 new_population.append(new_individual)
 

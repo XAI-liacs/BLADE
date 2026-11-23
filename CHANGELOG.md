@@ -112,6 +112,25 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Methods respect their evaluation budget (#206).** Unequal budgets made
+  method comparisons unfair.
+  - **LHNS:**
+    - evaluated `budget + 1` solutions;
+    - made 5 LLM calls at initialisation (keeping only the last);
+    - in tabu-search mode it never sent the tabu prompt, re-evaluating the
+      unchanged solution instead.
+  - **EoH:** the generation count assumed one evaluation per individual,
+    but EoH evaluates `2·pop_size` at the start and
+    `n_operators·pop_size` per generation, about 4x the budget. It now runs
+    as many whole generations as fit; the adapter also stops at the budget.
+    With a budget smaller than the initial population, `pop_size` is
+    reduced with a warning.
+  - **MCTS-AHD:** whole expansion rounds were evaluated without checking
+    the remaining budget (budget 10 gave 15 evaluations). It now stops
+    generating nodes at the budget. `alpha` is documented as currently
+    unused.
+  - **MoEH:** two budget counters (budget 10 gave 16 evaluations) are
+    replaced by one, and the last generation is capped.
 - **Experiment runner and loggers (#207).**
   - **MLflow:** any experiment with more than one run crashed ("Run ... is
     already active"), and per-step logs from worker threads went to

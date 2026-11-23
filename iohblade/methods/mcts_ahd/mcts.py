@@ -49,15 +49,23 @@ class MCTS:
         `problem: iohblade.Problem`: An iohblade problem instance with appropriate prompts, and evaluation function for solving the problem.\\
         `buget: int`: Number of evaluations allowed for the method.\\
         `lambda_0: float`: A constant λ_0 used in UCT calculation.\\
-        `alpha: float`: Expansion coefficient for progressive widening the tree.\\
+        `alpha: float`: Intended as the progressive-widening coefficient of
+        the paper. **Currently unused**: it is stored and logged, but
+        progressive widening is decided by `MCTS_Node.is_fully_expanded`
+        (`max_children` and the children's Q values), not by `alpha`.\\
         `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).\\
         `max_children: int`: A limit to maximum number of children any given node can have.\\
         `expansion_factor: int` Number of m1 and m2 mutations allowed during the expansion phase.
+
+        ## Budget:
+        `run()` makes at most `budget` calls to `problem(...)`: no node is
+        generated (LLM call) or simulated once the remaining budget is used.
         """
         self.llm = llm
         self.problem = problem
         self.maximisation = maximisation
         self.lambda_0 = lambda_0
+        # Not used by the search (see docstring); kept for configs and logs.
         self.alpha = alpha
         self.expansion_factor = expansion_factor
         self.eval_remain = budget
@@ -295,6 +303,8 @@ class MCTS:
         ## Returns:
             `None`: Inline algorithm, changes the data-structure, but returns nothing.
         """
+        if initial_node_count < 1:
+            return
         initial_node = self._get_new_node("i1", [], depth=1)
         self.root.add_child(initial_node)
 
@@ -313,6 +323,10 @@ class MCTS:
             `MCTS_Node`: Inline algorithm, changes the data-structure, but returns nothing.
 
         """
+        if self.eval_remain <= 0:
+            # Safety net: never evaluate beyond the budget. The node keeps
+            # Q = None, so the selection treats it as least attractive.
+            return node
         self.eval_remain -= 1
         new_node = self.problem(node)
         new_node.copy_attributes(node)
@@ -329,12 +343,16 @@ class MCTS:
             self.best_solution = new_node
         return new_node
 
-    def selection(self) -> tuple[list[MCTS_Node], MCTS_Node]:
+    def selection(
+        self, max_new_nodes: int | None = None
+    ) -> tuple[list[MCTS_Node], MCTS_Node]:
         """
         Iteratively pick fittest child from root node, to the leaf node, while adhering to progressive widening.
 
         ## Args:
-            `None`: No arguements are required.
+            `max_new_nodes: int | None`: At most this many progressive
+            widening nodes are generated (each one costs an evaluation);
+            `None` means no limit.
 
         ## Returns:
         The function returns a tuple of [NCTS_Node], and NCTS_Node, which is to be interpreted as:\\
@@ -345,7 +363,9 @@ class MCTS:
         expanded_nodes = []
         while not current.is_leaf:
             # Expand node.
-            if not current.is_fully_expanded(
+            if (
+                max_new_nodes is None or len(expanded_nodes) < max_new_nodes
+            ) and not current.is_fully_expanded(
                 self.max_children, maximisation=self.maximisation
             ):
                 if current.is_root:
@@ -365,13 +385,16 @@ class MCTS:
             current = best_child
         return expanded_nodes, current
 
-    def expansion(self, on_node: MCTS_Node):
+    def expansion(self, on_node: MCTS_Node, max_nodes: int | None = None):
         """
         Impelements the expansion phase of the MCTS_AHD. "Apply expansion e2, s1, m1 (k times), m2 (k times), a total of 2k+2 new nodes added.
         Only implemented on leaf nodes, that is not root.
 
         ## Args:
         `on_node: MCTS_Node`: A MCTS_Node instance that is a leaf node, (non root) on which expansion is to be performed.
+        `max_nodes: int | None`: Generate at most this many nodes (each one
+        costs an evaluation), in the order m1, m2 (k times), s1, e2; `None`
+        generates all 2k+2.
 
         ## Returns:
         `None`: Inline implementation that updates underlying Data Structure. Nothing to return.
@@ -383,22 +406,19 @@ class MCTS:
             print(f"self.is_root {on_node.is_root}, self.is_leaf {on_node.is_leaf}")
             raise ValueError("Expansion only works on non-root leaf node.")
 
-        for _ in range(self.expansion_factor):
-            relevant_nodes = self._get_m1_nodes(on_node)
-            node = self._get_new_node("m1", relevant_nodes, on_node.depth + 1)
+        approaches = ["m1", "m2"] * self.expansion_factor + ["s1", "e2"]
+        if max_nodes is not None:
+            approaches = approaches[: max(max_nodes, 0)]
+        node_getters = {
+            "m1": self._get_m1_nodes,
+            "m2": self._get_m2_nodes,
+            "s1": self._get_s1_nodes,
+            "e2": self._get_e2_nodes,
+        }
+        for approach in approaches:
+            relevant_nodes = node_getters[approach](on_node)
+            node = self._get_new_node(approach, relevant_nodes, on_node.depth + 1)
             on_node.add_child(node)
-
-            relevant_nodes = self._get_m2_nodes(on_node)
-            node = self._get_new_node("m2", relevant_nodes, on_node.depth + 1)
-            on_node.add_child(node)
-
-        relevant_nodes = self._get_s1_nodes(on_node)
-        node = self._get_new_node("s1", relevant_nodes, on_node.depth + 1)
-        on_node.add_child(node)
-
-        relevant_nodes = self._get_e2_nodes(on_node)
-        node = self._get_new_node("e2", relevant_nodes, on_node.depth + 1)
-        on_node.add_child(node)
 
     def backpropogate(self, node: MCTS_Node):
         """
@@ -497,7 +517,8 @@ class MCTS:
     def run(self):
         print("Started MCTS-AHD solver.")
 
-        self.initialise()
+        # Never generate more initial nodes than can be evaluated.
+        self.initialise(min(3, self.eval_remain))
 
         print(f"Initialised with {len(self.root.children)} nodes.")
 
@@ -521,11 +542,17 @@ class MCTS:
 
             print(f"Iteratrion # {iteration}.")
 
-            progressive_widening_nodes, selected_node = self.selection()
+            # Every generated node is evaluated once, so the number of new
+            # nodes is capped at the remaining budget.
+            progressive_widening_nodes, selected_node = self.selection(
+                max_new_nodes=self.eval_remain
+            )
 
             print(f"Selected Node: {selected_node}")
 
-            self.expansion(selected_node)
+            remaining = self.eval_remain - len(progressive_widening_nodes)
+            if remaining > 0:
+                self.expansion(selected_node, max_nodes=remaining)
             expanded_nodes = selected_node.children
 
             print(
@@ -602,7 +629,8 @@ class MCTS_Method(Method):
         `llm:iohblade.LLM` Any LLM model from `iohblade.llm.py`.\\
         `buget: int`: Number of evaluations allowed for the method.\\
         `lambda_0: float`: A constant λ_0 used in UCT calculation.\\
-        `alpha: float`: Expansion coefficient for progressive widening the tree.\\
+        `alpha: float`: Intended progressive-widening coefficient; currently
+        unused (see `MCTS`), kept for configuration compatibility.\\
         `maximisation: bool`: The direction of optimisation, setting it to false will lead to arg max(f), else arg min(f).\\
         `max_children: int`: A limit to maximum number of children any given node can have.\\
         `expansion_factor: int` Number of m1 and m2 mutations allowed during the expansion phase.
