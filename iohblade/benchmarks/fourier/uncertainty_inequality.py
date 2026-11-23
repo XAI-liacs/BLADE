@@ -3,7 +3,8 @@ import math
 from typing import Any
 
 import numpy as np
-from numpy.polynomial.hermite import hermval
+from numpy.polynomial.hermite import herm2poly, hermval
+from numpy.polynomial.polynomial import polyval
 
 from iohblade.benchmarks.fourier.fourier_base import FourierBase
 from iohblade.misc.prepare_namespace import prepare_namespace
@@ -14,13 +15,21 @@ from iohblade.solution import Solution
 class UncertaintyInequality(FourierBase, Problem):
     """
     Minimize r_max^2 / (2*pi) per Appendix B.4.
-    r_max = largest positive root beyond which P(x) >= 0.
+
+    The candidate gives K = n_terms coefficients for H_0, H_4, ..., and the
+    evaluator appends the H_{4K} coefficient that makes P(0) = 0, as in the
+    AlphaEvolve notebook (B.4). r_max is the largest positive sign change of
+    P(x) / x^2 (after flipping P if its leading coefficient is negative).
+
+    The default best known 0.3521 is the AlphaEvolve bound (the stored seed
+    scores 0.3520991). The previous value 0.3216 belongs to a different
+    construction (Laguerre-based), not to this formulation.
     """
 
     def __init__(
         self,
         n_terms: int = 3,
-        best_known: float = 0.3216,
+        best_known: float = 0.3521,
         best_solution: list[float] | None = None,
     ):
         FourierBase.__init__(
@@ -54,6 +63,23 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
             hcoef[4 * k] = ck
         return hcoef
 
+    def _complete_coefficients(self, c: np.ndarray) -> np.ndarray:
+        """Append the coefficient of H_{4K} that makes P(0) = 0.
+
+        With K free coefficients c[0..K-1] for H_0, H_4, ..., H_{4(K-1)},
+        the last coefficient is c_K = -sum_k c[k] H_{4k}(0) / H_{4K}(0).
+        Physicists' Hermite values are H_{2m}(0) = (-1)^m (2m)! / m!, so
+        H_0(0) = 1, H_4(0) = 12, H_8(0) = 1680 and H_12(0) = 665280; for the
+        default K = 3 this is c_3 = -(c0 + 12 c1 + 1680 c2) / 665280
+        (AlphaEvolve notebook, section B.4).
+        """
+        K = c.size
+        h0 = [
+            math.factorial(4 * k) / math.factorial(2 * k) for k in range(K + 1)
+        ]  # H_{4k}(0); (-1)^(2k) = 1
+        last = -float(np.dot(c, h0[:K])) / h0[K]
+        return np.append(c, last)
+
     def _P(self, x: np.ndarray, hcoef: np.ndarray) -> np.ndarray:
         return hermval(x, hcoef)
 
@@ -62,57 +88,48 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
         recent NumPy versions, which the evaluation environment installs.)"""
         return float(hermval(float(x), hcoef))
 
-    def _largest_positive_root(self, hcoef: np.ndarray) -> float:
+    def _largest_sign_change(self, hcoef: np.ndarray) -> float:
+        """Largest positive x at which P(x) / x^2 changes sign.
+
+        P is even with P(0) = 0, so P(x) / x^2 is a polynomial Q. Its real
+        positive roots are found with numpy; the largest one at which Q
+        changes sign is refined by bisection and returned.
         """
-        Scan [0, x_max] to find last sign change then refine with bisection.
-        Requires P(0) < 0 and P is eventually >= 0.
-        """
-        eps = 1e-12
-        x_prev = 0.0
-        y_prev = self._P_at(eps, hcoef)  # avoid exact zero at 0
-        bracket = None
-        x = self.grid_step
-        while x <= self.x_max + 1e-12:
-            y = self._P_at(x, hcoef)
-            if y_prev <= 0.0 and y >= 0.0:
-                bracket = (x_prev, x)
-            x_prev, y_prev = x, y
-            x += self.grid_step
+        power = herm2poly(hcoef)  # P in the monomial basis, low -> high
+        scale = float(np.max(np.abs(power)))
+        if not np.isfinite(scale) or scale == 0.0:
+            raise ValueError("P is identically zero.")
+        q = power[2:] / scale  # Q(x) = P(x) / x^2 (P(0) = P'(0) = 0)
+        q = np.trim_zeros(np.where(np.abs(q) < 1e-14, 0.0, q), "b")
+        if q.size < 2:
+            raise ValueError("P(x) / x^2 is constant; it has no sign change.")
+        if q[-1] < 0:
+            # Leading coefficient negative: flip P (preserves the roots).
+            q = -q
 
-        if bracket is None:
-            raise ValueError(
-                "No positive root found in [0, x_max]. Increase x_max or adjust coefficients."
-            )
+        def Q(x: float) -> float:
+            return float(polyval(x, q))
 
-        a, b = bracket
-        fa = self._P_at(a, hcoef)
-        fb = self._P_at(b, hcoef)
-        if fa > 0 or fb < 0:
-            raise ValueError("Invalid bracket for bisection.")
-
-        # Bisection
-        for _ in range(80):
-            m = 0.5 * (a + b)
-            fm = self._P_at(m, hcoef)
-            if fm >= 0.0:
-                b, fb = m, fm
-            else:
-                a, fa = m, fm
-            if b - a < 1e-10:
+        roots = np.roots(q[::-1])
+        real = np.sort(roots.real[np.abs(roots.imag) <= 1e-7 * (1 + np.abs(roots))])
+        for r in real[::-1]:
+            if r <= 0:
                 break
-        return 0.5 * (a + b)
-
-    def _check_tail_nonnegative(self, hcoef: np.ndarray, r: float) -> None:
-        xs = np.linspace(
-            max(r + 5 * self.grid_step, r + 1e-6), self.x_max, self.check_points
-        )
-        if xs.size == 0:
-            return
-        vals = self._P(xs, hcoef)
-        if np.min(vals) < -1e-9:
-            raise ValueError(
-                "P(x) becomes negative beyond r_max; tail nonnegativity violated."
-            )
+            delta = 1e-6 * max(r, 1.0)
+            a, b = r - delta, r + delta
+            fa, fb = Q(a), Q(b)
+            if fa < 0.0 < fb:
+                # Bisection: Q(a) < 0 <= Q(b).
+                for _ in range(100):
+                    m = 0.5 * (a + b)
+                    if Q(m) >= 0.0:
+                        b = m
+                    else:
+                        a = m
+                    if b - a < 1e-14 * max(r, 1.0):
+                        break
+                return 0.5 * (a + b)
+        raise ValueError("P(x) / x^2 has no positive sign change.")
 
     # ---- evaluation ----------------------------------------------------------
 
@@ -139,38 +156,28 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
             solution.set_scores(float("inf"), f"exec-error {e}", e)
             return solution
 
-        # 2) validate and score
+        # 2) validate and score (AlphaEvolve notebook, section B.4)
         try:
             if c.ndim != 1 or c.size != self.n_terms:
                 raise ValueError(
                     f"Expected {self.n_terms} coefficients for H_0,H_4,..."
                 )
+            if not np.all(np.isfinite(c)):
+                raise ValueError("Coefficients must be finite.")
 
-            # scale invariance: normalize so that leading coeff = 1 (if nonzero)
-            if not np.isfinite(c[-1]) or abs(c[-1]) < self.tolerance:
-                raise ValueError("Leading coefficient must be nonzero.")
-            if c[-1] < 0:
-                # flip sign to make leading coefficient positive; preserves score
-                c = -c
+            # The evaluator adds the H_{4K} term that makes P(0) = 0.
+            full = self._complete_coefficients(c)
+            hcoef = self._build_hcoef(full)
 
-            hcoef = self._build_hcoef(c)
-
-            p0 = self._P_at(0.0, hcoef)
-            if not np.isfinite(p0) or p0 >= 0.0:
-                raise ValueError("Constraint P(0) < 0 failed.")
-
-            # ensure eventual positivity at far right
-            p_far = self._P_at(self.x_max, hcoef)
-            if p_far < 0.0:
-                raise ValueError("P(x_max) < 0; not positive for large |x|.")
-
-            r = self._largest_positive_root(hcoef)
-            self._check_tail_nonnegative(hcoef, r)
+            # If the leading coefficient is negative, P is flipped; the
+            # score is the largest sign change of P(x) / x^2.
+            r = self._largest_sign_change(hcoef)
 
             score = float(r * r / (2.0 * math.pi))  # paper’s bound
             solution.set_scores(
                 score,
-                f"Score = {score:.9g}; r_max={r:.6g}; best known score = {self.best_known}",
+                f"Score = {score:.9g}; r_max={r:.6g}; added H_{4 * self.n_terms} "
+                f"coefficient {full[-1]:.6g}; best known score = {self.best_known}",
             )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", e)
@@ -195,11 +202,9 @@ Instantiated Fourier Uncertainty Inequality problem with number of terms = {self
         evaluator_string = (
             inspect.getsource(self._build_hcoef)
             + "\n"
-            + inspect.getsource(self._P)
+            + inspect.getsource(self._complete_coefficients)
             + "\n"
-            + inspect.getsource(self._largest_positive_root)
-            + "\n"
-            + inspect.getsource(self._check_tail_nonnegative)
+            + inspect.getsource(self._largest_sign_change)
             + "\n"
             + inspect.getsource(self.evaluate)
         )

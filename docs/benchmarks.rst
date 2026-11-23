@@ -110,7 +110,8 @@ Auto-Correlation 3
 ~~~~~~~~~~~~~~~~~~
 
 - Score:
-  :math:`\frac{\max_{\text{abs}_g}}{I^2}`
+  :math:`\frac{|\max_g|}{I^2}` (the constant :math:`C_3`; the absolute
+  value is taken outside the maximum, as in the AlphaEvolve paper)
 - Constraints:
   :math:`f` real-valued, :math:`I \ne 0`
 - Optimisation direction: minimisation
@@ -176,6 +177,10 @@ Erdős Minimum-Overlap Problem
      C := \sup_{x \in [-2,2]} \int_{-1}^{1} f(t) g(x+t) \, dt
 
 - where g is extended by zero outside [-1,1].
+- A candidate returns the heights of a step function :math:`f` on :math:`N`
+  equal bins of :math:`[-1, 1]` (:math:`dx = 2/N`). Any length
+  :math:`1 \le N \le` ``max_bins`` (default 100,000) is accepted;
+  ``n_bins`` (default 800) is only the suggested resolution.
 
 Euclidean Steiner Tree Problem
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,24 +215,30 @@ Methodology class:
 Fourier Uncertainty Inequality
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- This benchmark minimises the Fourier Uncertainty Inequality given by :math:`f(x) = P(x) e^{-\pi x^2}` where :math:`r_{\max}` is the largest positive root after which :math:`P(x)` remains non-negative.
+- This benchmark minimises the Fourier Uncertainty Inequality bound
+  :math:`r_{\max}^2 / (2\pi)` for :math:`f(x) = P(x) e^{-\pi x^2}`, where
+  :math:`r_{\max}` is the largest positive sign change of :math:`P(x)/x^2`
+  (AlphaEvolve notebook, section B.4).
 
 - Function Class:
 
   .. math::
 
      f(x) = P(x) \, e^{-\pi x^2}, \quad
-     P(x) = \sum_{k=0}^{K-1} c[k] \, H_{4k}(x)
+     P(x) = \sum_{k=0}^{K} c[k] \, H_{4k}(x)
 
-  - :math:`H_n` are physicists' Hermite polynomials.
+  - :math:`H_n` are (unscaled) physicists' Hermite polynomials.
+  - The candidate returns :math:`K` (default 3) coefficients
+    :math:`c[0..K-1]`; the evaluator appends :math:`c[K]` so that
+    :math:`P(0) = 0`. For :math:`K = 3`:
+    :math:`c[3] = -(c_0 + 12 c_1 + 1680 c_2) / 665280`.
   - Evenness holds by construction (degrees 0,4,8,…).
 
-- Constraints:
+- Scoring:
 
-  1. :math:`P(0) < 0`
-  2. Leading coefficient :math:`c[K-1] > 0` (scale-invariant: any positive scaling leaves score unchanged)
-  3. Tail nonnegativity: :math:`P(x) \ge 0 \quad \forall x \ge r_{\max}`
-  4. Optional numeric sanity check: :math:`P(x_{\max}) \ge 0` for large :math:`x_{\max}`
+  1. If the leading coefficient of :math:`P` is negative, :math:`P` is replaced by :math:`-P`.
+  2. :math:`r_{\max}` is the largest positive sign change of :math:`P(x)/x^2`; a candidate without one is invalid.
+  3. Scale invariant: any nonzero scaling of :math:`c` leaves the score unchanged.
 -----------
 
 Geometry
@@ -428,6 +439,9 @@ Sums vs Differences (Single-Set Formulation)
 
   - The evaluator computes :math:`|U+U|` and :math:`|U-U|` exactly.
   - Implementation uses **FFT convolution/correlation** on the indicator function of :math:`U` over the domain :math:`[0, \max(U)]`.
+  - Constraints: :math:`0 \in U`, :math:`|U| \le` ``max_set_size`` (default
+    2048) and :math:`\max(U) \le 2^{21}`. The seed (AlphaEvolve's
+    2,003-element set) scores :math:`c(U) = 1.147989`.
 
 -----------
 

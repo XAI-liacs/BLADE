@@ -112,6 +112,34 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Best-known seeds and reference values (#204).** All values were
+  checked against the AlphaEvolve paper (Table 3) and its results
+  notebook. Results of earlier versions on these benchmarks are not
+  directly comparable.
+  - **Auto-correlation:**
+    - `use_best=True` passed the best-known score instead of the seed, so
+      every seeded candidate failed;
+    - **auto-correlation 3** now measures C3 = |max f*f| / (∫f)² as in the
+      paper (it measured max|f*f|, the different constant C3′); the seed
+      scores 1.455643 (best known 1.4557).
+  - **Hexagon packing:** the seeds were in degrees and in the notebook's
+    outer-hexagon orientation; they are converted (3.930075 and 3.941896).
+    The best-known values are now 3.930092 and 3.941912.
+  - **Sums vs differences:**
+    - the limits are raised to 2048 elements and values up to 2²¹, so the
+      AlphaEvolve seed is valid (1.147989, now the best-known value; 1.1584
+      belongs to a construction with 54,265 elements);
+    - invalid sets gave "cannot access local variable 'e'" as feedback.
+  - **Erdős minimum overlap:** step functions of any length are accepted
+    (up to 100,000 values). The seed is the full 95-step construction and
+    scores 0.3809230.
+  - **Fourier uncertainty:** as in AlphaEvolve, the evaluator adds the H12
+    coefficient that makes P(0) = 0. The seed scores 0.3520991, and the
+    best-known value is 0.3521 (0.3216 came from a different construction).
+  - **Min/max distance ratio:** a seed of the wrong length was not dropped.
+  - **Matrix multiplication:** 8 rank-table entries were wrong (e.g.
+    (2,4,4) was 46, Table 3 gives 26; four targets were below any known
+    rank), and (4,4,6) was missing.
 - **Smaller fixes (#209).**
   - **`Solution.set_scores`:** `solution.error` stayed empty for exceptions
     raised outside the candidate code (numpy, the benchmark's own checks),

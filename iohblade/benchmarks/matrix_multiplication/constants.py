@@ -2,9 +2,12 @@
 
 Each key is a tuple (m, n, p) and maps to a dict with:
   - best_known: best-known rank from literature
-  - alphaevolve_best: best rank reported by AlphaEvolve (when known)
+  - alphaevolve_best: best rank reported by AlphaEvolve
 
-When AlphaEvolve value wasn't explicitly provided, it defaults to best_known.
+Values are from Table 3 of the AlphaEvolve paper ("best known [reference]"
+and "AlphaEvolve" columns). Keys are sorted dimensions m <= n <= p; the rank
+does not depend on their order. For (4, 4, 9) and (6, 6, 6) the earlier
+literature value is lower than AlphaEvolve's.
 """
 
 from __future__ import annotations
@@ -38,18 +41,18 @@ MATMUL_RANKS: Dict[Tuple[int, int, int], Dict[str, int]] = {
     (2, 3, 9): {"best_known": 45, "alphaevolve_best": 45},
     (2, 3, 10): {"best_known": 50, "alphaevolve_best": 50},
     # 2x4xp family
-    (2, 4, 4): {"best_known": 46, "alphaevolve_best": 46},
+    (2, 4, 4): {"best_known": 26, "alphaevolve_best": 26},
     (2, 4, 5): {"best_known": 33, "alphaevolve_best": 32},
     (2, 4, 6): {"best_known": 39, "alphaevolve_best": 39},
-    (2, 4, 7): {"best_known": 45, "alphaevolve_best": 45},
+    (2, 4, 7): {"best_known": 46, "alphaevolve_best": 45},
     (2, 4, 8): {"best_known": 52, "alphaevolve_best": 51},
     # 2x5xp family
     (2, 5, 5): {"best_known": 40, "alphaevolve_best": 40},
-    (2, 5, 6): {"best_known": 36, "alphaevolve_best": 36},
+    (2, 5, 6): {"best_known": 48, "alphaevolve_best": 47},
     # 3x3xp family
     (3, 3, 3): {"best_known": 23, "alphaevolve_best": 23},
     (3, 3, 4): {"best_known": 29, "alphaevolve_best": 29},
-    (3, 3, 5): {"best_known": 47, "alphaevolve_best": 47},
+    (3, 3, 5): {"best_known": 36, "alphaevolve_best": 36},
     (3, 3, 6): {"best_known": 40, "alphaevolve_best": 40},
     (3, 3, 7): {"best_known": 49, "alphaevolve_best": 49},
     (3, 3, 8): {"best_known": 55, "alphaevolve_best": 55},
@@ -60,17 +63,20 @@ MATMUL_RANKS: Dict[Tuple[int, int, int], Dict[str, int]] = {
     (3, 4, 7): {"best_known": 66, "alphaevolve_best": 63},
     (3, 4, 8): {"best_known": 75, "alphaevolve_best": 74},
     # 3x5xp family
-    (3, 5, 5): {"best_known": 49, "alphaevolve_best": 49},
+    (3, 5, 5): {"best_known": 58, "alphaevolve_best": 58},
     (3, 5, 6): {"best_known": 70, "alphaevolve_best": 68},
     (3, 5, 7): {"best_known": 82, "alphaevolve_best": 80},
     # 4x4xp family
-    (4, 4, 4): {"best_known": 58, "alphaevolve_best": 58},
+    # AlphaEvolve's rank 48 for <4,4,4> uses complex-valued factors; with
+    # the real-valued grids used here (grid=0.5) 49 is the realistic target.
+    (4, 4, 4): {"best_known": 49, "alphaevolve_best": 48},
     (4, 4, 5): {"best_known": 62, "alphaevolve_best": 61},
-    (4, 4, 7): {"best_known": 76, "alphaevolve_best": 85},
+    (4, 4, 6): {"best_known": 73, "alphaevolve_best": 73},
+    (4, 4, 7): {"best_known": 87, "alphaevolve_best": 85},
     (4, 4, 8): {"best_known": 98, "alphaevolve_best": 96},
     (4, 4, 9): {"best_known": 104, "alphaevolve_best": 108},
     # 4x5xp family
-    (4, 5, 5): {"best_known": 73, "alphaevolve_best": 73},
+    (4, 5, 5): {"best_known": 76, "alphaevolve_best": 76},
     (4, 5, 6): {"best_known": 93, "alphaevolve_best": 90},
     # 5x5xp family
     (5, 5, 5): {"best_known": 93, "alphaevolve_best": 93},

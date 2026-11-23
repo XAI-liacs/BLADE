@@ -9,23 +9,39 @@ from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_names
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
+# Limits on U. The AlphaEvolve construction stored as the seed (notebook
+# B.6, ``solution_1``) has |U| = 2003 and max(U) = 1,040,200, so the limits
+# are |U| <= 2048 (the next power of two, a little headroom above 2003) and
+# max(U) <= 2**21 = 2,097,152 (just above 2 * max(seed), so a candidate can
+# also stretch the seed). Evaluation cost grows with max(U) (FFT of length
+# ~4 * max(U)), which is why the value limit is not larger.
+DEFAULT_MAX_SET_SIZE = 2048
+MAX_VALUE = 2**21
+
 
 class SumDifference(NumberTheoryBase, Problem):
     """
     Sums vs differences implemented via the single-set U evaluator (Appendix B.6, eq. (3)).
     Score:
         c(U) = 1 + log(|U−U|/|U+U|) / log(2*max(U)+1)
-    with constraints U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size.
+    with constraints U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size, max(U) ≤ max_value.
+
+    The default best score 1.147989 is what the evaluator gives the stored
+    seed (AlphaEvolve notebook B.6 ``solution_1``, |U| = 2003). The paper's
+    better bound 1.1584 comes from ``solution_2`` with 54,265 elements, which
+    does not fit within these limits.
     """
 
     def __init__(
         self,
-        max_set_size: int = 1000,
-        best_score=1.1584,
+        max_set_size: int = DEFAULT_MAX_SET_SIZE,
+        best_score=1.147989,
         best_solution: list[int] | None = None,
+        max_value: int = MAX_VALUE,
     ):
         task_name = "sums_vs_differences"
         self.max_set_size = int(max_set_size)
+        self.max_value = int(max_value)
         self.best_score = best_score
 
         NumberTheoryBase.__init__(self, task_name, best_solution)
@@ -40,9 +56,12 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         # Prompting strings used by the outer orchestration, if any.
         self.task_prompt = self.make_task_prompt(
             "construct a finite set U ⊂ ℤ≥0 with 0 ∈ U that maximizes "
-            "c(U) = 1 + log(|U−U|/|U+U|) / log(2*max(U)+1)"
+            "c(U) = 1 + log(|U−U|/|U+U|) / log(2*max(U)+1)",
+            max_value=self.max_value,
         )
-        self.example_prompt = self.make_example_prompt("SumDiffCandidate")
+        self.example_prompt = self.make_example_prompt(
+            "SumDiffCandidate", max_value=self.max_value
+        )
         self.format_prompt = self.make_format_prompt()
 
         self.minimisation = False
@@ -52,7 +71,8 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
         """
         Score a candidate set U via the Gyarmati–Hennecart–Ruzsa bound:
           c(U) = 1 + log(|U−U|/|U+U|) / log(2*max(U)+1),
-        with required constraints: U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size.
+        with required constraints: U ⊂ ℤ≥0, 0 ∈ U, |U| ≤ max_set_size and
+        max(U) ≤ max_value.
         """
 
         code = solution.code
@@ -83,15 +103,10 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             U = sorted({int(x) for x in U})
             ok, msg = self._validate_U(U)
             if not ok:
-                solution.set_scores(-float("inf"), f"invalid-U: {msg}", e)
+                solution.set_scores(-float("inf"), f"invalid-U: {msg}", ValueError(msg))
                 return solution
 
             M = U[-1]
-            if M > 1_000_000:
-                solution.set_scores(
-                    -float("inf"), f"Range exceeded: max(U) too large: {M}", e
-                )
-                return solution
 
             # Indicator vector on [0..M]
             a = np.zeros(M + 1, dtype=np.float64)
@@ -152,9 +167,8 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
             return False, "U must be non-negative"
         if len(U) > self.max_set_size:
             return False, f"|U|>{self.max_set_size}"
-        max_abs_value = 10**6
-        if U[-1] > max_abs_value:
-            return False, f"max(U)={U[-1]} exceeds {max_abs_value}"
+        if U[-1] > self.max_value:
+            return False, f"max(U)={U[-1]} exceeds {self.max_value}"
         return True, ""
 
     def _compute_support_stats(self, U):
@@ -209,6 +223,7 @@ Instantiated Sums vs Difference benchmark with best known solution {self.best_sc
                 "dependencies": self.dependencies,
                 "imports": self.imports,
                 "max_set_size": self.max_set_size,
+                "max_value": self.max_value,
             },
         }
 

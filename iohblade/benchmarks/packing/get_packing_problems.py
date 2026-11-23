@@ -1,6 +1,16 @@
+import math
+
 from . import HexagonPacking, RectanglePacking, UnitSquarePacking
 
 # Hexagonal Packing.
+# The two packings below are the AlphaEvolve results, copied verbatim from
+# section B.7 of the AlphaEvolve results notebook
+# (google-deepmind/alphaevolve_results, mathematical_results.ipynb). Each row
+# is (x, y, angle) with the angle in DEGREES, and the packing is measured in
+# an outer hexagon rotated by ``outer_hex_angle_degrees`` (also from B.7).
+# The evaluator (HexagonPacking) instead expects angles in RADIANS and an
+# outer hexagon with vertices at 30 + k * 60 degrees, so the rows are
+# converted by ``_notebook_hex_packing_to_evaluator`` before use.
 best_hex_packing_11 = [
     [7.227468518248726, 1.406189555916512, 64.96835531696001],
     [9.108934177226912, 6.282338181661271, 82.7839419155727],
@@ -29,6 +39,44 @@ best_hex_packing_12 = [
     [-2.4402287984241076, 2.1146830723057635, 147.1073847274004],
     [-5.576327284388157, 5.906127413424367, 207.16788311720808],
 ]
+
+# Orientation of the outer hexagon in the notebook (B.7), in degrees.
+best_hex_packing_11_outer_angle = 60.96370590710646
+best_hex_packing_12_outer_angle = 219.59113156095745
+
+# Outer hexagon side lengths reported in the notebook (B.7). The evaluator
+# computes the exact minimal enclosing hexagon of the given orientation, so
+# the converted seeds score slightly below these values (3.930075 for n=11,
+# 3.941896 for n=12).
+best_hex_packing_11_known = 3.930092
+best_hex_packing_12_known = 3.941912
+
+
+def _notebook_hex_packing_to_evaluator(
+    packing: list[list[float]], outer_angle_degrees: float
+) -> list[list[float]]:
+    """Convert a notebook hexagon packing to the evaluator's convention.
+
+    The notebook stores inner-hexagon angles in degrees, relative to an outer
+    hexagon rotated by ``outer_angle_degrees``. HexagonPacking uses radians
+    and an outer hexagon with vertices at 30 + k * 60 degrees. Rotating the
+    whole packing by ``alpha = 30 - outer_angle_degrees`` (about the origin)
+    aligns the two outer hexagons; the side length is translation invariant.
+
+    Args:
+        packing: Rows ``(x, y, angle_degrees)`` as stored in the notebook.
+        outer_angle_degrees: Outer hexagon angle from the notebook.
+
+    Returns:
+        Rows ``(x, y, angle_radians)`` for HexagonPacking.
+    """
+    alpha = math.radians(30.0 - outer_angle_degrees)
+    c, s = math.cos(alpha), math.sin(alpha)
+    return [
+        [c * x - s * y, s * x + c * y, math.radians(theta) + alpha]
+        for x, y, theta in packing
+    ]
+
 
 # Unit Square Packing
 best_unit_square_packing_26 = [
@@ -135,14 +183,22 @@ def get_hexagon_packing_problems(get_best: bool) -> list[HexagonPacking]:
     """
     if get_best:
         hp1 = HexagonPacking(
-            n_hex=11, best_known=3.931, best_solution=best_hex_packing_11
+            n_hex=11,
+            best_known=best_hex_packing_11_known,
+            best_solution=_notebook_hex_packing_to_evaluator(
+                best_hex_packing_11, best_hex_packing_11_outer_angle
+            ),
         )
         hp2 = HexagonPacking(
-            n_hex=12, best_known=3.942, best_solution=best_hex_packing_12
+            n_hex=12,
+            best_known=best_hex_packing_12_known,
+            best_solution=_notebook_hex_packing_to_evaluator(
+                best_hex_packing_12, best_hex_packing_12_outer_angle
+            ),
         )
         return [hp1, hp2]
-    hp1 = HexagonPacking(n_hex=11, best_known=3.931)
-    hp2 = HexagonPacking(n_hex=12, best_known=3.942)
+    hp1 = HexagonPacking(n_hex=11, best_known=best_hex_packing_11_known)
+    hp2 = HexagonPacking(n_hex=12, best_known=best_hex_packing_12_known)
 
     return [hp1, hp2]
 

@@ -4,18 +4,21 @@ import textwrap
 class FourierBase:
     """
     Base spec for the uncertainty inequality (Appendix B.4).
-    Candidates return coefficients c[0..K-1] for an even polynomial
+    Candidates return K = n_terms coefficients c[0..K-1]; the evaluator
+    appends c[K] so that P(0) = 0, giving the even polynomial
 
-        P(x) = sum_{k=0..K-1} c[k] * H_{4k}(x)
+        P(x) = sum_{k=0..K} c[k] * H_{4k}(x)
 
     and the test function is f(x) = P(x) * exp(-pi * x^2).
     The evaluator computes an upper bound on C4 as r_max^2 / (2*pi),
-    where r_max is the largest positive root beyond which P(x) >= 0.
+    where r_max is the largest positive sign change of P(x) / x^2.
 
     Notes:
-      - H_n are physicists' Hermite polynomials.
-      - Constraints: P(0) < 0; leading coefficient > 0; P(x) >= 0 for large |x|.
-      - Scale invariance: multiply c by s>0 ⇒ same score.
+      - H_n are physicists' Hermite polynomials (unscaled).
+      - c[K] = -sum_k c[k] H_{4k}(0) / H_{4K}(0); for K = 3,
+        c[3] = -(c0 + 12 c1 + 1680 c2) / 665280.
+      - If the leading coefficient of P is negative, P is flipped.
+      - Scale invariance: multiply c by s != 0 ⇒ same score.
     """
 
     def __init__(
@@ -48,18 +51,22 @@ class FourierBase:
         return textwrap.dedent(
             """
 - Write a class whose __call__() yields a list of floats c of length K (= n_terms).
-- Define P(x) = sum_{k=0..K-1} c[k] * H_{4k}(x) using physicists' Hermite H_n.
+- The evaluator appends one more coefficient c[K] = -(sum_k c[k] * H_{4k}(0)) / H_{4K}(0),
+  chosen so that P(0) = 0 (for K = 3: c[3] = -(c[0] + 12*c[1] + 1680*c[2]) / 665280).
+- Define P(x) = sum_{k=0..K} c[k] * H_{4k}(x) using physicists' Hermite H_n (unscaled),
+  i.e. your K coefficients are for H_0, H_4, ..., H_{4(K-1)} and the evaluator adds H_{4K}.
 - Test function: f(x) = P(x) * exp(-pi * x^2). Evenness holds by construction.
-- Constraints:
-    - P(0) < 0
-    - the leading coefficient c[K-1] > 0
-    - P(x) >= 0 for large |x|.
+- Scoring:
+    - if the leading coefficient c[K] is negative, P is replaced by -P;
+    - r_max is the largest positive x at which P(x) / x^2 changes sign
+      (a candidate without such a sign change is invalid);
+    - scaling c by any nonzero factor leaves the score unchanged.
 - Objective (minimize):
     - """
             + formula
             + textwrap.dedent(f"""
-- Tip: enforce structure (e.g., small |c|, P(0)≈0) to aid root placement.
-K = {self.n_terms}."
+- Tip: keep the coefficients small and structured to control where the roots of P(x) / x^2 lie.
+K = {self.n_terms}.
 """)
         )
 
@@ -83,9 +90,9 @@ Here is an example template of program to solve the problem:
 ```python
 class {class_name}:{initialiser}
     def __call__(self):
-        # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...
-        # Simple baseline: P(x) = -H_0(x) + 1e-4 * H_{{4(K-1)}}(x), so that
-        # P(0) < 0 and the leading coefficient is positive.
+        # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...; the
+        # evaluator appends the H_{{4K}} coefficient that makes P(0) = 0.
+        # Simple baseline: c = [-1, 0, ..., 0, 1e-4].
         c = [0.0] * self.n_terms
         c[0] = -1.0
         c[-1] = 1e-4
