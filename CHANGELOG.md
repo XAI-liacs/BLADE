@@ -112,6 +112,41 @@ see "Breaking changes" for the two exceptions.
     backwards, when minimising. It also treated a score of 0.0 as missing.
   - The MCTS-AHD and MoEH prompts always asked for a "lower" objective
     value; they now state which direction is better.
+- **Plots, web app and analysis (#202).**
+  - **Best-so-far direction:** curves, "best" selections and "Top
+    Solutions" always maximised. On minimisation problems they showed the
+    worst solutions. They now follow the problem's logged direction
+    (`ExperimentLogger.get_minimisation`), with an optional `minimisation=`
+    override.
+  - **Failed evaluations** were replaced by 0 before taking the
+    best-so-far, which looked like a perfect score on negative or minimised
+    fitness. They are now treated as missing.
+  - **Run identity:** runs of one method with several LLMs were merged
+    into one curve. Runs are now identified by their folder, and labels
+    read `method (llm)` when needed.
+  - **Mean curves** of runs with unequal length could go down; each run's
+    last best value is now carried forward.
+  - **`compare_auc`** follows the direction and treats failures the same
+    way.
+  - **Web app crashes fixed:**
+    - the convergence plot on multi-objective problems;
+    - Top Solutions, box plots and `fitness_table` when a run's best
+      solution failed;
+    - while an experiment is still writing its logs (a half-written last
+      line of a `.jsonl` file is now skipped).
+  - **Web app auto-refresh** now actually refreshes every 60 s (Streamlit
+    >= 1.37).
+  - **Plot crashes fixed:**
+    - `plot_code_evolution_graphs()` with its default features;
+    - the t-SNE fallback.
+  - **Other plot fixes:** figures are closed after saving, and the x axis
+    of `plot_convergence(separate_lines=True)` starts at 1.
+  - **Behaviour metrics:**
+    - `compute_behavior_metrics` now uses `bounds` for the exploration
+      percentage;
+    - `average_distance_to_best_so_far` measures against the best before
+      each step, as documented;
+    - one-row runs no longer divide by zero.
 - **LLM layer (#205).**
   - **Code extraction:** a block in another language before the python
     block (e.g. `bash`) made the prose between them the "code". It now

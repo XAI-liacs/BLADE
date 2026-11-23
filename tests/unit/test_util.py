@@ -185,3 +185,56 @@ def test_compare_auc_basic():
     )
     assert result.shape[0] == 1
     assert result["n_seeds"].iloc[0] == 2
+
+
+def _auc_logger(rows, minimisation=None):
+    class Logger:
+        def get_methods_problems(self):
+            return ["a", "b"], ["p"]
+
+        def get_problem_data(self, problem_name):
+            return pd.DataFrame(rows)
+
+        if minimisation is not None:
+
+            def get_minimisation(self, problem_name):
+                return minimisation
+
+    return Logger()
+
+
+def test_compare_auc_follows_direction_and_ignores_failures():
+    # Minimisation (#202): method a reaches 1.0, method b stays at 5.0; a
+    # failed evaluation (inf) must not count as 0, the best value.
+    rows = []
+    for seed in (1, 2, 3):
+        for idx, (fa, fb) in enumerate([(5.0, 5.0), (1.0, np.inf), (1.0, 5.0)]):
+            rows.append({"method_name": "a", "seed": seed, "_id": idx, "fitness": fa})
+            rows.append({"method_name": "b", "seed": seed, "_id": idx, "fitness": fb})
+    result = compare_auc(
+        _auc_logger(rows, minimisation=True),
+        "a",
+        "b",
+        budget=3,
+        test="ttest",
+        n_boot=50,
+    )
+    row = result.iloc[0]
+    assert bool(row["minimisation"])
+    # a: 5,1,1 -> trapezoid 4.0 ; b: 5,5,5 -> 10.0 (lower is better)
+    assert row["mean_auc_a"] == pytest.approx(4.0)
+    assert row["mean_auc_b"] == pytest.approx(10.0)
+
+
+def test_compare_auc_carries_last_value_to_budget():
+    rows = [
+        {"method_name": "a", "seed": 1, "_id": 0, "fitness": 2.0},
+        {"method_name": "b", "seed": 1, "_id": 0, "fitness": 1.0},
+        {"method_name": "b", "seed": 1, "_id": 1, "fitness": 1.0},
+        {"method_name": "b", "seed": 1, "_id": 2, "fitness": 1.0},
+        {"method_name": "a", "seed": 2, "_id": 0, "fitness": 2.0},
+        {"method_name": "b", "seed": 2, "_id": 0, "fitness": 1.0},
+    ]
+    result = compare_auc(_auc_logger(rows), "a", "b", budget=3, test="ttest", n_boot=50)
+    # a stopped after one evaluation: its 2.0 is carried to evaluation 3.
+    assert result.iloc[0]["mean_auc_a"] == pytest.approx(4.0)

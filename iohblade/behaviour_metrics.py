@@ -8,6 +8,12 @@ Each function expects a pandas DataFrame that contains at least:
     * a column "raw_y"         objective function value (the lower the better)
     * coordinate columns       named "x0", "x1", … "x{d-1}"
 
+Optimisation direction: these metrics describe the search behaviour of an
+optimiser on a black-box problem (e.g. an IOH/BBOB trace) and assume that
+``raw_y`` is *minimised*: "best", "improvement" and "best-so-far" all mean
+the lowest ``raw_y``. They do not use BLADE's fitness or its direction
+(``Problem.minimisation``). For a maximisation trace, pass ``-raw_y``.
+
 The helper `get_coordinates(df)` extracts the X matrix.
 
 Many metrics also accept optional keyword arguments such as `bounds`
@@ -126,17 +132,21 @@ def average_distance_to_best_so_far(df: pd.DataFrame) -> float:
     """
     For each evaluation k>0, compute distance to best point found up to k-1.
     Average these distances   lower = more exploitative.
+
+    Returns 0.0 for fewer than two evaluations (no distance is defined).
     """
     X = get_coordinates(df)
     y = get_objective(df)
+    if len(X) < 2:
+        return 0.0
     best_idx = 0
 
     dists = []
     for k in range(1, len(X)):
+        # distance to the best of evaluations 0..k-1, then update the best
+        dists.append(np.linalg.norm(X[k] - X[best_idx]))
         if y[k] < y[best_idx]:
             best_idx = k
-
-        dists.append(np.linalg.norm(X[k] - X[best_idx]))
     return float(np.mean(dists))
 
 
@@ -273,7 +283,13 @@ def longest_no_improvement_streak(df: pd.DataFrame) -> int:
 
 
 def last_improvement_fraction(df: pd.DataFrame) -> float:
-    """Fraction of evaluations since the last improvement (0-1)."""
+    """Fraction of evaluations since the last improvement (0-1).
+
+    Returns 0.0 for fewer than two evaluations (the only evaluation is the
+    best so far, so no evaluation came after the last improvement).
+    """
+    if len(df) < 2:
+        return 0.0
     best_so_far = np.minimum.accumulate(get_objective(df))
     last_imp_idx = np.where(np.diff(best_so_far) < 0)[0]
     last_imp_idx = last_imp_idx.max() + 1 if last_imp_idx.size else 0
@@ -293,7 +309,22 @@ def compute_behavior_metrics(
     radius: Optional[float] = None,
     disp_samples: int = 10_000,
 ):
-    """Compute all scalar behavior metrics and return them in a dictionary."""
+    """Compute all scalar behavior metrics and return them in a dictionary.
+
+    ``raw_y`` is assumed to be minimised (see the module docstring).
+
+    Args:
+        df (pd.DataFrame): One optimisation trace (see the module docstring).
+        bounds (list[tuple[float, float]], optional): Search space bounds per
+            dimension, used for the dispersion, the exploration percentage
+            and the default radius; default ``(-5, 5)`` per dimension.
+        radius (float, optional): Radius of the intensification ratio;
+            default 10% of the width of the first dimension.
+        disp_samples (int): Random samples for the dispersion estimate.
+
+    Returns:
+        dict[str, float]: The metrics by name.
+    """
 
     # default bounds and radius
     if bounds is None:
@@ -303,7 +334,9 @@ def compute_behavior_metrics(
         radius = 0.1 * (bounds[0][1] - bounds[0][0])
 
     # time‑series based exploration/exploitation percentages (averaged)
-    avg_exploration_pct, avg_exploitation_pct = avg_exploration_exploitation_chunked(df)
+    avg_exploration_pct, avg_exploitation_pct = avg_exploration_exploitation_chunked(
+        df, bounds=bounds
+    )
 
     # improvement stats
     avg_imp, success_rate = improvement_statistics(df)

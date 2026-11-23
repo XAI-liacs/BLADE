@@ -264,8 +264,15 @@ def compare_auc(
     n_boot: int = 10000,
     alpha: float = 0.05,
     rng: int = 0,
+    minimisation: bool | None = None,
 ):
     """Compare convergence AUCs between two methods.
+
+    The AUC is the area under each run's best-so-far curve over evaluations
+    ``1..budget`` (the last best value is carried forward when a run stopped
+    early). Failed evaluations never improve the curve; before a run's first
+    valid evaluation the curve takes the worst valid value seen on that
+    problem. With minimisation a *lower* AUC is better.
 
     Args:
         logger: Experiment logger containing evaluation data.
@@ -277,41 +284,57 @@ def compare_auc(
         n_boot: Number of bootstrap samples for confidence intervals.
         alpha: Significance level (two-sided).
         rng: Random seed for bootstrapping.
+        minimisation: Optimisation direction; by default as logged for each
+            problem (``logger.get_minimisation``), else maximisation.
 
     Returns:
-        pd.DataFrame: Per-problem summary of AUC comparisons.
+        pd.DataFrame: Per-problem summary of AUC comparisons, including the
+        ``minimisation`` direction used.
     """
+    from .plots import best_so_far
 
     methods, problems = logger.get_methods_problems()
     if method_a not in methods or method_b not in methods:
         raise ValueError("Both methods must exist in the logger.")
 
+    trapezoid = getattr(np, "trapezoid", None) or np.trapz
     results = []
 
     for problem in problems:
-        data = logger.get_problem_data(problem_name=problem).drop(columns=["code"])
-        data.replace([-np.inf, np.inf], 0, inplace=True)
-        data.fillna(0, inplace=True)
+        data = logger.get_problem_data(problem_name=problem).drop(
+            columns=["code"], errors="ignore"
+        )
+        if minimisation is not None:
+            minimise = bool(minimisation)
+        elif hasattr(logger, "get_minimisation"):
+            minimise = bool(logger.get_minimisation(problem))
+        else:
+            minimise = False
+
+        curves = {}
+        for method in [method_a, method_b]:
+            df = data[data["method_name"] == method]
+            curve = best_so_far(df, minimisation=minimise, fitness_col=metric)
+            curves[method] = curve[curve["eval"] <= budget]
+
+        valid = pd.concat([c["fitness_value"] for c in curves.values()]).dropna()
+        worst = (valid.max() if minimise else valid.min()) if len(valid) else 0.0
 
         aucs = {}
-
-        for method in [method_a, method_b]:
-            df = data[data["method_name"] == method].copy()
-            df = df.sort_values(by=["seed", "_id"])
-            df["cummax_fitness"] = df.groupby("seed")[metric].cummax()
-            df["_id"] += 1
-            df = df[df["_id"] <= budget]
-
+        for method, curve in curves.items():
+            group_cols = ["seed"] if "seed" in curve.columns else []
+            if "run" in curve.columns:
+                group_cols = ["seed", "run"] if group_cols else ["run"]
             per_seed_auc = []
-            for seed in df["seed"].unique():
-                seed_df = df[df["seed"] == seed]
-                auc = np.trapz(
-                    seed_df["cummax_fitness"].values,
-                    seed_df["_id"].values,
+            for _, run in curve.groupby(group_cols, sort=True):
+                values = (
+                    run.set_index("eval")["best_so_far"]
+                    .reindex(range(1, budget + 1))
+                    .ffill()
+                    .fillna(worst)
                 )
-                per_seed_auc.append(auc)
-
-            aucs[method] = np.asarray(per_seed_auc)
+                per_seed_auc.append(trapezoid(values.values, np.arange(1, budget + 1)))
+            aucs[method] = np.asarray(per_seed_auc, dtype=float)
 
         # Paired samples
         min_len = min(len(aucs[method_a]), len(aucs[method_b]))
@@ -340,6 +363,7 @@ def compare_auc(
         results.append(
             {
                 "problem": problem,
+                "minimisation": minimise,
                 "method_a": method_a,
                 "method_b": method_b,
                 "n_seeds": min_len,
