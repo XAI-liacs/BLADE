@@ -198,12 +198,17 @@ def test_mlflow_logger_open_runs_and_log_from_worker_threads(tmp_path, mlflow_ur
             (method, problem, seed, logger.open_run(method, problem, 2, seed))
         )
 
+    errors = []
+
     def work(run_logger, seed):
-        sol = Solution(name=f"s{seed}")
-        sol.set_scores(float(seed))
-        run_logger.log_individual(sol)
-        run_logger.log_code(sol)
-        run_logger.log_conversation("user", f"hello {seed}")
+        try:
+            sol = Solution(name=f"s{seed}")
+            sol.set_scores(float(seed))
+            run_logger.log_individual(sol)
+            run_logger.log_code(sol)
+            run_logger.log_conversation("user", f"hello {seed}")
+        except BaseException as e:  # surfaced below; threads swallow errors
+            errors.append(repr(e))
 
     threads = [
         threading.Thread(target=work, args=(run_logger, seed))
@@ -213,6 +218,7 @@ def test_mlflow_logger_open_runs_and_log_from_worker_threads(tmp_path, mlflow_ur
         t.start()
     for t in threads:
         t.join()
+    assert errors == []
 
     method, problem, seed, run_logger = opened[0]
     logger.mark_run_failed(method, problem, seed, "ValueError: boom")
