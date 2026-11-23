@@ -11,14 +11,19 @@
 > ⭐ If you like this, please give the repo a star – it helps!
 
 <p align="center">
-  <a href="https://pypi.org/project/iohblade/">
-    <img src="https://badge.fury.io/py/iohblade.svg" alt="PyPI version" height="18">
-  </a>
-  <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintenance" height="18">
-  <img src="https://img.shields.io/badge/Python-3.11.5+-blue" alt="Python 3.11.5+" height="18">
-  <a href="https://codecov.io/gh/XAI-liacs/BLADE" >
-    <img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="CodeCov" height="18"/>
-  </a>
+  <a href="https://pypi.org/project/iohblade/"><img src="https://img.shields.io/pypi/v/iohblade?label=PyPI" alt="PyPI version" height="20"></a>
+  <a href="https://pypi.org/project/iohblade/"><img src="https://img.shields.io/pypi/dm/iohblade?label=downloads" alt="PyPI downloads per month" height="20"></a>
+  <img src="https://img.shields.io/badge/Python-3.11.5+-blue" alt="Python 3.11.5+" height="20">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license" height="20"></a>
+  <a href="https://codecov.io/gh/XAI-liacs/BLADE"><img src="https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7" alt="Code coverage" height="20"></a>
+  <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg" alt="Maintained" height="20">
+</p>
+<p align="center">
+  <a href="https://xai-liacs.github.io/BLADE/"><img src="https://img.shields.io/badge/docs-online-blue" alt="Documentation" height="20"></a>
+  <a href="https://doi.org/10.1145/3712255.3734347"><img src="https://img.shields.io/badge/DOI-10.1145%2F3712255.3734347-blue" alt="DOI of the GECCO 2025 paper" height="20"></a>
+  <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json" alt="uv" height="20"></a>
+  <a href="https://github.com/psf/black"><img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="Code style: black" height="20"></a>
+  <a href="https://pycqa.github.io/isort/"><img src="https://img.shields.io/badge/imports-isort-ef8336.svg" alt="Imports: isort" height="20"></a>
 </p>
 
 > [!TIP]
