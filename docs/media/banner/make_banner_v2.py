@@ -230,10 +230,11 @@ ART = {
 }
 
 
-def draw(concept, width, height, path):
+def draw(concept, width, height, path, scale=1):
+    """Draw ``concept`` at ``width`` x ``height`` (times ``scale`` pixels)."""
     style = STYLES[concept]
     dpi = 100
-    fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi)
+    fig = plt.figure(figsize=(width / dpi, height / dpi), dpi=dpi * scale)
     fig.patch.set_facecolor(style["bg"])
     wide = width / height > 3
     left = 0.64 if wide else 0.62
@@ -276,7 +277,7 @@ def draw(concept, width, height, path):
                 family=FONT, va="top")
         ax.text(0.06, 0.09, "github.com/XAI-liacs/BLADE  ·  pip install iohblade",
                 fontsize=16, color=style["sub"], family=FONT)
-    fig.savefig(path, dpi=dpi, facecolor=fig.get_facecolor())
+    fig.savefig(path, dpi=dpi * scale, facecolor=fig.get_facecolor())
     plt.close(fig)
 
 
@@ -284,6 +285,9 @@ def main():
     for concept in STYLES:
         draw(concept, 1600, 400, OUT / f"banner-{concept}-readme.png")
         draw(concept, 1280, 640, OUT / f"banner-{concept}-social.png")
+    # The chosen banner (#235): README banner at 2x, GitHub social preview.
+    draw("g", 1600, 400, ROOT / "docs" / "media" / "blade-banner.png", scale=2)
+    draw("g", 1280, 640, ROOT / "docs" / "media" / "blade-social-preview.png")
 
 
 if __name__ == "__main__":

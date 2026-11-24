@@ -1,12 +1,6 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="logo-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="logo.png">
-    <img alt="Shows the BLADE logo." src="logo.png" width="200px">
-  </picture>
+  <img alt="BLADE: Benchmarking LLM-driven Automated Design and Evolution of iterative optimisation heuristics" src="docs/media/blade-banner.png" width="100%">
 </p>
-
-<h1 align="center">IOH-BLADE: Benchmarking LLM-driven Automated Design and Evolution of Iterative Optimization Heuristics</h1>
 
 > ⭐ If you like this, please give the repo a star – it helps!
 
