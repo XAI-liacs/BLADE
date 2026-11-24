@@ -165,6 +165,14 @@ see "Breaking changes" for the two exceptions.
 - **Suite flags:** every AlphaEvolve suite takes `use_best`, which is now
   optional and defaults to `false`. The packing suites used `get_best`;
   that name still works as an alias.
+- **`use_best` examples:** with `use_best: true`, the example of every
+  AlphaEvolve problem now returns the best known configuration unchanged,
+  so the search starts from the best known score. Previously 10 of the 17
+  problems (auto-correlation, Erdős, the uncertainty inequality, packing,
+  sums versus differences) passed the configuration to the class, but their
+  example ignored it and built a naive baseline. The rectangle packing
+  example also returns its rectangle (0.977 × 1.023), because the best known
+  packing is not in a square.
 
 ### Bug fixes
 

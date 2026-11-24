@@ -69,6 +69,16 @@ class RectanglePacking(PackingBase, Problem):
         U.append([x, y, r])
     return np.array(U, dtype=float), w, h
 """,
+            best_body_hint="""
+    import numpy as np
+    # Baseline: return the best known configuration unchanged, with the
+    # rectangle it was packed in: width from the circles, height from the
+    # perimeter 2 * (width + height) = P.
+    U = np.array(self.best_known_configuration, dtype=float)
+    P = getattr(self, 'perimeter', 4.0)
+    w = float(np.max(U[:, 0] + U[:, 2]))
+    return U, w, P / 2.0 - w
+""",
             n_circles=self.n_circles,
         )
         self.format_prompt = self.make_format_prompt()

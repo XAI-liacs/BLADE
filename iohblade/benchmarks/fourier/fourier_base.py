@@ -76,7 +76,18 @@ K = {self.n_terms}.
         # Accepts number of terms K for the problem.
         self.n_terms = n_terms
 """
+        body = f"""        # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...; the
+        # evaluator appends the H_{{4K}} coefficient that makes P(0) = 0.
+        # Simple baseline: c = [-1, 0, ..., 0, 1e-4].
+        c = [0.0] * self.n_terms
+        c[0] = -1.0
+        c[-1] = 1e-4
+        return c
+"""
         if self.best_known_configuration is not None:
+            body = """        # Baseline: return the best known configuration unchanged.
+        return list(self.best_known_configuration)
+"""
             initialiser = """
     def __init__(self, n_terms: int, best_known_configuration=None):
         # Accepts a number of terms K and best known configuration (if
@@ -90,14 +101,7 @@ Here is an example template of program to solve the problem:
 ```python
 class {class_name}:{initialiser}
     def __call__(self):
-        # Return K={self.n_terms} coefficients for H_0, H_4, H_8, ...; the
-        # evaluator appends the H_{{4K}} coefficient that makes P(0) = 0.
-        # Simple baseline: c = [-1, 0, ..., 0, 1e-4].
-        c = [0.0] * self.n_terms
-        c[0] = -1.0
-        c[-1] = 1e-4
-        return c
-```
+{body}```
 """
 
     def make_format_prompt(self) -> str:

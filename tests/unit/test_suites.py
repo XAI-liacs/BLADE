@@ -198,3 +198,32 @@ problems:
 
 
 # endregion
+
+
+# region use_best examples.
+def _evaluate_example(problem):
+    import re
+
+    from iohblade.solution import Solution
+    from iohblade.utils import first_class_name
+
+    code = re.search(r"```python\n(.*?)\n```", problem.example_prompt, re.S).group(1)
+    return problem.evaluate(Solution(code=code, name=first_class_name(code)))
+
+
+@pytest.mark.parametrize(
+    "index", range(17), ids=lambda i: f"math-{i}"  # 17 AlphaEvolve problems
+)
+def test_use_best_example_reaches_the_best_known_score(index):
+    """With use_best, the example returns the best known configuration
+    unchanged, so it scores the best known value (which is rounded to a few
+    digits for some problems)."""
+    problem = suites.alphaevolve_math(use_best=True)[index]
+    result = _evaluate_example(problem)
+    assert not result.error, f"{problem.name}: {result.error}"
+    assert float(result.fitness) == pytest.approx(
+        float(problem.best_known), rel=2e-3
+    ), f"{problem.name}: {result.fitness} vs best known {problem.best_known}"
+
+
+# endregion

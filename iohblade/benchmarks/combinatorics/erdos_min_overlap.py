@@ -77,7 +77,15 @@ class ErdosMinOverlap(Problem):
         """
 
         initialiser = ""
+        body = f"""        # Simple baseline: f = 1/2 everywhere, so g = 1 - f = 1/2 and
+        # dx * sum(f) = (2 / N) * (N / 2) = 1.
+        N = {self.n_bins}
+        return [0.5] * N
+"""
         if best_solution is not None:
+            body = """        # Baseline: return the best known configuration unchanged.
+        return list(self.best_known_configuration)
+"""
             initialiser = """
     def __init__(self, best_known_configuration=None):
         # Accepts a best known configuration (if available) for the problem,
@@ -90,11 +98,7 @@ An example template of such program is given by:
 ```python
 class ErdosCandidate:{initialiser}
     def __call__(self):
-        # Simple baseline: f = 1/2 everywhere, so g = 1 - f = 1/2 and
-        # dx * sum(f) = (2 / N) * (N / 2) = 1.
-        N = {self.n_bins}
-        return [0.5] * N
-```
+{body}```
 
 """
 
