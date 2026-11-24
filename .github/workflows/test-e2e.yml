@@ -3,7 +3,12 @@ permissions:
   contents: read
   id-token: write
 
-on: [pull_request]
+# Also on pushes to main: this job uploads coverage to Codecov, and the
+# README badge shows the coverage of the latest main commit.
+on:
+  pull_request:
+  push:
+    branches: [main]
 
 jobs:
   test:
