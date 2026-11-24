@@ -17,6 +17,7 @@ from ...llm import LLM
 from ...method import Method
 from ...problem import Problem
 from ...solution import Solution
+from ..prompt_utils import task_context
 from .programs_database import ProgramsDatabase
 
 
@@ -177,7 +178,9 @@ class FunSearch(Method):
     def _prompt(self, problem: Problem, programs: list[Solution]) -> str:
         """A best-shot prompt: the programs as versions, worst first."""
         k = len(programs)
-        parts = [problem.task_prompt.strip()]
+        # The task with the problem's extra context, but without its example
+        # (the programs below take its place) and format (added at the end).
+        parts = [task_context(problem)]
         parts.append(
             f"Below are {k} version(s) of an algorithm for this task, ordered "
             "from worst to best: each version is an improved version of the "

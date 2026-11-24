@@ -81,7 +81,7 @@ to the implementation location and corresponding documentation entry.
 | Experiments from YAML, `iohblade` command | `iohblade/config/`, `iohblade/cli.py` | `docs/yaml_experiments.rst` |
 | Experiment orchestration | `iohblade/experiment.py` | `docs/experiment.rst` |
 | Problems and benchmark wrapping | `iohblade/problem.py`, `iohblade/benchmarks/` | `docs/problem.rst`, `docs/benchmarks.rst` |
-| Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
+| Search methods (LLaMEA, LHNS, MCTS-AHD, EoH, ReEvo, Random Search, FunSearch, ShinkaEvolve) | `iohblade/methods/` | `docs/method.rst`, `docs/methods.rst` |
 | LLM provider integration | `iohblade/llm.py` | `docs/llm.rst` |
 | Loggers (local, MLflow, Trackio) | `iohblade/loggers/` | `docs/loggers.rst` |
 | Baselines | `iohblade/baselines/` | `docs/baselines.rst` |
@@ -162,6 +162,7 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
 | **ReEvo**    | Large Language Models as Hyper-Heuristics with Reflective Evolution | [code](https://github.com/ai4co/LLM-as-HH) [paper](https://arxiv.org/abs/2402.01145) |
 | **LLM-Driven Heuristics Neighbourhood Search** | LLM-Driven Neighborhood Search for Efficient Heuristic Design | [code](https://github.com/Acquent0/LHNS) [paper](https://ieeexplore.ieee.org/abstract/document/11043025) |
 | **Monte Carlo Tree Search** | Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design | [code](https://github.com/zz1358m/MCTS-AHD-master/) [paper](https://arxiv.org/abs/2501.08603) |
+| **ShinkaEvolve** | Sample-efficient program evolution: islands, weighted parent selection, diff/full/crossover patches, novelty rejection, LLM bandit (reimplemented in BLADE) | [code](https://github.com/SakanaAI/ShinkaEvolve) [paper](https://arxiv.org/abs/2509.19349) |
 
 ### Supported LLM APIs
 

@@ -227,6 +227,9 @@ The suite contains the state-of-the-art LLM-assisted search algorithms:
    * - **Monte Carlo Tree Search**
      - Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design
      - `code <https://github.com/zz1358m/MCTS-AHD-master/tree/main>`_, `paper <https://arxiv.org/abs/2501.08603>`_
+   * - **ShinkaEvolve**
+     - Sample-efficient program evolution: islands, weighted parent selection, diff/full/crossover patches, novelty rejection, LLM bandit (reimplemented in BLADE)
+     - `code <https://github.com/SakanaAI/ShinkaEvolve>`_, `paper <https://arxiv.org/abs/2509.19349>`_
 
 Supported LLM APIs
 ------------------

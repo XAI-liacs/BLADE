@@ -6,6 +6,11 @@ def _direction(maximisation: bool) -> str:
     return "higher" if maximisation else "lower"
 
 
+def _task(task_prompt: str) -> str:
+    """The task description that starts a variation prompt (as in EoH)."""
+    return task_prompt.strip() + "\n\n" if task_prompt.strip() else ""
+
+
 class MoEH_Prompts:
     """
     An extension of `iohblade.Problem` instanced that adds necessary prompt mutation in algorithm including
@@ -52,6 +57,7 @@ class MoEH_Prompts:
         format_prompt,
         indivs: list[Solution],
         maximisation: bool = True,
+        task_prompt: str = "",
     ) -> str:
         prompt_indiv = "\n".join(
             list(
@@ -70,7 +76,7 @@ Has objective Value {item[1].fitness}.
         )
 
         prompt_content = (
-            "\n"
+            _task(task_prompt) + "\n"
             "I have "
             + str(len(indivs))
             + " existing algorithms with their codes and objective values as follows: \n\n"
@@ -87,9 +93,12 @@ The description must be inside a brace. Thirdly, reply with a response adhering 
         return prompt_content
 
     @classmethod
-    def get_prompt_m1(cls, example_prompt, format_prompt, indiv: Solution) -> str:
+    def get_prompt_m1(
+        cls, example_prompt, format_prompt, indiv: Solution, task_prompt: str = ""
+    ) -> str:
         prompt_content = (
-            "I have one algorithm with its code as follows. \n\n\
+            _task(task_prompt)
+            + "I have one algorithm with its code as follows. \n\n\
 Algorithm's description: "
             + indiv.description
             + "\n\
@@ -105,10 +114,15 @@ Please create a new algorithm that is a modified version of the provided algorit
 
     @classmethod
     def get_prompt_m2(
-        cls, example_prompt: str, format_prompt: str, indiv: Solution
+        cls,
+        example_prompt: str,
+        format_prompt: str,
+        indiv: Solution,
+        task_prompt: str = "",
     ) -> str:
         prompt_content = (
-            "I have one algorithm with its code as follows. \n\n\
+            _task(task_prompt)
+            + "I have one algorithm with its code as follows. \n\n\
 Algorithm's description: "
             + indiv.description
             + "\n\

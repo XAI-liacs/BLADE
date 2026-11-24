@@ -10,6 +10,7 @@ from iohblade.llm import LLM
 from iohblade.mcts_node import MCTS_Node
 from iohblade.method import Method
 from iohblade.methods.mcts_ahd.prompts import MCTS_Prompts
+from iohblade.methods.prompt_utils import task_context
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -124,7 +125,9 @@ class MCTS:
             `Exception` All other interaction failures with LLM.
         """
         prompt = ""
-        task_prompt = self.problem.task_prompt
+        # The task with the context the problem adds in get_prompt(); the
+        # example and format are added by the prompts themselves.
+        task_prompt = task_context(self.problem)
         example_prompt = self.problem.example_prompt
         format_prompt = self.problem.format_prompt
 

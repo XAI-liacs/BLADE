@@ -7,6 +7,7 @@ from iohblade.method import Method
 from iohblade.methods.moeh_method.mutationtype import MutationType
 from iohblade.methods.moeh_method.population import Population
 from iohblade.methods.moeh_method.prompts import MoEH_Prompts
+from iohblade.methods.prompt_utils import task_context
 from iohblade.problem import Problem
 from iohblade.solution import Solution
 
@@ -107,7 +108,7 @@ class MoEH:
             - Inline function, doesn't return anything, updates `self.population`.
         """
         prompt = MoEH_Prompts.get_prompt_i1(
-            self.problem.task_prompt,
+            task_context(self.problem),
             self.problem.example_prompt,
             self.problem.format_prompt,
         )
@@ -153,13 +154,19 @@ class MoEH:
         match (type):
             case MutationType.M1:
                 prompt = MoEH_Prompts.get_prompt_m1(
-                    self.problem.example_prompt, self.problem.format_prompt, pop[0]
+                    self.problem.example_prompt,
+                    self.problem.format_prompt,
+                    pop[0],
+                    task_prompt=task_context(self.problem),
                 )
                 solution = self._sample_solution(prompt, [pop[0]])
                 return solution
             case MutationType.M2:
                 prompt = MoEH_Prompts.get_prompt_m2(
-                    self.problem.example_prompt, self.problem.format_prompt, pop[0]
+                    self.problem.example_prompt,
+                    self.problem.format_prompt,
+                    pop[0],
+                    task_prompt=task_context(self.problem),
                 )
                 solution = self._sample_solution(prompt, [pop[0]])
                 return solution
@@ -170,6 +177,7 @@ class MoEH:
                     self.problem.format_prompt,
                     pop,
                     maximisation=not self.minimisation,
+                    task_prompt=task_context(self.problem),
                 )
                 solution = self._sample_solution(prompt, pop)
                 return solution

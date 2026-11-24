@@ -79,7 +79,7 @@ iohblade/               # Main package
 ├── benchmarks/         # 15+ benchmark domains (BBOB, SBOX, MA-BBOB, AutoML, ...)
 ├── baselines/          # Human-designed reference algorithms (e.g., ModCMA-ES)
 ├── loggers/            # Logging backends: file, MLflow, Trackio
-├── methods/            # LLM search methods: LLaMEA, LHNS, MCTS-AHD, RandomSearch, FunSearch
+├── methods/            # LLM search methods: LLaMEA, LHNS, MCTS-AHD, RandomSearch, FunSearch, ShinkaEvolve
 └── misc/               # AST utilities, namespace preparation for code execution
 tests/
 ├── unit/               # 19 unit test files (target: 80% coverage)

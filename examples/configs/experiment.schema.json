@@ -263,7 +263,7 @@
           "title": "Class"
         },
         "type": {
-          "description": "Method key ('custom' for your own class): llamea, random_search, eoh, reevo, funsearch, lhns, mcts_ahd, moeh",
+          "description": "Method key ('custom' for your own class): llamea, random_search, eoh, reevo, funsearch, lhns, mcts_ahd, moeh, shinka_evolve",
           "examples": [
             "llamea",
             "random_search",
@@ -273,6 +273,7 @@
             "lhns",
             "mcts_ahd",
             "moeh",
+            "shinka_evolve",
             "custom"
           ],
           "title": "Type",
