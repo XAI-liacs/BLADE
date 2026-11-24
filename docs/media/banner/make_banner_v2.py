@@ -43,6 +43,8 @@ STYLES = {
     "d": dict(bg="#0b0d12", text="#ffffff", sub="#b8a9ff", dark=True),
     "e": dict(bg="#f7f5f0", text="#1b1f24", sub="#d9573b", dark=False),
     "f": dict(bg="#0d2b24", text="#ffffff", sub="#8ee6c0", dark=True),
+    # F's genealogy tree in D's colours (chosen direction, #235).
+    "g": dict(bg="#0b0d12", text="#ffffff", sub="#b8a9ff", dark=True),
 }
 
 CODE = [
@@ -152,7 +154,7 @@ def art_population(fig, left, style, wide):
     ax.set_ylim(-3.2, 3.2)
 
 
-def art_genealogy(fig, left, style, wide):
+def art_genealogy(fig, left, style, wide, palette=None):
     ax = fig.add_axes([left, 0, 1 - left, 1])
     ax.axis("off")
     ax.set_xlim(0, 1)
@@ -161,7 +163,7 @@ def art_genealogy(fig, left, style, wide):
     # Grow a tree from the bottom: each node has a parent in the previous
     # generation and a fitness that tends to improve.
     gens = 9 if wide else 11
-    nodes = [(0.5, 0.05, 0.1, None)]  # x, y, fitness, parent index
+    nodes = [(0.5, 0.08, 0.1, None)]  # x, y, fitness, parent index
     layer = [0]
     for g in range(1, gens):
         new_layer = []
@@ -169,7 +171,7 @@ def art_genealogy(fig, left, style, wide):
             parent = int(rng.choice(layer))
             px, py, pf, _ = nodes[parent]
             x = float(np.clip(px + rng.normal(0, 0.08), 0.04, 0.96))
-            y = 0.05 + 0.9 * g / (gens - 1)
+            y = 0.08 + 0.84 * g / (gens - 1)
             f = float(np.clip(pf + rng.normal(0.08, 0.1), 0, 1))
             nodes.append((x, y, f, parent))
             new_layer.append(len(nodes) - 1)
@@ -180,21 +182,52 @@ def art_genealogy(fig, left, style, wide):
     while i is not None:
         path.add(i)
         i = nodes[i][3]
-    cmap = LinearSegmentedColormap.from_list("fit", ["#2f6b58", "#8ee6c0", "#f5d76e"])
+    palette = palette or dict(
+        nodes=["#2f6b58", "#8ee6c0", "#f5d76e"], edge="#8ee6c0", best=None,
+        best_color="#f5d76e", bg="#0d2b24",
+    )
+    cmap = LinearSegmentedColormap.from_list("fit", palette["nodes"])
+    best_cmap = (
+        LinearSegmentedColormap.from_list("best", palette["best"])
+        if palette["best"]
+        else None
+    )
     for i, (x, y, f, parent) in enumerate(nodes):
         if parent is None:
             continue
         px, py, _, _ = nodes[parent]
         on_path = i in path and parent in path
-        ax.plot([px, x], [py, y], color="#f5d76e" if on_path else "#8ee6c0",
-                lw=2.4 if on_path else 0.9, alpha=0.95 if on_path else 0.35,
-                zorder=2 if not on_path else 4)
+        if on_path and best_cmap is not None:
+            color = best_cmap(y)  # violet at the root, amber at the best
+        else:
+            color = palette["best_color"] if on_path else palette["edge"]
+        ax.plot([px, x], [py, y], color=color,
+                lw=2.8 if on_path else 0.9, alpha=0.95 if on_path else 0.35,
+                zorder=2 if not on_path else 4, solid_capstyle="round")
     xs, ys, fs, _ = zip(*nodes)
     ax.scatter(xs, ys, s=[40 + 90 * f for f in fs], c=[cmap(f) for f in fs],
-               edgecolor="#0d2b24", linewidth=1.0, zorder=5)
+               edgecolor=palette["bg"], linewidth=1.0, zorder=5)
 
 
-ART = {"d": art_code, "e": art_population, "f": art_genealogy}
+def art_genealogy_code_colours(fig, left, style, wide):
+    art_genealogy(
+        fig, left, style, wide,
+        palette=dict(
+            nodes=["#3b2f7a", "#7c5cff", "#ff7ab6", "#ffb547"],
+            edge="#8f86c9",
+            best=["#7c5cff", "#ff7ab6", "#ffb547"],
+            best_color="#ffb547",
+            bg="#0b0d12",
+        ),
+    )
+
+
+ART = {
+    "d": art_code,
+    "e": art_population,
+    "f": art_genealogy,
+    "g": art_genealogy_code_colours,
+}
 
 
 def draw(concept, width, height, path):
