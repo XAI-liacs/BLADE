@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Tuple
 from iohblade.benchmarks.matrix_multiplication.task_specification import (
     MatMulTensorDecomposition,
 )
+from iohblade.benchmarks.suite_utils import log_instantiated
 
 from .constants import MATMUL_RANKS
 
@@ -41,10 +42,13 @@ def _target_rank(n: int, m: int, p: int) -> int:
 _max_rank_minus_1 = _target_rank
 
 
-def default_problems() -> List[MatMulTensorDecomposition]:
+def default_problems(eval_timeout: int = 600) -> List[MatMulTensorDecomposition]:
     """
     Full benchmark suite from AlphaEvolve (Table 3), m <= n <= p.
     grid=0.5 permits integer and half-integer entries.
+
+    Args:
+        eval_timeout: Seconds before an evaluation is stopped.
     """
     grid = 0.5
     sizes = [
@@ -115,10 +119,17 @@ def default_problems() -> List[MatMulTensorDecomposition]:
     ]
 
     problems = [
-        MatMulTensorDecomposition(n, m, p, grid=grid, rank=_target_rank(n, m, p))
+        MatMulTensorDecomposition(
+            n,
+            m,
+            p,
+            grid=grid,
+            rank=_target_rank(n, m, p),
+            eval_timeout=eval_timeout,
+        )
         for (n, m, p) in sizes
     ]
-    print(
+    log_instantiated(
         f"Running full benchmark suite: {len(problems)} matrix-multiplication problems"
     )
 

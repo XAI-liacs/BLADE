@@ -12,7 +12,7 @@ from iohblade.solution import Solution
 
 
 class GraphColoring(Problem):
-    def __init__(self, benchmark_id: str, logger=None):
+    def __init__(self, benchmark_id: str, logger=None, eval_timeout: int = 300):
         """
         A Graph Colouring Benchmark focuses on assigning colours to all the nodes in undirected graph G(V,E), such that no two connecting
         nodes have the same colour.
@@ -20,12 +20,18 @@ class GraphColoring(Problem):
         ## Args:
         - `benchmark_id: str` A string defining which benchmark to use from `./Graph_Coloring_Benchmarks`.
         - `logger: object`: An instance of one of the logger classes from `iohblade/loggers`.
+        - `eval_timeout: int`: Seconds before an evaluation is stopped (default 300).
         """
         self.nodes: list[int] = []
         self.edges: list[tuple[int, int]] = []
         self.benchmark = ""
         self._load_data(benchmark_id)
-        Problem.__init__(self, name=self.benchmark, logger=logger)
+        Problem.__init__(
+            self,
+            name=f"graph_coloring-gcol{self.benchmark}",
+            logger=logger,
+            eval_timeout=eval_timeout,
+        )
         self.minimisation = True
 
         self.task_prompt = textwrap.dedent(f"""

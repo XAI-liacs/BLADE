@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 
@@ -22,8 +23,11 @@ class MinMaxMinDistanceRatio(Problem):
         best_known: float | None = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple] | None = None,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name=f"min_max_min_distance_ratio-{dim}d")
+        super().__init__(
+            name=f"min_max_min_distance_ratio-{dim}d", eval_timeout=eval_timeout
+        )
         self.n_points = int(n_points)
         self.dim = int(dim)
         self.tolerance = float(tolerance)
@@ -48,11 +52,9 @@ class MinMaxMinDistanceRatio(Problem):
             raise ValueError("dim must be >= 1")
 
         self.best_known = best_known
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}."
+        )
         self.minimisation = True
         self.dependencies += ["scipy", "scikit-learn"]
 

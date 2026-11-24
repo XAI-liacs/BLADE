@@ -5,6 +5,7 @@ import numpy as np
 
 from iohblade import Solution
 from iohblade.benchmarks.packing.packing_base import PackingBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 
@@ -18,6 +19,7 @@ class UnitSquarePacking(PackingBase, Problem):
         best_known: float = False,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         self.n_circles = int(n_circles)
         self.tolerance = float(tolerance)
@@ -26,13 +28,11 @@ class UnitSquarePacking(PackingBase, Problem):
 
         task_name = f"unit_square_packing_n{self.n_circles}"
         PackingBase.__init__(self, task_name, best_solution=best_solution)
-        Problem.__init__(self, name=task_name)
+        Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Unit Square Packing problem, with {self.n_circles} circles, best known score {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Unit Square Packing problem, with {self.n_circles} circles, best known score {self.best_known}."
+        )
 
         headline = "Packing n disjoint circles inside the unit square [0,1]×[0,1]."
         contract = "Return a numpy array U with shape (n,3), U[i]=[x_i, y_i, r_i]."

@@ -198,7 +198,7 @@ def test_component_errors_are_collected():
             {"type": "circle_packing", "params": {"tolerence": 1}},
             {"type": "tsp"},
             {"type": "bbob_sbox", "params": {"problem_type": "NOPE"}},
-            {"suite": "hexagon_packing", "params": {}},
+            {"suite": "hexagon_packing", "params": {"use_bets": True}},
         ],
     )
     issues = "\n".join(issues_of(data))
@@ -215,7 +215,8 @@ def test_component_errors_are_collected():
         "'circle_packing'. Did you mean 'tolerance'?",
         "problems[1]: Missing required parameter 'benchmark' for problem 'tsp'.",
         "problems[2].params.problem_type: 'NOPE' is not a valid ProblemClass",
-        "problems[3]: Missing required parameter 'get_best' for suite",
+        "problems[3].params.use_bets: Unknown parameter 'use_bets' for suite "
+        "'hexagon_packing'. Did you mean 'use_best'",
     ]
     for line in expected:
         assert line in issues, f"{line!r} not in:\n{issues}"

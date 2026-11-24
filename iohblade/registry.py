@@ -92,6 +92,13 @@ class BuiltinSuite(StrEnum):
     MIN_MAX_DISTANCE_RATIO = "min_max_distance_ratio"
     SUM_VS_DIFFERENCE = "sum_vs_difference"
     MATRIX_MULTIPLICATION = "matrix_multiplication"
+    BBOB = "bbob"
+    MA_BBOB = "ma_bbob"
+    CONTINUOUS_BBO = "continuous_bbo"
+    ALPHAEVOLVE_MATH = "alphaevolve_math"
+    COMBINATORIAL = "combinatorial"
+    QUICK = "quick"
+    FULL = "full"
 
 
 class BuiltinMethod(StrEnum):
@@ -616,6 +623,55 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         BuiltinSuite.MATRIX_MULTIPLICATION,
         f"{_B}.matrix_multiplication.problem_sets:default_problems",
         "AlphaEvolve matrix multiplication suite.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.BBOB,
+        f"{_B}.suites:bbob",
+        "BBOB, one problem per function group (5); dim/budget_factor settable.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.MA_BBOB,
+        f"{_B}.suites:ma_bbob",
+        "MA-BBOB, 25 training and 50 test instances; dim/budget_factor settable.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.CONTINUOUS_BBO,
+        f"{_B}.suites:continuous_bbo",
+        "The BBOB function groups and MA-BBOB (6 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.ALPHAEVOLVE_MATH,
+        f"{_B}.suites:alphaevolve_math",
+        "All AlphaEvolve mathematical problems (17 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.COMBINATORIAL,
+        f"{_B}.suites:combinatorial",
+        "Steiner trees, graph colouring, TSP and VRP (6 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.QUICK,
+        f"{_B}.suites:quick",
+        "A small cross-domain set for trying out a setup (5 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.FULL,
+        f"{_B}.suites:full",
+        "All default suites plus circle packing and spherical codes.",
         None,
     ),
     # methods

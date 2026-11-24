@@ -20,7 +20,10 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
     """
 
     def __init__(
-        self, best_known: float = 0.8962, best_solution: list[float] | None = None
+        self,
+        best_known: float = 0.8962,
+        best_solution: list[float] | None = None,
+        eval_timeout: int = 600,
     ):
         AutoCorrBaseSpec.__init__(
             self,
@@ -29,7 +32,7 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
             best_known=best_known,
             best_solution=best_solution,
         )
-        Problem.__init__(self, name=self.task_name)
+        Problem.__init__(self, name=self.task_name, eval_timeout=eval_timeout)
 
         self.task_prompt = self.make_task_prompt(
             "minimize  -( ||f*f||_2^2 / ( ||f*f||_1 · ||f*f||_∞ ) )"

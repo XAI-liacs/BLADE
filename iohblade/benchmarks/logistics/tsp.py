@@ -25,14 +25,14 @@ class Location:
 
 
 class TravelingSalesmanProblem(Problem):
-    def __init__(self, benchmark):
+    def __init__(self, benchmark, eval_timeout: int = 300):
         self.customers: list[Location] = []
         self.best_known = float("inf")
         self.benchmark = ""
         self.minimisation = True
         self._readfile(benchmark)
 
-        Problem.__init__(self, name=f"TSP-{self.benchmark}")
+        Problem.__init__(self, name=f"TSP-{self.benchmark}", eval_timeout=eval_timeout)
 
         self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Traveling Salesman Problem.

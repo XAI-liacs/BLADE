@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=./experiment.schema.json
+# The default benchmark suites (see docs/benchmarks.rst, "Default Suites").
+#   uv run iohblade validate examples/configs/default_suites.yml
+#   uv run iohblade run examples/configs/default_suites.yml
+# Swap the problems for `- suite: quick` to try the setup first, or
+# `- suite: full` for everything.
+version: 1
+
+experiment:
+  output_dir: ../../results/DefaultSuites
+  runs: 5
+  budget: 100
+
+llms:
+  qwen:
+    provider: ollama
+    model: "qwen2.5-coder:14b"
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: qwen
+    params:
+      n_parents: 4
+      n_offspring: 12
+  - type: random_search
+    name: "RS-{llm}"
+    llm: qwen
+
+problems:
+  # BBOB, one problem per function group (instances 1-5 for training,
+  # 6-15 for testing), and MA-BBOB (25 training, 50 test instances).
+  - suite: continuous_bbo
+    params: {dim: 10, budget_factor: 2000}
+  - suite: alphaevolve_math
+    params: {use_best: false}
+  - suite: combinatorial

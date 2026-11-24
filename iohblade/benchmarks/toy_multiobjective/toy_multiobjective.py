@@ -171,8 +171,13 @@ class ToyMultiObjective(Problem):
         ```
         """)
 
-    def __init__(self, budget: int = 100, name: str = "ToyMultiObjective"):
-        super().__init__(name=name)
+    def __init__(
+        self,
+        budget: int = 100,
+        name: str = "ToyMultiObjective",
+        eval_timeout: int = 120,
+    ):
+        super().__init__(name=name, eval_timeout=eval_timeout)
         # Problem.__init__ sets placeholder prompts on the instance, which
         # would shadow the class-level prompts defined above.
         self.task_prompt = ToyMultiObjective.task_prompt

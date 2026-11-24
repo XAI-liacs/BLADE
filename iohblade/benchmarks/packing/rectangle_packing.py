@@ -4,6 +4,7 @@ from typing import Any
 import numpy as np
 
 from iohblade.benchmarks.packing.packing_base import PackingBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -27,6 +28,7 @@ class RectanglePacking(PackingBase, Problem):
         tolerance: float = 1e-12,
         best_known=2.3658,
         best_solution: list[tuple[float, float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         self.n_circles = int(n_circles)
         self.perimeter = float(perimeter)
@@ -36,13 +38,11 @@ class RectanglePacking(PackingBase, Problem):
 
         task_name = f"rectangle_packing_n{self.n_circles}_perim{self.perimeter:g}"
         PackingBase.__init__(self, task_name, best_solution=best_solution)
-        Problem.__init__(self, name=task_name)
+        Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Rectangle packing problem with rectangle perimeter = {self.perimeter}, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Rectangle packing problem with rectangle perimeter = {self.perimeter}, and best solution: {self.best_known}."
+        )
 
         headline = (
             f"Pack n disjoint circles inside a rectangle of perimeter {self.perimeter}."
@@ -68,6 +68,16 @@ Instantiated Rectangle packing problem with rectangle perimeter = {self.perimete
         y = (row+1)/(g+1)*h
         U.append([x, y, r])
     return np.array(U, dtype=float), w, h
+""",
+            best_body_hint="""
+    import numpy as np
+    # Baseline: return the best known configuration unchanged, with the
+    # rectangle it was packed in: width from the circles, height from the
+    # perimeter 2 * (width + height) = P.
+    U = np.array(self.best_known_configuration, dtype=float)
+    P = getattr(self, 'perimeter', 4.0)
+    w = float(np.max(U[:, 0] + U[:, 2]))
+    return U, w, P / 2.0 - w
 """,
             n_circles=self.n_circles,
         )

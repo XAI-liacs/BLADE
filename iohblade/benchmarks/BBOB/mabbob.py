@@ -43,7 +43,7 @@ class MA_BBOB(Problem):
         training_instances=None,
         test_instances=None,
         name="MA_BBOB",
-        eval_timeout=60,
+        eval_timeout=120,
         dims=[2, 5],
         budget_factor=2000,
         dependencies=None,

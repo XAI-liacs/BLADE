@@ -417,7 +417,7 @@
             }
           ],
           "default": null,
-          "description": "Suite key (expands into several problems): auto_correlation, erdos_min_overlap, uncertainty_inequality, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, sum_vs_difference, matrix_multiplication",
+          "description": "Suite key (expands into several problems): auto_correlation, erdos_min_overlap, uncertainty_inequality, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, sum_vs_difference, matrix_multiplication, bbob, ma_bbob, continuous_bbo, alphaevolve_math, combinatorial, quick, full",
           "examples": [
             "auto_correlation",
             "erdos_min_overlap",
@@ -430,7 +430,14 @@
             "kissing_number_11d",
             "min_max_distance_ratio",
             "sum_vs_difference",
-            "matrix_multiplication"
+            "matrix_multiplication",
+            "bbob",
+            "ma_bbob",
+            "continuous_bbo",
+            "alphaevolve_math",
+            "combinatorial",
+            "quick",
+            "full"
           ],
           "title": "Suite"
         },

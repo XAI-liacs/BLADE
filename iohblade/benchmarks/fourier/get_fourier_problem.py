@@ -1,4 +1,5 @@
 from iohblade.benchmarks.fourier import UncertaintyInequality
+from iohblade.benchmarks.suite_utils import with_eval_timeout
 
 # AlphaEvolve construction (results notebook, section B.4): coefficients of
 # H_0, H_4 and H_8; the evaluator appends the H_12 coefficient that makes
@@ -10,12 +11,15 @@ best_known_configuration = [
 ]
 
 
-def get_fourier_problems(use_best: bool) -> list[UncertaintyInequality]:
+def get_fourier_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[UncertaintyInequality]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Fourier Uncertianity Inequality benchamarks, as an array.
 
     Args:
         `use_best`: Try using best know solution as initial population in llm provided problems.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -27,4 +31,4 @@ def get_fourier_problems(use_best: bool) -> list[UncertaintyInequality]:
     else:
         ue1 = UncertaintyInequality()
 
-    return [ue1]
+    return with_eval_timeout([ue1], eval_timeout)

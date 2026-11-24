@@ -1,5 +1,7 @@
 import math
 
+from iohblade.benchmarks.suite_utils import with_eval_timeout
+
 from . import HexagonPacking, RectanglePacking, UnitSquarePacking
 
 # Hexagonal Packing.
@@ -169,19 +171,27 @@ best_rectangle_packing_4 = [
 ]
 
 
-def get_hexagon_packing_problems(get_best: bool) -> list[HexagonPacking]:
+def get_hexagon_packing_problems(
+    use_best: bool = False,
+    eval_timeout: int = 600,
+    *,
+    get_best: bool | None = None,
+) -> list[HexagonPacking]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Hexagon Packing benchmarks, as an array.
 
     Args:
-        get_best: Try and initialise search algorithm with best known results.
+        use_best: Try and initialise search algorithm with best known results.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
             array[0] = Hexagon Packing benchmark instance with 11 inner hexagons.
             array[1] = Hexagon Packing benchmark instance with 12 inner hexagons.
     """
-    if get_best:
+    if get_best is not None:  # old name of use_best
+        use_best = get_best
+    if use_best:
         hp1 = HexagonPacking(
             n_hex=11,
             best_known=best_hex_packing_11_known,
@@ -196,44 +206,60 @@ def get_hexagon_packing_problems(get_best: bool) -> list[HexagonPacking]:
                 best_hex_packing_12, best_hex_packing_12_outer_angle
             ),
         )
-        return [hp1, hp2]
+        return with_eval_timeout([hp1, hp2], eval_timeout)
     hp1 = HexagonPacking(n_hex=11, best_known=best_hex_packing_11_known)
     hp2 = HexagonPacking(n_hex=12, best_known=best_hex_packing_12_known)
 
-    return [hp1, hp2]
+    return with_eval_timeout([hp1, hp2], eval_timeout)
 
 
-def get_rectangle_packing_problems(get_best: bool) -> list[RectanglePacking]:
+def get_rectangle_packing_problems(
+    use_best: bool = False,
+    eval_timeout: int = 600,
+    *,
+    get_best: bool | None = None,
+) -> list[RectanglePacking]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Rectangle Packing benchamarks, as an array.
 
     Args:
-        get_best: Try and initialise search algorithm with best known results.
+        use_best: Try and initialise search algorithm with best known results.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
             array[0] = Rectangle Packing benchmark with rectangle perimeter = 4, packing 21 circles.
     """
-    if get_best:
+    if get_best is not None:  # old name of use_best
+        use_best = get_best
+    if use_best:
         rp1 = RectanglePacking(best_solution=best_rectangle_packing_4)
     else:
         rp1 = RectanglePacking()
-    return [rp1]
+    return with_eval_timeout([rp1], eval_timeout)
 
 
-def get_square_packing_problems(get_best: bool) -> list[UnitSquarePacking]:
+def get_square_packing_problems(
+    use_best: bool = False,
+    eval_timeout: int = 600,
+    *,
+    get_best: bool | None = None,
+) -> list[UnitSquarePacking]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Unit Square Packing benchamarks, as an array.
 
     Args:
-        get_best: Try and initialise search algorithm with best known results.
+        use_best: Try and initialise search algorithm with best known results.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
             array[0] = Unit Square Packing benchmark for Unit Square, packing 26 circles.
             array[1] = Unit Square Packing benchmark for Unit Square, packing 32 circles.
     """
-    if get_best:
+    if get_best is not None:  # old name of use_best
+        use_best = get_best
+    if use_best:
         rp1 = UnitSquarePacking(
             n_circles=26, best_known=2.635, best_solution=best_unit_square_packing_26
         )
@@ -244,4 +270,4 @@ def get_square_packing_problems(get_best: bool) -> list[UnitSquarePacking]:
         rp1 = UnitSquarePacking(n_circles=26, best_known=2.635)
         rp2 = UnitSquarePacking(n_circles=32, best_known=2.937)
 
-    return [rp1, rp2]
+    return with_eval_timeout([rp1, rp2], eval_timeout)

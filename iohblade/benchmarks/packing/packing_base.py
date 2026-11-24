@@ -64,6 +64,21 @@ class PackingBase:
         self.best_known_configuration = best_known_configuration
         self.n_hexagons = int(n_hexagons)
 """
+            return f"""
+# Description: Start from the best known packing.
+# Code:
+```python
+import numpy as np
+
+
+class {class_name}:
+    {best_known_initialiser.strip()}
+
+    def __call__(self):
+        # Baseline: return the best known configuration unchanged.
+        return np.array(self.best_known_configuration, dtype=float)
+```
+"""
         return f"""
 # Description: Place the hexagons on a honeycomb grid, which tiles the plane without overlaps.
 # Code:
@@ -97,6 +112,7 @@ class {class_name}:
         class_name: str,
         n_circles: int,
         body_hint: Optional[str] = None,
+        best_body_hint: Optional[str] = None,
     ) -> str:
         hint = body_hint or """import numpy as np
 
@@ -125,6 +141,11 @@ return np.array(pts, dtype=float)
         # be optimised for better results.
         self.best_known_configuration = best_known_configuration
         self.n_circles = int(n_circles)
+"""
+            hint = best_body_hint or """import numpy as np
+
+# Baseline: return the best known configuration unchanged.
+return np.array(self.best_known_configuration, dtype=float)
 """
         body = textwrap.indent(textwrap.dedent(hint).strip(), " " * 8)
         return f"""

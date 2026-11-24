@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -38,8 +39,9 @@ class ErdosMinOverlap(Problem):
         best_known=0.380924,
         best_solution: list[float] | None = None,
         max_bins: int = 100_000,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name=task_name)
+        super().__init__(name=task_name, eval_timeout=eval_timeout)
         self.task_name = task_name
         self.n_bins = n_bins
         # Upper bound on len(f). The overlap is computed with an FFT, so the
@@ -50,11 +52,9 @@ class ErdosMinOverlap(Problem):
         self.tolerance = tolerance
         self.best_known = best_known
         self.best_solution = best_solution
-        print(f"""
--------------------------------------------------------------------
-Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
--------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Erdös Min Overlap Problem, best known {self.best_known}."
+        )
 
         self.minimisation = True
         self.dependencies += ["scipy"]
@@ -77,7 +77,15 @@ Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
         """
 
         initialiser = ""
+        body = f"""        # Simple baseline: f = 1/2 everywhere, so g = 1 - f = 1/2 and
+        # dx * sum(f) = (2 / N) * (N / 2) = 1.
+        N = {self.n_bins}
+        return [0.5] * N
+"""
         if best_solution is not None:
+            body = """        # Baseline: return the best known configuration unchanged.
+        return list(self.best_known_configuration)
+"""
             initialiser = """
     def __init__(self, best_known_configuration=None):
         # Accepts a best known configuration (if available) for the problem,
@@ -90,11 +98,7 @@ An example template of such program is given by:
 ```python
 class ErdosCandidate:{initialiser}
     def __call__(self):
-        # Simple baseline: f = 1/2 everywhere, so g = 1 - f = 1/2 and
-        # dx * sum(f) = (2 / N) * (N / 2) = 1.
-        N = {self.n_bins}
-        return [0.5] * N
-```
+{body}```
 
 """
 
