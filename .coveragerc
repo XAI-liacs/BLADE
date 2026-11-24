@@ -2,8 +2,9 @@
 # Omit all Python files in these directories
 omit =
     iohblade/baselines/*
-    iohblade/methods/funsearch.py
     iohblade/methods/reevo.py
     iohblade/methods/llamea.py
-    iohblade/problems/*
     iohblade/webapp.py
+    # Photonics simulators: run while evaluating candidates, inside the
+    # evaluation subprocess, where coverage is not measured.
+    iohblade/benchmarks/photonics/photonics_instances/problems/*
