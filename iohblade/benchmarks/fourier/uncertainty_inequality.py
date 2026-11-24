@@ -31,6 +31,7 @@ class UncertaintyInequality(FourierBase, Problem):
         n_terms: int = 3,
         best_known: float = 0.3521,
         best_solution: list[float] | None = None,
+        eval_timeout: int = 600,
     ):
         FourierBase.__init__(
             self,
@@ -38,7 +39,7 @@ class UncertaintyInequality(FourierBase, Problem):
             n_terms=n_terms,
             best_known_configuration=best_solution,
         )
-        Problem.__init__(self, name="fourier_uncertainty_C4")
+        Problem.__init__(self, name="fourier_uncertainty_C4", eval_timeout=eval_timeout)
         self.task_prompt = self.make_task_prompt("minimize  r_max^2 / (2*pi)")
         self.example_prompt = self.make_example_prompt("FourierCandidate")
         self.format_prompt = self.make_format_prompt()

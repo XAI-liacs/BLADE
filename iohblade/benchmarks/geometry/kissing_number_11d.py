@@ -31,8 +31,9 @@ class KissingNumber11D(Problem):
         tolerance: float = 0.0,
         best_known: int = 593,
         best_solution: list[list[int]] | None = None,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name="kissing_number_11d")
+        super().__init__(name="kissing_number_11d", eval_timeout=eval_timeout)
         self.dim = 11
         self.tolerance = float(tolerance)
         self.best_solution = best_solution

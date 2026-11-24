@@ -29,7 +29,7 @@ class Location:
 
 class EuclidianSteinerTree(Problem):
 
-    def __init__(self, benchmark_id: int, tolerance=1e-6):
+    def __init__(self, benchmark_id: int, tolerance=1e-6, eval_timeout: int = 300):
         """
         ## Euclidian Steiner Tree Benchmark:
             Implements a Eucldian Steiner Tree Algorithm, which optimises the mimimum spanning tree, but with extra points.
@@ -48,7 +48,11 @@ class EuclidianSteinerTree(Problem):
         self.points = {}
         self.tolerance = tolerance
         self._read_file()
-        Problem.__init__(self, name=f"EuclidianSteinerTree-n{benchmark_id}")
+        Problem.__init__(
+            self,
+            name=f"EuclidianSteinerTree-n{benchmark_id}",
+            eval_timeout=eval_timeout,
+        )
         self.best_so_far = [float("nan")] * len(self.points)
         self.minimisation = True
 

@@ -29,6 +29,7 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
         best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         GeometryBase.__init__(
             self,
@@ -48,7 +49,9 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
 Instantiated Heibronn Convex Region Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
 ------------------------------------------------------------------------------------------------------------------------
 """)
-        Problem.__init__(self, name=f"heilbronn_convex_region-n{n_points}")
+        Problem.__init__(
+            self, name=f"heilbronn_convex_region-n{n_points}", eval_timeout=eval_timeout
+        )
 
         self.dependencies += ["scipy", "shapely"]
         allowed = self.dependencies.copy()

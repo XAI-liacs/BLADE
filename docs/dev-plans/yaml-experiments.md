@@ -67,7 +67,7 @@ problems:
       budget_factor: 2000
       specific_fid: 2
   - suite: hexagon_packing               # factory => several problems
-    params: {get_best: false}
+    params: {use_best: false}
   - type: custom
     name: MyProblem
     source: ./problems/my_problem/      # package with __init__.py

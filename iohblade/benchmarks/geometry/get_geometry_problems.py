@@ -4,6 +4,7 @@ from iohblade.benchmarks.geometry import (
     KissingNumber11D,
     MinMaxMinDistanceRatio,
 )
+from iohblade.benchmarks.suite_utils import with_eval_timeout
 
 # Minimise maximum/min distance ratio.
 best_min_max_min_distance_2D = [
@@ -7808,12 +7809,15 @@ best_kissing_number_11D = [
 ]
 
 
-def get_heilbronn_convex_region_problems(use_best: bool) -> list[HeilbronnConvexRegion]:
+def get_heilbronn_convex_region_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[HeilbronnConvexRegion]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Heilbronn Convex Region benchamarks, as an array.
 
     Args:
         `use_best: bool`: Initialises search algorithm with best known solution for the problem.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -7828,19 +7832,22 @@ def get_heilbronn_convex_region_problems(use_best: bool) -> list[HeilbronnConvex
         hcr2 = HeilbronnConvexRegion(
             14, 0.0278, best_solution=best_solution_heilbronn_convex_region_14
         )
-        return [hcr1, hcr2]
+        return with_eval_timeout([hcr1, hcr2], eval_timeout)
 
     hcr1 = HeilbronnConvexRegion(13, 0.0309)
     hcr2 = HeilbronnConvexRegion(14, 0.0278)
-    return [hcr1, hcr2]
+    return with_eval_timeout([hcr1, hcr2], eval_timeout)
 
 
-def get_heilbronn_triangle_problems(use_best: bool) -> list[HeilbronnTriangle]:
+def get_heilbronn_triangle_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[HeilbronnTriangle]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Heilbronn Triangle benchamarks, as an array.
 
     Args:
         `use_best: bool`: Initialises search algorithm with best known solution for the problem.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -7854,17 +7861,20 @@ def get_heilbronn_triangle_problems(use_best: bool) -> list[HeilbronnTriangle]:
             best_solution=best_solution_helibronn_tirangle_11,
             triangle_best_solution=best_triangle_helibronn_triangle_11,
         )
-        return [ht1]
+        return with_eval_timeout([ht1], eval_timeout)
     ht1 = HeilbronnTriangle(11, 0.0365)
-    return [ht1]
+    return with_eval_timeout([ht1], eval_timeout)
 
 
-def get_kissing_number_11D_problems(use_best: bool) -> list[KissingNumber11D]:
+def get_kissing_number_11D_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[KissingNumber11D]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Kissing Number 11D benchamarks, as an array.
 
     Args:
         `use_best: bool`: Initialises search algorithm with best known solution for the problem.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -7873,17 +7883,20 @@ def get_kissing_number_11D_problems(use_best: bool) -> list[KissingNumber11D]:
     """
     if use_best:
         kn = KissingNumber11D(best_solution=best_kissing_number_11D)
-        return [kn]
+        return with_eval_timeout([kn], eval_timeout)
     kn = KissingNumber11D()
-    return [kn]
+    return with_eval_timeout([kn], eval_timeout)
 
 
-def get_min_max_dist_ratio_problem(use_best: bool) -> list[MinMaxMinDistanceRatio]:
+def get_min_max_dist_ratio_problem(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[MinMaxMinDistanceRatio]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Min Dist / Max Distance benchamarks, as an array.
 
     Args:
         `use_best: bool`: Initialises search algorithm with best known solution for the problem.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -7898,9 +7911,9 @@ def get_min_max_dist_ratio_problem(use_best: bool) -> list[MinMaxMinDistanceRati
             14, 3, 4.165849767, best_solution=best_min_max_min_distance_3D
         )
 
-        return [min_max_2D, min_max_3D]
+        return with_eval_timeout([min_max_2D, min_max_3D], eval_timeout)
 
     min_max_2D = MinMaxMinDistanceRatio(16, 2, 12.889266112)
     min_max_3D = MinMaxMinDistanceRatio(14, 3, 4.165849767)
 
-    return [min_max_2D, min_max_3D]
+    return with_eval_timeout([min_max_2D, min_max_3D], eval_timeout)

@@ -57,6 +57,74 @@ ML Pipeline Optimization
 
 ------------------------------------------------------------------------------------
 
+.. _default_suites:
+
+Default Suites
+--------------
+
+Default suites are named sets of problems with fixed settings, defined in
+:mod:`iohblade.benchmarks.suites`. Use them in a YAML experiment with
+``suite:``; their ``params`` apply to every problem in the suite.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 32 50
+
+   * - Suite
+     - Problems
+     - Settings (defaults)
+   * - ``bbob``
+     - 5: one per BBOB function group (``BBOB-g<group>-<dim>d``)
+     - ``dim=10``, ``budget_factor=2000``; instances 1-5 of each function
+       for training, 6-15 for testing (``n_train``, ``n_test``);
+       ``groups`` selects groups.
+   * - ``ma_bbob``
+     - 1 (``MA_BBOB-<dim>d``)
+     - ``dim=10``, ``budget_factor=2000``; instances 0-24 for training,
+       25-74 for testing.
+   * - ``continuous_bbo``
+     - 6: ``bbob`` and ``ma_bbob``
+     - ``dim``, ``budget_factor`` for all six problems.
+   * - ``alphaevolve_math``
+     - 17: auto-correlation inequalities, Erdős minimum overlap, the
+       uncertainty inequality, hexagon/rectangle/unit-square packing,
+       Heilbronn problems, kissing number 11-D, min/max distance ratios,
+       sums versus differences
+     - ``use_best=False`` (show the best known solution as the example),
+       ``eval_timeout=600``.
+   * - ``combinatorial``
+     - 6: Euclidean Steiner trees (50, 100, 250 points), graph colouring,
+       TSP and CVRP (``A-n53-k7``)
+     - ``eval_timeout=300``.
+   * - ``quick``
+     - 5: BBOB groups 1 and 4, circle packing, Heilbronn triangle, TSP
+     - ``dim=5``, ``budget_factor=1000``; for trying out a setup.
+   * - ``full``
+     - 31: ``continuous_bbo``, ``alphaevolve_math``, ``combinatorial``,
+       circle packing and spherical codes
+     - ``dim``, ``budget_factor``, ``use_best``;
+       ``include_matrix_multiplication`` adds the 54 matrix multiplication
+       problems.
+
+**Evaluation timeouts.** Every problem takes ``eval_timeout`` (seconds per
+evaluation, at least 120). The defaults are 600 s for the mathematical
+problems, 300 s for the combinatorial ones, and for ``bbob`` and
+``ma_bbob`` 1 ms per function evaluation of the training runs (500 s for a
+5-function group, or MA-BBOB, in 10-D with budget factor 2000), at least
+120 s. Set ``eval_timeout`` in ``params`` to change it.
+
+The AlphaEvolve suites (``auto_correlation``, ``hexagon_packing``, ...)
+all take ``use_best`` (default ``false``) and ``eval_timeout``; the packing
+suites still accept the old name ``get_best``.
+
+.. code-block:: yaml
+
+   problems:
+     - suite: continuous_bbo
+       params: {dim: 10, budget_factor: 2000}
+     - suite: alphaevolve_math
+       params: {use_best: false}
+
 .. _list_of_benchmarks:
 List of Benchmarks
 ------------------

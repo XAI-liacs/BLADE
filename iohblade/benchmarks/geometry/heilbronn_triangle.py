@@ -27,6 +27,7 @@ class HeilbronnTriangle(GeometryBase, Problem):
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float]] | None = None,
         triangle_best_solution: list[tuple[float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         GeometryBase.__init__(
             self,
@@ -35,7 +36,9 @@ class HeilbronnTriangle(GeometryBase, Problem):
             tolerance=tolerance,
             best_known=best_known if best_known is not None else float("-inf"),
         )
-        Problem.__init__(self, name=f"heilbronn_triangle-n{n_points}")
+        Problem.__init__(
+            self, name=f"heilbronn_triangle-n{n_points}", eval_timeout=eval_timeout
+        )
 
         if best_solution:
             if triangle_best_solution is None:

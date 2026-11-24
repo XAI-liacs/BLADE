@@ -1,4 +1,5 @@
 from iohblade.benchmarks.combinatorics import ErdosMinOverlap
+from iohblade.benchmarks.suite_utils import with_eval_timeout
 
 # Left half (48 step heights) of the AlphaEvolve construction, from section
 # B.5 of the AlphaEvolve results notebook. The full step function is
@@ -61,12 +62,15 @@ best_solution_half = [
 best_solution = best_solution_half[:-1] + best_solution_half[::-1]
 
 
-def get_combinatorics_problems(use_best: bool) -> list[ErdosMinOverlap]:
+def get_combinatorics_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[ErdosMinOverlap]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Erdos Minimum Overlap Problem benchamarks, as an array.
 
     Args:
         `use_best : bool`: Provide LLM with the best known solution to start search at.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -75,6 +79,6 @@ def get_combinatorics_problems(use_best: bool) -> list[ErdosMinOverlap]:
     """
     if use_best:
         em1 = ErdosMinOverlap(best_solution=best_solution)
-        return [em1]
+        return with_eval_timeout([em1], eval_timeout)
     em1 = ErdosMinOverlap()
-    return [em1]
+    return with_eval_timeout([em1], eval_timeout)

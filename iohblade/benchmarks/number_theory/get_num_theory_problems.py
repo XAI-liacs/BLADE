@@ -1,3 +1,5 @@
+from iohblade.benchmarks.suite_utils import with_eval_timeout
+
 from .sums_vs_differences import SumDifference
 
 # AlphaEvolve construction from the results notebook, section B.6
@@ -2011,12 +2013,15 @@ best_solution = [
 ]
 
 
-def get_sum_vs_difference_problem(use_best: bool) -> list[SumDifference]:
+def get_sum_vs_difference_problem(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[SumDifference]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Sums vs Difference benchamarks, as an array.
 
     Args:
         `use_best: bool`: Tries to use best known solution as an initial population in LLM provided solutions.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -2025,6 +2030,6 @@ def get_sum_vs_difference_problem(use_best: bool) -> list[SumDifference]:
 
     if use_best:
         sums_vs_difference = SumDifference(best_solution=best_solution)
-        return [sums_vs_difference]
+        return with_eval_timeout([sums_vs_difference], eval_timeout)
     sums_vs_difference = SumDifference()
-    return [sums_vs_difference]
+    return with_eval_timeout([sums_vs_difference], eval_timeout)

@@ -20,6 +20,18 @@ CODE = re.compile(r"```(?:python)?\n(.*?)\n```", re.S)
 # Problems that need network data, GPUs or optional dependency groups.
 SKIPPED = {"automl", "kerneltuner", "photonics"}
 
+# Default suites (iohblade.benchmarks.suites) combine problems covered
+# elsewhere; tests/unit/test_suites.py checks their contents.
+DEFAULT_SUITES = {
+    "bbob",
+    "ma_bbob",
+    "continuous_bbo",
+    "alphaevolve_math",
+    "combinatorial",
+    "quick",
+    "full",
+}
+
 
 def _problem_instances():
     cases = {
@@ -49,6 +61,8 @@ def _problem_instances():
         ],
     }
     for suite in registry.keys("suite"):
+        if suite in DEFAULT_SUITES:
+            continue
         if suite == "matrix_multiplication":
             cases[f"suite:{suite}"] = lambda s=suite: [
                 registry.resolve("suite", s)()[i] for i in (0, 27, 53)
@@ -56,7 +70,7 @@ def _problem_instances():
             continue
         for best in (False, True):
             cases[f"suite:{suite}:best={best}"] = (
-                lambda s=suite, b=best: registry.resolve("suite", s)(b)
+                lambda s=suite, b=best: registry.resolve("suite", s)(use_best=b)
             )
     return cases
 
@@ -72,8 +86,9 @@ def test_every_builtin_problem_is_covered():
         covered.add(key)
     problems_from_suites = set()
     for suite in registry.keys("suite"):
-        args = () if suite == "matrix_multiplication" else (False,)
-        for problem in registry.resolve("suite", suite)(*args):
+        if suite in DEFAULT_SUITES:
+            continue
+        for problem in registry.resolve("suite", suite)():
             problems_from_suites.add(type(problem).__name__)
     missing = []
     for key in registry.keys("problem"):

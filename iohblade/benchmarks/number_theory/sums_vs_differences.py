@@ -35,17 +35,31 @@ class SumDifference(NumberTheoryBase, Problem):
     def __init__(
         self,
         max_set_size: int = DEFAULT_MAX_SET_SIZE,
-        best_score=1.147989,
+        best_known: float = 1.147989,
         best_solution: list[int] | None = None,
         max_value: int = MAX_VALUE,
+        eval_timeout: int = 600,
+        best_score: float | None = None,
     ):
+        """
+        Args:
+            max_set_size: Maximum size of the set U.
+            best_known: Best known score c(U) (reported with the results).
+            best_solution: A known set U, shown as the example when given.
+            max_value: Maximum element of U.
+            eval_timeout: Seconds before an evaluation is stopped.
+            best_score: Old name of ``best_known``, kept for compatibility.
+        """
         task_name = "sums_vs_differences"
         self.max_set_size = int(max_set_size)
         self.max_value = int(max_value)
-        self.best_score = best_score
+        if best_score is not None:
+            best_known = best_score
+        self.best_known = best_known
+        self.best_score = best_known  # old attribute name
 
         NumberTheoryBase.__init__(self, task_name, best_solution)
-        Problem.__init__(self, task_name)
+        Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
         print(f"""
 --------------------------------------------------------------------------------------------------------------------

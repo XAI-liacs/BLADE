@@ -22,8 +22,11 @@ class MinMaxMinDistanceRatio(Problem):
         best_known: float | None = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple] | None = None,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name=f"min_max_min_distance_ratio-{dim}d")
+        super().__init__(
+            name=f"min_max_min_distance_ratio-{dim}d", eval_timeout=eval_timeout
+        )
         self.n_points = int(n_points)
         self.dim = int(dim)
         self.tolerance = float(tolerance)

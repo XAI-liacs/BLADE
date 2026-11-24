@@ -21,6 +21,7 @@ class SphericalCode(Problem):
         best_known: Optional[float] = 0.6736467551690225,
         tolerance: float = 1e-12,
         logger=None,
+        eval_timeout: int = 600,
     ):
         self.n_points = n_points
         self.best_known = best_known
@@ -30,8 +31,9 @@ class SphericalCode(Problem):
         Problem.__init__(
             self,
             logger=logger,
-            name=f"spherical-code-n30",
+            name=f"spherical-code-n{n_points}",
             dependencies=["scipy", "shapely"],
+            eval_timeout=eval_timeout,
         )
         ## Set prompts:
         self.task_prompt = textwrap.dedent(f"""

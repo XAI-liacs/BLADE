@@ -31,13 +31,13 @@ class Container:
 
 
 class CirclePacking(Problem):
-    def __init__(self, tolerance=1e-12):
+    def __init__(self, tolerance=1e-12, eval_timeout: int = 600):
         self.container = Container(0, 0, 0)
         self.candidate_radii: list[float] = []
         self.n_circles = 0
         self.tolerance = tolerance
         self._read_file()
-        Problem.__init__(self, name="circle_packing_n40")
+        Problem.__init__(self, name="circle_packing_n40", eval_timeout=eval_timeout)
         self.minimisation = False
         ## Prompts;
         self.task_prompt = textwrap.dedent(f"""

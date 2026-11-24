@@ -20,7 +20,10 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
     """
 
     def __init__(
-        self, best_known: float = 1.5053, best_solution: list[float] | None = None
+        self,
+        best_known: float = 1.5053,
+        best_solution: list[float] | None = None,
+        eval_timeout: int = 600,
     ):
         """Initialisation of Auto Correlation Inequality 1, sets task_name, n_bins = know benchmark configuration.
 
@@ -35,7 +38,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
             best_known=best_known,
             best_solution=best_solution,
         )
-        Problem.__init__(self, name=self.task_name)
+        Problem.__init__(self, name=self.task_name, eval_timeout=eval_timeout)
 
         self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
         self.example_prompt = self.make_example_prompt("AutoCorrCandidate_1")

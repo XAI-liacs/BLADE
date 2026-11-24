@@ -27,6 +27,7 @@ class RectanglePacking(PackingBase, Problem):
         tolerance: float = 1e-12,
         best_known=2.3658,
         best_solution: list[tuple[float, float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         self.n_circles = int(n_circles)
         self.perimeter = float(perimeter)
@@ -36,7 +37,7 @@ class RectanglePacking(PackingBase, Problem):
 
         task_name = f"rectangle_packing_n{self.n_circles}_perim{self.perimeter:g}"
         PackingBase.__init__(self, task_name, best_solution=best_solution)
-        Problem.__init__(self, name=task_name)
+        Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
         print(f"""
 --------------------------------------------------------------------------------------------------------------------

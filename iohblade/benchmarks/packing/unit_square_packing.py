@@ -18,6 +18,7 @@ class UnitSquarePacking(PackingBase, Problem):
         best_known: float = False,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         self.n_circles = int(n_circles)
         self.tolerance = float(tolerance)
@@ -26,7 +27,7 @@ class UnitSquarePacking(PackingBase, Problem):
 
         task_name = f"unit_square_packing_n{self.n_circles}"
         PackingBase.__init__(self, task_name, best_solution=best_solution)
-        Problem.__init__(self, name=task_name)
+        Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
         print(f"""
 --------------------------------------------------------------------------------------------------------------------

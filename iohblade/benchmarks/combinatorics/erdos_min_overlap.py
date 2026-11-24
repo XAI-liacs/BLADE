@@ -38,8 +38,9 @@ class ErdosMinOverlap(Problem):
         best_known=0.380924,
         best_solution: list[float] | None = None,
         max_bins: int = 100_000,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name=task_name)
+        super().__init__(name=task_name, eval_timeout=eval_timeout)
         self.task_name = task_name
         self.n_bins = n_bins
         # Upper bound on len(f). The overlap is computed with an FFT, so the

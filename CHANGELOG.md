@@ -137,8 +137,43 @@ see "Breaking changes" for the two exceptions.
   and MoEH, whose mutation and crossover prompts now also start with the
   task description, as in EoH.
 
+- **Default benchmark suites:** new suites in `iohblade.benchmarks.suites`,
+  registered for YAML (`- suite: <name>`):
+  - `bbob`: one BBOB problem per function group (5 problems). Instances 1-5
+    of each function are for training and 6-15 for testing.
+  - `ma_bbob`: MA-BBOB, with instances 0-24 for training and 25-74 for
+    testing.
+  - `continuous_bbo`: `bbob` and `ma_bbob` together.
+  - `alphaevolve_math`: the 17 AlphaEvolve mathematical problems.
+  - `combinatorial`: Steiner trees, graph colouring, TSP and CVRP.
+  - `quick`: a small cross-domain set.
+  - `full`: all of the above, plus circle packing and spherical codes;
+    optionally also matrix multiplication.
+
+  `dim` (default 10) and `budget_factor` (default 2000) apply to all
+  continuous problems of a suite. Example:
+  `examples/configs/default_suites.yml`.
+- **Evaluation timeouts:** every built-in problem and suite takes
+  `eval_timeout`, with a default of at least 120 s. The AlphaEvolve problems
+  default to 600 s (previously a fixed 6000 s), and the combinatorial
+  problems to 300 s. MA-BBOB now defaults to 120 s instead of 60 s. In the
+  default suites, BBOB and MA-BBOB get 1 ms per function evaluation (at
+  least 120 s).
+- **Suite flags:** every AlphaEvolve suite takes `use_best`, which is now
+  optional and defaults to `false`. The packing suites used `get_best`;
+  that name still works as an alias.
+
 ### Bug fixes
 
+- `sum_vs_difference`: the problem was named `"Problem"`, because its name
+  was passed as the `logger` argument, and its reference value was stored as
+  `best_score` instead of `best_known`. It is now named
+  `sums_vs_differences`, takes `best_known` (`best_score` still works) and
+  sets both attributes.
+- Graph colouring problems were named after their bare id (for example
+  `"1"`); they are now named `graph_coloring-gcol<id>`.
+- `SphericalCode` used the fixed name `spherical-code-n30` for any
+  `n_points`; it now uses its `n_points`.
 - **Optimisation direction (#201).** On minimisation problems (TSP, VRP,
   graph colouring, hexagon packing, ...) a failed evaluation could become
   the best solution:
