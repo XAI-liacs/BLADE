@@ -762,13 +762,6 @@ class DeepSeek_LLM(OpenAI_LLM):
             **kwargs,
         )
 
-    def get_config(self) -> list[dict[str, Any]]:
-        llm_config = self._client_kwargs.copy()
-        llm_config.pop("api_key")
-        llm_config["temperature"] = self.temperature
-        config = {"model": f"{self.model}", "config": llm_config, "hardware": {}}
-        return [config]
-
 
 def _gemini_retryable(err) -> bool:
     """Whether a google-genai error is worth retrying."""

@@ -357,6 +357,9 @@ def test_deepseek_keeps_its_base_url():
     llm = DeepSeek_LLM("key")
     assert str(llm.client.base_url).rstrip("/") == "https://api.deepseek.com"
     assert llm.get_config()[0]["config"]["base_url"] == "https://api.deepseek.com"
+    with_body = DeepSeek_LLM("key", extra_body={"max_tokens": 9})
+    config = with_body.get_config()[0]["config"]
+    assert config["extra_body"] == {"max_tokens": 9} and "api_key" not in config
 
 
 def test_openai_compatible_server_from_yaml(tmp_path):
