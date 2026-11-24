@@ -4,6 +4,7 @@ from typing import Any
 import numpy as np
 
 from iohblade.benchmarks.packing.packing_base import PackingBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -39,11 +40,9 @@ class RectanglePacking(PackingBase, Problem):
         PackingBase.__init__(self, task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Rectangle packing problem with rectangle perimeter = {self.perimeter}, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Rectangle packing problem with rectangle perimeter = {self.perimeter}, and best solution: {self.best_known}."
+        )
 
         headline = (
             f"Pack n disjoint circles inside a rectangle of perimeter {self.perimeter}."

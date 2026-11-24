@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 
 from iohblade.benchmarks.number_theory.number_theory_base import NumberTheoryBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -61,11 +62,9 @@ class SumDifference(NumberTheoryBase, Problem):
         NumberTheoryBase.__init__(self, task_name, best_solution)
         Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
 
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Sums vs Difference benchmark with best known solution {self.best_score}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Sums vs Difference benchmark with best known solution {self.best_score}."
+        )
 
         # Prompting strings used by the outer orchestration, if any.
         self.task_prompt = self.make_task_prompt(

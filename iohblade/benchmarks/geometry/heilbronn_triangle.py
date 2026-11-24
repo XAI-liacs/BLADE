@@ -5,6 +5,7 @@ from typing import Any, Optional
 import numpy as np
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 
@@ -49,11 +50,9 @@ class HeilbronnTriangle(GeometryBase, Problem):
             self.triangle_best_solution = None
         self.best_solution = best_solution
 
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Heibronn Triangle Problem with number of points: {self.n_points}, and best solution: {self.best_known}."
+        )
 
         self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Heilbronn on a unit area triangle.

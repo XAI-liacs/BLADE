@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 
@@ -51,11 +52,9 @@ class MinMaxMinDistanceRatio(Problem):
             raise ValueError("dim must be >= 1")
 
         self.best_known = best_known
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Min / Max distance ratio problem in {self.dim} dimensions, and best solution: {self.best_known}."
+        )
         self.minimisation = True
         self.dependencies += ["scipy", "scikit-learn"]
 

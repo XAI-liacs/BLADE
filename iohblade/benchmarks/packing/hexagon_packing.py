@@ -4,6 +4,7 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -37,11 +38,9 @@ class HexagonPacking(PackingBase, Problem):
         PackingBase.__init__(self, name=task_name, best_solution=best_solution)
         Problem.__init__(self, name=task_name, eval_timeout=eval_timeout)
         self.n_hex = int(n_hex)
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Hexagon Packing Problem with number of hexagons: {self.n_hex}, and best solution: {self.best_known}."
+        )
         self.tolerance = float(tolerance)
         self.minimisation = True
         self.dependencies += ["scipy"]

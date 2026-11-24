@@ -159,6 +159,9 @@ see "Breaking changes" for the two exceptions.
   problems to 300 s. MA-BBOB now defaults to 120 s instead of 60 s. In the
   default suites, BBOB and MA-BBOB get 1 ms per function evaluation (at
   least 120 s).
+- **Quieter suites:** the AlphaEvolve problems no longer print a banner
+  when they are created. The message is logged at DEBUG level on the
+  `iohblade.benchmarks` logger.
 - **Suite flags:** every AlphaEvolve suite takes `use_best`, which is now
   optional and defaults to `false`. The packing suites used `get_best`;
   that name still works as an alias.

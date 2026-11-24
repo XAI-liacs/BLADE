@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 
 """
@@ -53,10 +54,7 @@ class AutoCorrBaseSpec:
         best_known: float,
         best_solution: list[float] | None,
     ):
-        print(f"""
-              --------------------------------------------------------
-              Instantiated {task_name}, best known score is {best_known}.
-              --------------------------------------------------------""")
+        log_instantiated(f"Instantiated {task_name}, best known score is {best_known}.")
         self.best_solution = best_solution
         valid_task_names = ["auto_corr_ineq_1", "auto_corr_ineq_2", "auto_corr_ineq_3"]
         if task_name not in valid_task_names:

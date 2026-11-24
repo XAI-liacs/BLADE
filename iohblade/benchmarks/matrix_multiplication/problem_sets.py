@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Tuple
 from iohblade.benchmarks.matrix_multiplication.task_specification import (
     MatMulTensorDecomposition,
 )
+from iohblade.benchmarks.suite_utils import log_instantiated
 
 from .constants import MATMUL_RANKS
 
@@ -128,7 +129,7 @@ def default_problems(eval_timeout: int = 600) -> List[MatMulTensorDecomposition]
         )
         for (n, m, p) in sizes
     ]
-    print(
+    log_instantiated(
         f"Running full benchmark suite: {len(problems)} matrix-multiplication problems"
     )
 

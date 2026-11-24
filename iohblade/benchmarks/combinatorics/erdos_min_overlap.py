@@ -9,6 +9,7 @@ from typing import Any
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -51,11 +52,9 @@ class ErdosMinOverlap(Problem):
         self.tolerance = tolerance
         self.best_known = best_known
         self.best_solution = best_solution
-        print(f"""
--------------------------------------------------------------------
-Instantiated Erdös Min Overlap Problem, best known {self.best_known}.
--------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Erdös Min Overlap Problem, best known {self.best_known}."
+        )
 
         self.minimisation = True
         self.dependencies += ["scipy"]
