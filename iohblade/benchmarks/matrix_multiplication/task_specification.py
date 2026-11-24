@@ -8,8 +8,10 @@ from iohblade.solution import Solution
 
 
 class MatMulTensorDecomposition(Problem):
-    def __init__(self, n: int, m: int, p: int, grid: int, rank: int) -> None:
-        super().__init__(name=f"mat_mult<{n},{m},{p}>")
+    def __init__(
+        self, n: int, m: int, p: int, grid: int, rank: int, eval_timeout: int = 600
+    ) -> None:
+        super().__init__(name=f"mat_mult<{n},{m},{p}>", eval_timeout=eval_timeout)
         self.n: int = n
         self.m: int = m
         self.p: int = p

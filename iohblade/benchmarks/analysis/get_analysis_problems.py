@@ -1,6 +1,7 @@
 from typing import Optional
 
 from iohblade.benchmarks.analysis import AutoCorrIneq1, AutoCorrIneq2, AutoCorrIneq3
+from iohblade.benchmarks.suite_utils import with_eval_timeout
 
 from .auto_correlation_base_spec import AutoCorrBaseSpec
 
@@ -1062,11 +1063,14 @@ ac3_best = [
 ]
 
 
-def get_analysis_problems(use_best: bool) -> list[AutoCorrBaseSpec]:
+def get_analysis_problems(
+    use_best: bool = False, eval_timeout: int = 600
+) -> list[AutoCorrBaseSpec]:
     """
     `get_x_problems` returns the whole set of said benchmark category. Here it returns Auto Correlation Inequality 1-3 benchamarks, as an array.
     Args:
         `use_best: bool` : Tries using best known solution as the initial population in llm's solution.
+        eval_timeout: Seconds before an evaluation is stopped (default 600).
 
     Returns:
         An array of benchmark objects as follows:
@@ -1079,9 +1083,9 @@ def get_analysis_problems(use_best: bool) -> list[AutoCorrBaseSpec]:
         ac1 = AutoCorrIneq1(best_solution=ac1_best)
         ac2 = AutoCorrIneq2(best_solution=ac2_best)
         ac3 = AutoCorrIneq3(best_solution=ac3_best)
-        return [ac1, ac2, ac3]
+        return with_eval_timeout([ac1, ac2, ac3], eval_timeout)
 
     ac1 = AutoCorrIneq1()
     ac2 = AutoCorrIneq2()
     ac3 = AutoCorrIneq3()
-    return [ac1, ac2, ac3]
+    return with_eval_timeout([ac1, ac2, ac3], eval_timeout)

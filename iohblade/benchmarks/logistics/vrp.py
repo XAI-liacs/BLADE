@@ -25,7 +25,7 @@ class Location:
 
 
 class VehicleRoutingProblem(Problem):
-    def __init__(self, benchmark_id):
+    def __init__(self, benchmark_id, eval_timeout: int = 300):
         self.customers: list[Location] = []
         self.depot: Location = Location(0, 0, 0, 0)
         self.vehicle_capacity = 0.0
@@ -35,7 +35,7 @@ class VehicleRoutingProblem(Problem):
         self.minimisation = True
         self._readfile(benchmark_id)
 
-        Problem.__init__(self, name=f"CVRP-{self.benchmark}")
+        Problem.__init__(self, name=f"CVRP-{self.benchmark}", eval_timeout=eval_timeout)
 
         self.task_prompt = textwrap.dedent("""
 Write a python class with function `__call__`, that generate a solution for Capacitated Vehicle Routing Problem.

@@ -4,6 +4,7 @@ import textwrap
 from typing import Any, Optional
 
 from iohblade.benchmarks.geometry.geometry_base_class import GeometryBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import (
     _add_builtins_into,
     clean_local_namespace,
@@ -29,6 +30,7 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
         best_known: Optional[float] = None,
         tolerance: float = 1e-12,
         best_solution: list[tuple[float, float]] | None = None,
+        eval_timeout: int = 600,
     ):
         GeometryBase.__init__(
             self,
@@ -43,12 +45,12 @@ class HeilbronnConvexRegion(GeometryBase, Problem):
         else:
             self.best_solution = None
 
-        print(f"""
-------------------------------------------------------------------------------------------------------------------------
-Instantiated Heibronn Convex Region Problem with number of points: {self.n_points}, and best solution: {self.best_known}.
-------------------------------------------------------------------------------------------------------------------------
-""")
-        Problem.__init__(self, name=f"heilbronn_convex_region-n{n_points}")
+        log_instantiated(
+            f"Instantiated Heibronn Convex Region Problem with number of points: {self.n_points}, and best solution: {self.best_known}."
+        )
+        Problem.__init__(
+            self, name=f"heilbronn_convex_region-n{n_points}", eval_timeout=eval_timeout
+        )
 
         self.dependencies += ["scipy", "shapely"]
         allowed = self.dependencies.copy()

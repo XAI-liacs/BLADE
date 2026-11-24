@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 from numpy.typing import NDArray
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 
 """
@@ -53,10 +54,7 @@ class AutoCorrBaseSpec:
         best_known: float,
         best_solution: list[float] | None,
     ):
-        print(f"""
-              --------------------------------------------------------
-              Instantiated {task_name}, best known score is {best_known}.
-              --------------------------------------------------------""")
+        log_instantiated(f"Instantiated {task_name}, best known score is {best_known}.")
         self.best_solution = best_solution
         valid_task_names = ["auto_corr_ineq_1", "auto_corr_ineq_2", "auto_corr_ineq_3"]
         if task_name not in valid_task_names:
@@ -107,12 +105,19 @@ Write a python class with function `__call__`, that returns a list of floats f o
 
     def make_example_prompt(self, class_name: str) -> str:
         initialiser = ""
+        body = f"""        # Simple baseline: a constant (box) function over all N bins.
+        N = {self.n_bins}
+        return [1.0] * N
+"""
         if self.best_solution is not None:
             initialiser = """
     def __init__(self, best_known_configuration=None):
         # Accepts a best known configuration (if available) for the problem,
         # as an initial configuration, which can then be optimised further.
         self.best_known_configuration = best_known_configuration
+"""
+            body = """        # Baseline: return the best known configuration unchanged.
+        return list(self.best_known_configuration)
 """
 
         return f"""
@@ -121,10 +126,7 @@ An example template of such program is given by:
 ```python
 class {class_name}:{initialiser}
     def __call__(self):
-        # Simple baseline: a constant (box) function over all N bins.
-        N = {self.n_bins}
-        return [1.0] * N
-```
+{body}```
 
 """
 

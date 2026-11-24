@@ -7,6 +7,7 @@ from numpy.polynomial.hermite import herm2poly, hermval
 from numpy.polynomial.polynomial import polyval
 
 from iohblade.benchmarks.fourier.fourier_base import FourierBase
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -31,6 +32,7 @@ class UncertaintyInequality(FourierBase, Problem):
         n_terms: int = 3,
         best_known: float = 0.3521,
         best_solution: list[float] | None = None,
+        eval_timeout: int = 600,
     ):
         FourierBase.__init__(
             self,
@@ -38,17 +40,15 @@ class UncertaintyInequality(FourierBase, Problem):
             n_terms=n_terms,
             best_known_configuration=best_solution,
         )
-        Problem.__init__(self, name="fourier_uncertainty_C4")
+        Problem.__init__(self, name="fourier_uncertainty_C4", eval_timeout=eval_timeout)
         self.task_prompt = self.make_task_prompt("minimize  r_max^2 / (2*pi)")
         self.example_prompt = self.make_example_prompt("FourierCandidate")
         self.format_prompt = self.make_format_prompt()
 
         self.best_known = best_known
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Fourier Uncertainty Inequality problem with number of terms = {self.n_terms}, best known {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Fourier Uncertainty Inequality problem with number of terms = {self.n_terms}, best known {self.best_known}."
+        )
 
         self.dependencies += ["scipy"]
         self.minimisation = True

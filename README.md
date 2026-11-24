@@ -105,6 +105,14 @@ BLADE incorporates several benchmark function sets to provide a comprehensive ev
 
 In addition, several real-world applications are included.
 
+**Default suites.** Named sets of problems with fixed settings, for YAML
+experiments (`- suite: <name>`): `bbob` (one problem per BBOB function group,
+10-D, instances 1-5 for training and 6-15 for testing), `ma_bbob`,
+`continuous_bbo`, `alphaevolve_math`, `combinatorial`, `quick` and `full`.
+`dim` and `budget_factor` apply to a whole suite. See the
+[Default Suites](https://xai-liacs.github.io/BLADE/benchmarks.html#default-suites)
+documentation and `examples/configs/default_suites.yml`.
+
 ### Real World Benchmarks
 
 | Name | Description |

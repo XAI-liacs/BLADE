@@ -52,7 +52,20 @@ class NumberTheoryBase:
     def __init__(self, max_size=100):
         self.max_size = max_size
 """
+        body = f"""        # Must return U ⊂ ℤ≥0 with 0 ∈ U, |U| ≤ self.max_size and
+        # max(U) ≤ {max_value}.
+        # Simple constructive baseline: start with 0, then add increasing gaps.
+        U = [0]
+        gap = 1
+        while len(U) < self.max_size and U[-1] + gap <= {max_value}:
+            U.append(U[-1] + gap)
+            gap += 1
+        return U
+"""
         if self.best_solution is not None:
+            body = """        # Baseline: return the best known configuration unchanged.
+        return list(self.best_known_configuration)
+"""
             initialiser = """
     def __init__(self, max_size=100, best_known_configuration=None):
         self.max_size = max_size
@@ -65,16 +78,7 @@ An example template of the program is:
 ```python
 class {class_name}:{initialiser}
     def __call__(self):
-        # Must return U ⊂ ℤ≥0 with 0 ∈ U, |U| ≤ self.max_size and
-        # max(U) ≤ {max_value}.
-        # Simple constructive baseline: start with 0, then add increasing gaps.
-        U = [0]
-        gap = 1
-        while len(U) < self.max_size and U[-1] + gap <= {max_value}:
-            U.append(U[-1] + gap)
-            gap += 1
-        return U
-```
+{body}```
 """
 
     def make_format_prompt(self) -> str:

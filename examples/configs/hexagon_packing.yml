@@ -45,7 +45,7 @@ methods:
 
 problems:
   - suite: hexagon_packing        # expands into one problem per instance
-    params: {get_best: false}
+    params: {use_best: false}
   # A single instance instead:
   # - type: hexagon_packing
   #   params: {n_hex: 11}

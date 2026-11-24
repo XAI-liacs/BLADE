@@ -6,6 +6,7 @@ from typing import Any
 
 import numpy as np
 
+from iohblade.benchmarks.suite_utils import log_instantiated
 from iohblade.misc.prepare_namespace import clean_local_namespace, prepare_namespace
 from iohblade.problem import Problem
 from iohblade.solution import Solution
@@ -31,17 +32,16 @@ class KissingNumber11D(Problem):
         tolerance: float = 0.0,
         best_known: int = 593,
         best_solution: list[list[int]] | None = None,
+        eval_timeout: int = 600,
     ):
-        super().__init__(name="kissing_number_11d")
+        super().__init__(name="kissing_number_11d", eval_timeout=eval_timeout)
         self.dim = 11
         self.tolerance = float(tolerance)
         self.best_solution = best_solution
         self.best_known = best_known
-        print(f"""
---------------------------------------------------------------------------------------------------------------------
-Instantiated Kissing Number {self.dim}D, and best solution: {self.best_known}.
---------------------------------------------------------------------------------------------------------------------
-""")
+        log_instantiated(
+            f"Instantiated Kissing Number {self.dim}D, and best solution: {self.best_known}."
+        )
         self.dependencies += ["scipy"]
         self.minimisation = False
 
