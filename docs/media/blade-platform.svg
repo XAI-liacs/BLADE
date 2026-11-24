@@ -36,7 +36,7 @@
 <text x="110" y="336" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#14161c" font-weight="500" text-anchor="start" xml:space="preserve" >Python API</text>
 <g transform="translate(68,360) scale(1.25)" fill="none" stroke="#4a4f5c" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round"><path d="M7 8h10v9H7zM12 4v4M9.5 12h.01M14.5 12h.01M10 15h4M4 11v3M20 11v3"/></g>
 <text x="110" y="382" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#14161c" font-weight="500" text-anchor="start" xml:space="preserve" >Coding-agent skill</text>
-<rect x="62" y="420" width="356" height="500" rx="14" fill="#0b0d12"/>
+<rect x="62" y="420" width="356" height="500" rx="14" fill="#0b0d12" stroke="#0b0d12" stroke-width="1.5"/>
 <circle cx="86" cy="442" r="6" fill="#ff5f57"/>
 <circle cx="106" cy="442" r="6" fill="#febc2e"/>
 <circle cx="126" cy="442" r="6" fill="#28c840"/>

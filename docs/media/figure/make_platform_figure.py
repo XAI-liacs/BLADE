@@ -22,18 +22,44 @@ ROOT = Path(__file__).resolve().parents[3]
 HERE = Path(__file__).resolve().parent
 ICONS = HERE / "icons"
 OUT = ROOT / "docs" / "media" / "blade-platform.svg"
+OUT_DARK = ROOT / "docs" / "media" / "blade-platform-dark.svg"
 
 W, H = 2400, 1000
 FONT = "Inter, 'Helvetica Neue', Arial, sans-serif"
 MONO = "'DejaVu Sans Mono', Menlo, Consolas, monospace"
 
-INK, MUTED, BG = "#14161c", "#5b5f6b", "#ffffff"
-COL = {  # accent, tint, strong text
-    "violet": ("#7c5cff", "#f0ecff", "#5a3de0"),
-    "pink": ("#ff7ab6", "#ffecf4", "#c83c7f"),
-    "amber": ("#ffb547", "#fff4e2", "#b8730a"),
-    "grey": ("#8a8f9c", "#f3f4f7", "#4a4f5c"),
+THEMES = {
+    "light": dict(
+        INK="#14161c", MUTED="#5b5f6b", BG="#ffffff", SURFACE="#ffffff",
+        AXIS="#c9ccd6", CARD="#ffd0e4", CODE_BG="#0b0d12", CODE_EDGE="#0b0d12",
+        LEAF="logo.png",
+        COL={  # accent, tint, strong text
+            "violet": ("#7c5cff", "#f0ecff", "#5a3de0"),
+            "pink": ("#ff7ab6", "#ffecf4", "#c83c7f"),
+            "amber": ("#ffb547", "#fff4e2", "#b8730a"),
+            "grey": ("#8a8f9c", "#f3f4f7", "#4a4f5c"),
+        },
+    ),
+    "dark": dict(
+        INK="#eef0f5", MUTED="#a3a8b5", BG="#0b0d12", SURFACE="#12151d",
+        AXIS="#3a3f4c", CARD="#4a2a3c", CODE_BG="#05060a", CODE_EDGE="#2a2e3a",
+        LEAF="logo-dark.png",
+        COL={
+            "violet": ("#7c5cff", "#17142b", "#b8a9ff"),
+            "pink": ("#ff7ab6", "#261320", "#ff9cc9"),
+            "amber": ("#ffb547", "#241b0c", "#ffc76e"),
+            "grey": ("#6b7080", "#151820", "#c3c7d1"),
+        },
+    ),
 }
+
+
+def set_theme(name: str) -> None:
+    """Set the module-level colours used by the drawing helpers."""
+    globals().update(THEMES[name])
+
+
+set_theme("light")
 BRAND = {"mlflow": "#0194E2", "python": "#3776AB", "yaml": "#CB171E"}
 
 parts: list[str] = []
@@ -55,7 +81,7 @@ def icon_uri(name: str) -> str:
 
 
 def leaf_uri() -> str:
-    image = Image.open(ROOT / "logo.png").convert("RGBA")
+    image = Image.open(ROOT / LEAF).convert("RGBA")
     leaf = image.crop((0, 0, image.width, 452))
     buffer = io.BytesIO()
     leaf.save(buffer, format="PNG")
@@ -68,7 +94,7 @@ def rect(x, y, w, h, color="grey", fill=True, r=18, lw=2, dash=None):
     d = f' stroke-dasharray="{dash}"' if dash else ""
     add(
         f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="{r}" '
-        f'fill="{tint if fill else "#ffffff"}" stroke="{accent}" '
+        f'fill="{tint if fill else SURFACE}" stroke="{accent}" '
         f'stroke-width="{lw}"{d}/>'
     )
 
@@ -96,7 +122,7 @@ def chip(x, y, label, color="grey", size=13.5, mono=True):
     w = (0.61 if mono else 0.55) * size * len(label) + 24
     add(
         f'<rect x="{x}" y="{y}" width="{w:.1f}" height="30" rx="15" '
-        f'fill="#ffffff" stroke="{accent}" stroke-width="1.4"/>'
+        f'fill="{SURFACE}" stroke="{accent}" stroke-width="1.4"/>'
     )
     text(x + w / 2, y + 20, label, size, strong, 500, "middle",
          MONO if mono else FONT)
@@ -131,7 +157,7 @@ def arrow(x1, y, x2, color=MUTED):
 def thumb_frame(x, y, s, color):
     accent, _, _ = COL[color]
     add(f'<rect x="{x}" y="{y}" width="{s}" height="{s}" rx="12" '
-        f'fill="#ffffff" stroke="{accent}" stroke-width="1.4"/>')
+        f'fill="{SURFACE}" stroke="{accent}" stroke-width="1.4"/>')
 
 
 def thumb_landscape(x, y, s):
@@ -226,13 +252,13 @@ def mini_tree(x, y, w, h):
         cx, cy = pos(n)
         fill = "#ffb547" if i == best else ("#ff7ab6" if i in path else "#7c5cff")
         add(f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{7 if i == best else 5}" '
-            f'fill="{fill}" stroke="#ffffff" stroke-width="1.5"/>')
+            f'fill="{fill}" stroke="{SURFACE}" stroke-width="1.5"/>')
 
 
 def mini_convergence(x, y, w, h):
     add(f'<line x1="{x}" y1="{y + h}" x2="{x + w}" y2="{y + h}" '
-        f'stroke="#c9ccd6" stroke-width="1.4"/>'
-        f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + h}" stroke="#c9ccd6" '
+        f'stroke="{AXIS}" stroke-width="1.4"/>'
+        f'<line x1="{x}" y1="{y}" x2="{x}" y2="{y + h}" stroke="{AXIS}" '
         f'stroke-width="1.4"/>')
     for k, (color, rate) in enumerate([("#7c5cff", 3.6), ("#ff7ab6", 2.4),
                                        ("#ffb547", 1.5)]):
@@ -312,6 +338,7 @@ def icon_row(x, y, name, label, color, size=16):
 
 # Figure -------------------------------------------------------------------------
 def build() -> str:
+    parts.clear()
     add(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
         f'viewBox="0 0 {W} {H}">')
     add(f'<rect width="{W}" height="{H}" fill="{BG}"/>')
@@ -347,7 +374,7 @@ def build() -> str:
     text(x0 + 70, top + 262, "Coding-agent skill", 17, INK, 500)
     cy = top + 300
     add(f'<rect x="{x0 + 22}" y="{cy}" width="356" height="500" rx="14" '
-        f'fill="#0b0d12"/>')
+        f'fill="{CODE_BG}" stroke="{CODE_EDGE}" stroke-width="1.5"/>')
     for k, c in enumerate(["#ff5f57", "#febc2e", "#28c840"]):
         add(f'<circle cx="{x0 + 46 + k * 20}" cy="{cy + 22}" r="6" fill="{c}"/>')
     text(x0 + 120, cy + 27, "experiment.yml", 13, "#8f86c9", family=MONO)
@@ -479,7 +506,7 @@ def build() -> str:
     yy = top + 84
     for fn, label in blocks:
         add(f'<rect x="{x0 + 20}" y="{yy}" width="{cols[4][1] - 40}" '
-            f'height="150" rx="12" fill="#ffffff" stroke="#ffd0e4"/>')
+            f'height="150" rx="12" fill="{SURFACE}" stroke="{CARD}"/>')
         fn(x0 + 44, yy + 16, cols[4][1] - 88, 92)
         text(x0 + cols[4][1] / 2, yy + 136, label, 14.5, INK, 500, "middle")
         yy += 166
@@ -491,8 +518,10 @@ def build() -> str:
 
 
 def main() -> None:
-    OUT.write_text(build())
-    print(f"wrote {OUT.relative_to(ROOT)}")
+    for theme, path in (("light", OUT), ("dark", OUT_DARK)):
+        set_theme(theme)
+        path.write_text(build())
+        print(f"wrote {path.relative_to(ROOT)}")
 
 
 if __name__ == "__main__":

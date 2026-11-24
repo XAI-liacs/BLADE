@@ -44,6 +44,12 @@
 ## Introduction
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs). It focuses on **continuous black-box optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/media/blade-platform-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/media/blade-platform.png">
+  <img alt="The BLADE platform: define an experiment, choose problems, methods and LLMs, run it with isolated evaluation, record everything, and analyse the results." src="docs/media/blade-platform.png" width="100%">
+</picture>
+
 **The recommended way to use BLADE is a YAML experiment file and the `iohblade` command.** You describe which LLMs, methods and problems to use (built-in ones by name, your own as a Python file), and BLADE validates the file, smoke-tests it without LLM calls, and runs it:
 
 ```bash

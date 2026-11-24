@@ -26,10 +26,17 @@ BLADE
    :alt: Colab Notebook
    :height: 18
 
-.. image:: blade-framework.png
+.. image:: media/blade-platform.png
    :align: center
-   :alt: BLADE framework
+   :alt: The BLADE platform: define an experiment, choose problems, methods and LLMs, run it with isolated evaluation, record everything, and analyse the results.
    :width: 100%
+   :class: only-light
+
+.. image:: media/blade-platform-dark.png
+   :align: center
+   :alt: The BLADE platform: define an experiment, choose problems, methods and LLMs, run it with isolated evaluation, record everything, and analyse the results.
+   :width: 100%
+   :class: only-dark
 
 **BLADE** is a Python framework for benchmarking the Llm Assisted Design and Evolution of algorithms.
 **BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs).
