@@ -125,7 +125,111 @@ suites still accept the old name ``get_best``.
      - suite: alphaevolve_math
        params: {use_best: false}
 
+.. _suite_running_time:
+
+Running time
+^^^^^^^^^^^^
+
+Approximate wall-clock time of **one run of one method** on each default
+suite with ``budget: 100``. With ``budget: 100``, a method such as LLaMEA or
+random search makes 100 LLM calls and 100 evaluations per problem, and the
+problems of a suite run one after the other. Multiply by the number of
+methods and runs (seeds), and divide by ``n_jobs``.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 18 9 14 13 18 16
+
+   * - Suite
+     - Problems
+     - LLM calls and evaluations
+     - LLM time only
+     - Typical total
+     - Upper bound (every evaluation times out)
+   * - ``bbob`` (10-D)
+     - 5
+     - 500
+     - 3 h
+     - 6-10 h
+     - 70 h
+   * - ``ma_bbob`` (10-D)
+     - 1
+     - 100
+     - 0.6 h
+     - 2-4 h
+     - 14 h
+   * - ``continuous_bbo`` (10-D)
+     - 6
+     - 600
+     - 3 h
+     - 8-14 h
+     - 84 h
+   * - ``alphaevolve_math``
+     - 17
+     - 1,700
+     - 9 h
+     - 13-39 h
+     - 290 h
+   * - ``combinatorial``
+     - 6
+     - 600
+     - 3 h
+     - 4-9 h
+     - 54 h
+   * - ``quick``
+     - 5
+     - 500
+     - 3 h
+     - 4-9 h
+     - 35 h
+   * - ``full``
+     - 31
+     - 3,100
+     - 17 h
+     - 25-65 h
+     - 470 h
+
+Per problem, one run takes about 1-2 h for a BBOB group in 10-D, 2-4 h
+for MA-BBOB in 10-D, 0.7-2.3 h for a mathematical problem and 0.6-1.4 h
+for a combinatorial problem.
+
+How these numbers are estimated:
+
+* **LLM:** 20 s per call, typical for a hosted model writing a full
+  algorithm. Local models (for example a 14B model with Ollama) often take
+  30-90 s, which roughly doubles the totals.
+* **Harness:** about 1.5 s per evaluation for the isolated evaluation
+  subprocess (measured), once the evaluation environment is cached. The
+  first run builds the environment once, which takes a few minutes.
+* **Evaluation of the generated code**, measured with the example solutions
+  and scaled for typical LLM-written algorithms:
+
+  * **BBOB group, 10-D, budget factor 2000:** 25 runs of 20,000 function
+    evaluations. Random search takes 8-11 s; LLM-written optimisers (for
+    example CMA-ES or DE variants in NumPy) typically take 2-5 times longer,
+    so 20-50 s.
+  * **MA-BBOB, 10-D:** random search takes 26 s, so 50-130 s.
+  * **Mathematical and combinatorial problems:** the example constructions
+    take milliseconds, but generated code usually runs its own search until
+    it is satisfied, so 5-60 s and 1-30 s.
+
+* **Upper bound:** every evaluation runs until its ``eval_timeout``. This
+  is useful for planning the worst case on a cluster, not as an
+  expectation.
+
+Ways to shorten a run:
+
+* Use ``quick`` (5-D BBOB, budget factor 1000) or a lower ``dim`` and
+  ``budget_factor`` for the continuous suites. Evaluation time scales with
+  ``dim * budget_factor``.
+* Lower ``eval_timeout`` so that slow candidates fail early.
+* Run problems, seeds and methods in parallel with ``experiment.n_jobs``.
+* Methods that make extra LLM calls per evaluation take longer:
+  MCTS-AHD's description calls, and ShinkaEvolve with novelty rejection or
+  meta recommendations.
+
 .. _list_of_benchmarks:
+
 List of Benchmarks
 ------------------
 
