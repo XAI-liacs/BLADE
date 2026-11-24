@@ -137,6 +137,14 @@ see "Breaking changes" for the two exceptions.
   and MoEH, whose mutation and crossover prompts now also start with the
   task description, as in EoH.
 
+- **Local models through OpenAI-compatible servers:** `OpenAI_LLM` (`provider:
+  openai`) takes `base_url`, so it works with vLLM, SGLang or llama.cpp
+  servers. Without an `api_key` it sends `"EMPTY"`. It also takes
+  `extra_body`, extra request fields such as vLLM's
+  `{"chat_template_kwargs": {"enable_thinking": false}}` for Qwen3, and
+  `timeout`. `docs/llm.rst` shows how to run one vLLM server per GPU,
+  combined with `provider: multi`.
+
 ### Bug fixes
 
 - **Optimisation direction (#201).** On minimisation problems (TSP, VRP,

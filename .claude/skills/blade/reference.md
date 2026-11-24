@@ -215,6 +215,7 @@ runs a YAML file from Python. Scripts that start BLADE themselves must set
 | `[FAIL] problem ...` in `check` | Harness or reference solution broken; fix the problem code |
 | `[FAIL] method ...` in `check` | Method crashes with a valid solution; fix the method |
 | `check --llm` fails | Wrong key, model name or server not running (`ollama serve`) |
+| Local model on vLLM/SGLang | `provider: openai`, `params: {base_url: "http://localhost:8000/v1"}` (no `api_key` needed); several GPUs: one server each, combined with `provider: multi` |
 | Run stops with `HarnessError` | 3 harness errors in a row; see the run's `error.txt` and `run.log` |
 | `HPOUnavailableError` (harness error) | smac cannot be imported in the evaluation env; let HPO be enabled on the problem (LLaMEA `HPO: true`, `problem.enable_hpo()`) so its env installs `smac>=2.4.1`; `iohblade cache clear` if that env is stale |
 | Mostly `c`/`t` errors | Generated code fails or is slow: clarify prompts, give a working example, raise `eval_timeout` |

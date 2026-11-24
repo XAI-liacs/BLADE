@@ -612,17 +612,46 @@ class OpenAI_LLM(LLM):
     A manager class for handling requests to OpenAI's GPT models.
     """
 
-    def __init__(self, api_key, model="gpt-4-turbo", temperature=0.8, **kwargs):
+    def __init__(
+        self,
+        api_key=None,
+        model="gpt-4-turbo",
+        temperature=0.8,
+        base_url: str | None = None,
+        extra_body: dict[str, Any] | None = None,
+        timeout: float | None = None,
+        **kwargs,
+    ):
         """
         Initializes the LLM manager with an API key and model name.
 
+        Also works with OpenAI-compatible servers such as vLLM, SGLang or
+        llama.cpp: set ``base_url`` to the server (for example
+        ``http://localhost:8000/v1``) and ``model`` to the served model name.
+
         Args:
-            api_key (str): api key for authentication.
-            model (str, optional): model abbreviation. Defaults to "gpt-4-turbo".
-                Options are: gpt-3.5-turbo, gpt-4-turbo, gpt-4o, and others from OpeNAI models library.
+            api_key (str | None): API key. ``None`` reads ``OPENAI_API_KEY``;
+                with a ``base_url`` and no key, ``"EMPTY"`` is sent (local
+                servers usually accept any key).
+            model (str, optional): model name. Defaults to "gpt-4-turbo".
+            temperature (float, optional): sampling temperature.
+            base_url (str, optional): URL of an OpenAI-compatible API.
+            extra_body (dict, optional): extra fields sent with every
+                request, for server-specific options; for example vLLM's
+                ``{"chat_template_kwargs": {"enable_thinking": False}}`` or
+                ``{"max_tokens": 4096}``.
+            timeout (float, optional): seconds before a request times out
+                (the client's default if None).
         """
-        super().__init__(api_key, model, None, **kwargs)
+        if api_key is None and base_url:
+            api_key = "EMPTY"
+        super().__init__(api_key, model, base_url, **kwargs)
         self._client_kwargs = dict(api_key=api_key)
+        if base_url:
+            self._client_kwargs["base_url"] = base_url
+        if timeout is not None:
+            self._client_kwargs["timeout"] = timeout
+        self.extra_body = dict(extra_body) if extra_body else None
         self.client = openai.OpenAI(**self._client_kwargs)
         logging.getLogger("openai").setLevel(logging.ERROR)
         logging.getLogger("httpx").setLevel(logging.ERROR)
@@ -632,6 +661,8 @@ class OpenAI_LLM(LLM):
         llm_config = self._client_kwargs.copy()
         llm_config["temperature"] = self.temperature
         llm_config.pop("api_key")
+        if self.extra_body:
+            llm_config["extra_body"] = self.extra_body
         config = {"model": f"{self.model}", "config": llm_config, "hardware": {}}
         return [config]
 
@@ -654,6 +685,9 @@ class OpenAI_LLM(LLM):
 
         options = dict(kwargs)  # kept intact for every retry
         temperature = options.pop("temperature", self.temperature)
+        extra_body = getattr(self, "extra_body", None)
+        if extra_body and "extra_body" not in options:
+            options["extra_body"] = extra_body
 
         attempt = 0
         while True:
@@ -719,10 +753,14 @@ class DeepSeek_LLM(OpenAI_LLM):
 
     def __init__(self, api_key, model="deepseek-chat", temperature=0.8, **kwargs):
         """Initializes DeepSeek LLM with required base URL."""
-        super().__init__(api_key, model=model, temperature=temperature, **kwargs)
-        self.base_url = "https://api.deepseek.com"
-        self._client_kwargs["base_url"] = self.base_url
-        self.client = openai.OpenAI(**self._client_kwargs)
+        kwargs.pop("base_url", None)
+        super().__init__(
+            api_key,
+            model=model,
+            temperature=temperature,
+            base_url="https://api.deepseek.com",
+            **kwargs,
+        )
 
     def get_config(self) -> list[dict[str, Any]]:
         llm_config = self._client_kwargs.copy()
