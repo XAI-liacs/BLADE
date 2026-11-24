@@ -452,7 +452,7 @@ def build() -> str:
                                     "combinatorial", "full"], "amber", sw - 44,
                 size=14)
     text(rx + 22, end + 38, "Fixed instances and settings per suite;", 15.5, INK)
-    text(rx + 22, end + 62, "dim · budget_factor · use_best for all problems",
+    text(rx + 22, end + 62, "dim · budget_factor (continuous) · use_best (maths)",
          15.5, INK)
     text(rx + 22, by + bh - 24, "BBOB groups: train iid 1-5, test iid 6-15",
          14, MUTED)

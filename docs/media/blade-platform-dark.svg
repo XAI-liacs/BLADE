@@ -203,7 +203,7 @@
 <rect x="1295.6599999999999" y="706" width="58.2" height="30" rx="15" fill="#12151d" stroke="#ffb547" stroke-width="1.4"/>
 <text x="1324.7399999999998" y="726" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="14" fill="#ffc76e" font-weight="500" text-anchor="middle" xml:space="preserve" >full</text>
 <text x="984.0" y="774" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15.5" fill="#eef0f5" font-weight="400" text-anchor="start" xml:space="preserve" >Fixed instances and settings per suite;</text>
-<text x="984.0" y="798" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15.5" fill="#eef0f5" font-weight="400" text-anchor="start" xml:space="preserve" >dim · budget_factor · use_best for all problems</text>
+<text x="984.0" y="798" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15.5" fill="#eef0f5" font-weight="400" text-anchor="start" xml:space="preserve" >dim · budget_factor (continuous) · use_best (maths)</text>
 <text x="984.0" y="872" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="14" fill="#a3a8b5" font-weight="400" text-anchor="start" xml:space="preserve" >BBOB groups: train iid 1-5, test iid 6-15</text>
 <text x="950.0" y="934" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="15" fill="#a3a8b5" font-weight="400" text-anchor="middle" xml:space="preserve" >built-in by registry key, or your own class</text>
 <g transform="translate(1484,208) scale(1.1666666666666667)" fill="none" stroke="#ffc76e" stroke-width="1.5428571428571427" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5h6v6H5zM13 13h6v6h-6zM7 7.5h.01M9 9h.01M15 15h.01M17 17h.01M15 17h.01M17 15h.01"/></g>
