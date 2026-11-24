@@ -355,7 +355,7 @@ def test_deepseek_keeps_its_base_url():
     from iohblade.llm import DeepSeek_LLM
 
     llm = DeepSeek_LLM("key")
-    assert str(llm.client.base_url).startswith("https://api.deepseek.com")
+    assert str(llm.client.base_url).rstrip("/") == "https://api.deepseek.com"
     assert llm.get_config()[0]["config"]["base_url"] == "https://api.deepseek.com"
 
 
