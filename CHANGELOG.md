@@ -173,6 +173,13 @@ see "Breaking changes" for the two exceptions.
   example ignored it and built a naive baseline. The rectangle packing
   example also returns its rectangle (0.977 × 1.023), because the best known
   packing is not in a square.
+- **Local models through OpenAI-compatible servers:** `OpenAI_LLM` (`provider:
+  openai`) takes `base_url`, so it works with vLLM, SGLang or llama.cpp
+  servers. Without an `api_key` it sends `"EMPTY"`. It also takes
+  `extra_body`, extra request fields such as vLLM's
+  `{"chat_template_kwargs": {"enable_thinking": false}}` for Qwen3, and
+  `timeout`. `docs/llm.rst` shows how to run one vLLM server per GPU,
+  combined with `provider: multi`.
 
 ### Bug fixes
 

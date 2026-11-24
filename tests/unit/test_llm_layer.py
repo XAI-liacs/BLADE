@@ -318,3 +318,68 @@ def test_lmstudio_setstate_without_lmstudio(monkeypatch):
     obj = llm_module.LMStudio_LLM.__new__(llm_module.LMStudio_LLM)
     obj.__setstate__({"model": "m", "config": None})
     assert obj.llm is None
+
+
+# --- OpenAI-compatible servers (vLLM, SGLang, llama.cpp) -----------------------
+
+
+def test_openai_base_url_for_local_servers():
+    llm = OpenAI_LLM(model="Qwen/Qwen3-27B", base_url="http://localhost:8000/v1")
+    assert str(llm.client.base_url).rstrip("/") == "http://localhost:8000/v1"
+    assert llm.client.api_key == "EMPTY"  # local servers accept any key
+    config = llm.get_config()[0]["config"]
+    assert config["base_url"] == "http://localhost:8000/v1"
+    assert "api_key" not in config
+    # The client is rebuilt with the same server after pickling.
+    clone = pickle.loads(pickle.dumps(llm))
+    assert str(clone.client.base_url).rstrip("/") == "http://localhost:8000/v1"
+
+
+def test_openai_extra_body_and_timeout(monkeypatch):
+    llm, completions, _ = _openai_with(["a", "b"], monkeypatch)
+    llm.extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
+    assert llm._query([{"role": "user", "content": "x"}]) == "a"
+    assert completions.calls[0]["extra_body"] == {
+        "chat_template_kwargs": {"enable_thinking": False}
+    }
+    llm._query([{"role": "user", "content": "x"}], extra_body={"top_k": 20})
+    assert completions.calls[1]["extra_body"] == {"top_k": 20}  # per call wins
+    timed = OpenAI_LLM(
+        "key", base_url="http://h:1/v1", timeout=30, extra_body={"max_tokens": 9}
+    )
+    assert timed.client.timeout == 30
+    assert timed.get_config()[0]["config"]["extra_body"] == {"max_tokens": 9}
+
+
+def test_deepseek_keeps_its_base_url():
+    from iohblade.llm import DeepSeek_LLM
+
+    llm = DeepSeek_LLM("key")
+    assert str(llm.client.base_url).rstrip("/") == "https://api.deepseek.com"
+    assert llm.get_config()[0]["config"]["base_url"] == "https://api.deepseek.com"
+    with_body = DeepSeek_LLM("key", extra_body={"max_tokens": 9})
+    config = with_body.get_config()[0]["config"]
+    assert config["extra_body"] == {"max_tokens": 9} and "api_key" not in config
+
+
+def test_openai_compatible_server_from_yaml(tmp_path):
+    from iohblade.config import load_plan
+
+    config = tmp_path / "experiment.yml"
+    config.write_text("""
+version: 1
+experiment: {output_dir: out, runs: 1, budget: 2}
+llms:
+  qwen:
+    provider: openai
+    model: Qwen/Qwen3-27B
+    params:
+      base_url: http://localhost:8000/v1
+      extra_body: {chat_template_kwargs: {enable_thinking: false}}
+methods: [{type: random_search, llm: qwen}]
+problems: [{type: circle_packing}]
+""")
+    plan = load_plan(str(config))
+    llm = plan.llms["qwen"]
+    assert str(llm.client.base_url).rstrip("/") == "http://localhost:8000/v1"
+    assert llm.extra_body == {"chat_template_kwargs": {"enable_thinking": False}}
