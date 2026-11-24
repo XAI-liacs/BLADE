@@ -187,3 +187,7 @@ _site/
 
 # Output of the unit and end-to-end tests
 test_results/
+
+# Draft banners and figure mockups (regenerate with the scripts in docs/media)
+docs/media/banner/banner-*.png
+docs/media/figure/mockup-*.png
