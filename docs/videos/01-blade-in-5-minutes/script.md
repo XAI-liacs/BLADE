@@ -171,7 +171,7 @@ Errors: evaluations that failed in the generated code (c), in the harness (h) or
 
 Summary: 2 of 2 runs finished.
 Evaluations: 20, of which failed: ...
-Logs: .../results/experiment.log and run.log in each run's folder.
+Logs: .../results/quick/experiment.log and run.log in each run's folder.
 
 Results: .../my-first-benchmark/results/quick
 ```
