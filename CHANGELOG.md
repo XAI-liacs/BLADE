@@ -378,6 +378,10 @@ see "Breaking changes" for the two exceptions.
     runs: finished runs kept their old budget while new runs used the new
     one, so one comparison mixed budgets without a warning. `iohblade run`
     now stops with exit code 2 and lists the runs whose budget changed.
+    The budget of a run is the method's own `budget` (falling back to
+    `experiment.budget`): it is what `progress.json` records, what the run
+    logger enforces (before, a method budget above the experiment budget
+    was capped at the experiment budget) and what resuming compares.
   - **Box plots** (`plot_boxplot_fitness`, `plot_boxplot_fitness_hue`)
     raised a `ValueError` when no run of a problem had a valid final
     fitness; such a problem now gets an empty axis marked "No successful

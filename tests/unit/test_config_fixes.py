@@ -62,7 +62,7 @@ def issues_of(source, **kwargs):
 # ---------------------------------------------- 1. resume compatibility ---
 
 
-def _record_runs(out: Path, seeds, finished=()):
+def _record_runs(out: Path, seeds, finished=(), budget=1):
     """Write a progress.json as the logger would after a run."""
     runs = [
         {
@@ -70,7 +70,7 @@ def _record_runs(out: Path, seeds, finished=()):
             "llm_name": "m",
             "problem_name": "c",
             "seed": s,
-            "budget": 1,
+            "budget": budget,
             "evaluations": 1 if s in finished else 0,
             "start_time": "t" if s in finished else None,
             "end_time": "t" if s in finished else None,
@@ -197,6 +197,38 @@ def test_budget_change_is_listed_with_removed_runs(tmp_path):
     text = resume_status(plan).mismatch_message()
     assert "Recorded but no longer planned" in text
     assert "Budget changed for 1 started run(s)" in text
+
+
+def test_method_budget_is_the_run_budget(tmp_path):
+    """A method's own budget is what runs, is recorded and is compared."""
+    methods = [{"type": "random_search", "name": "rs", "llm": "d", "budget": 3}]
+    path = write_yaml(tmp_path, base_config(runs=2, methods=methods))
+    out = tmp_path / "out"
+    out.mkdir()
+    _record_runs(out, [0, 1], finished=[0], budget=3)
+    status = resume_status(load_plan(path, env={}))
+    assert status.compatible and not status.budget_changed
+
+    _record_runs(out, [0, 1], finished=[0], budget=1)  # the experiment budget
+    status = resume_status(load_plan(path, env={}))
+    assert status.budget_changed == {("rs", "m", "c", 0): (1, 3)}
+
+
+def test_logger_records_the_budget_a_run_starts_with(tmp_path):
+    from types import SimpleNamespace
+
+    logger = ExperimentLogger(str(tmp_path / "exp"))
+    method = SimpleNamespace(name="rs", llm=SimpleNamespace(model="m"), budget=3)
+    problem = SimpleNamespace(name="c", set_logger=lambda _logger: None)
+    logger.start_progress(
+        "x", 1, methods=[method], problems=[problem], seeds=[0], budget=1
+    )
+    assert logger.progress["runs"][0]["budget"] == 3  # the method's budget
+
+    method.budget = 5  # the configuration changed before this run started
+    run = logger.open_run(method, problem, budget=5, seed=0)
+    assert logger.progress["runs"][0]["budget"] == 5
+    assert run.budget == 5
 
 
 def test_unreadable_progress_is_a_config_error(tmp_path, capsys):

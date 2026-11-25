@@ -416,7 +416,9 @@ def resume_status(plan: "ExperimentPlan", output_dir=None) -> ResumeStatus:
                 key = _identity(
                     method.name, llm if with_llm else None, problem.name, seed
                 )
-                planned_budget[key] = getattr(method, "budget", None)
+                planned_budget[key] = ExperimentLogger.run_budget(
+                    method, plan.config.experiment.budget
+                )
     for run in runs:
         key = _identity_of(run, with_llm)
         old, new = run.get("budget"), planned_budget.get(key)
