@@ -27,6 +27,9 @@ see "Breaking changes" for the two exceptions.
   `https://xai-liacs.github.io/BLADE/experiment.schema.json` for editor
   completion. The README quick start shows the YAML and the Python route.
 - **Error reporting and logs** (#193):
+  - Importing `iohblade` sets `MLFLOW_DISABLE_AGENT_HINT=1` (unless it is
+    already set), so MLflow no longer prints its agent hint on every
+    `iohblade` command.
   - Experiments no longer call `logging.disable(logging.CRITICAL)`. All log
     messages, including library output and Python warnings, go to
     `<experiment>/experiment.log`, and each run's messages also go to its
