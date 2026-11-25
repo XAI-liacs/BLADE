@@ -1,0 +1,43 @@
+version: 1
+
+experiment:
+  output_dir: results/llms
+  runs: 3
+  budget: 50
+  n_jobs: 8
+
+llms:
+  gpt:
+    provider: openai
+    model: gpt-5-mini
+    api_key: "${env:OPENAI_API_KEY}"
+  claude:
+    provider: claude
+    model: claude-sonnet-5-5
+    api_key: "${env:ANTHROPIC_API_KEY}"
+  gemini:
+    provider: gemini
+    model: gemini-2.5-flash
+    api_key: "${env:GEMINI_API_KEY}"
+  qwen-ollama:
+    provider: ollama
+    model: "qwen2.5-coder:14b"
+  gpu0:
+    provider: openai
+    model: Qwen/Qwen3-32B
+    params: {base_url: "http://localhost:8000/v1"}
+  gpu1:
+    provider: openai
+    model: Qwen/Qwen3-32B
+    params: {base_url: "http://localhost:8001/v1"}
+  qwen-vllm:
+    provider: multi
+    llms: [gpu0, gpu1]
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: [gpt, claude, gemini, qwen-ollama, qwen-vllm]
+
+problems:
+  - type: circle_packing

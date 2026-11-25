@@ -1,0 +1,33 @@
+# yaml-language-server: $schema=./experiment.schema.json
+version: 1
+
+experiment:
+  output_dir: results/compare
+  runs: 5
+  budget: 100
+  n_jobs: 4
+
+llms:
+  qwen:
+    provider: ollama
+    model: "qwen2.5-coder:14b"
+  gemini:
+    provider: gemini
+    model: gemini-2.0-flash
+    api_key: "${env:GEMINI_API_KEY}"
+
+methods:
+  - type: llamea
+    name: "LLaMEA-{llm}"
+    llm: [qwen, gemini]
+  - type: shinka_evolve
+    name: "Shinka-{llm}"
+    llm: qwen
+  - type: random_search
+    name: "RS-{llm}"
+    llm: qwen
+
+problems:
+  - suite: bbob
+    params: {dim: 5, budget_factor: 1000}
+  - type: circle_packing

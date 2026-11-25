@@ -191,18 +191,19 @@ Results: .../my-first-benchmark/results
 ## Scene 8 — First result (4:35–5:15)
 
 ```console
+$ cd my-first-benchmark
 $ uv run iohblade-webapp
 ```
 
-**Screen:** the browser: the experiment, the convergence plot, then the
-code of the best algorithm.
+**Screen:** the browser: the experiment, the convergence plot, then "Top
+Solutions": download the best algorithm and open it in the editor.
 
 **Narration:**
 
 > Everything is in the results folder: every generated algorithm, its
 > score and its parent. The web app gives a quick look: convergence per
-> method, and with one click the code of the best algorithm the LLM wrote.
-> We go into the analysis in a later episode.
+> method, and the best algorithm the LLM wrote, ready to download. We go
+> into the analysis in a later episode.
 
 ## Scene 9 — Outro (5:15–5:35)
 
@@ -222,5 +223,7 @@ code of the best algorithm.
 - The LLM column shows the model name, not the provider key.
 - `check` builds the evaluation environment on first use, which can take a
   minute; cache it before recording or cut the wait.
+- The web app reads the `results` folder of the directory it is started
+  in, hence the `cd` in scene 8.
 - Scene 7 with a 14B model on one GPU: plan for the real run to take
   several minutes; record once, then time-lapse.

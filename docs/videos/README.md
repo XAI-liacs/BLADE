@@ -5,15 +5,19 @@ episode, each with a narration script and a [VHS](https://github.com/charmbracel
 tape for the terminal parts, so an episode can be re-recorded when the CLI
 changes.
 
-| # | Episode | Status |
-|---|---------|--------|
-| 1 | BLADE in 5 minutes | script draft |
-| 2 | Experiments in YAML | planned |
-| 3 | Local and hosted LLMs | planned |
-| 4 | Your own problem | planned |
-| 5 | Your own method | planned |
-| 6 | Analysing results | planned |
-| 7 | BLADE with a coding agent | planned |
+| # | Episode | Script | Terminal tape |
+|---|---------|--------|---------------|
+| 1 | BLADE in 5 minutes | draft | yes |
+| 2 | Experiments in YAML | draft | yes |
+| 3 | Local and hosted LLMs | draft | no: editor and live servers |
+| 4 | Your own problem | draft | yes |
+| 5 | Your own method | draft | yes |
+| 6 | Analysing results | draft | no: web app and notebook |
+| 7 | BLADE with a coding agent | draft | scene 2 only |
+
+Episodes 2 and 3 have their experiment files next to the script. Commands
+and outputs in the scripts were checked against `main`; the notes at the
+end of each script say what still has to be captured during recording.
 
 Recording order: 1, 2, 6, 4, 3, 5, 7.
 
