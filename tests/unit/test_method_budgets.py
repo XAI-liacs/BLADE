@@ -8,6 +8,7 @@ problem that counts its calls.
 import contextlib
 import itertools
 import math
+import os
 import random
 import types
 from typing import Any
@@ -312,6 +313,61 @@ def test_eoh_run_stays_within_budget(
         solution = method(problem)
     assert problem.calls == expected_calls
     assert solution.code
+
+
+def _recording_tempdirs(monkeypatch):
+    import tempfile
+
+    used = []
+    real = tempfile.TemporaryDirectory
+
+    class Recording(real):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            used.append(self.name)
+
+    monkeypatch.setattr(tempfile, "TemporaryDirectory", Recording)
+    return used
+
+
+def test_eoh_runs_without_output_path_use_private_folders(monkeypatch, tmp_path):
+    """Parallel runs used to share ./results and could collide (#238)."""
+    from iohblade.methods.eoh import EoH
+
+    _fast_eoh(monkeypatch, tmp_path)
+    used = _recording_tempdirs(monkeypatch)
+    for _ in range(2):
+        assert EoH(FakeLLM(), 13, pop_size=2)(CountingProblem()).code
+    assert len(set(used)) == 2  # one folder per run
+    assert not any(os.path.exists(path) for path in used)  # removed
+    assert not (tmp_path / "results").exists()  # not the working directory
+
+
+def test_eoh_results_go_to_the_run_directory(monkeypatch, tmp_path):
+    from iohblade.loggers import RunLogger
+    from iohblade.methods.eoh import EoH
+
+    _fast_eoh(monkeypatch, tmp_path)
+    problem = CountingProblem()
+    problem.set_logger(RunLogger(name="r", root_dir=str(tmp_path / "exp")))
+    EoH(FakeLLM(), 13, pop_size=2)(problem)
+    best = os.path.join(problem.logger_dir, "eoh", "results", "pops_best")
+    assert os.listdir(best)
+    assert not (tmp_path / "results").exists()
+
+
+def test_eoh_shared_output_path_folders_exist_up_front(monkeypatch, tmp_path):
+    from iohblade.methods.eoh import EoH
+
+    _fast_eoh(monkeypatch, tmp_path)
+    out = tmp_path / "shared"
+    method = EoH(FakeLLM(), 13, pop_size=2, output_path=str(out))
+    with contextlib.ExitStack() as stack:
+        assert method._output_dir(CountingProblem(), stack) == str(out)
+    for sub in ("history", "pops", "pops_best"):
+        assert (out / "results" / sub).is_dir()
+    # A second run on the same folder must not fail on existing folders.
+    assert method(CountingProblem()).code
 
 
 # endregion

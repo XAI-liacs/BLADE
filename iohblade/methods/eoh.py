@@ -1,9 +1,11 @@
 import ast
+import contextlib
 import json
 import logging
 import math
 import os
 import re
+import tempfile
 import textwrap
 import threading
 import warnings
@@ -192,60 +194,64 @@ class EoH(Method):
                 self.llm
             )
 
-        requested_pop_size = self.kwargs.get("pop_size", 4)
-        paras = Paras()
-        paras.set_paras(
-            method="eoh",
-            problem=_BladeProblemAdapter(problem, budget=self.budget),
-            llm_api_endpoint="unused",
-            llm_api_key="unused",
-            llm_model=self.llm.model,
-            ec_pop_size=requested_pop_size,
-            exp_output_path=self.kwargs.get("output_path", "./"),
-            exp_n_proc=1,
-            exp_debug_mode=False,
-            eva_timeout=self.kwargs.get("timeout", 600),
-        )
-        # Fit the population size and generation count to the budget (see
-        # _eoh_schedule); EoH's operator list is known after set_paras.
-        pop_size, n_generations = _eoh_schedule(
-            self.budget, requested_pop_size, len(paras.ec_operators)
-        )
-        if pop_size != requested_pop_size:
-            warnings.warn(
-                f"EoH budget {self.budget} does not cover the initial "
-                f"population ({_EOH_INIT_BATCHES} * pop_size = "
-                f"{_EOH_INIT_BATCHES * requested_pop_size} evaluations); "
-                f"using pop_size={pop_size}.",
-                stacklevel=2,
+        with contextlib.ExitStack() as stack:
+            # A folder of its own per run: EoH writes its populations to
+            # <output>/results and the result is read back from there.
+            output_dir = self._output_dir(problem, stack)
+            requested_pop_size = self.kwargs.get("pop_size", 4)
+            paras = Paras()
+            paras.set_paras(
+                method="eoh",
+                problem=_BladeProblemAdapter(problem, budget=self.budget),
+                llm_api_endpoint="unused",
+                llm_api_key="unused",
+                llm_model=self.llm.model,
+                ec_pop_size=requested_pop_size,
+                exp_output_path=output_dir,
+                exp_n_proc=1,
+                exp_debug_mode=False,
+                eva_timeout=self.kwargs.get("timeout", 600),
             )
-        paras.ec_pop_size = pop_size
-        paras.ec_n_pop = n_generations
-
-        evol = eoh_main.EVOL(paras, prob=paras.problem)
-        evol.run()
-
-        if n_generations > 0:
-            result_file = os.path.join(
-                paras.exp_output_path,
-                "results",
-                "pops_best",
-                f"population_generation_{n_generations}.json",
+            # Fit the population size and generation count to the budget (see
+            # _eoh_schedule); EoH's operator list is known after set_paras.
+            pop_size, n_generations = _eoh_schedule(
+                self.budget, requested_pop_size, len(paras.ec_operators)
             )
-        else:
-            # No generation ran: the initial population (sorted best first
-            # by EoH's population management) holds the result.
-            result_file = os.path.join(
-                paras.exp_output_path,
-                "results",
-                "pops",
-                "population_generation_0.json",
-            )
-        if not os.path.exists(result_file):
-            raise FileNotFoundError(result_file)
+            if pop_size != requested_pop_size:
+                warnings.warn(
+                    f"EoH budget {self.budget} does not cover the initial "
+                    f"population ({_EOH_INIT_BATCHES} * pop_size = "
+                    f"{_EOH_INIT_BATCHES * requested_pop_size} evaluations); "
+                    f"using pop_size={pop_size}.",
+                    stacklevel=2,
+                )
+            paras.ec_pop_size = pop_size
+            paras.ec_n_pop = n_generations
 
-        with open(result_file) as f:
-            best = json.load(f)
+            evol = eoh_main.EVOL(paras, prob=paras.problem)
+            evol.run()
+
+            if n_generations > 0:
+                result_file = os.path.join(
+                    paras.exp_output_path,
+                    "results",
+                    "pops_best",
+                    f"population_generation_{n_generations}.json",
+                )
+            else:
+                # No generation ran: the initial population (sorted best first
+                # by EoH's population management) holds the result.
+                result_file = os.path.join(
+                    paras.exp_output_path,
+                    "results",
+                    "pops",
+                    "population_generation_0.json",
+                )
+            if not os.path.exists(result_file):
+                raise FileNotFoundError(result_file)
+
+            with open(result_file) as f:
+                best = json.load(f)
 
         if isinstance(best, list):
             if not best:
@@ -265,6 +271,29 @@ class EoH(Method):
             )
         )
         return solution
+
+    def _output_dir(self, problem: Problem, stack: contextlib.ExitStack) -> str:
+        """The directory EoH writes its ``results`` folder to.
+
+        ``output_path`` if given; otherwise an ``eoh`` folder in the run's log
+        directory when the problem has a logger, else a temporary directory
+        that is removed afterwards. Never the working directory, which
+        parallel runs share.
+        """
+        explicit = self.kwargs.get("output_path")
+        if explicit:
+            path = os.path.abspath(explicit)
+        elif getattr(problem, "logger", None) is not None and getattr(
+            problem, "logger_dir", ""
+        ):
+            path = os.path.abspath(os.path.join(problem.logger_dir, "eoh"))
+        else:
+            return stack.enter_context(tempfile.TemporaryDirectory(prefix="eoh-"))
+        # EoH creates these with a check-then-create; create them up front
+        # so that runs sharing an explicit output_path do not race.
+        for sub in ("history", "pops", "pops_best"):
+            os.makedirs(os.path.join(path, "results", sub), exist_ok=True)
+        return path
 
     def to_dict(self):
         """

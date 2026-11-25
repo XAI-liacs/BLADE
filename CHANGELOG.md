@@ -371,6 +371,11 @@ see "Breaking changes" for the two exceptions.
   - **ReEvo** no longer writes its reflection files into the current
     directory. They go to the run folder (`reevo/`), to `output_path`, or
     to a temporary folder.
+  - **EoH** no longer writes its populations to `./results` by default.
+    Parallel EoH runs shared that folder: they could fail with
+    `FileExistsError` and could read another run's best algorithm. Each
+    run now uses the run folder (`eoh/`), `output_path`, or a temporary
+    folder.
   - **Evaluation-environment shim:** creating the `isolated_pythonpath`
     shim from parallel threads could fail; Windows copies of it are
     refreshed after an upgrade.
