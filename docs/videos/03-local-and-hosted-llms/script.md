@@ -143,8 +143,8 @@ experiment:
 
 **Narration:**
 
-> `provider: multi` combines several LLMs into one: calls go round-robin
-> over the servers. With `n_jobs: 8`, eight runs share the two GPUs, and
+> `provider: multi` combines several LLMs into one: each call goes to one
+> of the servers, picked at random, so the load spreads over them. With `n_jobs: 8`, eight runs share the two GPUs, and
 > both stay busy. With four GPUs, add four servers; nothing else changes.
 
 ## Scene 7 — Comparing LLMs (4:35–5:15)
