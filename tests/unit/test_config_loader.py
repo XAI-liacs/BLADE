@@ -1,6 +1,7 @@
 import textwrap
 
 import pytest
+import yaml
 
 from iohblade.config.errors import ConfigError, ConfigIssue, format_path
 from iohblade.config.yaml_loader import (
@@ -44,6 +45,33 @@ def test_merged_keys_can_be_overridden():
     assert cfg.data["two"]["runs"] == 5  # first merged mapping wins
     with pytest.raises(ConfigError, match="Duplicate key"):
         parse_yaml("exp:\n  <<: {runs: 5}\n  runs: 2\n  runs: 3\n")
+
+
+def test_merge_precedence_is_independent_of_pyyaml_version():
+    # PyYAML 6.0.4 changed which merged mapping wins; BLADE resolves '<<'
+    # itself with YAML 1.1 semantics.
+    cfg = parse_yaml(
+        "a: &a {x: 1, y: 1}\n"
+        "b: &b {x: 2, y: 2, z: 2}\n"
+        "c: &c {<<: *b, z: 3}\n"
+        "one: {<<: [*a, *b]}\n"
+        "two: {<<: [*b, *a]}\n"
+        "nested: {<<: [*c, *a], y: 9}\n"
+    )
+    assert cfg.data["one"] == {"x": 1, "y": 1, "z": 2}
+    assert cfg.data["two"] == {"x": 2, "y": 2, "z": 2}
+    assert cfg.data["nested"] == {"x": 2, "y": 9, "z": 3}
+    assert cfg.data["c"] == {"x": 2, "y": 2, "z": 3}
+    with pytest.raises(yaml.YAMLError, match="expected a mapping"):
+        parse_yaml("a: {<<: [1, 2]}\n")
+
+
+def test_repeated_merges_do_not_grow():
+    lines = ["l0: &l0 {k: 0}"]
+    for i in range(1, 30):
+        lines.append(f"l{i}: &l{i} {{<<: [*l{i - 1}, *l{i - 1}], k: {i}}}")
+    cfg = parse_yaml("\n".join(lines) + "\n")
+    assert cfg.data["l29"] == {"k": 29}
 
 
 def test_syntax_error_has_location():
