@@ -1,4 +1,10 @@
 import multiprocessing
+import os
+
+# MLflow (used by the MLflow logger and imported by the registry) logs an
+# "agent hint" line on import, which would show up in every `iohblade`
+# command. Silence it unless the user set the variable themselves.
+os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")
 
 # Only import the minimal set of objects that do not pull in heavy
 # dependencies.  Modules such as ``llm`` or ``plots`` require optional
