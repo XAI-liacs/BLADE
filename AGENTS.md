@@ -37,9 +37,17 @@ skill in `.claude/skills/blade/SKILL.md`: experiments are YAML files run with
 
 ## Testing
 
-- Run tests for any code change:
+- For a code change, run only the tests relevant to that change, not the
+  whole suite; CI runs the full suite on every pull request. For example:
   ```bash
-  uv run pytest tests/
+  uv run pytest tests/unit/test_method_budgets.py -k eoh
   ```
+  Pick the test files that cover the modules you changed (search
+  `tests/` for the module or function name), plus any test you added.
+  Run the full suite (`uv run pytest tests/`) only when the change is
+  broad (shared core modules such as `problem.py`, `solution.py`,
+  `experiment.py` or `llm.py`) or when asked.
+- For a bug fix, show that the new test fails without the fix and passes
+  with it.
 - Documentation or comment only changes do not require tests or linters.
 

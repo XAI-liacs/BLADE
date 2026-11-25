@@ -147,7 +147,10 @@ experiment()
 
 ## Testing Requirements
 
-- Run `uv run pytest tests/` for any code change. Doc-only changes do not require tests.
+- For a code change, run only the tests relevant to it (the test files for
+  the modules you changed, plus new tests); CI runs the full suite on every
+  pull request. Run `uv run pytest tests/` only for broad changes to shared
+  core modules or when asked. Doc-only changes do not require tests.
 - Target test coverage: **80%** (`--cov=iohblade`).
 - Use `pytest-mock` for mocking LLM calls — never make real API calls in tests.
 - Fixtures should use `tmp_path` for temporary directories and clean up after themselves.
