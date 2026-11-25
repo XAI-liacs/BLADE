@@ -3,13 +3,13 @@
 **Goal:** a viewer who has never seen BLADE installs it, creates a first
 experiment, checks it and starts a run, and knows where the results are.
 
-**Length:** about 5 minutes (about 650 words of narration).
+**Length:** about 5.5 minutes including the standard opening (about 650
+words of narration after it).
 
 **Setup before recording:**
 
 - An empty folder, `uv` installed, Ollama running with
   `qwen2.5-coder:14b` pulled (`ollama pull qwen2.5-coder:14b`).
-- `export MLFLOW_DISABLE_AGENT_HINT=1`.
 - The evaluation environment already cached (run `iohblade check` once
   before recording), unless you want to show the first-time build.
 
@@ -18,19 +18,24 @@ Outputs below were captured on `main` (1.2.0 release candidate) on
 
 ---
 
-## Scene 1 — Hook (0:00–0:25)
+## Scene 0 — Standard opening (0:00–0:15)
+
+The shared opening from `docs/videos/README.md`: self-introduction and one
+sentence on LLM-driven algorithm design, then the title card
+"Episode 1 · BLADE in 5 minutes".
+
+## Scene 1 — Hook (0:15–0:35)
 
 **Screen:** the BLADE banner, then fade to the platform figure.
 
 **Narration:**
 
-> Large language models can now write optimisation algorithms, and then
-> improve them, generation after generation. Methods like LLaMEA,
-> FunSearch and EoH do exactly that. But which of these methods works
-> best, and on which problems? That is the question BLADE answers. In the
-> next five minutes we set up and run a first benchmark.
+> Methods like LLaMEA, FunSearch and EoH do exactly that. But which of
+> these methods works best, and on which problems? That is the question
+> BLADE answers. In the next five minutes we set up and run a first
+> benchmark.
 
-## Scene 2 — What BLADE does (0:25–1:05)
+## Scene 2 — What BLADE does (0:35–1:15)
 
 **Screen:** the platform figure, highlighting the columns from left to
 right as they are named.
@@ -45,7 +50,7 @@ right as they are named.
 > from. At the end you compare the methods, and you can look at what was
 > actually designed.
 
-## Scene 3 — Install (1:05–1:30)
+## Scene 3 — Install (1:15–1:40)
 
 **Screen:** terminal.
 
@@ -60,7 +65,7 @@ $ uv add iohblade
 > `pip install iohblade` works too. After installing, you have an
 > `iohblade` command.
 
-## Scene 4 — A first experiment (1:30–2:35)
+## Scene 4 — A first experiment (1:40–2:45)
 
 **Screen:** terminal, then the YAML file in an editor.
 
@@ -102,7 +107,7 @@ Open `experiment.yml`; scroll slowly through the four sections.
 *(If editors show the schema: point out the completion and hover hints
 from `experiment.schema.json`.)*
 
-## Scene 5 — Validate (2:35–2:55)
+## Scene 5 — Validate (2:45–3:05)
 
 ```console
 $ uv run iohblade validate my-first-benchmark/experiment.yml
@@ -124,7 +129,7 @@ Configuration is valid.
 > problem, three seeds, six runs. Nothing is executed yet. A typo here
 > gives an error with the line number, before you spend a single token.
 
-## Scene 6 — Check (2:55–3:30)
+## Scene 6 — Check (3:05–3:40)
 
 ```console
 $ uv run iohblade check my-first-benchmark/experiment.yml
@@ -145,7 +150,7 @@ Checking my-first-benchmark/experiment.yml ...
 > steps with a stand-in for the LLM. No LLM calls, so it is free and
 > fast. Add `--llm` to also test the connection to your model.
 
-## Scene 7 — Run (3:30–4:25)
+## Scene 7 — Run (3:40–4:35)
 
 ```console
 $ uv run iohblade run my-first-benchmark/experiment.yml --set experiment.runs=1 --set experiment.budget=10
@@ -183,7 +188,7 @@ Results: .../my-first-benchmark/results
 > If you stop a run, run the same command again and BLADE resumes where
 > it left off.
 
-## Scene 8 — First result (4:25–5:05)
+## Scene 8 — First result (4:35–5:15)
 
 ```console
 $ uv run iohblade-webapp
@@ -199,7 +204,7 @@ code of the best algorithm.
 > method, and with one click the code of the best algorithm the LLM wrote.
 > We go into the analysis in a later episode.
 
-## Scene 9 — Outro (5:05–5:25)
+## Scene 9 — Outro (5:15–5:35)
 
 **Screen:** the banner with the repository URL and `pip install iohblade`.
 

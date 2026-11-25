@@ -27,11 +27,27 @@ Recording order: 1, 2, 6, 4, 3, 5, 7.
 - 3 to 8 minutes per episode. Long-running steps (a real run) are recorded
   live and shown as a time-lapse with an on-screen note.
 
+## Standard opening (every episode, 10–15 s)
+
+Every episode starts with the same short opening, recorded once and reused,
+followed by the episode's own title card.
+
+**Screen:** the banner with a name lower-third, then a simple loop
+animation: *LLM writes code → evaluate → score fed back*.
+
+**Narration (about 38 words):**
+
+> I'm Niki van Stein, professor of explainable AI and optimisation at
+> Leiden University. In LLM-driven algorithm design, a language model
+> writes optimisation algorithms, we score them, and the model uses those
+> scores to write better ones, generation after generation.
+
+Then the title card, e.g. "Episode 1 · BLADE in 5 minutes", for 2–3 s
+without narration.
+
 ## Recording conventions
 
 - Record against the released version (`uv add iohblade`), not a checkout.
-- Set `MLFLOW_DISABLE_AGENT_HINT=1` in the recording shell; otherwise
-  MLflow prints a log line on every command.
 - Start from an empty folder and clear `~/.cache` only if the episode is
   meant to show the first-time environment build.
 - Narration in the script is in the first person plural ("we"), matching

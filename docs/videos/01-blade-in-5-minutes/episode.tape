@@ -13,8 +13,6 @@ Set Padding 40
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 45ms
 
-Env MLFLOW_DISABLE_AGENT_HINT "1"
-
 # Scene 3: install
 Type "uv init blade-demo && cd blade-demo"
 Enter
