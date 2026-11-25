@@ -153,6 +153,52 @@ def test_adding_runs_resumes_and_extends_progress(tmp_path):
     assert logger.is_run_pending(method, "m", problem, 2)
 
 
+def test_changed_budget_is_a_config_error(tmp_path, capsys):
+    """Resuming used to mix budgets: finished runs kept the old one."""
+    path = write_yaml(tmp_path, base_config(runs=2))
+    out = tmp_path / "out"
+    out.mkdir()
+    _record_runs(out, [0, 1], finished=[0])  # recorded with budget 1
+    progress = (out / "progress.json").read_text(encoding="utf-8")
+
+    plan = load_plan(path, env={}, overrides=["experiment.budget=5"])
+    status = resume_status(plan)
+    assert not status.compatible
+    # Only the started run counts; seed 1 never ran with budget 1.
+    assert status.budget_changed == {("rs", "m", "c", 0): (1, 5)}
+    assert "Cannot resume" in status.summary()[0]
+
+    code = cli.main(["run", str(path), "--set", "experiment.budget=5"])
+    assert code == cli.EXIT_CONFIG
+    err = capsys.readouterr().err
+    assert "Budget changed for 1 started run(s)" in err
+    assert "rs (m) on c, seed 0: 1 recorded, 5 planned" in err
+    assert "restore the previous budget" in err
+    assert (out / "progress.json").read_text(encoding="utf-8") == progress
+
+
+def test_same_budget_still_resumes(tmp_path):
+    path = write_yaml(tmp_path, base_config(runs=2))
+    out = tmp_path / "out"
+    out.mkdir()
+    _record_runs(out, [0, 1], finished=[0])
+    status = resume_status(load_plan(path, env={}))
+    assert status.compatible and not status.budget_changed
+
+
+def test_budget_change_is_listed_with_removed_runs(tmp_path):
+    path = write_yaml(tmp_path, base_config(runs=2))
+    out = tmp_path / "out"
+    out.mkdir()
+    _record_runs(out, [0, 1], finished=[0, 1])
+    plan = load_plan(
+        path, env={}, overrides=["experiment.runs=1", "experiment.budget=5"]
+    )
+    text = resume_status(plan).mismatch_message()
+    assert "Recorded but no longer planned" in text
+    assert "Budget changed for 1 started run(s)" in text
+
+
 def test_unreadable_progress_is_a_config_error(tmp_path, capsys):
     path = write_yaml(tmp_path, base_config(runs=1))
     (tmp_path / "out").mkdir()
