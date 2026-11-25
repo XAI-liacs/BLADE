@@ -211,23 +211,24 @@ Output directory is new: all runs will start.
 
 ## Scene 8 — Resuming (4:45–5:35)
 
-Back in episode 1's folder (its results hold one run per method):
+Back in episode 1's folder; its quick run (one run per method, budget 10)
+is in `results/quick`:
 
 ```console
-$ uv run iohblade run my-first-benchmark/experiment.yml --dry-run
+$ uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.output_dir=results/quick --set experiment.budget=10
 ...
 Runs: 2 methods x 1 problems x 3 seeds = 6
 Resuming: 2 of 6 runs already finished and will be skipped; 4 will run.
 ```
 
-Then a configuration that leaves runs out:
+Then the same folder with the file's own budget of 20:
 
 ```console
-$ uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.runs=1 --set methods.1.name=Random
+$ uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.output_dir=results/quick
 ...
-Cannot resume: The output directory .../results already holds 2 run(s) of a different setup, and this configuration plans 2. ...
-    Recorded but no longer planned: RS-local (qwen2.5-coder-14b) on circle_packing_n40, seed 0.
-    Either use a new output directory (change experiment.output_dir, e.g. --set experiment.output_dir=results/trial), or restore the previous settings (runs/seeds, methods and problems) to resume.
+Cannot resume: The output directory .../results/quick holds runs with another budget than this configuration. Resuming would mix budgets in one comparison.
+    Budget changed for 2 started run(s): LLaMEA-local (qwen2.5-coder-14b) on circle_packing_n40, seed 0: 10 recorded, 20 planned; RS-local (qwen2.5-coder-14b) on circle_packing_n40, seed 0: 10 recorded, 20 planned.
+    Either use a new output directory (change experiment.output_dir, e.g. --set experiment.output_dir=results/trial), or restore the previous budget to resume.
 ```
 
 **Narration:**
@@ -235,11 +236,14 @@ Cannot resume: The output directory .../results already holds 2 run(s) of a diff
 > Long experiments get interrupted: a reboot, a cluster time limit, an API
 > outage. Running the same command again resumes: finished runs are
 > skipped, the rest starts. You can also add runs, methods or problems
-> later, and only the new ones run.
+> later, and only the new ones run. Here, two runs are done and four more
+> would be added.
 >
-> What BLADE will not do is mix two different setups in one folder. If
-> the configuration no longer matches what is recorded, it stops before
-> writing anything and tells you what differs. Every run also records the
+> What BLADE will not do is mix two different setups in one folder. Our
+> quick test used a budget of ten; the file says twenty. Resuming would
+> compare runs with different budgets as if they were the same, so BLADE
+> stops before writing anything and says what differs. The same happens
+> if you remove runs, methods or problems. Every run also records the
 > exact configuration it used, so you can always see how a result was
 > produced.
 
@@ -259,6 +263,7 @@ Cannot resume: The output directory .../results already holds 2 run(s) of a diff
 
 - The `--dry-run` outputs above were captured with a test LLM; the method
   names and run counts are the same with real models.
-- In scene 8, the folder must hold the short episode 1 run (one run per
-  method). Use exactly the commands above, or re-capture the output.
+- In scene 8, `my-first-benchmark/results/quick` must hold episode 1's
+  quick run (one run per method, budget 10). The budget check needs the
+  fix on branch `fix-plots-registry-resume` (in the 1.2.0 release).
 - `validate` exits with code 2 for an invalid file, 0 for a valid one.

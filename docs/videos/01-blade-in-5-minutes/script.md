@@ -153,7 +153,7 @@ Checking my-first-benchmark/experiment.yml ...
 ## Scene 7 — Run (3:40–4:35)
 
 ```console
-$ uv run iohblade run my-first-benchmark/experiment.yml --set experiment.runs=1 --set experiment.budget=10
+$ uv run iohblade run my-first-benchmark/experiment.yml --set experiment.runs=1 --set experiment.budget=10 --set experiment.output_dir=results/quick
 ```
 
 Record the full run; show it as a time-lapse with an on-screen note
@@ -178,9 +178,10 @@ Results: .../my-first-benchmark/results
 
 **Narration:**
 
-> `run` starts the experiment. For this video we override two settings
-> from the command line: one run and a budget of ten, so it finishes
-> quickly. The overview shows each run, how many algorithms were
+> `run` starts the experiment. For this video we override settings from
+> the command line: one run and a budget of ten, so it finishes quickly,
+> written to its own folder so it does not mix with the full experiment
+> later. The overview shows each run, how many algorithms were
 > evaluated, the best score so far, and how many evaluations failed.
 > Failures are normal: generated code does not always work, and that is
 > part of what we measure.
@@ -223,7 +224,9 @@ Solutions": download the best algorithm and open it in the editor.
 - The LLM column shows the model name, not the provider key.
 - `check` builds the evaluation environment on first use, which can take a
   minute; cache it before recording or cut the wait.
-- The web app reads the `results` folder of the directory it is started
-  in, hence the `cd` in scene 8.
+- The web app lists the experiments in the `results` folder of the
+  directory it is started in, hence the `cd` in scene 8 and the
+  `results/quick` output folder in scene 7 (an experiment written directly
+  to `results/` is not listed).
 - Scene 7 with a 14B model on one GPU: plan for the real run to take
   several minutes; record once, then time-lapse.

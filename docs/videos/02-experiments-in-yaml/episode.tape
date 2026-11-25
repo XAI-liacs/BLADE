@@ -38,11 +38,11 @@ Enter
 Sleep 10s
 Ctrl+L
 
-# Scene 8: resuming
-Type "uv run iohblade run my-first-benchmark/experiment.yml --dry-run"
+# Scene 8: resuming (episode 1's quick run is in results/quick)
+Type "uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.output_dir=results/quick --set experiment.budget=10"
 Enter
 Sleep 10s
 Ctrl+L
-Type "uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.runs=1 --set methods.1.name=Random"
+Type "uv run iohblade run my-first-benchmark/experiment.yml --dry-run --set experiment.output_dir=results/quick"
 Enter
 Sleep 12s

@@ -44,7 +44,7 @@ Sleep 40s
 Ctrl+L
 
 # Scene 7: run (shown as a time-lapse in the edit)
-Type "uv run iohblade run my-first-benchmark/experiment.yml --set experiment.runs=1 --set experiment.budget=10"
+Type "uv run iohblade run my-first-benchmark/experiment.yml --set experiment.runs=1 --set experiment.budget=10 --set experiment.output_dir=results/quick"
 Enter
 # Adjust to the real duration of the run on the recording machine.
 Sleep 600s
