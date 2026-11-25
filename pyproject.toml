@@ -63,6 +63,7 @@ docs = [
     "sphinxext-opengraph>=0.9.1,<0.10",
     "sphinx-copybutton>=0.5.2,<0.6",
     "sphinx-multiversion>=0.2.4,<0.3",
+    "sphinx-design>=0.6.1,<0.7",
 ]
 methods = [
     "eoh",

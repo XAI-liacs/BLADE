@@ -1,5 +1,5 @@
 Quick Start
------------
+===========
 
 The recommended way to use BLADE is a YAML experiment file and the
 ``iohblade`` command. (The Python API, shown at the end, is available for

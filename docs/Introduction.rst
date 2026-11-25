@@ -1,6 +1,6 @@
 
 Introduction
-------------
+============
 
 **BLADE** is a Python framework for benchmarking the Llm Assisted Design and
 Evolution of algorithms.

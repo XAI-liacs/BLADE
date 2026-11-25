@@ -1,5 +1,5 @@
-Webapp
-======
+Analysing results
+=================
 
 BLADE includes a simple Streamlit-based web application for browsing experiments.
 It can be used both while an experiment is running and after it has finished.

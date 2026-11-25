@@ -1,0 +1,59 @@
+/* BLADE brand on top of Furo: colours from the banner, a compact sidebar logo. */
+:root {
+  --blade-violet: #7c5cff;
+  --blade-pink: #ff7ab6;
+  --blade-amber: #ffb547;
+  --blade-mint: #8ee6c0;
+}
+
+/* Sidebar brand: small leaf and the name on one line. */
+.sidebar-brand {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1rem var(--sidebar-item-spacing-horizontal) 0.5rem;
+}
+.sidebar-logo-container { margin: 0; }
+.sidebar-logo { max-width: 2rem; }
+.sidebar-brand-text { font-size: 1.4rem; font-weight: 700; letter-spacing: 0.02em; }
+
+/* Section captions in the sidebar. */
+.sidebar-tree .caption, .sidebar-tree :not(.caption) > .caption-text {
+  color: var(--color-brand-primary);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+/* Cards (sphinx-design) in the brand style. */
+.sd-card { border-radius: 0.75rem; transition: transform .12s ease, box-shadow .12s ease; }
+.sd-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(124, 92, 255, .18); }
+.sd-card .sd-card-title { font-weight: 700; }
+.sd-card .sd-octicon { color: var(--color-brand-primary); margin-right: .35rem; }
+
+/* Landing hero (mockup 2). */
+.blade-hero {
+  border-radius: 1rem;
+  padding: 2.2rem 2rem 2rem;
+  margin: 0 0 1.5rem;
+  color: #f4f2ff;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(124, 92, 255, .55) 0%, rgba(11, 13, 18, 0) 55%),
+    radial-gradient(90% 120% at 0% 100%, rgba(255, 122, 182, .35) 0%, rgba(11, 13, 18, 0) 60%),
+    #0b0d12;
+}
+.blade-hero h1 { color: #fff; margin: 0 0 .4rem; font-size: 2.4rem; }
+.blade-hero p { color: #d7d2f5; font-size: 1.1rem; margin: 0 0 1.2rem; max-width: 36rem; }
+.blade-hero .grad {
+  background: linear-gradient(90deg, var(--blade-violet), var(--blade-pink) 55%, var(--blade-amber));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.blade-hero a.sd-btn { margin-right: .5rem; }
+
+/* "At a glance" numbers. */
+.blade-stats { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0 1.5rem; }
+.blade-stat {
+  flex: 1 1 8rem; border: 1px solid var(--color-background-border);
+  border-radius: .75rem; padding: .8rem 1rem; background: var(--color-background-secondary);
+}
+.blade-stat b { display: block; font-size: 1.6rem; color: var(--color-brand-primary); line-height: 1.2; }
+.blade-stat span { font-size: .85rem; color: var(--color-foreground-secondary); }
