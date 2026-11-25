@@ -45,7 +45,7 @@ own
 `pip install iohblade`
 https://github.com/XAI-liacs/BLADE
 
-Over the next weeks I will go through these features one by one.
+Over the next weeks we will go through these features one by one.
 
 #AutomatedAlgorithmDesign #LLM #Optimization #EvolutionaryComputation
 #Benchmarking #OpenSource
@@ -155,7 +155,7 @@ parent. That lets you look at:
 🌳 code evolution: which algorithm came from which
 🔍 the code itself, in the browser with `iohblade-webapp`
 
-For me, this is where explainability meets automated algorithm design:
+For us, this is where explainability meets automated algorithm design:
 understanding what the search produced, not just how well it scored.
 
 A public leaderboard is coming soon.
