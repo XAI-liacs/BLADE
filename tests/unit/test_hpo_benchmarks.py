@@ -28,8 +28,10 @@ from iohblade.hpo import HPO_DEPENDENCIES, HPOUnavailableError
 from iohblade.problem import HARNESS_ERROR_PREFIX, _build_eval_script, _harness_feedback
 from iohblade.solution import Solution
 
-# Evaluates the optimum (w > 0.5, AOCC close to 1) or a bad corner of the
-# domain (w <= 0.5, the default): the incumbent decides the score.
+# Runs a deterministic compass search from the centre (w > 0.5, a good
+# AOCC) or evaluates a bad corner of the domain once (w <= 0.5, the
+# default): the incumbent decides the score. (Generated code cannot read
+# func.optimum; see iohblade.benchmarks.blackbox.)
 AIMED = """
 import numpy as np
 
@@ -40,11 +42,28 @@ class Aimed:
         self.w = w
 
     def __call__(self, func):
-        if self.w > 0.5:
-            x = np.asarray(func.optimum.x)
-        else:
-            x = np.asarray(func.bounds.ub)
+        lb = np.asarray(func.bounds.lb, dtype=float)
+        ub = np.asarray(func.bounds.ub, dtype=float)
+        if self.w <= 0.5:
+            return func(ub), ub
+        x = (lb + ub) / 2
         f = func(x)
+        evals = 1
+        step = (ub - lb) / 4
+        while evals < self.budget:
+            improved = False
+            for i in range(self.dim):
+                for sign in (1.0, -1.0):
+                    if evals >= self.budget:
+                        break
+                    y = x.copy()
+                    y[i] = np.clip(y[i] + sign * step[i], lb[i], ub[i])
+                    fy = func(y)
+                    evals += 1
+                    if fy < f:
+                        x, f, improved = y, fy, True
+            if not improved:
+                step = step / 2
         return f, x
 """
 

@@ -171,9 +171,9 @@ one-line description, describing the main idea. Give the response in the format:
             score = float(ratio_sq)
             if not np.isfinite(score):
                 raise ValueError(f"non-finite ratio {score}")
-            msg = f"ratio_sq={ratio_sq:.12g}."
-            if self.best_known is not None:
-                msg += f" Best known score is {self.best_known}."
+            msg = f"ratio_sq={ratio_sq:.12g}" + self.best_known_feedback(
+                self.best_known
+            )
             solution.set_scores(score, msg)
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", e)

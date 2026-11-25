@@ -31,7 +31,9 @@ All entries must be multiples of {self.grid}.
 
 The reconstruction is calculated as:
 t_hat[i,j,k] = Σₗ F1[i*{self.m}+j, l] · F2[j*{self.p}+k, l] · F3[k*{self.n}+i, l]
-Your goal is to minimise this score.
+The score is the Frobenius norm of the error, ||t_hat - T||, between this
+reconstruction (after rounding the entries to multiples of {self.grid}) and the
+matrix-multiplication tensor T. Your goal is to minimise this score (0 is exact).
 Return a flattened list of the factor matrices' entries.
 """)
 

@@ -125,6 +125,28 @@ suites still accept the old name ``get_best``.
      - suite: alphaevolve_math
        params: {use_best: false}
 
+.. _task_leakage:
+
+What the LLM is told
+^^^^^^^^^^^^^^^^^^^^
+
+The prompts describe each task without naming the benchmark suite or the
+instance (no "BBOB", function ids, instance names or literature constants),
+so that a method cannot rely on what the LLM remembers about the benchmark.
+
+- **Continuous problems** (BBOB, MA-BBOB, photonics) pass the generated
+  algorithm a ``BlackBoxFunction`` (``iohblade.benchmarks.blackbox``) instead
+  of the IOH problem itself. It offers ``func(x)``, ``func.bounds.lb`` /
+  ``func.bounds.ub``, ``func.meta_data.n_variables`` and ``func.state``
+  (``evaluations``, ``current_best``), but not ``func.optimum``, the
+  function's name and id, or ``reset()``.
+- **Best known scores** are not mentioned in the feedback of an evaluation
+  (which the LLM sees in the next prompt). To include them, set
+  ``problem.show_best_known = True`` on a problem in Python.
+- BBOB with ``specific_fid`` still tells the LLM the function's name, on
+  purpose; ``use_best=True`` gives the generated code the best known
+  solution, also on purpose.
+
 .. _suite_running_time:
 
 Running time

@@ -177,7 +177,7 @@ In addition, the variable `tune_params` is a dictionary containing the tuning pa
                 self.task_prompt += f.read()
 
         else:
-            self.task_prompt += "The algorithm should be able to handle any type of kernel tuning problem, including but not limited to vector addition, matrix multiplication, and convolution.\n"
+            self.task_prompt += "The algorithm should be able to handle any type of kernel tuning problem, with any number and type of tuning parameters and constraints.\n"
 
         self.example_prompt = textwrap.dedent("""
 An example code structure with helper functions is as follows:
