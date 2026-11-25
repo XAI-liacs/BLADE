@@ -204,7 +204,7 @@ def card_suites() -> str:
     F.chip(PAD, yy, "quick", "amber", 16)
     F.text(PAD + 110, yy + 22, "a small set to try a setup", 20, F.MUTED)
     F.chip(PAD, yy + 50, "full", "amber", 16)
-    F.text(PAD + 110, yy + 72, "everything, with one dim and budget_factor",
+    F.text(PAD + 110, yy + 72, "everything; dim and budget_factor set the BBOB parts",
            20, F.MUTED)
     footer(3)
     return finish()

@@ -90,8 +90,9 @@ training, 6–15 for testing, 10-D, budget factor 2000
 auto-correlation, ...)
 🔸 combinatorial problems: Steiner trees, TSP, CVRP, graph colouring
 
-`quick` gives a small set to try a setup; `full` runs everything, with one
-`dim` and `budget_factor` for the whole suite.
+`quick` gives a small set to try a setup; `full` runs everything. One
+`dim` and `budget_factor` set the BBOB and MA-BBOB parts; the other
+problems keep their own fixed settings.
 
 Overview with run-time estimates: https://xai-liacs.github.io/BLADE/benchmarks.html
 

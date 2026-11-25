@@ -72,7 +72,7 @@
 <text x="174" y="1105.9" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#a3a8b5" font-weight="400" text-anchor="start" xml:space="preserve" >a small set to try a setup</text>
 <rect x="64" y="1133.9" width="63.0" height="30" rx="15" fill="#12151d" stroke="#ffb547" stroke-width="1.4"/>
 <text x="95.52" y="1153.9" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="16" fill="#ffc76e" font-weight="500" text-anchor="middle" xml:space="preserve" >full</text>
-<text x="174" y="1155.9" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#a3a8b5" font-weight="400" text-anchor="start" xml:space="preserve" >everything, with one dim and budget_factor</text>
+<text x="174" y="1155.9" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="20" fill="#a3a8b5" font-weight="400" text-anchor="start" xml:space="preserve" >everything; dim and budget_factor set the BBOB parts</text>
 <line x1="64" y1="1258" x2="1016" y2="1258" stroke="#262a36" stroke-width="1.5"/>
 <text x="64" y="1302" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#b8a9ff" font-weight="500" text-anchor="start" xml:space="preserve" >github.com/XAI-liacs/BLADE  ·  pip install iohblade</text>
 <text x="1016" y="1302" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="19" fill="#a3a8b5" font-weight="600" text-anchor="end" xml:space="preserve" >3 / 7</text>
