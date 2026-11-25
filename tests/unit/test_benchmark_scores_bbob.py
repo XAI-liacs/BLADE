@@ -1,7 +1,7 @@
 """Regression tests for scoring bugs in the BBOB, MA-BBOB, photonics and
 AutoML benchmarks (issue #203).
 
-PyMoosh, pyGDM2 and openml are optional; when they are missing, small stub
+PyMoosh and openml are optional; when they are missing, small stub
 modules stand in for them so the scoring logic can still be tested.
 """
 
@@ -69,14 +69,12 @@ def _fake_pymoosh():
 
 @pytest.fixture
 def photonics_module(monkeypatch):
-    """Import the photonics benchmark, stubbing PyMoosh/pyGDM2 if missing."""
+    """Import the photonics benchmark, stubbing PyMoosh if it is missing.
+
+    pyGDM2 is not needed: only the plasmonic problem imports it, lazily.
+    """
     if not _installed("PyMoosh"):
         monkeypatch.setitem(sys.modules, "PyMoosh", _fake_pymoosh())
-    if not _installed("pyGDM2"):
-        gdm = types.ModuleType("pyGDM2")
-        for sub in ("linear", "structures", "tools", "visu"):
-            setattr(gdm, sub, types.ModuleType(f"pyGDM2.{sub}"))
-        monkeypatch.setitem(sys.modules, "pyGDM2", gdm)
     _drop_modules(_PHOTONICS_PREFIX)
     try:
         yield importlib.import_module(f"{_PHOTONICS_PREFIX}.photonics")
@@ -193,6 +191,20 @@ def test_photonics_over_budget_scores_every_run(photonics_module):
     aucs = solution.get_metadata("aucs")
     assert len(aucs) == 3
     assert solution.fitness == pytest.approx(np.mean(aucs))
+
+
+def test_photonics_does_not_need_pygdm2(photonics_module, monkeypatch):
+    # Only the plasmonic problem uses pyGDM2; it imports it lazily.
+    assert "pyGDM2" not in sys.modules
+    problem = photonics_module.Photonics(logger=None, problem_type="bragg")
+    assert not any("pygdm2" in d.lower() for d in problem.dependencies)
+
+    plasmonic = importlib.import_module(
+        f"{_PHOTONICS_PREFIX}.photonics_instances.problems.plasmonic_nanostructure"
+    )
+    monkeypatch.setitem(sys.modules, "pyGDM2", None)  # import raises
+    with pytest.raises(ImportError, match=r"pip install pyGDM2==1\.1\.12"):
+        plasmonic.plasmonic_nanostructure(element_sim=None, method="lu")
 
 
 # --------------------------------------------------------------------------

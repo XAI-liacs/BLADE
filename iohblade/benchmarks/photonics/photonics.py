@@ -66,7 +66,6 @@ class Photonics(Problem):
                 "ioh==0.3.22",
                 "pandas==2.2.3",
                 "pymoosh==3.2",
-                "pyGDM2==1.1.12",
             ]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
