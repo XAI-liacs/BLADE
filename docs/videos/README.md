@@ -33,14 +33,15 @@ Every episode starts with the same short opening, recorded once and reused,
 followed by the episode's own title card.
 
 **Screen:** the banner with a name lower-third, then a simple loop
-animation: *LLM writes code → evaluate → score fed back*.
+animation: *the model writes code → we test it → the score goes back to
+the model*, with the caption "LLM-driven automated algorithm design".
 
-**Narration (about 38 words):**
+**Narration (about 46 words, 15 s):**
 
-> I'm Niki van Stein, professor of explainable AI and optimisation at
-> Leiden University. In LLM-driven algorithm design, a language model
-> writes optimisation algorithms, we score them, and the model uses those
-> scores to write better ones, generation after generation.
+> I'm Niki van Stein, associate professor of explainable AI and
+> optimisation at Leiden University. AI chatbots can write computer code.
+> We use them to invent algorithms for hard problems: the model writes
+> one, we test it, and it uses the result to write a better one.
 
 Then the title card, e.g. "Episode 1 · BLADE in 5 minutes", for 2–3 s
 without narration.
