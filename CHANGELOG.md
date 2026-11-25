@@ -382,6 +382,10 @@ see "Breaking changes" for the two exceptions.
     raised a `ValueError` when no run of a problem had a valid final
     fitness; such a problem now gets an empty axis marked "No successful
     runs".
+  - **`iohblade init` templates** wrote to `output_dir: results`, which
+    `iohblade-webapp` does not list (it lists subfolders of `./results`).
+    They now use `results/circle-packing`, `results/my-problem` and
+    `results/my-method`.
   - **`circle_packing`** was described as "Pack circles in a unit square";
     it packs circles of given radii into a circle.
   - **EoH** no longer writes its populations to `./results` by default.
