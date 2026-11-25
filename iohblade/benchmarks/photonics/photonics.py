@@ -65,7 +65,7 @@ class Photonics(Problem):
             dependencies = [
                 "ioh==0.3.22",
                 "pandas==2.2.3",
-                "pymoosh==3.2",
+                "pymoosh==4.0.1",
             ]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"

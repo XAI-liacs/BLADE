@@ -40,7 +40,11 @@ def _installed(name):
 
 
 def _fake_pymoosh():
-    """Minimal PyMoosh: a reflection coefficient that depends on the stack."""
+    """Minimal PyMoosh 4: a reflection coefficient that depends on the stack.
+
+    Returns the modules ``PyMoosh``, ``PyMoosh.alt_methods`` and
+    ``PyMoosh.photo`` by name.
+    """
     mod = types.ModuleType("PyMoosh")
 
     class Structure:
@@ -59,12 +63,24 @@ def _fake_pymoosh():
 
     def coefficient_I(struct, wavelength, angle, polarization):
         reflectivity = 0.5 + 0.4 * np.sin(float(np.sum(struct.thicknesses)) / 100)
-        return None, reflectivity
+        return None, None, reflectivity, None
+
+    def photo(struct, incidence, polarization, wl_min, wl_max, active, n):
+        efficiency = 0.5 + 0.4 * np.cos(float(np.sum(struct.thicknesses)) / 100)
+        return efficiency, None, None, None, None, None
 
     mod.Structure = Structure
     mod.coefficient = coefficient
-    mod.coefficient_I = coefficient_I
-    return mod
+    alt_methods = types.ModuleType("PyMoosh.alt_methods")
+    alt_methods.coefficient_I = coefficient_I
+    photo_mod = types.ModuleType("PyMoosh.photo")
+    photo_mod.photo = photo
+    mod.alt_methods, mod.photo = alt_methods, photo_mod
+    return {
+        "PyMoosh": mod,
+        "PyMoosh.alt_methods": alt_methods,
+        "PyMoosh.photo": photo_mod,
+    }
 
 
 @pytest.fixture
@@ -74,7 +90,8 @@ def photonics_module(monkeypatch):
     pyGDM2 is not needed: only the plasmonic problem imports it, lazily.
     """
     if not _installed("PyMoosh"):
-        monkeypatch.setitem(sys.modules, "PyMoosh", _fake_pymoosh())
+        for name, module in _fake_pymoosh().items():
+            monkeypatch.setitem(sys.modules, name, module)
     _drop_modules(_PHOTONICS_PREFIX)
     try:
         yield importlib.import_module(f"{_PHOTONICS_PREFIX}.photonics")
@@ -191,6 +208,20 @@ def test_photonics_over_budget_scores_every_run(photonics_module):
     aucs = solution.get_metadata("aucs")
     assert len(aucs) == 3
     assert solution.fitness == pytest.approx(np.mean(aucs))
+
+
+def test_photovoltaic_photo_works_without_np_trapz(photonics_module, monkeypatch):
+    # PyMoosh's photo() uses np.trapz, which numpy 2.4 removed.
+    ar = importlib.import_module(
+        f"{_PHOTONICS_PREFIX}.photonics_instances.problems"
+        ".sophisticated_antireflection_design"
+    )
+    monkeypatch.setattr(ar, "photo", lambda *a: (np.trapz([1.0, 1.0], [0, 2]),))
+    # Registered first so it is undone last: removes the np.trapz that
+    # _photo adds when this numpy has none.
+    monkeypatch.setattr(np, "trapz", None, raising=False)
+    monkeypatch.delattr(np, "trapz")
+    assert ar._photo() == (2.0,)
 
 
 def test_photonics_does_not_need_pygdm2(photonics_module, monkeypatch):

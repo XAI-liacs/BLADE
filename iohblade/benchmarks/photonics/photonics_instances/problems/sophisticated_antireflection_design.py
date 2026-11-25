@@ -1,7 +1,20 @@
 import numpy as np
 import PyMoosh as pm
+from PyMoosh.photo import photo
 
 from .photonic_problem import photonic_problem
+
+
+def _photo(*args):
+    """``PyMoosh.photo.photo``, also with numpy >= 2.4.
+
+    PyMoosh (up to at least 4.0.1) integrates with ``np.trapz``, which
+    numpy 2.4 removed; ``np.trapezoid`` is the same function under its
+    new name (numpy >= 2.0).
+    """
+    if not hasattr(np, "trapz"):
+        np.trapz = np.trapezoid
+    return photo(*args)
 
 
 class sophisticated_antireflection_design(photonic_problem):
@@ -68,7 +81,7 @@ class sophisticated_antireflection_design(photonic_problem):
         structure = self.setup_structure(x)
         # the actual PyMoosh reflectivity simulation
         active_lay = len(x) + 1
-        eff, _, _, _, _, _ = pm.photo(
+        eff, _, _, _, _, _ = _photo(
             structure,
             self.incidence,
             self.pola,

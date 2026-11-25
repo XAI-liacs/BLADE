@@ -54,15 +54,15 @@ dev = [
     "ipykernel>=6.29.5,<8",
 ]
 docs = [
-    "sphinx==7.4.7",
+    "sphinx>=9.0.4,<10",
     "sphinx-rtd-theme>=3.0.2,<4",
-    "myst-parser>=4.0.1,<5",
+    "myst-parser>=5.2.0,<6",
     "nbsphinx>=0.9.6,<0.10",
     "pandoc~=2.4",
     "furo>=2024.8.6,<2026",
     "sphinxext-opengraph>=0.9.1,<0.14",
     "sphinx-copybutton>=0.5.2,<0.6",
-    "sphinx-multiversion>=0.2.4,<0.3",
+    "sphinx-multiversion-scylla>=0.3.9,<0.4",
 ]
 methods = [
     "eoh",
@@ -72,7 +72,7 @@ methods = [
     "tree-sitter-python"
 ]
 extraproblems = [
-    "pymoosh==3.2",
+    "pymoosh==4.0.1",
     "openml>=0.14",
 ]
 apple-silicon = [
