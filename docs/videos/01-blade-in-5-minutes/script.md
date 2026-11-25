@@ -111,7 +111,7 @@ from `experiment.schema.json`.)*
 
 ```console
 $ uv run iohblade validate my-first-benchmark/experiment.yml
-Output directory: .../my-first-benchmark/results
+Output directory: .../my-first-benchmark/results/circle-packing
 Methods (2):
   - LLaMEA-local (LLM: local, budget: 20)
   - RS-local (LLM: local, budget: 20)
@@ -173,7 +173,7 @@ Summary: 2 of 2 runs finished.
 Evaluations: 20, of which failed: ...
 Logs: .../results/experiment.log and run.log in each run's folder.
 
-Results: .../my-first-benchmark/results
+Results: .../my-first-benchmark/results/quick
 ```
 
 **Narration:**
