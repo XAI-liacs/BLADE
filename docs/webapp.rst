@@ -26,8 +26,11 @@ Alternatively you can run it directly:
 
    python -m iohblade.webapp
 
-The app scans the ``results`` directory for experiments containing a
-``progress.json`` file.
+The app lists the experiments in the subfolders of ``results`` (relative
+to the directory it is started in) that contain a ``progress.json`` file.
+Use an ``output_dir`` such as ``results/my-experiment``, as the
+``iohblade init`` templates do; an experiment written directly to
+``results`` is not listed.
 
 Monitoring Experiments
 ----------------------

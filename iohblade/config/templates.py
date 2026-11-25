@@ -85,7 +85,7 @@ BUILTIN = {
     "experiment.yml": _HEADER.format(template="builtin")
     + """\
 experiment:
-  output_dir: results
+  output_dir: results/circle-packing   # a subfolder of results/, where iohblade-webapp looks
   runs: 3
   budget: 20
 
@@ -200,7 +200,7 @@ CUSTOM_PROBLEM = {
     "experiment.yml": _HEADER.format(template="custom-problem")
     + """\
 experiment:
-  output_dir: results
+  output_dir: results/my-problem   # a subfolder of results/, where iohblade-webapp looks
   runs: 3
   budget: 20
 
@@ -279,7 +279,7 @@ CUSTOM_METHOD = {
     "experiment.yml": _HEADER.format(template="custom-method")
     + """\
 experiment:
-  output_dir: results
+  output_dir: results/my-method   # a subfolder of results/, where iohblade-webapp looks
   runs: 3
   budget: 20
 

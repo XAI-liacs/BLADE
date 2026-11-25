@@ -18,7 +18,7 @@ Full guide: https://xai-liacs.github.io/BLADE/yaml_experiments.html.
 ```yaml
 version: 1                       # optional
 experiment:
-  output_dir: results            # required; an existing directory is resumed
+  output_dir: results/my-exp     # required; under results/ for the web app; resumed if it exists
   name: my-experiment
   runs: 5                        # independent runs per method x problem
   seeds: [1, 2, 3]               # explicit unique seeds (instead of runs)

@@ -58,7 +58,7 @@ The recommended way to use BLADE is a YAML experiment file and the
 
 .. code-block:: yaml
 
-    experiment: {output_dir: results, runs: 5, budget: 50}
+    experiment: {output_dir: results/my-experiment, runs: 5, budget: 50}
     llms:
       qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
     methods:

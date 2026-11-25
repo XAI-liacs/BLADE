@@ -23,7 +23,7 @@ Prefix with `uv run` when the project uses uv (a `uv.lock` or
 | `iohblade validate FILE` | Checks everything; runs nothing; no LLM calls |
 | `iohblade check FILE [--llm]` | Smoke test: builds evaluation envs, evaluates a reference solution, runs each method with budget 2 and an offline LLM. `--llm` also sends one prompt per LLM |
 | `iohblade run FILE [--dry-run] [--set key=value]` | Runs; rerunning resumes and skips finished runs |
-| `iohblade-webapp` | Browse results in `./results` |
+| `iohblade-webapp` | Browse the experiments in subfolders of `./results` (`output_dir: results/<name>`) |
 | `iohblade cache list\|clear` | Cached evaluation environments |
 
 Exit codes: 0 ok, 1 runs/checks failed, 2 invalid configuration, 3 an
@@ -69,7 +69,7 @@ Follow these steps in order; do not start `run` before `validate` and
 
 ```yaml
 # yaml-language-server: $schema=./experiment.schema.json
-experiment: {output_dir: results, runs: 5, budget: 50}   # budget = LLM-generated solutions per run
+experiment: {output_dir: results/my-experiment, runs: 5, budget: 50}   # budget = LLM-generated solutions per run
 llms:
   qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
 methods:

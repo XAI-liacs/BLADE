@@ -90,9 +90,9 @@ Choose the LLM in ``experiment.yml`` (API keys via ``${env:NAME}`` or a
 .. code-block:: bash
 
     uv run iohblade run my-bench/experiment.yml
-    uv run iohblade-webapp      # browse the results
+    cd my-bench && uv run iohblade-webapp      # browse the results
 
-Results go to ``my-bench/results``: per run the generated solutions
+Results go to ``my-bench/results/my-problem``: per run the generated solutions
 (``log.jsonl``), the conversation with the LLM, ``run.log`` and, for failed
 runs, ``error.txt``; for the experiment ``experiment.log``,
 ``progress.json`` and ``blade_config/`` (the resolved configuration and a

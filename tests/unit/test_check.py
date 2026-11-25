@@ -37,6 +37,23 @@ def test_templates_pass_validate_and_check(template, tmp_path, capsys):
     assert "ready to run" in out and "add --llm" in out
 
 
+@pytest.mark.parametrize("template", sorted(TEMPLATES))
+def test_template_results_are_listed_by_the_webapp(template, tmp_path):
+    """The web app lists subfolders of results/; the templates used to write
+    straight to results/, so their experiments never showed up."""
+    import yaml
+
+    from iohblade.webapp import discover_experiments
+
+    write_template(template, tmp_path)
+    config = yaml.safe_load((tmp_path / "experiment.yml").read_text())
+    output_dir = tmp_path / config["experiment"]["output_dir"]
+    assert output_dir.parent == tmp_path / "results"
+    output_dir.mkdir(parents=True)
+    (output_dir / "progress.json").write_text("{}")
+    assert discover_experiments(str(tmp_path / "results")) == [output_dir.name]
+
+
 def test_init_refuses_to_overwrite(tmp_path, capsys):
     assert cli.main(["init", str(tmp_path), "-t", "custom-problem"]) == cli.EXIT_OK
     assert "Created a 'custom-problem' experiment" in capsys.readouterr().out
