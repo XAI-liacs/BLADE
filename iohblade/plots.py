@@ -1137,6 +1137,20 @@ def plotly_code_evolution(
     return fig
 
 
+def _no_finished_runs(ax, title: str) -> None:
+    """Mark a box plot axis that has no run with a valid final fitness."""
+    ax.text(
+        0.5,
+        0.5,
+        "No successful runs",
+        ha="center",
+        va="center",
+        transform=ax.transAxes,
+    )
+    ax.set_title(title)
+    ax.set_xticks([])
+
+
 def plot_boxplot_fitness(
     logger: ExperimentLogger, y_label="Fitness", x_label="Method", problems=None
 ):
@@ -1169,7 +1183,10 @@ def plot_boxplot_fitness(
         axes = [axes]
 
     for i, problem in enumerate(problems):
-        subset = df[df["problem_name"] == problem]
+        subset = df[(df["problem_name"] == problem) & df["fitness"].notna()]
+        if subset.empty:
+            _no_finished_runs(axes[i], problem)
+            continue
         # Plot with Seaborn
         sns.boxplot(x="method_label", y="fitness", data=subset, ax=axes[i])
         axes[i].set_title(problem)
@@ -1233,7 +1250,12 @@ def plot_boxplot_fitness_hue(
 
     for i, problem in enumerate(problems):
         ax = axes[i]
-        df_problem = df_filtered[df_filtered[x] == problem]
+        df_problem = df_filtered[
+            (df_filtered[x] == problem) & df_filtered["fitness"].notna()
+        ]
+        if df_problem.empty:
+            _no_finished_runs(ax, problem)
+            continue
         sns.boxplot(x=x, y="fitness", hue=hue, data=df_problem, ax=ax)
         ax.set_xlabel(x_label)
         ax.set_ylabel(y_label)

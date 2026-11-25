@@ -217,6 +217,18 @@ class ExperimentLogger:
             progress_callback=progress_cb,
         )
 
+    @staticmethod
+    def run_budget(method, default) -> int:
+        """The evaluation budget of one run of ``method``.
+
+        A method's own ``budget`` (``methods[].budget`` in YAML) wins over
+        the experiment-wide ``default``. ``progress.json`` records this value
+        per run, the run logger stops evaluations at it, and resuming
+        compares it with the planned one.
+        """
+        budget = getattr(method, "budget", None)
+        return int(budget if budget is not None else default)
+
     def _get_clean_llm_model_name(self, llm):
         llm_name = getattr(llm, "model", "llm-unknown")
         llm_name = llm_name.replace("/", "-").replace(":", "-")
@@ -271,6 +283,7 @@ class ExperimentLogger:
                 entry["evaluations"] = 0
 
             entry["start_time"] = datetime.now().isoformat()
+            entry["budget"] = int(budget)  # the budget this attempt runs with
             entry["minimisation"] = bool(getattr(problem, "minimisation", False))
             for key in ("best_fitness", "error_counts", "last_error"):
                 entry.pop(key, None)  # a retry starts clean
@@ -636,7 +649,7 @@ class ExperimentLogger:
                             "llm_name": llm_name,
                             "problem_name": p.name,
                             "seed": int(s),
-                            "budget": int(budget),
+                            "budget": self.run_budget(m, budget),
                             "evaluations": 0,
                             "start_time": None,
                             "end_time": None,

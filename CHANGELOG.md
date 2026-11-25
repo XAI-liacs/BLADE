@@ -374,6 +374,24 @@ see "Breaking changes" for the two exceptions.
   - **ReEvo** no longer writes its reflection files into the current
     directory. They go to the run folder (`reevo/`), to `output_path`, or
     to a temporary folder.
+  - **Resuming with another budget** is refused like resuming with fewer
+    runs: finished runs kept their old budget while new runs used the new
+    one, so one comparison mixed budgets without a warning. `iohblade run`
+    now stops with exit code 2 and lists the runs whose budget changed.
+    The budget of a run is the method's own `budget` (falling back to
+    `experiment.budget`): it is what `progress.json` records, what the run
+    logger enforces (before, a method budget above the experiment budget
+    was capped at the experiment budget) and what resuming compares.
+  - **Box plots** (`plot_boxplot_fitness`, `plot_boxplot_fitness_hue`)
+    raised a `ValueError` when no run of a problem had a valid final
+    fitness; such a problem now gets an empty axis marked "No successful
+    runs".
+  - **`iohblade init` templates** wrote to `output_dir: results`, which
+    `iohblade-webapp` does not list (it lists subfolders of `./results`).
+    They now use `results/circle-packing`, `results/my-problem` and
+    `results/my-method`.
+  - **`circle_packing`** was described as "Pack circles in a unit square";
+    it packs circles of given radii into a circle.
   - **EoH** no longer writes its populations to `./results` by default.
     Parallel EoH runs shared that folder: they could fail with
     `FileExistsError` and could read another run's best algorithm. Each

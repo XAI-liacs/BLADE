@@ -453,7 +453,7 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         ComponentKind.PROBLEM,
         BuiltinProblem.CIRCLE_PACKING,
         f"{_B}.packing.circles:CirclePacking",
-        "Pack circles in a unit square.",
+        "Pack circles of given radii into a circle, maximising the covered area.",
         None,
     ),
     (

@@ -422,7 +422,10 @@ class Experiment(ABC):
                         m_copy = copy.deepcopy(method)
                         p_copy = copy.deepcopy(problem)
                         logger = self.exp_logger.open_run(
-                            m_copy, p_copy, self.budget, seed
+                            m_copy,
+                            p_copy,
+                            ExperimentLogger.run_budget(method, self.budget),
+                            seed,
                         )
 
                         future = executor.submit(

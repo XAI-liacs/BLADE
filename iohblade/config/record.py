@@ -242,7 +242,9 @@ class ResumeStatus:
     name, seed). Resuming skips the finished runs. Runs that are planned
     but not recorded yet (more ``runs``/``seeds``, another method or
     problem) are added. Runs that are recorded but no longer planned make
-    the directory incompatible: BLADE never drops recorded runs.
+    the directory incompatible: BLADE never drops recorded runs. So does a
+    started run whose recorded budget differs from the planned one: runs
+    with different budgets would be compared as if they were equal.
 
     Attributes:
         output_dir: The results directory.
@@ -250,6 +252,8 @@ class ResumeStatus:
         recorded: The runs recorded in ``progress.json`` (empty if new).
         finished: How many planned runs already finished.
         error: Why ``progress.json`` could not be read, if it could not.
+        budget_changed: Started runs whose recorded budget differs from
+            the planned budget, as ``{run: (recorded, planned)}``.
     """
 
     output_dir: Path
@@ -257,6 +261,7 @@ class ResumeStatus:
     recorded: set[RunKey] = field(default_factory=set)
     finished: int = 0
     error: str | None = None
+    budget_changed: dict[RunKey, tuple[Any, Any]] = field(default_factory=dict)
 
     @property
     def is_new(self) -> bool:
@@ -276,7 +281,7 @@ class ResumeStatus:
     @property
     def compatible(self) -> bool:
         """Whether the plan can run in (resume) this directory."""
-        return self.error is None and not self.removed
+        return self.error is None and not self.removed and not self.budget_changed
 
     def summary(self) -> list[str]:
         """Lines for ``iohblade run --dry-run``."""
@@ -302,6 +307,8 @@ class ResumeStatus:
         """Why the plan cannot resume, and what to do instead."""
         if self.error is not None:
             return self.error
+        if not self.removed:
+            return self._budget_message()
         lines = [
             f"The output directory {self.output_dir} already holds "
             f"{len(self.recorded)} run(s) of a different setup, and this "
@@ -318,11 +325,41 @@ class ResumeStatus:
             new = sorted({str(k[index]) for k in self.planned})
             if rec != new:
                 lines.append(f"{what} recorded: {rec}; planned: {new}.")
+        if self.budget_changed:
+            lines.append(self._budget_message(header=False))
         lines.append(
             "Either use a new output directory (change experiment.output_dir, "
             "e.g. --set experiment.output_dir=results/trial), or restore the "
             "previous settings (runs/seeds, methods and problems) to resume."
         )
+        return "\n    ".join(lines)
+
+    def _budget_message(self, header: bool = True) -> str:
+        """Which started runs have another budget than planned."""
+        changes = sorted(
+            self.budget_changed.items(),
+            key=lambda item: tuple(str(part) for part in item[0]),
+        )
+        listed = "; ".join(
+            f"{_describe(key)}: {old} recorded, {new} planned"
+            for key, (old, new) in changes[:5]
+        )
+        if len(changes) > 5:
+            listed += f"; ... ({len(changes) - 5} more)"
+        lines = [f"Budget changed for {len(changes)} started run(s): {listed}."]
+        if header:
+            lines.insert(
+                0,
+                f"The output directory {self.output_dir} holds runs with "
+                "another budget than this configuration. Resuming would mix "
+                "budgets in one comparison.",
+            )
+            lines.append(
+                "Either use a new output directory (change "
+                "experiment.output_dir, e.g. --set "
+                "experiment.output_dir=results/trial), or restore the "
+                "previous budget to resume."
+            )
         return "\n    ".join(lines)
 
 
@@ -371,6 +408,22 @@ def resume_status(plan: "ExperimentPlan", output_dir=None) -> ResumeStatus:
             "delete it, or use a new output directory."
         )
         return status
+    planned_budget = {}
+    for method in plan.methods:
+        llm = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
+        for problem in plan.problems:
+            for seed in plan.seeds:
+                key = _identity(
+                    method.name, llm if with_llm else None, problem.name, seed
+                )
+                planned_budget[key] = ExperimentLogger.run_budget(
+                    method, plan.config.experiment.budget
+                )
+    for run in runs:
+        key = _identity_of(run, with_llm)
+        old, new = run.get("budget"), planned_budget.get(key)
+        if run.get("start_time") and None not in (old, new) and old != new:
+            status.budget_changed[key] = (old, new)
     for method in plan.methods:
         llm = ExperimentLogger._get_clean_llm_model_name(None, method.llm)
         for problem in plan.problems:
