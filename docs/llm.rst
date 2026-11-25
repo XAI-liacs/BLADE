@@ -1,10 +1,70 @@
-LLM
-==========
+LLMs
+====
 
-Every LLM provider in BLADE subclasses :class:`iohblade.llm.LLM` and is passed
-to a search method (for example ``LLaMEA(llm, budget=...)``) in the same way.
-The sections below cover provider-specific setup; the full API reference
-follows.
+Every method needs an LLM. In an experiment file, each LLM gets a name of
+your choice, a ``provider`` and a ``model``; methods refer to it by name.
+API keys are read from the environment or a ``.env`` file next to the
+experiment, never from the YAML file itself:
+
+.. code-block:: yaml
+
+   llms:
+     claude:
+       provider: claude
+       model: claude-sonnet-5-5
+       api_key: "${env:ANTHROPIC_API_KEY}"
+     qwen:
+       provider: ollama
+       model: "qwen2.5-coder:14b"
+
+Providers
+---------
+
+.. list-table::
+   :header-rows: 1
+   :widths: 16 22 62
+
+   * - ``provider``
+     - Class
+     - Notes
+   * - ``openai``
+     - :class:`~iohblade.llm.OpenAI_LLM`
+     - OpenAI models, and any OpenAI-compatible server (vLLM, SGLang,
+       llama.cpp) through ``params: {base_url: ...}``; see below.
+   * - ``claude``
+     - :class:`~iohblade.llm.Claude_LLM`
+     - Anthropic's Claude models; see below.
+   * - ``gemini``
+     - :class:`~iohblade.llm.Gemini_LLM`
+     - Google's Gemini models.
+   * - ``deepseek``
+     - :class:`~iohblade.llm.DeepSeek_LLM`
+     - DeepSeek models through their OpenAI-compatible API.
+   * - ``ollama``
+     - :class:`~iohblade.llm.Ollama_LLM`
+     - Local models served by `Ollama <https://ollama.com>`_; no key.
+   * - ``lmstudio``
+     - :class:`~iohblade.llm.LMStudio_LLM`
+     - Local models in LM Studio (``uv sync --group apple-silicon``).
+   * - ``mlx_lm``
+     - :class:`~iohblade.llm.MLX_LM_LLM`
+     - Local MLX models on Apple silicon (``uv sync --group apple-silicon``).
+   * - ``multi``
+     - :class:`~iohblade.llm.Multi_LLM`
+     - Picks one of several named LLMs (``llms: [a, b]``) at random for
+       each call, e.g. to spread the load over one server per GPU.
+   * - ``dummy``
+     - :class:`~iohblade.llm.Dummy_LLM`
+     - Offline stand-in for tests; returns a fixed algorithm.
+   * - ``custom``
+     - your class
+     - Any :class:`~iohblade.llm.LLM` subclass; see
+       :doc:`tutorial_custom_llm`.
+
+``uv run iohblade check experiment.yml --llm`` sends one short prompt to
+every LLM, so a wrong key or model name shows up before a run starts. In
+Python, every provider is a class with the same interface (see
+:doc:`llm_api`).
 
 Claude (Anthropic)
 ------------------
@@ -132,7 +192,4 @@ only balances the load.
 API reference
 -------------
 
-.. automodule:: iohblade.llm
-   :members:
-   :undoc-members:
-   :show-inheritance:
+All providers are documented in :doc:`llm_api`.

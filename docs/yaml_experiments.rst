@@ -152,6 +152,8 @@ code with TODOs:
 
 Every template passes ``iohblade check`` as generated.
 
+.. _checking-an-experiment:
+
 Checking an experiment
 ----------------------
 
@@ -237,6 +239,8 @@ could not be built.
 
 The web app (``uv run iohblade-webapp``) shows the same run table, the
 resolved configuration, the custom code and the end of ``experiment.log``.
+
+.. _yaml-reproducibility:
 
 Reproducibility
 ---------------
@@ -404,6 +408,8 @@ The ``.env`` file follows the usual (python-dotenv) rules:
     PROMPT="line one\nline two"     # double quotes support \n and \" escapes
     RAW='no $escapes\n here'         # single quotes are literal
 
+.. _yaml-overriding-values:
+
 Overriding values
 -----------------
 
@@ -436,6 +442,8 @@ All problems in a file are reported at once, with the line they refer to:
 ``iohblade`` exits with code 0 on success, 1 if runs failed and 2 for an
 invalid configuration.
 
+.. _yaml-coding-agents:
+
 Coding agents
 -------------
 
@@ -443,6 +451,9 @@ Coding agents
 reference) that teaches coding agents to write, validate, check and run
 these files; the default folder ``.claude/skills`` is where Claude Code
 looks. The BLADE repository has it in ``.claude/skills/blade/``.
+See :doc:`coding_agents`.
+
+.. _editor-support:
 
 Editor support
 --------------

@@ -39,6 +39,11 @@ extensions = [
 ]
 
 nbsphinx_allow_errors = True  # Continue through errors in notebook cells
+# The notebooks need an LLM; show them as saved instead of running them.
+nbsphinx_execute = "never"
+# "Attributes:" sections as fields of the class, so that an attribute that
+# is also annotated on the class is not documented twice.
+napoleon_use_ivar = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -52,6 +57,8 @@ exclude_patterns = [
     ".DS_Store",
     "dev-plans",  # design notes, not user documentation
     "media/**/*.md",  # attribution notes next to the figure sources
+    "notebooks/getting_started.ipynb",  # superseded by the other notebooks
+    "notebooks/results",
 ]
 
 autodoc_mock_imports = ["modcma"]

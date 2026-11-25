@@ -1,0 +1,33 @@
+name: Docs check
+# Builds the documentation on every pull request and fails on any Sphinx
+# warning (broken references, malformed docstrings, pages missing from the
+# navigation), so the published docs stay clean.
+on:
+  pull_request:
+    paths:
+      - "docs/**"
+      - "iohblade/**"
+      - "CHANGELOG.md"
+      - "pyproject.toml"
+      - ".github/workflows/docs-check.yml"
+  workflow_dispatch:
+
+jobs:
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.7.19"
+      - name: Install pandoc
+        run: sudo apt install -y pandoc
+      - name: Install dependencies
+        run: uv sync --dev --group docs --no-group apple-silicon
+      - name: Build documentation (warnings are errors)
+        run: uv run sphinx-build -W --keep-going -b html docs/ _build/html

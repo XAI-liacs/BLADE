@@ -72,19 +72,10 @@ and :doc:`tutorial_custom_method`.
 Using a coding agent
 --------------------
 
-BLADE ships a skill that teaches coding agents (Claude Code and other
-agents that read ``SKILL.md`` skills) the steps above: choosing a template,
-writing the configuration and custom code, ``validate``, ``check``, a short
-trial run and the full run. Install it in your project:
-
-.. code-block:: bash
-
-   uv run iohblade skill                    # writes .claude/skills/blade/
-   uv run iohblade skill .agents/skills     # or another agent's skills folder
-
-Then ask, for example, *"Set up a BLADE experiment that compares LLaMEA and
-random search on my problem in my_problem.py"*. In a clone of the BLADE
-repository the skill is already in ``.claude/skills/blade/``.
+``uv run iohblade skill`` installs a skill that teaches coding agents such
+as Claude Code these steps. Then ask, for example, *"Set up a BLADE
+experiment that compares LLaMEA and random search on my problem in
+my_problem.py"*. See :doc:`coding_agents`.
 
 Using the Python API
 --------------------

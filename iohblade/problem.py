@@ -739,18 +739,13 @@ class Problem(ABC):
 
     @abstractmethod
     def get_config(self) -> dict[str, Any]:
-        """
-        * Return a dictionary of properties to log:
-            ```
-                {
-                    `tags`: list[str],
-                    `name`: str,
-                    `prompt`: str,
-                    `minimisation`: bool,
-                    `evaluator`: str,
-                    `config`: {}    Extra configuration for a problem; like HPO.
-                }
-            ```
+        """The problem's properties, logged with every run.
+
+        Returns:
+            dict[str, Any]: A dictionary with the keys ``tags`` (list[str]),
+            ``name`` (str), ``prompt`` (str), ``minimisation`` (bool),
+            ``evaluator`` (str) and ``config`` (dict: extra configuration of
+            the problem, such as HPO settings).
         """
 
 

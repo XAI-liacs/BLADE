@@ -348,6 +348,7 @@ Methodology class:
 .. _ioh benchmarks: https://iohprofiler.github.io/IOHexp/
 
 - Also contains a set of **photonics** problems, supported by black bock optimisation.
+
 -----------
 
 Combinatorics
@@ -400,6 +401,7 @@ Graph Colouring Problem
 - Fitness:
     .. math::
         \text{fitness} = |C| \quad \text{where } C \text{ is the set of colours used}
+
 -----------
 
 Fourier
@@ -435,6 +437,7 @@ Fourier Uncertainty Inequality
   1. If the leading coefficient of :math:`P` is negative, :math:`P` is replaced by :math:`-P`.
   2. :math:`r_{\max}` is the largest positive sign change of :math:`P(x)/x^2`; a candidate without one is invalid.
   3. Scale invariant: any nonzero scaling of :math:`c` leaves the score unchanged.
+
 -----------
 
 Geometry
@@ -514,6 +517,7 @@ Spherical Code
      \text{f} = \min_{i \ne j} \theta(i,j)
 
   where :math:`\theta(i,j)` is the angle between points :math:`i` and :math:`j`.
+
 -----------
 
 Kernel Tuner
@@ -535,6 +539,7 @@ Methodology class: :ref:`Black-box Discrete/Mixed-Integer
   strategy as its ``search_method_hyperparameters``; the incumbent is then
   scored on all kernels and GPUs and recorded in the metadata
   (``incumbent``).
+
 -----------
 
 Logistics
@@ -768,5 +773,3 @@ Unit Square Packing
         .. math::
             (x - x_i)^2 + (y - y_i) = r_i^2 \text{ must lie entirely within the square}
             \quad \forall i
-
------------
