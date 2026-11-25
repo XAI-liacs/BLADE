@@ -266,10 +266,12 @@ Resuming identifies runs by method name, problem name and seed. An existing
 (higher ``runs``, more ``seeds``, another method or problem): finished runs
 are skipped and the new ones start. If the configuration leaves out runs
 that are recorded there (fewer ``runs`` or ``seeds``, a renamed or removed
-method or problem), ``iohblade run`` stops with exit code 2 before writing
-anything, and says which runs differ; use a new ``output_dir`` or restore
-the previous settings. ``iohblade run --dry-run`` shows what resuming would
-do.
+method or problem), or changes the ``budget`` of runs that already
+started, ``iohblade run`` stops with exit code 2 before writing anything,
+and says which runs differ; use a new ``output_dir`` or restore the
+previous settings. (Resuming with another budget would compare runs with
+different budgets as if they were equal.) ``iohblade run --dry-run`` shows
+what resuming would do.
 
 LLaMEA operators
 ----------------

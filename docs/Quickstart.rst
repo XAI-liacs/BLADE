@@ -26,7 +26,7 @@ scripting.)
 
    .. code-block:: yaml
 
-      experiment: {output_dir: results, runs: 5, budget: 50}
+      experiment: {output_dir: results/my-experiment, runs: 5, budget: 50}
       llms:
         qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
         # gpt: {provider: openai, model: gpt-4o, api_key: "${env:OPENAI_API_KEY}"}
@@ -53,16 +53,17 @@ scripting.)
 
    The console shows every run's progress, best fitness and failed
    evaluations; results, logs and the resolved configuration are written to
-   ``my-exp/results``. Running the command again resumes: finished runs are
+   ``my-exp/results/circle-packing``. Running the command again resumes: finished runs are
    skipped.
 
 5. Monitor and inspect
 
    .. code-block:: bash
 
-      uv run iohblade-webapp
+      cd my-exp && uv run iohblade-webapp
 
-   The web app lists the experiments in ``./results``, with run status,
+   The web app lists the experiments in the subfolders of ``./results``
+   (hence ``output_dir: results/<name>``), with run status,
    convergence plots, the best solutions and the configuration. Read more
    :doc:`here <webapp>`.
 

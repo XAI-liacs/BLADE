@@ -389,3 +389,20 @@ def test_plotly_code_evolution_multiobjective():
     )
     fig = iohblade.plots.plotly_code_evolution(df, feature="total_token_count")
     assert isinstance(fig, go.Figure)
+
+
+@pytest.mark.parametrize("all_failed", [True, False])
+def test_boxplots_skip_failed_runs(mock_logger, all_failed):
+    """Failed runs (-inf) used to make seaborn raise when a problem had none
+    left; such a problem now gets an empty, labelled axis."""
+    mock_logger.mock_data["fitness"] = -np.inf
+    if all_failed:
+        mock_logger.mock_data2["fitness"] = -np.inf
+    plot_boxplot_fitness(logger=mock_logger)
+    texts = [t.get_text() for ax in plt.gcf().axes for t in ax.texts]
+    assert texts.count("No successful runs") == (2 if all_failed else 1)
+    plt.close("all")
+    plot_boxplot_fitness_hue(logger=mock_logger)
+    texts = [t.get_text() for ax in plt.gcf().axes for t in ax.texts]
+    assert texts.count("No successful runs") == (2 if all_failed else 1)
+    plt.close("all")
