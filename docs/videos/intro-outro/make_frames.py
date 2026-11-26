@@ -4,7 +4,10 @@ Style "Convergence": four best-so-far curves climb from the bottom left and
 meet in the BLADE leaf; the outro dims them behind an end card.
 
 Frames (1920x1080): ``intro-first``, ``intro-last`` (also the outro's first
-frame, so intro and outro match) and ``outro-last``.
+frame, so intro and outro match) and ``outro-last``. Alternative outro in
+style B ("code to terminal"): ``outro-b-first`` (logo over faded code) and
+``outro-b-last`` (terminal with ``pip install``/``init``/``check`` and the
+links).
 
 Usage (from the repository root)::
 
@@ -198,10 +201,71 @@ def c_outro_last():
     return f
 
 
+# ------------------------------------- outro, style B: code and terminal ---
+YAML = [
+    ("experiment: {output_dir: results/demo, runs: 5, budget: 100}", MINT),
+    ("llms:", SOFT),
+    ('  qwen: {provider: ollama, model: "qwen2.5-coder:14b"}', AMBER),
+    ("methods:", SOFT),
+    ('  - {type: llamea, name: "LLaMEA-{llm}", llm: qwen}', PINK),
+    ('  - {type: shinka_evolve, llm: qwen}', PINK),
+    ('  - {type: random_search, llm: qwen}', PINK),
+    ("problems:", SOFT),
+    ("  - {suite: bbob_groups, params: {dim: 10}}", "#e6e6f0"),
+    ("  - {suite: alphaevolve_math}", "#e6e6f0"),
+]
+
+
+def editor(f, x, y, w, h, opacity=1.0, title="experiment.yml", lines=YAML,
+           size=30, blur=False):
+    flt = ' filter="url(#blur3)"' if blur else ""
+    f.add(f'<g opacity="{opacity}"{flt}>')
+    f.add(f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="22" '
+          f'fill="#05060a" stroke="#2a2e3d" stroke-width="2"/>')
+    for k, c in enumerate(("#ff5f57", "#febc2e", "#28c840")):
+        f.add(f'<circle cx="{x + 34 + 28 * k}" cy="{y + 34}" r="9" fill="{c}"/>')
+    f.text(x + 130, y + 43, title, 24, color="#8c90a3", family=MONO)
+    for k, (s, color) in enumerate(lines):
+        f.text(x + 44, y + 110 + k * size * 1.55, s, size, color=color, family=MONO)
+    f.add("</g>")
+
+
+def b_logo():
+    f = Frame()
+    # the code, faded and enlarged in the background
+    editor(f, 120, 60, 1680, 960, opacity=0.07, size=36, blur=True)
+    lw = 240 * LEAF.width / LEAF.height
+    f.leaf(W / 2 - lw / 2, 190, 240)
+    f.wordmark(W / 2, 640, size=180, anchor="middle")
+    return f
+
+
+def b_outro_last():
+    f = Frame()
+    terminal = [
+        ("$ pip install iohblade", AMBER),
+        ("$ iohblade init my-exp", "#e6e6f0"),
+        ("$ iohblade check my-exp/experiment.yml", "#e6e6f0"),
+        ("  3 ok - ready to run.", MINT),
+    ]
+    editor(f, 150, 320, 820, 310, title="terminal", lines=terminal, size=30)
+    lw = 110 * LEAF.width / LEAF.height
+    f.leaf(1060, 280, 110)
+    f.text(1060 + lw + 30, 370, "BLADE", 110, weight=800, spacing=4)
+    f.text(1060, 470, TAGLINE, 30, color="url(#grad)", weight=600)
+    for k, (s, color) in enumerate(LINKS):
+        f.text(1060, 580 + 60 * k, s, 36, color=color, weight=500, family=MONO)
+    return f
+
+
+
 FRAMES = {
     "intro-first": c_intro_first,
     "intro-last": c_logo,  # also the outro's first frame
     "outro-last": c_outro_last,
+    # Alternative outro (style B): logo over faded code -> terminal and links.
+    "outro-b-first": b_logo,
+    "outro-b-last": b_outro_last,
 }
 
 

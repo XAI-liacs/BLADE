@@ -10,6 +10,7 @@ a first and a last frame (image-to-video with a last frame), 6–8 s, 16:9,
 |---|---|---|
 | Intro | `frames/intro-first.png`: the curves just starting | `frames/intro-last.png`: the curves meet in the leaf; BLADE and the tagline at the top left |
 | Outro | `frames/intro-last.png` (the same shot, so intro and outro match) | `frames/outro-last.png`: curves dimmed; leaf, BLADE, GitHub, `pip install iohblade`, docs |
+| Outro (alternative, style B) | `frames/outro-b-first.png`: leaf and BLADE over a faded `experiment.yml` | `frames/outro-b-last.png`: a terminal (`pip install iohblade`, `iohblade init`, `iohblade check` … "3 ok") next to the logo and the links |
 
 Regenerate the frames (1920×1080) with:
 
@@ -36,6 +37,17 @@ because video models tend to garble lettering while it moves.
 > dim and sink into the dark background, and the links fade in below the
 > wordmark. Slow and calm, dark navy background with a soft violet glow, no
 > new text, no extra objects.
+
+**Outro, style B** (first `outro-b-first.png`, last `outro-b-last.png`)
+> The centred logo and wordmark glide to the right and shrink while the
+> faded code in the background dissolves, a terminal window slides in from
+> the left, and the links fade in below the logo. Smooth, minimal motion
+> design, dark navy background with a soft violet glow, no new text, no
+> extra objects.
+
+To join it seamlessly to the intro, use `intro-last.png` as the first frame
+instead of `outro-b-first.png` (the curves then dissolve instead of the
+code).
 
 ## Tips
 
