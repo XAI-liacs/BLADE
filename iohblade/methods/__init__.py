@@ -5,8 +5,16 @@ from .random_search import RandomSearch
 from .shinka_evolve import ShinkaEvolve
 from .lhns import LHNS_Method
 from .mcts_ahd import MCTS_Method
-from .moeh_method.mutationtype import MutationType
-from .moeh_method.moeh import MoEH_Method
+
+# Optional methods: they need the `methods` dependency group
+# (`uv sync --group methods`). Without it the other methods must still
+# import; resolving one of these then reports the missing group.
+try:
+    from .moeh_method.mutationtype import MutationType
+    from .moeh_method.moeh import MoEH_Method
+except ImportError:  # pragma: no cover - optional dependency (codebleu)
+    MutationType = None
+    MoEH_Method = None
 
 try:
     from .eoh import EoH

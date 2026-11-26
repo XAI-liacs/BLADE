@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.2.0 (unreleased)
+## v1.2.0 (2026-11-26)
 
 Changes since [v1.1.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.1).
 Experiments can now be defined in YAML and run with the new `iohblade`
@@ -199,6 +199,12 @@ see "Breaking changes" for the two exceptions.
 
 ### Bug fixes
 
+- **A plain `pip install iohblade` could not run any experiment.**
+  `iohblade.llm` imports `psutil`, which only came with optional packages
+  (smac, distributed); it is now a dependency. And `iohblade.methods`
+  imported MoEH, which needs `codebleu` from the optional `methods` group,
+  so no method could be imported without that group; MoEH is now optional
+  like EoH and ReEvo.
 - `sum_vs_difference`: the problem was named `"Problem"`, because its name
   was passed as the `logger` argument, and its reference value was stored as
   `best_score` instead of `best_known`. It is now named
