@@ -1,8 +1,18 @@
 # Changelog
 
-## v1.2.2 (unreleased)
+## v1.2.2 (2026-11-26)
 
 Changes since [v1.2.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.1).
+
+### Changes
+
+- **LLaMEA 1.5.1; xgboost is no longer installed by default.** BLADE needs
+  `llamea>=1.5.1`, which makes xgboost optional: it is only used by
+  LLaMEA's `feature_guided_mutation`. Install it with the new dependency
+  group, `uv sync --group feature-guidance` (or
+  `pip install 'llamea[feature-guidance]'`). With
+  `feature_guided_mutation: true` and no xgboost, `iohblade validate` now
+  reports the missing package instead of every run failing when it starts.
 
 ### Bug fixes
 

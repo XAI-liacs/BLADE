@@ -2382,7 +2382,7 @@ wheels = [
 
 [[package]]
 name = "iohblade"
-version = "1.2.1"
+version = "1.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
@@ -2447,6 +2447,9 @@ extraproblems = [
     { name = "openml" },
     { name = "pymoosh" },
 ]
+feature-guidance = [
+    { name = "llamea", extra = ["feature-guidance"] },
+]
 hpo = [
     { name = "smac" },
 ]
@@ -2475,7 +2478,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", specifier = ">=1.5.0,<2" },
+    { name = "llamea", specifier = ">=1.5.1,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2525,6 +2528,7 @@ extraproblems = [
     { name = "openml", specifier = ">=0.14" },
     { name = "pymoosh", specifier = "==4.0.1" },
 ]
+feature-guidance = [{ name = "llamea", extras = ["feature-guidance"], specifier = ">=1.5.1,<2" }]
 hpo = [{ name = "smac", specifier = ">=2.4.1,<2.5" }]
 kerneltuner = [
     { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" },
@@ -3294,7 +3298,7 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.5.0"
+version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anthropic" },
@@ -3311,12 +3315,16 @@ dependencies = [
     { name = "openai" },
     { name = "pymoo" },
     { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/5b/6662127fb82b93eb28dbf82f9f56685417fe1b2835c05393a586630b0281/llamea-1.5.1.tar.gz", hash = "sha256:5347dcd45f99fd0ce2d16f764e14961572e0b5c73629cd33bcfc9b522ff09a23", size = 8444452, upload-time = "2026-11-26T23:02:16.812Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2d/35/eba42287aec110ed59e0045ba21182be345f794f503f8e0ec6b7dba046b6/llamea-1.5.1-py3-none-any.whl", hash = "sha256:bbbab906a1f2f94846e55a9c6a622602ded1a888e17d6ee77d15254e600af3ec", size = 52710, upload-time = "2026-11-26T23:02:15.427Z" },
+]
+
+[package.optional-dependencies]
+feature-guidance = [
     { name = "xgboost", version = "3.2.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
     { name = "xgboost", version = "3.4.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/18/21/0cc1d9f10ae8a60270883159e1c33ac10ffb93805b8e3f00910b7ef7c2f2/llamea-1.5.0.tar.gz", hash = "sha256:893acb90b0fb29df567691c11742651ca1f5cd474784e2b47798ea0d8345ba5a", size = 8443600, upload-time = "2026-11-25T18:00:51.033Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/8d/9198ff949a1c86e84026a0fa6afe1272a1c607be686c0a0aff6888be3fd6/llamea-1.5.0-py3-none-any.whl", hash = "sha256:15bb87bf9bcf2cd49dcab97c659d90077df9a5689a4a49fa1c429b63be66a883", size = 52496, upload-time = "2026-11-25T18:00:49.777Z" },
 ]
 
 [[package]]

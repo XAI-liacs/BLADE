@@ -1,6 +1,6 @@
 [project]
 name = "iohblade"
-version = "1.2.1"
+version = "1.2.2"
 description = "Benchmarking Llm Assisted Design and Evolution of algorithms."
 authors = [{ name = "Niki van Stein", email = "n.van.stein@liacs.leidenuniv.nl" }]
 requires-python = ">=3.11.5, <4"
@@ -15,7 +15,7 @@ dependencies = [
     "jsonlines>=4.0.0,<5",
     "google-genai>=1,<4",
     "joblib>=1.4.2,<2",
-    "llamea>=1.5.0,<2",
+    "llamea>=1.5.1,<2",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
     "xmltodict>=0.14.2,<2",
@@ -87,6 +87,10 @@ kerneltuner = [
 ]
 trackio = [
     "trackio>=0.3.2,<1",
+]
+# xgboost for LLaMEA's feature_guided_mutation (optional since LLaMEA 1.5.1).
+feature-guidance = [
+    "llamea[feature-guidance]>=1.5.1,<2",
 ]
 # smac in BLADE's own environment, only needed to call iohblade.hpo.run_smac
 # directly: problems tune in their evaluation environments, which install

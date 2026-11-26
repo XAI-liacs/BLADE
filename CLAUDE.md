@@ -20,7 +20,7 @@ Core idea: LLM-based methods are given a problem prompt and iteratively generate
   ```bash
   uv sync --group dev --group docs
   ```
-- Optional groups: `methods` (EoH, ReEvo), `trackio`, `kerneltuner`, `apple-silicon`, `extraproblems`.
+- Optional groups: `methods` (EoH, ReEvo, MoEH), `feature-guidance` (xgboost for LLaMEA's `feature_guided_mutation`), `trackio`, `kerneltuner`, `apple-silicon`, `extraproblems`, `hpo`.
 
 ## Development Commands
 

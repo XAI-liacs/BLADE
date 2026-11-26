@@ -71,7 +71,8 @@ fairly.
 
 EoH, ReEvo and MoEH need the optional ``methods`` dependency group
 (``uv sync --group methods``); ``uv run iohblade list methods`` shows this
-too.
+too. LLaMEA's ``feature_guided_mutation`` needs xgboost, from the
+``feature-guidance`` group (``uv sync --group feature-guidance``).
 
 Using a method
 --------------
