@@ -92,11 +92,13 @@ class BuiltinSuite(StrEnum):
     MIN_MAX_DISTANCE_RATIO = "min_max_distance_ratio"
     SUM_VS_DIFFERENCE = "sum_vs_difference"
     MATRIX_MULTIPLICATION = "matrix_multiplication"
+    BBOB_GROUPS = "bbob_groups"
     BBOB = "bbob"
     MA_BBOB = "ma_bbob"
     CONTINUOUS_BBO = "continuous_bbo"
     ALPHAEVOLVE_MATH = "alphaevolve_math"
     COMBINATORIAL = "combinatorial"
+    DEFAULT = "default"
     QUICK = "quick"
     FULL = "full"
 
@@ -301,6 +303,9 @@ class Registry:
         key = str(key)
         with self._lock:
             info = self._components[kind].get(key)
+            if info is None and "-" in key:
+                # Keys use underscores; accept hyphens (bbob-groups) too.
+                info = self._components[kind].get(key.replace("-", "_"))
             known = sorted(self._components[kind])
         if info is None:
             suggestions = difflib.get_close_matches(key, known, n=3, cutoff=0.6)
@@ -324,8 +329,10 @@ class Registry:
 
     def __contains__(self, item: tuple[ComponentKind | str, str]) -> bool:
         kind, key = item
+        key = str(key)
         with self._lock:
-            return str(key) in self._components[ComponentKind(kind)]
+            known = self._components[ComponentKind(kind)]
+            return key in known or key.replace("-", "_") in known
 
 
 registry = Registry()
@@ -627,9 +634,17 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
     ),
     (
         ComponentKind.SUITE,
+        BuiltinSuite.BBOB_GROUPS,
+        f"{_B}.suites:bbob_groups",
+        "BBOB, one problem per function group (5); dim/budget_factor settable.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
         BuiltinSuite.BBOB,
         f"{_B}.suites:bbob",
-        "BBOB, one problem per function group (5); dim/budget_factor settable.",
+        "BBOB, one problem per function f1-f24 (24); 10 training and 20 test "
+        "instances; dim/budget_factor settable.",
         None,
     ),
     (
@@ -643,7 +658,7 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         ComponentKind.SUITE,
         BuiltinSuite.CONTINUOUS_BBO,
         f"{_B}.suites:continuous_bbo",
-        "The BBOB function groups and MA-BBOB (6 problems).",
+        "The BBOB function groups, the 24 BBOB functions and MA-BBOB (30 problems).",
         None,
     ),
     (
@@ -658,6 +673,14 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         BuiltinSuite.COMBINATORIAL,
         f"{_B}.suites:combinatorial",
         "Steiner trees, graph colouring, TSP and VRP (6 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.DEFAULT,
+        f"{_B}.suites:default",
+        "The BBOB function groups, AlphaEvolve maths and combinatorial problems "
+        "(28 problems).",
         None,
     ),
     (

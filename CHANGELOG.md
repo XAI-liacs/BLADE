@@ -4,6 +4,27 @@
 
 Changes since [v1.2.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.0).
 
+### Breaking changes
+
+- **The suite `bbob` is now one problem per BBOB function.** The suite with
+  one problem per function group is renamed to `bbob_groups` (5 problems,
+  instances 1-5 for training and 6-15 for testing, as before). Experiments
+  that used `suite: bbob` for the groups should use `suite: bbob_groups`;
+  `suites.bbob()` in Python is now `suites.bbob_groups()`.
+
+### Major changes
+
+- **New suite `bbob`:** one problem per BBOB function f1-f24
+  (`BBOB-f<fid>-<dim>d`), instances 1-10 for training and 11-30 for
+  testing, 10-D with budget factor 2000; `dim`, `budget_factor`,
+  `functions`, `n_train` and `n_test` can be set.
+- **New suite `default`:** a cross-domain collection of `bbob_groups`,
+  `alphaevolve_math` and `combinatorial` (28 problems).
+- `continuous_bbo` now holds `bbob_groups`, `bbob` and `ma_bbob` (30
+  problems), and so `full` holds the 24 BBOB functions too (55 problems).
+- Registry keys accept hyphens for underscores (`bbob-groups`,
+  `continuous-bbo`).
+
 ## v1.2.0 (2026-11-26)
 
 Changes since [v1.1.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.1).

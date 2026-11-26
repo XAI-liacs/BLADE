@@ -73,18 +73,23 @@ Default suites are named sets of problems with fixed settings, defined in
    * - Suite
      - Problems
      - Settings (defaults)
-   * - ``bbob``
+   * - ``bbob_groups``
      - 5: one per BBOB function group (``BBOB-g<group>-<dim>d``)
      - ``dim=10``, ``budget_factor=2000``; instances 1-5 of each function
        for training, 6-15 for testing (``n_train``, ``n_test``);
        ``groups`` selects groups.
+   * - ``bbob``
+     - 24: one per BBOB function f1-f24 (``BBOB-f<fid>-<dim>d``)
+     - ``dim=10``, ``budget_factor=2000``; instances 1-10 for training,
+       11-30 for testing (``n_train``, ``n_test``); ``functions`` selects
+       functions.
    * - ``ma_bbob``
      - 1 (``MA_BBOB-<dim>d``)
      - ``dim=10``, ``budget_factor=2000``; instances 0-24 for training,
        25-74 for testing.
    * - ``continuous_bbo``
-     - 6: ``bbob`` and ``ma_bbob``
-     - ``dim``, ``budget_factor`` for all six problems.
+     - 30: ``bbob_groups``, ``bbob`` and ``ma_bbob``
+     - ``dim``, ``budget_factor`` for all 30 problems.
    * - ``alphaevolve_math``
      - 17: auto-correlation inequalities, Erdős minimum overlap, the
        uncertainty inequality, hexagon/rectangle/unit-square packing,
@@ -96,11 +101,15 @@ Default suites are named sets of problems with fixed settings, defined in
      - 6: Euclidean Steiner trees (50, 100, 250 points), graph colouring,
        TSP and CVRP (``A-n53-k7``)
      - ``eval_timeout=300``.
+   * - ``default``
+     - 28: ``bbob_groups``, ``alphaevolve_math`` and ``combinatorial``
+     - ``dim``, ``budget_factor`` (BBOB groups), ``use_best`` (maths); a
+       cross-domain collection.
    * - ``quick``
      - 5: BBOB groups 1 and 4, circle packing, Heilbronn triangle, TSP
      - ``dim=5``, ``budget_factor=1000``; for trying out a setup.
    * - ``full``
-     - 31: ``continuous_bbo``, ``alphaevolve_math``, ``combinatorial``,
+     - 55: ``continuous_bbo``, ``alphaevolve_math``, ``combinatorial``,
        circle packing and spherical codes
      - ``dim``, ``budget_factor``, ``use_best``;
        ``include_matrix_multiplication`` adds the 54 matrix multiplication
@@ -108,10 +117,13 @@ Default suites are named sets of problems with fixed settings, defined in
 
 **Evaluation timeouts.** Every problem takes ``eval_timeout`` (seconds per
 evaluation, at least 120). The defaults are 600 s for the mathematical
-problems, 300 s for the combinatorial ones, and for ``bbob`` and
-``ma_bbob`` 1 ms per function evaluation of the training runs (500 s for a
-5-function group, or MA-BBOB, in 10-D with budget factor 2000), at least
-120 s. Set ``eval_timeout`` in ``params`` to change it.
+problems, 300 s for the combinatorial ones, and for ``bbob_groups``,
+``bbob`` and ``ma_bbob`` 1 ms per function evaluation of the training runs
+(500 s for a 5-function group or MA-BBOB, 200 s for a single function, in
+10-D with budget factor 2000), at least 120 s. Set ``eval_timeout`` in
+``params`` to change it.
+
+Suite keys use underscores; ``bbob-groups`` with a hyphen works as well.
 
 The AlphaEvolve suites (``auto_correlation``, ``hexagon_packing``, ...)
 all take ``use_best`` (default ``false``) and ``eval_timeout``; the packing
@@ -168,12 +180,18 @@ methods and runs (seeds), and divide by ``n_jobs``.
      - LLM time only
      - Typical total
      - Upper bound (every evaluation times out)
-   * - ``bbob`` (10-D)
+   * - ``bbob_groups`` (10-D)
      - 5
      - 500
      - 3 h
      - 6-10 h
      - 70 h
+   * - ``bbob`` (10-D)
+     - 24
+     - 2,400
+     - 14 h
+     - 20-28 h
+     - 135 h
    * - ``ma_bbob`` (10-D)
      - 1
      - 100
@@ -181,11 +199,11 @@ methods and runs (seeds), and divide by ``n_jobs``.
      - 2-4 h
      - 14 h
    * - ``continuous_bbo`` (10-D)
-     - 6
-     - 600
-     - 3 h
-     - 8-14 h
-     - 84 h
+     - 30
+     - 3,000
+     - 17 h
+     - 28-42 h
+     - 220 h
    * - ``alphaevolve_math``
      - 17
      - 1,700
@@ -198,6 +216,12 @@ methods and runs (seeds), and divide by ``n_jobs``.
      - 3 h
      - 4-9 h
      - 54 h
+   * - ``default``
+     - 28
+     - 2,800
+     - 15 h
+     - 23-58 h
+     - 415 h
    * - ``quick``
      - 5
      - 500
@@ -205,14 +229,14 @@ methods and runs (seeds), and divide by ``n_jobs``.
      - 4-9 h
      - 35 h
    * - ``full``
-     - 31
-     - 3,100
-     - 17 h
-     - 25-65 h
-     - 470 h
+     - 55
+     - 5,500
+     - 31 h
+     - 45-95 h
+     - 605 h
 
-Per problem, one run takes about 1-2 h for a BBOB group in 10-D, 2-4 h
-for MA-BBOB in 10-D, 0.7-2.3 h for a mathematical problem and 0.6-1.4 h
+Per problem, one run takes about 1-2 h for a BBOB group in 10-D, about
+1 h for a single BBOB function, 2-4 h for MA-BBOB in 10-D, 0.7-2.3 h for a mathematical problem and 0.6-1.4 h
 for a combinatorial problem.
 
 How these numbers are estimated:

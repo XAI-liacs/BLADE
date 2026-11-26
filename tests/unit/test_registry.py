@@ -71,10 +71,15 @@ def test_resolve_matches_existing_import_paths():
 
 def test_unknown_key_suggests_close_match():
     with pytest.raises(ComponentNotFoundError) as exc:
-        registry.get("problem", "bbob-sbox")
+        registry.get("problem", "bbob_sbx")
     assert "bbob_sbox" in exc.value.suggestions
     assert "Did you mean 'bbob_sbox'" in str(exc.value)
     assert isinstance(exc.value, KeyError)  # dict-like lookups keep working
+
+
+def test_hyphens_are_accepted_for_underscores():
+    assert registry.get("problem", "bbob-sbox") is registry.get("problem", "bbob_sbox")
+    assert ("suite", "continuous-bbo") in registry
 
 
 def test_unknown_key_without_match_lists_known():
