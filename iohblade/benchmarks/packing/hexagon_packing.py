@@ -172,7 +172,8 @@ class HexagonPacking(PackingBase, Problem):
                 raise ValueError(f"non-finite outer side length {score}")
             solution.set_scores(
                 score,
-                f"outer_side_length={side:.6g}, best known side length={self.best_known}",
+                f"outer_side_length={side:.6g}"
+                + self.best_known_feedback(self.best_known, "best known side length"),
             )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", e)

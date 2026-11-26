@@ -37,7 +37,7 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
         self.task_prompt = self.make_task_prompt(
             "minimize  -( ||f*f||_2^2 / ( ||f*f||_1 · ||f*f||_∞ ) )"
         )
-        self.example_prompt = self.make_example_prompt("AutoCorreCandidate_2")
+        self.example_prompt = self.make_example_prompt("SignalCandidate")
         self.format_prompt = self.make_format_prompt()
 
         self.dependencies += ["scipy"]
@@ -76,13 +76,14 @@ class AutoCorrIneq2(AutoCorrBaseSpec, Problem):
             Linf = float(np.max(g))  # max_t g(t), attained at a knot
             den = L1 * Linf
             if den == 0.0:
-                raise ValueError("Denominator zero in C2 ratio")
+                raise ValueError("Denominator zero in ratio")
 
             score = L2sq / den  # maximize in paper
             if not np.isfinite(score):
-                raise ValueError(f"non-finite C2 ratio {score}")
+                raise ValueError(f"non-finite ratio {score}")
             solution = solution.set_scores(
-                score, f"C2 ratio = {score:.6g}, best known = {self.best_known:.6g}"
+                score,
+                f"ratio = {score:.6g}" + self.best_known_feedback(self.best_known),
             )
         except Exception as e:
             solution = solution.set_scores(float("-inf"), f"calc-error {e}", e)

@@ -66,8 +66,70 @@ class LoadedConfig:
         return ConfigIssue(path, message, self.file)
 
 
+_MERGE_TAG = "tag:yaml.org,2002:merge"
+
+
 class _Loader(yaml.SafeLoader):
-    pass
+    def flatten_mapping(self, node):
+        """Resolve ``<<`` merge keys with YAML 1.1 merge-key semantics.
+
+        Keys written in the mapping itself override merged ones, and in
+        ``<<: [*a, *b]`` keys of earlier mappings override those of later
+        ones. PyYAML's own implementation changed this precedence in 6.0.4,
+        so it is done here, independently of the PyYAML version.
+
+        Merged pairs come first in ``node.value``, lowest priority first,
+        so constructing the mapping in order lets the right value win. Of a
+        scalar key merged more than once only the winning pair is kept,
+        which keeps nested merges from growing without bound.
+        """
+        merged = []  # inherited (key, value) pairs, lowest priority first
+        index = 0
+        while index < len(node.value):
+            key_node, value_node = node.value[index]
+            if key_node.tag == _MERGE_TAG:
+                del node.value[index]
+                if isinstance(value_node, yaml.MappingNode):
+                    sources = [value_node]
+                elif isinstance(value_node, yaml.SequenceNode):
+                    sources = value_node.value
+                else:
+                    raise yaml.constructor.ConstructorError(
+                        "while constructing a mapping",
+                        node.start_mark,
+                        "expected a mapping or list of mappings for merging, "
+                        f"but found {value_node.id}",
+                        value_node.start_mark,
+                    )
+                pairs = []
+                for source in sources:
+                    if not isinstance(source, yaml.MappingNode):
+                        raise yaml.constructor.ConstructorError(
+                            "while constructing a mapping",
+                            node.start_mark,
+                            f"expected a mapping for merging, but found {source.id}",
+                            source.start_mark,
+                        )
+                    self.flatten_mapping(source)
+                    pairs.append(source.value)
+                for source_pairs in reversed(pairs):  # earlier ones win
+                    merged.extend(source_pairs)
+            else:
+                if key_node.tag == "tag:yaml.org,2002:value":
+                    key_node.tag = "tag:yaml.org,2002:str"
+                index += 1
+        if merged:
+            last = {}
+            for i, (key_node, _) in enumerate(merged):
+                if isinstance(key_node, yaml.ScalarNode):
+                    last[(key_node.tag, key_node.value)] = i
+            merged = [
+                pair
+                for i, pair in enumerate(merged)
+                if not isinstance(pair[0], yaml.ScalarNode)
+                or last[(pair[0].tag, pair[0].value)] == i
+            ]
+            node.value = merged + node.value
 
 
 def _to_python(loader, node, path, marks, issues, file, plain):

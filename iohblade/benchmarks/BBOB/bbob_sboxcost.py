@@ -12,6 +12,7 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
+from iohblade.benchmarks.blackbox import BlackBoxFunction
 from iohblade.hpo import (
     evaluation_config,
     hpo_instance_subset,
@@ -150,41 +151,45 @@ class BBOB_SBOX(Problem):
         self.func_inputs = ["func"]
         self.func_outputs = ["f_opt", "x_opt"]
 
-        # List containing descriptions of each function group
+        # Properties of each function group, described in our own words (not
+        # the group titles of the BBOB documentation, which would tell the
+        # LLM which benchmark it is evaluated on).
         function_groups = [
-            "Separable Functions",
-            "Functions with low or moderate conditioning",
-            "Functions with high conditioning and unimodal",
-            "Multi-modal functions with adequate global structure",
-            "Multi-modal functions with weak global structure",
+            "functions whose variables can be optimised independently of each other",
+            "unimodal functions with low to moderate ill-conditioning",
+            "unimodal functions with strong ill-conditioning",
+            "multi-modal functions with a clear global structure",
+            "multi-modal functions with little global structure",
         ]
 
-        # List containing information for all 24 functions
+        # Names of the 24 functions (by function id). Only used with
+        # specific_fid, which deliberately tells the LLM the function; the
+        # function id itself is not shown.
         functions = [
-            "f1: Sphere Function",
-            "f2: Separable Ellipsoidal Function",
-            "f3: Rastrigin Function",
-            "f4: Büche-Rastrigin Function",
-            "f5: Linear Slope",
-            "f6: Attractive Sector Function",
-            "f7: Step Ellipsoidal Function",
-            "f8: Rosenbrock Function, original",
-            "f9: Rosenbrock Function, rotated",
-            "f10: Ellipsoidal Function",
-            "f11: Discus Function",
-            "f12: Bent Cigar Function",
-            "f13: Sharp Ridge Function",
-            "f14: Different Powers Function",
-            "f15: Rastrigin Function",
-            "f16: Weierstrass Function",
-            "f17: Schaffer's F7 Function",
-            "f18: Schaffer's F7 Function, moderately ill-conditioned",
-            "f19: Composite Griewank-Rosenbrock Function F8F2",
-            "f20: Schwefel Function",
-            "f21: Gallagher's Gaussian 101-me Peaks Function",
-            "f22: Gallagher's Gaussian 21-hi Peaks Function",
-            "f23: Katsuura Function",
-            "f24: Lunacek bi-Rastrigin Function",
+            "Sphere function",
+            "Separable Ellipsoidal function",
+            "Separable Rastrigin function",
+            "Büche-Rastrigin function",
+            "Linear Slope function",
+            "Attractive Sector function",
+            "Step Ellipsoidal function",
+            "Rosenbrock function",
+            "Rotated Rosenbrock function",
+            "Ellipsoidal function",
+            "Discus function",
+            "Bent Cigar function",
+            "Sharp Ridge function",
+            "Different Powers function",
+            "Rastrigin function",
+            "Weierstrass function",
+            "Schaffer's F7 function",
+            "moderately ill-conditioned Schaffer's F7 function",
+            "Composite Griewank-Rosenbrock function",
+            "Schwefel function",
+            "Gallagher's Gaussian 101-me Peaks function",
+            "Gallagher's Gaussian 21-hi Peaks function",
+            "Katsuura function",
+            "Lunacek bi-Rastrigin function",
         ]
         self.problem_type = problem_type
         self.benchmark_name = (
@@ -203,7 +208,7 @@ class BBOB_SBOX(Problem):
             and self.specific_fid < 25
             and self.specific_fid > 0
         ):
-            extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically function: {functions[self.specific_fid-1]}."
+            extra_prompt = f"The optimization algorithm should work on different instances of noiseless {box_constrained} functions. Specifically it should work well for the {functions[self.specific_fid-1]}."
         elif (
             self.specific_group is not None
             and self.specific_group < 6
@@ -299,7 +304,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         try:
             algorithm = alg_cls(budget=budget, dim=dim, **config)
-            algorithm(f_new)
+            algorithm(BlackBoxFunction(f_new))
         except OverBudgetException:
             pass
 
@@ -383,7 +388,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             )
             problem.attach_logger(l2_temp)
             algorithm = alg_cls(budget=100, dim=2)
-            algorithm(problem)
+            algorithm(BlackBoxFunction(problem))
         except OverBudgetException:
             pass
 

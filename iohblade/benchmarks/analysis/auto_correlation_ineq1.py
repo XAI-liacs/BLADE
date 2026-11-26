@@ -41,7 +41,7 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
         Problem.__init__(self, name=self.task_name, eval_timeout=eval_timeout)
 
         self.task_prompt = self.make_task_prompt("minimize  max_t (f*f)(t) / (∫ f)^2")
-        self.example_prompt = self.make_example_prompt("AutoCorrCandidate_1")
+        self.example_prompt = self.make_example_prompt("SignalCandidate")
         self.format_prompt = self.make_format_prompt()
         self.dependencies += [
             "scipy"
@@ -78,10 +78,12 @@ class AutoCorrIneq1(AutoCorrBaseSpec, Problem):
 
             score = float(np.max(g) / (I * I))  # minimize
             if not np.isfinite(score):
-                raise ValueError(f"non-finite C1 ratio {score}")
+                raise ValueError(f"non-finite ratio {score}")
             solution = solution.set_scores(
                 score,
-                f"C1 ratio = {score:.6g}, best known = {self.best_known:.6g}; soln={f}",
+                f"ratio = {score:.6g}"
+                + self.best_known_feedback(self.best_known)
+                + f"; soln={f}",
             )
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"calc-error {e}", e)

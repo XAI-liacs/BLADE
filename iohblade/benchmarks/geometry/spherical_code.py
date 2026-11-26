@@ -156,7 +156,9 @@ one-line description, describing the main idea. Give the response in the format:
                 min_angle = self._get_min_angle(points)
                 solution = solution.set_scores(
                     min_angle,
-                    f"Got min angle {min_angle}, best known is {self.best_known}.",
+                    f"Got min angle {min_angle}"
+                    + self.best_known_feedback(self.best_known)
+                    + ".",
                 )
             else:
                 raise NotImplementedError(

@@ -162,7 +162,8 @@ one-line description, describing the main idea. Give the response in the format:
             score = float(min_area)
             solution.set_scores(
                 score,
-                f"min_triangle_area={min_area:.6g}, {'best known = ' + str(self.best_known) if self.best_known is not None else ''}.",
+                f"min_triangle_area={min_area:.6g}"
+                + self.best_known_feedback(self.best_known),
             )
         except Exception as e:
             solution.set_scores(float("-inf"), f"calc-error {e}", e)

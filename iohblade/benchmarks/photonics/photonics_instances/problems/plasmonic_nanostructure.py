@@ -1,9 +1,29 @@
 import warnings
 
 import numpy as np
-from pyGDM2 import linear, structures, tools, visu
 
 from .photonic_problem import photonic_problem
+
+# pyGDM2 is optional: only this problem uses it, so it is imported when the
+# problem is used, not when the photonics benchmark is imported. Add it to
+# the problem's evaluation dependencies when using this problem.
+PYGDM2_DEPENDENCY = "pyGDM2==1.1.12"
+
+
+def _pygdm2():
+    """Import and return the pyGDM2 modules ``(linear, structures)``.
+
+    Raises:
+        ImportError: If pyGDM2 is not installed.
+    """
+    try:
+        from pyGDM2 import linear, structures
+    except ImportError as e:
+        raise ImportError(
+            "The plasmonic nanostructure problem needs the optional package "
+            f"pyGDM2; install it with `pip install {PYGDM2_DEPENDENCY}`."
+        ) from e
+    return linear, structures
 
 
 class plasmonic_nanostructure(photonic_problem):
@@ -21,6 +41,7 @@ class plasmonic_nanostructure(photonic_problem):
             angle (float): angle
         """
         super().__init__()
+        _pygdm2()  # fail early when pyGDM2 is missing
         self.n = 20
         self.element_sim = element_sim
         self.method = method
@@ -37,6 +58,7 @@ class plasmonic_nanostructure(photonic_problem):
         Returns:
             pyGDM2.structures.struct: instance of nano-geometry class
         """
+        _, structures = _pygdm2()
         x_new = x * 5.0
         n = len(x_new) // 2
         x_list = x_new[:n]
@@ -79,6 +101,7 @@ class plasmonic_nanostructure(photonic_problem):
         Returns:
             float: 1 - Reflectivity at target wavelength
         """
+        linear, _ = _pygdm2()
         sim = self.setup_structure(x)
         sim.scatter(method=self.method, verbose=self.verbose)
 

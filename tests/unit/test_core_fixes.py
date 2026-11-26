@@ -22,7 +22,7 @@ from iohblade.problem import (
 from iohblade.solution import Solution
 
 # The AutoML and photonics fixtures stub optional modules (openml, smac,
-# PyMoosh, pyGDM2) that may be missing or broken in this environment.
+# PyMoosh) that may be missing or broken in this environment.
 from .test_benchmark_scores_bbob import automl_module  # noqa: F401
 from .test_benchmark_scores_bbob import photonics_module  # noqa: F401
 

@@ -11,6 +11,7 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
+from iohblade.benchmarks.blackbox import BlackBoxFunction
 from iohblade.hpo import (
     evaluation_config,
     hpo_instance_subset,
@@ -121,7 +122,7 @@ class MA_BBOB(Problem):
         self.task_prompt = textwrap.dedent("""
 You are a Python developer working on a new optimization algorithm.
 Your task is to develop a novel heuristic optimization algorithm for continuous optimization problems.
-The optimization algorithm should handle a wide range of tasks, which is evaluated on the Many Affine BBOB test suite of noiseless functions. Your task is to write the optimization algorithm in Python code.
+The optimization algorithm should handle a wide range of tasks, which is evaluated on a test suite of noiseless functions. Your task is to write the optimization algorithm in Python code.
 Each of the optimization functions has a search space between -5.0 (lower bound) and 5.0 (upper bound). The dimensionality can be varied.
 The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
 The func() can only be called as many times as the budget allows, not more.
@@ -216,7 +217,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
 
         try:
             algorithm = alg_cls(budget=budget, dim=dim, **config)
-            algorithm(f_new)
+            algorithm(BlackBoxFunction(f_new))
         except OverBudgetException:
             # Same as BBOB_SBOX: the run is scored on the evaluations
             # within the budget, and the remaining instances are still
@@ -303,7 +304,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             problem = get_problem(11, 1, 2)
             problem.attach_logger(l2_temp)
             algorithm = alg_cls(budget=100, dim=2)
-            algorithm(problem)
+            algorithm(BlackBoxFunction(problem))
         except OverBudgetException:
             pass
 

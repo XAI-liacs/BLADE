@@ -162,7 +162,9 @@ class SumDifference(NumberTheoryBase, Problem):
             c = 1.0 + math.log(diff_sz / sum_sz) / denom
             solution.set_scores(
                 c,
-                f"C6 ≥ {c:.6f}; |U-U|={diff_sz}, |U+U|={sum_sz}, max(U)={M}, |U|={len(U)}, best known score {self.best_score}",
+                f"c(U) = {c:.6f}; |U-U|={diff_sz}, |U+U|={sum_sz}, max(U)={M}, "
+                f"|U|={len(U)}"
+                + self.best_known_feedback(self.best_score, "best known score"),
             )
 
         except Exception as e:

@@ -493,9 +493,7 @@ def run() -> None:
             rows = run_status_rows(prog)
             if rows:
                 st.markdown("#### Runs")
-                st.dataframe(
-                    pd.DataFrame(rows), hide_index=True, use_container_width=True
-                )
+                st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
             if prog.get("runs") and not finished:
                 st.markdown("#### Run Progress")
                 for r in prog["runs"]:
@@ -545,7 +543,7 @@ def run() -> None:
                 & df["problem_name"].isin(problem_sel)
             ]
             fig = plotly_convergence(df_filt, aggregate=aggregate)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig)
 
             final_df = final_best_dataframe(df_filt)
             box_fig = go.Figure()
@@ -559,7 +557,7 @@ def run() -> None:
                     )
                 )
             box_fig.update_layout(yaxis_title="Best fitness", xaxis_title="Method")
-            st.plotly_chart(box_fig, use_container_width=True)
+            st.plotly_chart(box_fig)
 
             st.markdown("#### Code Evolution Graph")
             ceg_method = st.selectbox("Method", methods, key="ceg_method")
@@ -585,7 +583,7 @@ def run() -> None:
                         feature=feature,
                         minimisation=_resolve_minimisation(logger, ceg_problem),
                     )
-                    st.plotly_chart(ceg_fig, use_container_width=True)
+                    st.plotly_chart(ceg_fig)
                 else:
                     st.write("No data for selected run.")
 

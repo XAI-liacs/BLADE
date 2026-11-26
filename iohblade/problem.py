@@ -350,9 +350,15 @@ class Problem(ABC):
     Attributes:
         minimisation (bool): Whether lower fitness is better. Subclasses set
             it in their constructor; the default is maximisation.
+        show_best_known (bool): Whether the feedback of an evaluation, which
+            the LLM sees, mentions the best known score of the problem (see
+            :meth:`best_known_feedback`). Off by default: the value tells the
+            LLM the target and can identify the benchmark instance. Set it
+            on an instance (``problem.show_best_known = True``) to enable it.
     """
 
     minimisation: bool = False
+    show_best_known: bool = False
     # Whether the problem can tune a solution's hyperparameters (its
     # ``configspace``) with SMAC; see enable_hpo and iohblade.hpo.
     supports_hpo: bool = False
@@ -402,6 +408,21 @@ class Problem(ABC):
         self.dependencies = deps
         self._hpo_added_dependencies = added
         self.hpo = bool(enabled)
+
+    def best_known_feedback(self, value, label: str = "best known") -> str:
+        """Feedback text that reports the best known score, if enabled.
+
+        Args:
+            value: The best known score (``None`` if there is none).
+            label: Text shown before the value.
+
+        Returns:
+            str: ``"; <label>: <value>"`` when :attr:`show_best_known` is
+            True and ``value`` is not None, otherwise an empty string.
+        """
+        if not self.show_best_known or value is None:
+            return ""
+        return f"; {label}: {value}"
 
     def failure_fitness(self) -> float:
         """Fitness given to a failed evaluation: the worst possible value.

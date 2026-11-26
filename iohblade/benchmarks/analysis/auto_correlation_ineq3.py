@@ -40,7 +40,7 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
             "minimize  |max_t (f*f)(t)| / (∫ f)^2 (absolute value of the maximum,"
             " not the maximum of the absolute value)"
         )
-        self.example_prompt = self.make_example_prompt("AutoCorreCandidate_3")
+        self.example_prompt = self.make_example_prompt("SignalCandidate")
         self.format_prompt = self.make_format_prompt()
 
         self.dependencies += ["scipy"]
@@ -74,9 +74,10 @@ class AutoCorrIneq3(AutoCorrBaseSpec, Problem):
             # C3: |max_t g(t)| / I^2 (abs outside the max, not max |g|).
             score = float(abs(np.max(g)) / (I * I))  # minimize
             if not np.isfinite(score):
-                raise ValueError(f"non-finite C3 ratio {score}")
+                raise ValueError(f"non-finite ratio {score}")
             solution = solution.set_scores(
-                score, f"C3 ratio = {score:.6g}, best known = {self.best_known:.6g}"
+                score,
+                f"ratio = {score:.6g}" + self.best_known_feedback(self.best_known),
             )
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"calc-error {e}", e)

@@ -11,6 +11,7 @@ import pandas as pd
 from ioh import get_problem
 from ioh import logger as ioh_logger
 
+from iohblade.benchmarks.blackbox import BlackBoxFunction
 from iohblade.benchmarks.photonics.photonics_instances import (
     ELLIPSOMETRY_REFERENCE_SEED,
     algorithmic_insights,
@@ -65,8 +66,7 @@ class Photonics(Problem):
             dependencies = [
                 "ioh==0.3.22",
                 "pandas==2.2.3",
-                "pymoosh==3.2",
-                "pyGDM2==1.1.12",
+                "pymoosh==4.0.1",
             ]
         if imports is None:
             imports = "import numpy as np\nimport ioh\n"
@@ -179,7 +179,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             problem = get_problem(11, 1, 2)
             problem.attach_logger(l2_temp)
             algorithm = local_env[algorithm_name](budget=100, dim=2)
-            algorithm(problem)
+            algorithm(BlackBoxFunction(problem))
         except OverBudgetException:
             pass
 
@@ -212,7 +212,7 @@ Give an excellent and novel heuristic algorithm to solve this task and also give
             random.seed(seed)
             try:
                 algorithm = local_env[algorithm_name](budget=budget, dim=dim)
-                algorithm(self.problem)
+                algorithm(BlackBoxFunction(self.problem))
             except OverBudgetException:
                 # Same as BBOB_SBOX: the run is scored on the evaluations
                 # within the budget, and the remaining runs still take place
