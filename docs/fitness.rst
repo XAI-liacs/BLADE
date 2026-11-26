@@ -1,5 +1,5 @@
-Fitness (Multi-Objective)
-=========================
+Multi-objective problems
+========================
 
 BLADE supports multi-objective optimisation through the :class:`~iohblade.fitness.Fitness`
 class.  When a problem returns multiple objectives, its :meth:`evaluate` method sets
@@ -125,7 +125,7 @@ Logging
 
 ``Fitness`` objects are serialised as plain JSON dicts in ``log.jsonl``:
 
-.. code-block:: json
+.. code-block:: text
 
     {"fitness": {"f1": -0.04, "f2": -1.96}, "name": "BiSphereSearcher", ...}
 
@@ -133,19 +133,8 @@ When :meth:`~iohblade.loggers.ExperimentLogger.get_problem_data` reads this file
 it automatically adds a ``fitness_scalar`` column containing the mean objective
 value, which is what the convergence and speedup plots consume.
 
-API Reference
+API reference
 -------------
 
-.. autoclass:: iohblade.fitness.Fitness
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: iohblade.benchmarks.toy_multiobjective.ToyMultiObjective
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autofunction:: iohblade.plots.plot_pareto_front
-.. autofunction:: iohblade.plots.plot_convergence
-.. autofunction:: iohblade.loggers.ExperimentLogger.get_problem_data
+:class:`~iohblade.fitness.Fitness` and the multi-objective toy problem are
+documented in :doc:`fitness_api`; the plotting functions in :doc:`plots`.

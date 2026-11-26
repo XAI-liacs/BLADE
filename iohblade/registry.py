@@ -799,7 +799,7 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         ComponentKind.LLM,
         LLMProvider.MULTI,
         "iohblade.llm:Multi_LLM",
-        "Round-robin over several LLMs.",
+        "Picks one of several LLMs at random for each call.",
         None,
     ),
     # loggers

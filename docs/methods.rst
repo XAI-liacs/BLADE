@@ -1,5 +1,5 @@
-Search Methods
-==============
+Methods (API)
+=============
 
 This page documents the method implementations exposed in
 ``iohblade.methods``.
@@ -14,7 +14,7 @@ FunSearch
 
 :class:`iohblade.methods.FunSearch` implements FunSearch
 (Romera-Paredes et al., *Nature* 625, 2024). Its programs database follows
-the `reference code <https://github.com/google-deepmind/funsearch>`_ and the
+the `reference code <https://github.com/google-deepmind/funsearch>`__ and the
 `LLM4AD port <https://github.com/Optima-CityU/llm4ad>`_:
 
 * **Islands and clusters.** ``num_islands`` independent islands; on each
@@ -50,7 +50,7 @@ ShinkaEvolve
 
 :class:`iohblade.methods.ShinkaEvolve` implements ShinkaEvolve (Lange et
 al., `arXiv:2509.19349 <https://arxiv.org/abs/2509.19349>`_), reimplemented
-after the `reference code <https://github.com/SakanaAI/ShinkaEvolve>`_
+after the `reference code <https://github.com/SakanaAI/ShinkaEvolve>`__
 (version 0.0.8). The ``shinka`` package itself cannot be installed next to
 BLADE (it requires ``openai>=2`` and ``google-genai>=2``), and its budget
 counts generations rather than evaluations. Each generation:

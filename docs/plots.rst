@@ -1,5 +1,5 @@
 Plotting functions
-==========
+==================
 
 .. automodule:: iohblade.plots
    :members:

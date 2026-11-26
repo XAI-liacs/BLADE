@@ -1,30 +1,12 @@
-.. BLADE documentation master file, created by
-   sphinx-quickstart on Mon Mar  3 09:42:40 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
+:hide-toc:
 
 BLADE
-===========================================================
+=====
 
-.. image:: https://badge.fury.io/py/iohblade.svg
-   :target: https://pypi.org/project/iohblade/
-   :alt: PyPI version
-   :height: 18
-.. image:: https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg
-   :alt: Maintenance
-   :height: 18
-.. image:: https://img.shields.io/badge/Python-3.11.5+-blue.svg
-   :alt: Python 3.11.5+
-   :height: 18
-.. image:: https://codecov.io/gh/XAI-liacs/BLADE/graph/badge.svg?token=ZOT67R1TP7
-   :target: https://codecov.io/gh/XAI-liacs/BLADE
-   :alt: Codecov
-   :height: 18
-.. image:: https://colab.research.google.com/img/colab_favicon_256px.png
-   :target: https://colab.research.google.com/drive/1gJPpQPvCGu0v2LoSsxtdGmot73A-ypSf?usp=sharing
-   :alt: Colab Notebook
-   :height: 18
+**Benchmarking LLM-driven automated algorithm design.** BLADE runs methods
+such as LLaMEA, FunSearch and EoH that let a large language model write and
+improve optimisation algorithms, on fixed benchmark suites, with the same
+budget for every method.
 
 .. image:: media/blade-platform.png
    :align: center
@@ -38,300 +20,124 @@ BLADE
    :width: 100%
    :class: only-dark
 
-**BLADE** is a Python framework for benchmarking the Llm Assisted Design and Evolution of algorithms.
-**BLADE** (Benchmark suite for LLM-driven Automated Design and Evolution) provides a standardized benchmark suite for evaluating automatic algorithm design algorithms, particularly those generating metaheuristics by large language models (LLMs).
-It focuses on **heuristic optimization** and integrates a diverse set of **problems** and **methods**, facilitating fair and comprehensive benchmarking.
+.. grid:: 1 2 2 2
+   :gutter: 3
 
+   .. grid-item-card:: :octicon:`rocket` Get started
+      :link: Quickstart
+      :link-type: doc
 
-Getting Started
----------------
+      Install BLADE and run a first benchmark in five minutes.
 
-The recommended way to use BLADE is a YAML experiment file and the
-``iohblade`` command:
+   .. grid-item-card:: :octicon:`file-code` Experiments in YAML
+      :link: yaml_experiments
+      :link-type: doc
 
-.. code-block:: bash
+      LLMs, methods, problems and suites in one file; validate, check, run.
 
-    uv run iohblade init my-exp                       # starter experiment.yml
-    uv run iohblade validate my-exp/experiment.yml    # every mistake, with its line number
-    uv run iohblade check my-exp/experiment.yml       # smoke test, no LLM calls
-    uv run iohblade run my-exp/experiment.yml         # run (rerun to resume)
+   .. grid-item-card:: :octicon:`tools` Extend BLADE
+      :link: tutorial_custom_problem
+      :link-type: doc
 
-.. code-block:: yaml
+      Bring your own problem, search method or LLM.
 
-    experiment: {output_dir: results/my-experiment, runs: 5, budget: 50}
-    llms:
-      qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
-    methods:
-      - {type: llamea, name: "LLaMEA-{llm}", llm: qwen, params: {n_parents: 4, n_offspring: 12}}
-      - {type: random_search, name: "RS-{llm}", llm: qwen}
-    problems:
-      - {type: bbob_sbox, params: {dims: [5], specific_group: 1}}
+   .. grid-item-card:: :octicon:`graph` Analyse results
+      :link: webapp
+      :link-type: doc
 
-Your own problems and methods are linked as Python files with ``type:
-custom``. The Python API remains available for scripting. Working with a
-coding agent? ``uv run iohblade skill`` installs a skill that teaches it
-these steps (see :doc:`Quickstart`).
+      Web app, convergence plots, code evolution and tables.
 
-Documentation Guide
--------------------
+Quick start
+-----------
 
-- Start here: :doc:`Quickstart`, then :doc:`yaml_experiments` for every
-  option, and the tutorials :doc:`tutorial_custom_problem` and
-  :doc:`tutorial_custom_method`.
-- Concepts: :doc:`Introduction`.
-- For benchmark catalog and taxonomy: :doc:`benchmarks`.
-- For API reference by feature area: :doc:`modules`.
-- For interactive monitoring: :doc:`webapp`.
+.. tab-set::
 
+   .. tab-item:: Command line
 
-- **Experiments as configuration:** a YAML file and the ``iohblade`` command replace experiment scripts, including for your own problems and methods.
-- **Comprehensive Benchmark Suite:** Covers various classes of black-box optimization problems.
-- **LLM-Driven Algorithm Design:** Supports algorithm evolution and design using large language models.
-- **Built-In Baselines:** Includes state-of-the-art metaheuristics for comparison and LLM-driven AAD algorithms.
-- **Automatic Logging & Visualization:** Integrated with **IOHprofiler** for performance tracking.
+      .. code-block:: bash
 
-Included Benchmark Function Sets
---------------------------------
+         pip install iohblade
+         iohblade init my-exp                       # a starter experiment
+         iohblade validate my-exp/experiment.yml    # every mistake, with its line number
+         iohblade check my-exp/experiment.yml       # smoke test, no LLM calls
+         iohblade run my-exp/experiment.yml         # run (rerun to resume)
 
-BLADE incorporates several benchmark function sets to provide a comprehensive evaluation environment:
+   .. tab-item:: experiment.yml
 
-.. list-table::
-   :header-rows: 1
-   :widths: 25 50 15 10
+      .. code-block:: yaml
 
-   * - Name
-     - Short Description
-     - Number of Functions
-     - Multiple Instances
-   * - **BBOB** (Black-Box Optimization Benchmarking)
-     - A suite of 24 noiseless functions designed for benchmarking continuous optimization algorithms. `Reference <https://arxiv.org/pdf/1903.06396>`_
-     - 24
-     - Yes
-   * - **SBOX-COST**
-     - A set of 24 boundary-constrained functions focusing on strict box-constraint optimization scenarios. `Reference <https://inria.hal.science/hal-04403658/file/sboxcost-cmacomparison-authorversion.pdf>`_
-     - 24
-     - Yes
-   * - **MA-BBOB** (Many-Affine BBOB)
-     - An extension of the BBOB suite, generating functions through affine combinations and shifts. `Reference <https://dl.acm.org/doi/10.1145/3673908>`_
-     - Generator-Based
-     - Yes
-   * - **GECCO MA-BBOB Competition Instances**
-     - A collection of 1,000 pre-defined instances from the GECCO MA-BBOB competition, evaluating algorithm performance on diverse affine-combined functions. `Reference <https://iohprofiler.github.io/competitions>`_
-     - 1,000
-     - Yes
-   * - **HLP** (High-Level Properties)
-     - Generated benchmarks guided by high-level property combinations (e.g., separable, multimodality).
-     - Generator-Based
-     - Yes
+         experiment: {output_dir: results/my-exp, runs: 5, budget: 50}
+         llms:
+           qwen: {provider: ollama, model: "qwen2.5-coder:14b"}
+         methods:
+           - {type: llamea, name: "LLaMEA-{llm}", llm: qwen}
+           - {type: random_search, name: "RS-{llm}", llm: qwen}
+         problems:
+           - {suite: quick}
 
-In addition, several real-world applications are included.
+At a glance
+-----------
 
-Real World Benchmarks
----------------------
+.. raw:: html
 
-.. list-table::
-   :header-rows: 1
-   :widths: 30 70
+   <div class="blade-stats">
+     <div class="blade-stat"><b>26</b><span>benchmark problems in 19 suites</span></div>
+     <div class="blade-stat"><b>9</b><span>LLM-driven design methods</span></div>
+     <div class="blade-stat"><b>7+</b><span>LLM providers, hosted or local</span></div>
+     <div class="blade-stat"><b>1</b><span>YAML file per experiment</span></div>
+   </div>
 
-   * - Name
-     - Description
-   * - **Analysis**
-     -
-   * - Auto-Correlation 1
-     - Minimise ``max(g) / I^2`` for non-negative signals under fixed discretisation of ``[-1/4, 1/4]``.
-   * - Auto-Correlation 2
-     - Maximise ``L_2^2 / (L_1 · L_∞)`` for non-negative signals using discrete auto-convolution.
-   * - Auto-Correlation 3
-     - Minimise ``max(||g||) / I^2`` for real-valued signals with non-zero integral.
-   * - **AutoML**
-     -
-   * - AutoML Pipelines
-     - Generate and evaluate machine learning pipelines using scikit-learn.
-   * - **Combinatorics**
-     -
-   * - Erdős Minimum-Overlap Problem
-     - Minimise the suprenum overlap integral between complementary measurable functions.
-   * - Euclidean Steiner Tree Problem
-     - Minimise ``MST(points + Steiner points) / MST(points)`` ratio by adding optimal Steiner nodes.
-   * - Graph Colouring Problem
-     - Minimise the number of colours needed to colour graph nodes so adjacent nodes never share a colour.
-   * - **Fourier**
-     -
-   * - Fourier Uncertainty Inequality
-     - Minimise uncertainty bound for functions of form ``P(x)e^{-πx²}`` under Hermite constraints.
-   * - **Geometry**
-     -
-   * - Heilbronn (Unit Triangle)
-     - Maximise the area of the smallest triangle formed by 11 points in a unit-area triangle.
-   * - Heilbronn (Unit Convex Region)
-     - Maximise the area of the smallest triangle formed by 13-14 points in a unit-area convex region.
-   * - Kissing Number (11D)
-     - Maximise number of integer vectors satisfying high-dimensional kissing constraints.
-   * - Min/Max Distance Ratio
-     - Minimise squared ratio of maximum to minimum pairwise distances (2D/3D variants).
-   * - Spherical Code
-     - Maximise the minimum pairwise angle among 30 points on a unit sphere.
-   * - **Kernel Tuner**
-     -
-   * - Kernel Tuning Benchmark
-     - Evaluate metaheuristics for hardware kernel optimisation under constraints.
-   * - **Logistics**
-     -
-   * - Travelling Salesman Problem
-     - Minimise total tour distance visiting each 2D point exactly once.
-   * - Vehicle Routing Problem
-     - Minimise total travel distance for capacitated vehicles serving weighted customers.
-   * - **Matrix Multiplication via Tensor Decomposition**
-     -
-   * - Tensor CP Factorisation
-     - Find smallest CP rank enabling exact matrix multiplication under quantised factors.
-   * - **Number Theory**
-     -
-   * - Sums vs Differences
-     - Maximise ``c(U)`` measuring imbalance between sumsets and difference sets.
-   * - **Packing**
-     -
-   * - Circle Packing
-     - Maximise total packed circle area inside a circular container without overlap.
-   * - Hexagonal Packing
-     - Minimise area of smallest enclosing hexagon containing disjoint regular hexagons.
-   * - Rectangle Packing
-     - Pack disjoint circles inside a fixed-perimeter rectangle under containment constraints.
-   * - Unit Square Packing
-     - Pack disjoint circles inside a unit square while satisfying non-overlap constraints.
+Cite BLADE
+----------
 
-These benchmarks are provided with ready-to-run instances in
-``run_benchmarks/``, while reusable benchmark definitions are organized under
-``iohblade/benchmarks`` by domain.
-
-Included Search Methods
------------------------
-
-The suite contains the state-of-the-art LLM-assisted search algorithms:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 50 30
-
-   * - Algorithm
-     - Description
-     - Link
-   * - **LLaMEA**
-     - Large Language Model Evolutionary Algorithm
-     - `code <https://github.com/nikivanstein/LLaMEA>`_, `paper <https://arxiv.org/abs/2405.20132>`_
-   * - **EoH**
-     - Evolution of Heuristics
-     - `code <https://github.com/FeiLiu36/EoH>`_, `paper <https://arxiv.org/abs/2401.02051>`_
-   * - **FunSearch**
-     - Island-based evolution with best-shot prompts (reimplemented in BLADE, after the LLM4AD port)
-     - `code <https://github.com/google-deepmind/funsearch>`_, `paper <https://www.nature.com/articles/s41586-023-06924-6>`_
-   * - **ReEvo**
-     - Large Language Models as Hyper-Heuristics with Reflective Evolution
-     - `code <https://github.com/ai4co/LLM-as-HH>`_, `paper <https://arxiv.org/abs/2402.01145>`_
-   * - **LLM-Driven Heuristics Neighbourhood Search**
-     - LLM-Driven Neighborhood Search for Efficient Heuristic Design
-     - `code <https://github.com/Acquent0/LHNS>`_, `paper <https://ieeexplore.ieee.org/abstract/document/11043025>`_
-   * - **Monte Carlo Tree Search**
-     - Monte Carlo Tree Search for Comprehensive Exploration in LLM-Based Automatic Heuristic Design
-     - `code <https://github.com/zz1358m/MCTS-AHD-master/tree/main>`_, `paper <https://arxiv.org/abs/2501.08603>`_
-   * - **ShinkaEvolve**
-     - Sample-efficient program evolution: islands, weighted parent selection, diff/full/crossover patches, novelty rejection, LLM bandit (reimplemented in BLADE)
-     - `code <https://github.com/SakanaAI/ShinkaEvolve>`_, `paper <https://arxiv.org/abs/2509.19349>`_
-
-Supported LLM APIs
-------------------
-
-BLADE supports integration with various LLM APIs to facilitate automated design of algorithms:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 15 50 35
-
-   * - LLM Provider
-     - Description
-     - Integration Notes
-   * - **Gemini**
-     - Google's multimodal LLM designed to process text, images, audio, and more. `Reference <https://en.wikipedia.org/wiki/Gemini_(language_model)>`_
-     - Accessible via the Gemini API, compatible with OpenAI libraries. `Reference <https://ai.google.dev/gemini-api/docs/openai>`_
-   * - **OpenAI**
-     - Developer of GPT series models, including GPT-4, widely used for natural language understanding and generation. `Reference <https://openai.com/>`_
-     - Integration through OpenAI's REST API and client libraries.
-   * - **Ollama**
-     - A platform offering access to various LLMs, enabling local and cloud-based model deployment. `Reference <https://www.ollama.ai/>`_
-     - Integration details can be found in their official documentation.
-   * - **Claude**
-     - Anthropic's Claude models for safe and capable language generation. `Reference <https://www.anthropic.com/>`_
-     - Accessed via the Anthropic API.
-   * - **DeepSeek**
-     - Developer of the DeepSeek family of models for code and chat. `Reference <https://www.deepseek.com/>`_
-     - Access via OpenAI compatible API at ``https://api.deepseek.com``.
-   * - **LMStudio**
-     - A hardware specialised platform for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. `Reference <https://lmstudio.ai>`_
-     - Provides a local OpenAI-compatible server, allowing integration via standard OpenAI client libraries pointed at a localhost endpoint.
-   * - **MLX_LM** (Beta)
-     - A hardware specialised python package for Apple Silicon, helping you run massive LLMs locally on M1 or better Macs. `Reference <https://github.com/ml-explore/mlx-lm>`_
-     - Used via Python APIs and CLI tools, often integrated into local inference workflows and Apple MLX pipelines.
-
-Evaluating against Human Designed Baselines
--------------------------------------------
-
-An important part of BLADE is the final evaluation of generated algorithms against state-of-the-art human-designed algorithms. In the ``iohblade.baselines`` part of the package, several well-known SOTA black-box optimizers are implemented to compare against, including but not limited to CMA-ES and DE variants.
-
-For the final validation, **BLADE** uses **IOHprofiler**, providing detailed tracking and visualization of performance metrics.
-
-
-🤖 Contributing
------------------
-
-Contributions to BLADE are welcome! Here are a few ways you can help:
-
-- **Report Bugs**: Use `GitHub Issues <https://github.com/XAI-liacs/BLADE/issues>`_ to report bugs.
-- **Feature Requests**: Suggest new features or improvements.
-- **Pull Requests**: Submit PRs for bug fixes or feature additions.
-
-Please refer to ``CONTRIBUTING.md`` for more details on contributing guidelines.
-
-License
----------
-
-Distributed under the `MIT <https://choosealicense.com/licenses/mit/>`_ License.
-See ``LICENSE`` for more information.
-
-Cite us
---------
-
-If you use BLADE in your research, please consider citing the associated paper:
-
-.. code-block:: bibtex
-
-   TBA
-
+If you use BLADE in your research, please cite the
+`GECCO '25 paper <https://doi.org/10.1145/3712255.3734347>`_ (BibTeX on the
+:doc:`Introduction` page).
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :hidden:
+   :caption: Get started
 
    Introduction
    Installation
    Quickstart
+   videos
+
+.. toctree::
+   :hidden:
+   :caption: User guide
+
    yaml_experiments
-   tutorial_custom_problem
-   tutorial_custom_method
    benchmarks
+   methods_overview
+   llm
    fitness
    webapp
-   modules
-   methods
+   troubleshooting
+
+.. toctree::
+   :hidden:
+   :caption: Extending BLADE
+
+   tutorial_custom_problem
+   tutorial_custom_method
+   tutorial_custom_llm
+   coding_agents
+
+.. toctree::
+   :hidden:
+   :caption: Examples (Python API)
+
    notebooks/simple_experiment
    notebooks/custom_problem
    notebooks/custom_method
-   notebooks/mabbob_example
    notebooks/visualization_options
+   notebooks/mabbob_example
 
+.. toctree::
+   :hidden:
+   :caption: Reference
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   cli
+   modules
+   changelog

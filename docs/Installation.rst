@@ -1,5 +1,5 @@
 Installation
-------------
+============
 
 It is easiest to use BLADE from the PyPI package:
 

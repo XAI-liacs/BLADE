@@ -35,9 +35,15 @@ extensions = [
     "nbsphinx",
     "sphinx_copybutton",
     "sphinx_multiversion",
+    "sphinx_design",
 ]
 
 nbsphinx_allow_errors = True  # Continue through errors in notebook cells
+# The notebooks need an LLM; show them as saved instead of running them.
+nbsphinx_execute = "never"
+# "Attributes:" sections as fields of the class, so that an attribute that
+# is also annotated on the class is not documented twice.
+napoleon_use_ivar = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -45,7 +51,15 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "dev-plans",  # design notes, not user documentation
+    "media/**/*.md",  # attribution notes next to the figure sources
+    "notebooks/getting_started.ipynb",  # superseded by the other notebooks
+    "notebooks/results",
+]
 
 autodoc_mock_imports = ["modcma"]
 
@@ -72,10 +86,32 @@ html_static_path = ['_static']
 # https://xai-liacs.github.io/BLADE/experiment.schema.json
 html_extra_path = ['_extra']
 
+html_title = "BLADE"
+html_favicon = "_static/blade-mark.png"
+html_css_files = ["css/blade.css"]
+
+# Brand colours of the banner (docs/media/banner): violet for links and
+# accents, pink as a second accent.
 html_theme_options = {
-    "light_logo": "logo.png",
-    "dark_logo": "logo-dark.png",
+    "light_logo": "blade-mark.png",
+    "dark_logo": "blade-mark-dark.png",
     "source_repository": "https://github.com/XAI-liacs/BLADE",
     "source_branch": "main",
     "source_directory": "docs/",
+    "light_css_variables": {
+        "color-brand-primary": "#6a4cf0",
+        "color-brand-content": "#6a4cf0",
+        "color-admonition-title-background--note": "#efeaff",
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#b8a9ff",
+        "color-brand-content": "#b8a9ff",
+        "color-background-primary": "#0f1117",
+        "color-background-secondary": "#151821",
+    },
 }
+
+# Link previews (social media, chat): the banner as preview image.
+ogp_site_url = "https://xai-liacs.github.io/BLADE/"
+ogp_image = "https://xai-liacs.github.io/BLADE/_static/blade-social-preview.png"
+ogp_description_length = 200

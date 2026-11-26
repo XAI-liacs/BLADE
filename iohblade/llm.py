@@ -414,11 +414,15 @@ class LLM(ABC):
             session_messages (list): A list of dictionaries with keys 'role' and 'content' to simulate a conversation with the language model.
             parent_ids (list, optional): The id of the parent the next sample will be generated from (if any).
             HPO (boolean, optional): If HPO is enabled, a configuration space will also be extracted (if possible).
-            base_code and diff_mode are for now only there to support latest LLaMEA, they are not implemented yet.
+            base_code (str, optional): Only accepted for compatibility with
+                LLaMEA; not used.
+            diff_mode (bool, optional): Only accepted for compatibility with
+                LLaMEA; not supported (a warning is shown).
+            **kwargs: Additional LLM settings that can be used at query time.
 
         Returns:
-            tuple: A tuple containing the new algorithm code, its class name, its full descriptive name and an optional configuration space object.
-            **kwargs: Additional LLM settings that can be used at query time.
+            Solution: The new solution with its code, name, description and
+            (with HPO) configuration space.
 
         Raises:
             NoCodeException: If the language model fails to return any code.
@@ -550,21 +554,13 @@ class LLM(ABC):
 
     @abstractmethod
     def get_config(self) -> list[dict[str, Any]]:
-        """
-        Return the configuration of the llms as a list of dictionary, of the format:
-        [
-            {
-                "model": str,
-                "config": dict,
-                "hardware": dict *only available when hardware details are known.
-            },
-            ...,
-        ]
-        ## Params:
-        None
+        """The configuration of the LLM(s), logged with every run.
 
-        ## Returns:
-        list[dict['str': Any]]
+        Returns:
+            list[dict[str, Any]]: One dictionary per model (several for
+            :class:`Multi_LLM`) with the keys ``model`` (str), ``config``
+            (dict) and ``hardware`` (dict, empty unless the hardware is
+            known).
         """
 
         pass
