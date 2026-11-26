@@ -19,6 +19,12 @@ Changes since [v1.2.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.1).
   `f_opt, x_opt`, the `Problem` defaults). When the interface a problem
   declares does not match the class in its example code, EoH's prompts now
   state the example's interface instead (BBOB prompts are unchanged).
+- **ReEvo prompts stated the BBOB interface for every problem** too
+  ("constructor signature should be `__init__(self, budget, dim)`", "main
+  inference signature `__call__(self, func)`"), for 23 of the 28 problems
+  of the `default` suite. ReEvo now uses the same check as EoH
+  (`prompt_utils.declared_interface_matches`) and states the example's
+  interface when the declared one does not match.
 - EoH runs in parallel threads (`n_jobs > 1`) each use their own LLM (the
   last run started used to win), and EoH's `EoHrun.jsonl` is written to the
   run's `eoh` folder instead of the shared working directory.

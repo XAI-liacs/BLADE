@@ -17,6 +17,7 @@ from ..method import Method
 from ..problem import Problem
 from ..solution import Solution
 from ..utils import class_info, first_class_name
+from .prompt_utils import declared_interface_matches, example_interface
 
 try:
     from eoh import eoh as eoh_main
@@ -27,51 +28,6 @@ except Exception:  # pragma: no cover - optional dependency
     Paras = None
     eoh_evolution = None
     eoh_interface_EC = None
-
-
-def _signature_args(func: ast.FunctionDef) -> list[str]:
-    """Parameter names of a method, without ``self``."""
-    args = func.args
-    names = [a.arg for a in args.posonlyargs + args.args]
-    return names[1:] if names and names[0] == "self" else names
-
-
-def _example_interface(problem: Problem) -> dict[str, Any] | None:
-    """The interface of the class in the problem's example code.
-
-    Returns:
-        ``{"class", "init_inputs", "func_name", "func_inputs"}`` of the first
-        class in the code block of ``problem.example_prompt``, or None when
-        there is no parsable example class. ``func_name`` is the problem's
-        ``func_name`` if the class defines it, else ``__call__`` if defined,
-        else None.
-    """
-    code = _extract_python_block(getattr(problem, "example_prompt", "") or "")
-    if not code:
-        return None
-    try:
-        tree = ast.parse(textwrap.dedent(code))
-    except SyntaxError:
-        return None
-    cls = next((n for n in tree.body if isinstance(n, ast.ClassDef)), None)
-    if cls is None:
-        return None
-    methods = {
-        n.name: n
-        for n in cls.body
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-    }
-    func_name = getattr(problem, "func_name", "__call__")
-    if func_name not in methods:
-        func_name = "__call__" if "__call__" in methods else None
-    return {
-        "class": cls.name,
-        "init_inputs": (
-            _signature_args(methods["__init__"]) if "__init__" in methods else []
-        ),
-        "func_name": func_name,
-        "func_inputs": _signature_args(methods[func_name]) if func_name else [],
-    }
 
 
 class _BladePrompts:
@@ -90,18 +46,8 @@ class _BladePrompts:
 
     def __init__(self, problem: Problem):
         self.problem = problem
-        example = _example_interface(problem)
-        declared = (
-            list(problem.init_inputs),
-            problem.func_name,
-            list(problem.func_inputs),
-        )
-        self.declared_interface = example is None or declared == (
-            example["init_inputs"],
-            example["func_name"],
-            example["func_inputs"],
-        )
-        self.example = example
+        self.declared_interface = declared_interface_matches(problem)
+        self.example = example_interface(problem)
 
     def get_task(self):
         return self.problem.task_prompt

@@ -495,6 +495,39 @@ def test_eoh_prompt_keeps_a_matching_declared_interface():
     assert "return 2 output(s): 'f_opt', 'x_opt'" in evol.get_prompt_i1()
 
 
+def test_declared_interface_is_checked_against_the_example():
+    from iohblade.methods.prompt_utils import (
+        declared_interface_matches,
+        example_interface,
+    )
+
+    tsp = RecordingProblem(_TSP_EXAMPLE)
+    assert not declared_interface_matches(tsp)
+    assert example_interface(tsp) == {
+        "class": "Tour",
+        "init_inputs": ["customers"],
+        "func_name": "__call__",
+        "func_inputs": [],
+    }
+    assert declared_interface_matches(RecordingProblem(_BBOB_EXAMPLE))
+    # No example class: nothing to check against.
+    assert declared_interface_matches(RecordingProblem("no code here"))
+
+
+def test_reevo_prompt_states_the_example_interface():
+    from iohblade.methods.reevo import _func_desc, _func_signature
+
+    tsp = RecordingProblem(_TSP_EXAMPLE)
+    desc = _func_desc(tsp, "Tour")
+    assert "budget, dim" not in desc and "func" not in desc
+    assert "`__init__(self, customers)`" in desc
+    assert _func_signature(tsp) == "__call__(self)"
+
+    bbob = RecordingProblem(_BBOB_EXAMPLE)
+    assert "`__init__(self, budget, dim)`" in _func_desc(bbob, "RandomSearch")
+    assert _func_signature(bbob) == "__call__(self, func)"
+
+
 def test_eoh_evaluates_the_code_the_llm_wrote(monkeypatch, tmp_path):
     from iohblade.methods.eoh import EoH
 
