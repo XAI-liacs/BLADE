@@ -1,3 +1,4 @@
+import importlib.util
 from typing import Any
 
 from llamea import LLaMEA as LLAMEA_Algorithm
@@ -22,6 +23,16 @@ class LLaMEA(Method):
             kwargs: Additional arguments for configuring LLaMEA.
         """
         super().__init__(llm, budget, name)
+        if kwargs.get("feature_guided_mutation") and (
+            importlib.util.find_spec("xgboost") is None
+        ):
+            # LLaMEA raises this only when a run starts; raising it here
+            # lets `iohblade validate` report it before anything runs.
+            raise ImportError(
+                "feature_guided_mutation needs xgboost, which is optional since "
+                "LLaMEA 1.5.1. Install it with `uv sync --group feature-guidance` "
+                "or `pip install 'llamea[feature-guidance]'`."
+            )
         self.kwargs = kwargs
 
     @property
