@@ -370,6 +370,169 @@ def test_eoh_shared_output_path_folders_exist_up_front(monkeypatch, tmp_path):
     assert method(CountingProblem()).code
 
 
+_TSP_EXAMPLE = """
+An example:
+```python
+import random
+
+class Tour:
+    def __init__(self, customers):
+        self.customers = customers
+
+    def __call__(self):
+        return [c[0] for c in self.customers]
+```
+"""
+
+_BBOB_EXAMPLE = """
+An example:
+```python
+class RandomSearch:
+    def __init__(self, budget=10000, dim=10):
+        self.budget = budget
+
+    def __call__(self, func):
+        return self.f_opt, self.x_opt
+```
+"""
+
+
+class RecordingProblem(CountingProblem):
+    """Records the code of every evaluated solution."""
+
+    def __init__(self, example_prompt: str = _TSP_EXAMPLE):
+        super().__init__()
+        self.task_prompt = "Write a class that returns a tour. "
+        self.example_prompt = example_prompt
+        self.format_prompt = "Give the code in a python block."
+        self.codes: list[str] = []
+
+    def __call__(self, solution, logger=None):
+        self.codes.append(solution.code)
+        return super().__call__(solution, logger)
+
+
+class TourLLM(LLM):
+    """Answers like a chat model: a description, then a fenced class that
+    has no imports, uses a dict literal and returns ``paths``."""
+
+    def __init__(self, prefix: str = "Tour"):
+        super().__init__("", "fake", None)
+        self.prefix = prefix
+        self.prompts: list[str] = []
+        self._counter = itertools.count(1)
+
+    def _query(self, session_messages):
+        self.prompts.append(session_messages[-1]["content"])
+        i = next(self._counter)
+        return (
+            f"{{Visit the customers in order {i}.}}\n"
+            "```python\n"
+            f"class {self.prefix}{i}:\n"
+            "    def __init__(self, customers):\n"
+            "        self.customers = customers\n"
+            f"        self.weights = {{'a': {i}}}\n"
+            "\n"
+            "    def __call__(self):\n"
+            "        paths = [c[0] for c in self.customers]\n"
+            "        return paths\n"
+            "```\n"
+            "The class returns the tour.\n"
+        )
+
+    def get_config(self) -> dict[str, Any]:
+        return {}
+
+
+def test_eoh_extraction_keeps_the_code_as_written():
+    from iohblade.methods.eoh import _extract_eoh_response
+
+    code, description = _extract_eoh_response(TourLLM()._query([{"content": ""}]))
+    assert code.startswith("class Tour1:")  # no import: class line kept
+    assert code.rstrip().endswith("return paths")  # return not rewritten
+    assert "f_opt" not in code and "```" not in code
+    assert description == "Visit the customers in order 1."
+
+
+def test_eoh_extraction_without_fences():
+    from iohblade.methods.eoh import _extract_eoh_response
+
+    response = (
+        "# Description: Greedy tour.\n"
+        "class Greedy:\n"
+        "    def __call__(self):\n"
+        "        return []\n"
+    )
+    code, description = _extract_eoh_response(response)
+    assert code.startswith("class Greedy:") and code.endswith("return []")
+    assert description == "Greedy tour."
+    assert _extract_eoh_response("no code at all")[0] == ""
+
+
+def test_eoh_prompt_states_the_example_interface():
+    from iohblade.methods.eoh import _BladeEvolution, _BladePrompts
+
+    prompts = _BladePrompts(RecordingProblem(_TSP_EXAMPLE))
+    assert not prompts.declared_interface
+    evol = _BladeEvolution("", "", "fake", False, "", False, prompts)
+    for prompt in (
+        evol.get_prompt_i1(),
+        evol.get_prompt_m1({"algorithm": "a", "code": "c"}),
+        evol.get_prompt_e2([{"algorithm": "a", "code": "c"}]),
+        evol.get_prompt_m3({"algorithm": "a", "code": "c"}),
+    ):
+        assert "f_opt" not in prompt and "budget, dim" not in prompt
+        assert "`__init__(self, customers)`" in prompt
+        assert "`__call__(self)`" in prompt
+
+
+def test_eoh_prompt_keeps_a_matching_declared_interface():
+    from iohblade.methods.eoh import _BladeEvolution, _BladePrompts
+
+    prompts = _BladePrompts(RecordingProblem(_BBOB_EXAMPLE))
+    assert prompts.declared_interface
+    evol = _BladeEvolution("", "", "fake", False, "", False, prompts)
+    assert "return 2 output(s): 'f_opt', 'x_opt'" in evol.get_prompt_i1()
+
+
+def test_eoh_evaluates_the_code_the_llm_wrote(monkeypatch, tmp_path):
+    from iohblade.methods.eoh import EoH
+
+    _fast_eoh(monkeypatch, tmp_path)
+    problem = RecordingProblem()
+    llm = TourLLM()
+    solution = EoH(llm, 12, pop_size=2, output_path=str(tmp_path / "out"))(problem)
+    assert len(problem.codes) == 12
+    for code in problem.codes:
+        assert code.rstrip().endswith("return paths")
+        assert "f_opt" not in code
+    assert solution.code in problem.codes
+    assert all("f_opt" not in p for p in llm.prompts)
+    # EoH's run log goes to the run folder, not the working directory.
+    assert (tmp_path / "out" / "EoHrun.jsonl").exists()
+    assert not (tmp_path / "EoHrun.jsonl").exists()
+
+
+def test_parallel_eoh_runs_use_their_own_llm(monkeypatch, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from iohblade.methods.eoh import EoH
+
+    _fast_eoh(monkeypatch, tmp_path)
+
+    def run(prefix):
+        problem = RecordingProblem()
+        out = tmp_path / prefix
+        EoH(TourLLM(prefix), 12, pop_size=2, output_path=str(out))(problem)
+        return prefix, problem.codes
+
+    with ThreadPoolExecutor(2) as ex:
+        results = list(ex.map(run, ["Alpha", "Beta"]))
+    for prefix, codes in results:
+        assert len(codes) == 12
+        assert all(code.startswith(f"class {prefix}") for code in codes)
+
+
 # endregion
 
 
