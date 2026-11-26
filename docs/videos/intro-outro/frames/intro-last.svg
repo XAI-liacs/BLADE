@@ -5,11 +5,11 @@
 <linearGradient id="grad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#ff7ab6"/><stop offset="1" stop-color="#ffb547"/></linearGradient>
 <filter id="blur8"><feGaussianBlur stdDeviation="8"/></filter>
 <filter id="blur3"><feGaussianBlur stdDeviation="3"/></filter>
-</defs><rect width="1920" height="1080" fill="#0b0d12"/><rect width="1920" height="1080" fill="url(#glowV)"/><rect width="1920" height="1080" fill="url(#glowP)"/><line x1="220.0" y1="435.0" x2="1700.0" y2="435.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
-<line x1="220.0" y1="540.0" x2="1700.0" y2="540.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
-<line x1="220.0" y1="645.0" x2="1700.0" y2="645.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
-<line x1="220.0" y1="750.0" x2="1700.0" y2="750.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
-<line x1="220.0" y1="855.0" x2="1700.0" y2="855.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+</defs><rect width="1920" height="1080" fill="#0b0d12"/><rect width="1920" height="1080" fill="url(#glowV)"/><rect width="1920" height="1080" fill="url(#glowP)"/><line x1="220.0" y1="435.0" x2="1700.0" y2="435.0" stroke="#ffffff" stroke-width="1" opacity="0.07"/>
+<line x1="220.0" y1="540.0" x2="1700.0" y2="540.0" stroke="#ffffff" stroke-width="1" opacity="0.07"/>
+<line x1="220.0" y1="645.0" x2="1700.0" y2="645.0" stroke="#ffffff" stroke-width="1" opacity="0.07"/>
+<line x1="220.0" y1="750.0" x2="1700.0" y2="750.0" stroke="#ffffff" stroke-width="1" opacity="0.07"/>
+<line x1="220.0" y1="855.0" x2="1700.0" y2="855.0" stroke="#ffffff" stroke-width="1" opacity="0.07"/>
 <line x1="220.0" y1="960.0" x2="1700.0" y2="960.0" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
 <line x1="220.0" y1="330.0" x2="220.0" y2="960.0" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
 <path d="M220.0,890.0 L237.1,890.0 L254.3,890.0 L271.4,819.0 L288.6,819.0 L305.7,819.0 L322.9,819.0 L340.0,699.1 L357.1,666.9 L374.3,666.9 L391.4,666.9 L408.6,666.9 L425.7,666.9 L442.9,666.9 L460.0,666.9 L477.1,666.9 L494.3,666.9 L511.4,666.9 L528.6,547.3 L545.7,547.3 L562.9,534.1 L580.0,534.1 L597.1,510.7 L614.3,510.7 L631.4,500.6 L648.6,481.6 L665.7,481.6 L682.9,476.8 L700.0,476.8 L717.1,476.8 L734.3,476.8 L751.4,465.0 L768.6,465.0 L785.7,455.2 L802.9,455.2 L820.0,455.2 L837.1,441.0 L854.3,441.0 L871.4,441.0 L888.6,441.0 L905.7,441.0 L922.9,441.0 L940.0,436.6 L957.1,436.6 L974.3,436.6 L991.4,436.6 L1008.6,433.5 L1025.7,433.0 L1042.9,433.0 L1060.0,433.0 L1077.1,425.6 L1094.3,425.6 L1111.4,425.6 L1128.6,425.6 L1145.7,425.1 L1162.9,425.1 L1180.0,425.1 L1197.1,422.8 L1214.3,422.8 L1231.4,422.8 L1248.6,421.9 L1265.7,421.9 L1282.9,421.9 L1300.0,421.9 L1317.1,420.8 L1334.3,420.8 L1351.4,420.8 L1368.6,420.8 L1385.7,420.8 L1402.9,420.8 L1420.0,420.0" fill="none" stroke="#7c5cff" stroke-width="10" opacity="0.25" filter="url(#blur8)"/>
