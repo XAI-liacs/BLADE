@@ -12,6 +12,9 @@ on:
       - ".github/workflows/docs-check.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-docs:
     runs-on: ubuntu-latest
