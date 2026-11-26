@@ -181,7 +181,7 @@ def card_suites() -> str:
     y = headline(["Benchmarks with fixed", "settings, ready to run."])
     subline(y + 58, "Name a suite in your experiment; instances are fixed.")
     tiles = [
-        (F.thumb_landscape, "bbob", "5 BBOB function groups",
+        (F.thumb_landscape, "bbob_groups", "5 BBOB function groups",
          "10-D · train iid 1-5 · test iid 6-15"),
         (F.thumb_landscape, "ma_bbob", "MA-BBOB",
          "10-D · 25 train · 50 test instances"),

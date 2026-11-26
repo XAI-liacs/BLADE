@@ -83,14 +83,18 @@ Results on "BBOB" are only comparable if everyone uses the same functions,
 instances, dimension and budget. BLADE 1.2 ships named suites where those
 choices are made for you:
 
-🔸 the five BBOB function groups as separate benchmarks: instances 1–5 for
-training, 6–15 for testing, 10-D, budget factor 2000
+🔸 `bbob_groups`: the five BBOB function groups as separate benchmarks,
+instances 1–5 for training and 6–15 for testing, 10-D, budget factor 2000
+🔸 `bbob`: the 24 BBOB functions one by one, instances 1–10 for training
+and 11–30 for testing
 🔸 MA-BBOB: 25 training and 50 test instances
 🔸 17 AlphaEvolve mathematical problems (packing, Heilbronn,
 auto-correlation, ...)
 🔸 combinatorial problems: Steiner trees, TSP, CVRP, graph colouring
 
-`quick` gives a small set to try a setup; `full` runs everything. One
+`quick` gives a small set to try a setup, `default` combines the BBOB
+groups, the maths and the combinatorial problems, and `full` runs
+everything. One
 `dim` and `budget_factor` set the BBOB and MA-BBOB parts; the other
 problems keep their own fixed settings.
 

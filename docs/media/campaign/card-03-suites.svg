@@ -19,8 +19,8 @@
 <ellipse cx="108.8" cy="462.78" rx="6.24" ry="4.68" fill="none" stroke="#ffb547" stroke-width="1.4"/>
 <ellipse cx="171.2" cy="518.9399999999999" rx="6.24" ry="4.68" fill="none" stroke="#ffb547" stroke-width="1.4"/>
 <circle cx="144.0" cy="491.9" r="4" fill="#b8730a"/>
-<rect x="88.0" y="565.9" width="60.6" height="30" rx="15" fill="#12151d" stroke="#ffb547" stroke-width="1.4"/>
-<text x="118.3" y="585.9" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="15" fill="#ffc76e" font-weight="500" text-anchor="middle" xml:space="preserve" >bbob</text>
+<rect x="88.0" y="565.9" width="124.7" height="30" rx="15" fill="#12151d" stroke="#ffb547" stroke-width="1.4"/>
+<text x="150.325" y="585.9" font-family="'DejaVu Sans Mono', Menlo, Consolas, monospace" font-size="15" fill="#ffc76e" font-weight="500" text-anchor="middle" xml:space="preserve" >bbob_groups</text>
 <text x="88.0" y="639.9" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22" fill="#ffffff" font-weight="700" text-anchor="start" xml:space="preserve" >5 BBOB function groups</text>
 <text x="88.0" y="673.9" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="17" fill="#a3a8b5" font-weight="400" text-anchor="start" xml:space="preserve" >10-D · train iid 1-5 · test iid 6-15</text>
 <rect x="552.0" y="415.9" width="464.0" height="300" rx="18" fill="#12151d" stroke="#2a2e3a" stroke-width="1.5"/>
