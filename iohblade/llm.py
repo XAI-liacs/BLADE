@@ -3,6 +3,7 @@ LLM modules to connect to different LLM providers. Also extracts code, name and 
 """
 
 import copy
+import importlib
 import logging
 import random
 import re
@@ -655,6 +656,7 @@ class OpenAI_LLM(LLM):
         self.client = openai.OpenAI(**self._client_kwargs)
         logging.getLogger("openai").setLevel(logging.ERROR)
         logging.getLogger("httpx").setLevel(logging.ERROR)
+        logging.getLogger("httpx2").setLevel(logging.ERROR)  # openai >= 3
         self.temperature = temperature
 
     def get_config(self) -> list[dict[str, Any]]:
@@ -775,12 +777,15 @@ def _gemini_retryable(err) -> bool:
         return True
     if isinstance(err, (ConnectionError, TimeoutError)):
         return True
-    try:
-        import httpx
-
-        return isinstance(err, httpx.TransportError)
-    except ImportError:  # pragma: no cover
-        return False
+    # Network errors: google-genai >= 3 uses httpx2, older versions httpx.
+    for module in ("httpx2", "httpx"):
+        try:
+            transport_error = importlib.import_module(module).TransportError
+        except (ImportError, AttributeError):  # pragma: no cover
+            continue
+        if isinstance(err, transport_error):
+            return True
+    return False
 
 
 class Gemini_LLM(LLM):

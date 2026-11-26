@@ -835,3 +835,28 @@ def test_claude_llm_unpickles_state_without_new_fields(monkeypatch):
     revived = Claude_LLM.__new__(Claude_LLM)
     revived.__setstate__(state)
     assert revived.effort is None and revived.fallbacks is None
+
+
+@pytest.mark.parametrize(
+    "err, retry",
+    [
+        # google-genai >= 3 raises httpx2 errors, older versions httpx ones.
+        (httpx2.ConnectError("connection reset"), True),
+        (httpx.ConnectError("connection reset"), True),
+        (httpx2.ReadTimeout("timed out"), True),
+        (SimpleNamespace(code=429), True),
+        (SimpleNamespace(code=503), True),
+        (SimpleNamespace(code=400), False),
+        (ValueError("invalid model"), False),
+        (RuntimeError("429 RESOURCE_EXHAUSTED"), True),
+    ],
+)
+def test_gemini_retryable(err, retry):
+    assert llm_mod._gemini_retryable(err) is retry
+
+
+def test_gemini_retryable_with_real_genai_errors():
+    errors = pytest.importorskip("google.genai.errors")
+    assert llm_mod._gemini_retryable(errors.ClientError(429, {}))
+    assert not llm_mod._gemini_retryable(errors.ClientError(403, {}))
+    assert llm_mod._gemini_retryable(errors.ServerError(500, {}))

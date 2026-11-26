@@ -9,18 +9,18 @@ license = "MIT"
 dependencies = [
     "numpy>=2,<3",
     "pandas>=2.2.3,<3",
-    "openai>=1.99.1,<2",
+    "openai>=1.99.1,<4",
     "anthropic>=2.1.0,<3",
     "ollama>=0.5.3,<1",
     "jsonlines>=4.0.0,<5",
-    "google-genai>=1,<2",
+    "google-genai>=1,<4",
     "joblib>=1.4.2,<2",
     "tokencost>=0.1.26,<0.2",
-    "llamea>=1.4.3,<2",
+    "llamea>=1.5.0,<2",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
-    "xmltodict>=0.14.2,<0.15",
-    "streamlit>=1.35.0,<2",
+    "xmltodict>=0.14.2,<2",
+    "streamlit>=1.49.0,<2",
     "jsonschema>=4.24.0,<5",
     "plotly>=6.2.0",
     "ioh>=0.3.22",
@@ -45,24 +45,24 @@ iohblade = "iohblade.cli:main"
 [dependency-groups]
 dev = [
     "black>=25.11.0,<27",
-    "isort>=5.12.0,<6",
+    "isort>=5.12.0,<10",
     "pytest>=7.4.3,<10",
     "jupyter>=1.0.0,<2",
-    "pytest-cov>=4.1.0,<5",
+    "pytest-cov>=4.1.0,<8",
     "codecov>=2.1.13,<3",
     "pytest-mock>=3.14.0,<4",
-    "ipykernel>=6.29.5,<7",
+    "ipykernel>=6.29.5,<8",
 ]
 docs = [
-    "sphinx==7.4.7",
+    "sphinx>=9.0.4,<10",
     "sphinx-rtd-theme>=3.0.2,<4",
-    "myst-parser>=4.0.1,<5",
+    "myst-parser>=5.2.0,<6",
     "nbsphinx>=0.9.6,<0.10",
     "pandoc~=2.4",
-    "furo>=2024.8.6,<2025",
-    "sphinxext-opengraph>=0.9.1,<0.10",
+    "furo>=2024.8.6,<2026",
+    "sphinxext-opengraph>=0.9.1,<0.14",
     "sphinx-copybutton>=0.5.2,<0.6",
-    "sphinx-multiversion>=0.2.4,<0.3",
+    "sphinx-multiversion-scylla>=0.3.9,<0.4",
 ]
 methods = [
     "eoh",
@@ -72,8 +72,7 @@ methods = [
     "tree-sitter-python"
 ]
 extraproblems = [
-    "pymoosh==3.2",
-    "pyGDM2==1.1.12",
+    "pymoosh==4.0.1",
     "openml>=0.14",
 ]
 apple-silicon = [
