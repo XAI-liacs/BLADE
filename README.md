@@ -37,7 +37,7 @@
 
 ## 🔥 News
 
-- 2026.11 ✨✨ **BLADE v1.2.0**: define experiments in YAML, use your own problems and methods without writing an experiment script, and check an experiment before spending LLM time (`iohblade init / validate / check / run`).
+- 2026.11 ✨✨ **BLADE v1.2.0**: define experiments in YAML, use your own problems and methods without writing an experiment script, and check an experiment before spending LLM time (`iohblade init / validate / check / run`). New built-in methods **FunSearch** and **ShinkaEvolve**, reimplemented to run with any supported LLM.
 - 2025.03 ✨✨ **BLADE v0.0.1 released**!
 
 

@@ -30,6 +30,7 @@ dependencies = [
     "virtualenv>=20.34.0",
     "feedparser>=6.0.12",
     "py-cpuinfo",
+    "psutil>=5.9",
     "pydantic>=2.7,<3",
     "pyyaml>=6.0,<7",
 ]
