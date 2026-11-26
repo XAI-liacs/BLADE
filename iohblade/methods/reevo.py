@@ -18,6 +18,7 @@ from ..method import Method
 from ..problem import Problem
 from ..solution import Solution
 from ..utils import class_info, first_class_name
+from .prompt_utils import declared_interface_matches, example_interface
 
 try:
     import reevo as _reevo_module
@@ -93,17 +94,43 @@ def _seed_payload(problem: Problem) -> tuple[str, str]:
     return f"```python\n{seed_code}\n```", class_name
 
 
+def _interface(problem: Problem) -> tuple[list[str], str, list[str]]:
+    """``(init_inputs, func_name, func_inputs)`` to state in ReEvo's prompts.
+
+    The interface the problem declares, unless it does not match the class
+    in the problem's example code: ``Problem`` defaults it to the BBOB
+    interface (``__init__(self, budget, dim)``, ``__call__(self, func)``),
+    which contradicts the task of most other problems, so the example's
+    interface is used then (see
+    :func:`~iohblade.methods.prompt_utils.declared_interface_matches`).
+    """
+    if not declared_interface_matches(problem):
+        example = example_interface(problem)
+        if example["func_name"]:
+            return (
+                example["init_inputs"],
+                example["func_name"],
+                example["func_inputs"],
+            )
+        return example["init_inputs"], "__call__", []
+    return (
+        list(getattr(problem, "init_inputs", []) or []),
+        getattr(problem, "func_name", "__call__"),
+        list(getattr(problem, "func_inputs", []) or []),
+    )
+
+
 def _func_signature(problem: Problem) -> str:
-    func_name = getattr(problem, "func_name", "__call__")
-    func_inputs = list(getattr(problem, "func_inputs", []) or [])
+    _, func_name, func_inputs = _interface(problem)
     if func_inputs:
         return f"{func_name}(self, {', '.join(func_inputs)})"
     return f"{func_name}(self)"
 
 
 def _func_desc(problem: Problem, class_name: str) -> str:
-    init_inputs = ", ".join(getattr(problem, "init_inputs", []) or [])
-    call_inputs = ", ".join(getattr(problem, "func_inputs", []) or [])
+    init, func_name, call = _interface(problem)
+    init_inputs = ", ".join(init)
+    call_inputs = ", ".join(call)
     parts = [
         f"Implement a single Python class called `{class_name}`.",
     ]
@@ -113,7 +140,7 @@ def _func_desc(problem: Problem, class_name: str) -> str:
         )
     if call_inputs:
         parts.append(
-            f"The main inference signature should be `{getattr(problem, 'func_name', '__call__')}(self, {call_inputs})`."
+            f"The main inference signature should be `{func_name}(self, {call_inputs})`."
         )
     return " ".join(parts)
 
