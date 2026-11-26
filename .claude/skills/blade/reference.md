@@ -51,8 +51,8 @@ problems:
     dependencies: []             # pip requirements for the evaluation env
   - suite: unit_square_packing   # or a suite: several problems, no `name`
     params: {use_best: false}    # AlphaEvolve suites: start from the best-known solution
-  - suite: continuous_bbo        # default suites: bbob (5 groups), ma_bbob, continuous_bbo,
-    params: {dim: 10, budget_factor: 2000}  # alphaevolve_math, combinatorial, quick, full
+  - suite: continuous_bbo        # default suites: bbob_groups (5), bbob (f1-f24), ma_bbob,
+    params: {dim: 10, budget_factor: 2000}  # continuous_bbo, alphaevolve_math, combinatorial, default, quick, full
 ```
 
 - `params` are checked against the component's constructor; unknown or

@@ -29,7 +29,8 @@ methods:
 
 problems:
   # BBOB, one problem per function group (instances 1-5 for training,
-  # 6-15 for testing), and MA-BBOB (25 training, 50 test instances).
+  # 6-15 for testing) and per function f1-f24 (instances 1-10 / 11-30),
+  # and MA-BBOB (25 training, 50 test instances).
   - suite: continuous_bbo
     params: {dim: 10, budget_factor: 2000}
   - suite: alphaevolve_math

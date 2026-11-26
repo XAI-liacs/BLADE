@@ -81,7 +81,7 @@ At a glance
 .. raw:: html
 
    <div class="blade-stats">
-     <div class="blade-stat"><b>26</b><span>benchmark problems in 19 suites</span></div>
+     <div class="blade-stat"><b>26</b><span>benchmark problems in 21 suites</span></div>
      <div class="blade-stat"><b>9</b><span>LLM-driven design methods</span></div>
      <div class="blade-stat"><b>7+</b><span>LLM providers, hosted or local</span></div>
      <div class="blade-stat"><b>1</b><span>YAML file per experiment</span></div>

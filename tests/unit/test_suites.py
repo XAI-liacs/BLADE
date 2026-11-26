@@ -10,19 +10,21 @@ from iohblade.config import load_plan
 from iohblade.registry import BuiltinSuite, registry
 
 DEFAULT_SUITES = [
+    "bbob_groups",
     "bbob",
     "ma_bbob",
     "continuous_bbo",
     "alphaevolve_math",
     "combinatorial",
+    "default",
     "quick",
     "full",
 ]
 
 
 # region BBOB and MA-BBOB.
-def test_bbob_has_one_problem_per_function_group():
-    problems = suites.bbob()
+def test_bbob_groups_has_one_problem_per_function_group():
+    problems = suites.bbob_groups()
     assert [p.name for p in problems] == [f"BBOB-g{g}-10d" for g in range(1, 6)]
     fids = []
     for group, problem in zip(range(1, 6), problems):
@@ -42,15 +44,39 @@ def test_bbob_has_one_problem_per_function_group():
     assert sorted(fids) == list(range(1, 25))
 
 
-def test_bbob_dimension_budget_and_instances_are_parameters():
-    problems = suites.bbob(dim=5, budget_factor=1000, groups=[2], n_train=2, n_test=3)
+def test_bbob_groups_dimension_budget_and_instances_are_parameters():
+    problems = suites.bbob_groups(
+        dim=5, budget_factor=1000, groups=[2], n_train=2, n_test=3
+    )
     (problem,) = problems
     assert problem.name == "BBOB-g2-5d"
     assert problem.dims == [5] and problem.budget_factor == 1000
     assert problem.training_instances == [(f, i) for f in (6, 7, 8, 9) for i in (1, 2)]
     assert problem.test_instances == [(f, i) for f in (6, 7, 8, 9) for i in (3, 4, 5)]
     assert problem.eval_timeout == 120  # the minimum
-    assert suites.bbob(eval_timeout=999)[0].eval_timeout == 999
+    assert suites.bbob_groups(eval_timeout=999)[0].eval_timeout == 999
+
+
+def test_bbob_has_one_problem_per_function():
+    problems = suites.bbob()
+    assert [p.name for p in problems] == [f"BBOB-f{f}-10d" for f in range(1, 25)]
+    for fid, problem in zip(range(1, 25), problems):
+        assert problem.problem_type == ioh.ProblemClass.BBOB
+        assert problem.specific_fid == fid
+        assert problem.dims == [10] and problem.budget_factor == 2000
+        assert problem.training_instances == [(fid, i) for i in range(1, 11)]
+        assert problem.test_instances == [(fid, i) for i in range(11, 31)]
+        assert problem.eval_timeout == 10 * 10 * 2000 // 1000
+
+
+def test_bbob_functions_dimension_and_instances_are_parameters():
+    (problem,) = suites.bbob(
+        dim=5, budget_factor=1000, functions=[15], n_train=2, n_test=3
+    )
+    assert problem.name == "BBOB-f15-5d"
+    assert problem.dims == [5] and problem.budget_factor == 1000
+    assert problem.training_instances == [(15, 1), (15, 2)]
+    assert problem.test_instances == [(15, 3), (15, 4), (15, 5)]
 
 
 def test_ma_bbob_instances():
@@ -66,19 +92,27 @@ def test_ma_bbob_instances():
 
 def test_continuous_bbo_shares_dimension_and_budget():
     problems = suites.continuous_bbo(dim=20, budget_factor=500)
-    assert len(problems) == 6
+    assert len(problems) == 5 + 24 + 1
     assert all(p.dims == [20] and p.budget_factor == 500 for p in problems)
-    assert problems[-1].name == "MA_BBOB-20d"
+    names = [p.name for p in problems]
+    assert names[0] == "BBOB-g1-20d" and names[5] == "BBOB-f1-20d"
+    assert names[-1] == "MA_BBOB-20d"
 
 
 @pytest.mark.parametrize(
     "call",
     [
-        lambda: suites.bbob(dim=0),
-        lambda: suites.bbob(budget_factor=1.5),
-        lambda: suites.bbob(groups=[6]),
-        lambda: suites.bbob(groups=[]),
-        lambda: suites.bbob(eval_timeout=-1),
+        lambda: suites.bbob_groups(dim=0),
+        lambda: suites.bbob_groups(budget_factor=1.5),
+        lambda: suites.bbob_groups(groups=[6]),
+        lambda: suites.bbob_groups(groups=[]),
+        lambda: suites.bbob_groups(eval_timeout=-1),
+        lambda: suites.bbob(functions=[25]),
+        lambda: suites.bbob(functions=[1.0]),
+        lambda: suites.bbob(functions=[True]),
+        lambda: suites.bbob_groups(groups=[2.0]),
+        lambda: suites.bbob(functions=[]),
+        lambda: suites.bbob(n_test=0),
         lambda: suites.ma_bbob(n_train=600, n_test=500),
         lambda: suites.ma_bbob(n_test=0),
     ],
@@ -121,9 +155,24 @@ def test_quick_and_full():
     assert [p.name for p in quick][:2] == ["BBOB-g1-5d", "BBOB-g4-5d"]
     assert len(quick) == 5
     full = suites.full()
-    assert len(full) == 31 and len({p.name for p in full}) == 31
+    assert len(full) == 55 and len({p.name for p in full}) == 55
+    assert {f"BBOB-f{f}-10d" for f in range(1, 25)} <= {p.name for p in full}
     with_mm = suites.full(include_matrix_multiplication=True)
-    assert len(with_mm) == 31 + 54
+    assert len(with_mm) == 55 + 54
+
+
+def test_default_collection():
+    names = [p.name for p in suites.default()]
+    groups = [p.name for p in suites.bbob_groups()]
+    maths = [p.name for p in suites.alphaevolve_math()]
+    combinatorial = [p.name for p in suites.combinatorial()]
+    assert names == groups + maths + combinatorial
+    assert len(names) == 28
+
+
+def test_hyphenated_suite_keys_resolve():
+    assert ("suite", "bbob-groups") in registry
+    assert registry.resolve("suite", "bbob-groups") is suites.bbob_groups
 
 
 @pytest.mark.parametrize("key", DEFAULT_SUITES)
@@ -186,15 +235,17 @@ experiment: {output_dir: out, runs: 1, budget: 2}
 llms: {d: {provider: dummy}}
 methods: [{type: random_search, llm: d}]
 problems:
-  - suite: bbob
+  - suite: bbob-groups
     params: {dim: 5, budget_factor: 100, groups: [1, 5]}
+  - suite: bbob
+    params: {dim: 5, functions: [3]}
   - suite: alphaevolve_math
     params: {eval_timeout: 300}
 """)
     plan = load_plan(str(config))
     names = [p.name for p in plan.problems]
-    assert names[:2] == ["BBOB-g1-5d", "BBOB-g5-5d"]
-    assert all(p.eval_timeout == 300 for p in plan.problems[2:])
+    assert names[:3] == ["BBOB-g1-5d", "BBOB-g5-5d", "BBOB-f3-5d"]
+    assert all(p.eval_timeout == 300 for p in plan.problems[3:])
 
 
 # endregion

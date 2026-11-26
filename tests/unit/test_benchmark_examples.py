@@ -23,11 +23,13 @@ SKIPPED = {"automl", "kerneltuner", "photonics"}
 # Default suites (iohblade.benchmarks.suites) combine problems covered
 # elsewhere; tests/unit/test_suites.py checks their contents.
 DEFAULT_SUITES = {
+    "bbob_groups",
     "bbob",
     "ma_bbob",
     "continuous_bbo",
     "alphaevolve_math",
     "combinatorial",
+    "default",
     "quick",
     "full",
 }

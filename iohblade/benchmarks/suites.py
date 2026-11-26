@@ -4,20 +4,25 @@ Each suite is a function that returns a list of problems, registered in
 :mod:`iohblade.registry` so it can be used in a YAML experiment::
 
     problems:
-      - suite: bbob            # the five BBOB function groups
+      - suite: bbob_groups     # the five BBOB function groups
         params: {dim: 10, budget_factor: 2000}
 
 Suites:
 
-* ``bbob``: one problem per BBOB function group (5 problems).
+* ``bbob_groups``: one problem per BBOB function group (5 problems).
+* ``bbob``: one problem per BBOB function f1-f24 (24 problems).
 * ``ma_bbob``: MA-BBOB (1 problem).
-* ``continuous_bbo``: ``bbob`` and ``ma_bbob`` (6 problems).
+* ``continuous_bbo``: ``bbob_groups``, ``bbob`` and ``ma_bbob`` (30 problems).
 * ``alphaevolve_math``: the AlphaEvolve mathematical problems (17 problems).
 * ``combinatorial``: Steiner trees, graph colouring, TSP and VRP (6 problems).
+* ``default``: ``bbob_groups``, ``alphaevolve_math`` and ``combinatorial``
+  (28 problems).
 * ``quick``: a small cross-domain set for trying out a setup (5 problems).
 * ``full``: ``continuous_bbo``, ``alphaevolve_math``, ``combinatorial``,
-  circle packing and spherical codes (31 problems; optionally the 54
+  circle packing and spherical codes (55 problems; optionally the 54
   matrix multiplication problems).
+
+Registry keys use underscores; ``bbob-groups`` (with a hyphen) works too.
 """
 
 from __future__ import annotations
@@ -51,6 +56,10 @@ def _check_positive_int(name: str, value: Any) -> None:
         raise ValueError(f"{name} must be a positive integer (got {value!r}).")
 
 
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _timeout(eval_timeout: int | None, runs: int, dim: int, budget_factor: int) -> int:
     """``eval_timeout``, or a default from the number of function
     evaluations of one evaluation (at least ``MIN_EVAL_TIMEOUT``)."""
@@ -69,7 +78,7 @@ def _timeout(eval_timeout: int | None, runs: int, dim: int, budget_factor: int) 
     return max(MIN_EVAL_TIMEOUT, math.ceil(evaluations * SECONDS_PER_EVALUATION))
 
 
-def bbob(
+def bbob_groups(
     dim: int = 10,
     budget_factor: int = 2000,
     groups: list[int] | None = None,
@@ -108,7 +117,7 @@ def bbob(
     ):
         _check_positive_int(name, value)
     groups = list(BBOB_GROUPS) if groups is None else list(groups)
-    unknown = [g for g in groups if g not in BBOB_GROUPS]
+    unknown = [g for g in groups if not _is_int(g) or g not in BBOB_GROUPS]
     if unknown or not groups:
         raise ValueError(
             f"groups must be a non-empty list of BBOB function groups 1-5 "
@@ -136,6 +145,69 @@ def bbob(
     return problems
 
 
+def bbob(
+    dim: int = 10,
+    budget_factor: int = 2000,
+    functions: list[int] | None = None,
+    n_train: int = 10,
+    n_test: int = 20,
+    eval_timeout: int | None = None,
+) -> list[Problem]:
+    """One BBOB problem per function (f1-f24).
+
+    Each problem uses one function, instances ``1..n_train`` for training
+    and the next ``n_test`` instances for testing.
+
+    Args:
+        dim: Dimension of the functions.
+        budget_factor: Function evaluations per run = ``budget_factor * dim``.
+        functions: The function ids (1-24) to include; all by default.
+        n_train: Training instances (instances 1..n_train).
+        n_test: Test instances (the next n_test instances).
+        eval_timeout: Seconds before an evaluation is stopped; by default
+            from the number of function evaluations of the training runs,
+            as for :func:`bbob_groups` (200 s in 10-D with budget factor
+            2000).
+
+    Returns:
+        list[Problem]: ``BBOB_SBOX`` problems named ``BBOB-f<fid>-<dim>d``.
+    """
+    import ioh
+
+    from iohblade.benchmarks.BBOB.bbob_sboxcost import BBOB_SBOX
+
+    for name, value in (
+        ("dim", dim),
+        ("budget_factor", budget_factor),
+        ("n_train", n_train),
+        ("n_test", n_test),
+    ):
+        _check_positive_int(name, value)
+    all_fids = [f for fids in BBOB_GROUPS.values() for f in fids]
+    functions = all_fids if functions is None else list(functions)
+    unknown = [f for f in functions if not _is_int(f) or f not in all_fids]
+    if unknown or not functions:
+        raise ValueError(
+            f"functions must be a non-empty list of BBOB function ids 1-24 "
+            f"(got {functions!r})."
+        )
+    train_iids = range(1, n_train + 1)
+    test_iids = range(n_train + 1, n_train + n_test + 1)
+    return [
+        BBOB_SBOX(
+            training_instances=[(fid, i) for i in train_iids],
+            test_instances=[(fid, i) for i in test_iids],
+            name=f"BBOB-f{fid}-{dim}d",
+            dims=[dim],
+            budget_factor=budget_factor,
+            specific_fid=fid,
+            problem_type=ioh.ProblemClass.BBOB,
+            eval_timeout=_timeout(eval_timeout, n_train, dim, budget_factor),
+        )
+        for fid in functions
+    ]
+
+
 def ma_bbob(
     dim: int = 10,
     budget_factor: int = 2000,
@@ -152,7 +224,8 @@ def ma_bbob(
         n_train: Number of training instances.
         n_test: Number of test instances (after the training instances).
         eval_timeout: Seconds before an evaluation is stopped; by default
-            from the number of function evaluations, as for :func:`bbob`.
+            from the number of function evaluations, as for
+            :func:`bbob_groups`.
 
     Returns:
         list[Problem]: One ``MA_BBOB`` problem named ``MA_BBOB-<dim>d``.
@@ -188,8 +261,9 @@ def continuous_bbo(
     budget_factor: int = 2000,
     eval_timeout: int | None = None,
 ) -> list[Problem]:
-    """The five BBOB function groups and MA-BBOB, with the default
-    instances of :func:`bbob` and :func:`ma_bbob`.
+    """The five BBOB function groups, the 24 BBOB functions and MA-BBOB,
+    with the default instances of :func:`bbob_groups`, :func:`bbob` and
+    :func:`ma_bbob`.
 
     Args:
         dim: Dimension of all functions.
@@ -197,8 +271,10 @@ def continuous_bbo(
         eval_timeout: Seconds before an evaluation is stopped; by default
             from the number of function evaluations of each problem.
     """
-    return bbob(dim, budget_factor, eval_timeout=eval_timeout) + ma_bbob(
-        dim, budget_factor, eval_timeout=eval_timeout
+    return (
+        bbob_groups(dim, budget_factor, eval_timeout=eval_timeout)
+        + bbob(dim, budget_factor, eval_timeout=eval_timeout)
+        + ma_bbob(dim, budget_factor, eval_timeout=eval_timeout)
     )
 
 
@@ -276,6 +352,29 @@ def combinatorial(eval_timeout: int = 300) -> list[Problem]:
     return problems
 
 
+def default(
+    dim: int = 10,
+    budget_factor: int = 2000,
+    use_best: bool = False,
+) -> list[Problem]:
+    """A default collection across domains: the five BBOB function groups
+    (:func:`bbob_groups`), the AlphaEvolve mathematical problems
+    (:func:`alphaevolve_math`) and the combinatorial problems
+    (:func:`combinatorial`).
+
+    Args:
+        dim: Dimension of the BBOB functions.
+        budget_factor: Function evaluations per BBOB run =
+            ``budget_factor * dim``.
+        use_best: Show the best known solutions in the math prompts.
+    """
+    return (
+        bbob_groups(dim, budget_factor)
+        + alphaevolve_math(use_best=use_best)
+        + combinatorial()
+    )
+
+
 def quick(dim: int = 5, budget_factor: int = 1000) -> list[Problem]:
     """A small set across domains, for trying out a method or a setup:
     BBOB groups 1 (separable) and 4 (multi-modal, adequate structure),
@@ -293,7 +392,7 @@ def quick(dim: int = 5, budget_factor: int = 1000) -> list[Problem]:
     from iohblade.benchmarks.packing.circles import CirclePacking
 
     return (
-        bbob(dim, budget_factor, groups=[1, 4])
+        bbob_groups(dim, budget_factor, groups=[1, 4])
         + [CirclePacking(eval_timeout=300)]
         + get_heilbronn_triangle_problems(eval_timeout=300)
         + [TravelingSalesmanProblem(ROUTING_INSTANCE, eval_timeout=300)]
