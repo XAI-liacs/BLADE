@@ -56,6 +56,10 @@ def _check_positive_int(name: str, value: Any) -> None:
         raise ValueError(f"{name} must be a positive integer (got {value!r}).")
 
 
+def _is_int(value: Any) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _timeout(eval_timeout: int | None, runs: int, dim: int, budget_factor: int) -> int:
     """``eval_timeout``, or a default from the number of function
     evaluations of one evaluation (at least ``MIN_EVAL_TIMEOUT``)."""
@@ -113,7 +117,7 @@ def bbob_groups(
     ):
         _check_positive_int(name, value)
     groups = list(BBOB_GROUPS) if groups is None else list(groups)
-    unknown = [g for g in groups if g not in BBOB_GROUPS]
+    unknown = [g for g in groups if not _is_int(g) or g not in BBOB_GROUPS]
     if unknown or not groups:
         raise ValueError(
             f"groups must be a non-empty list of BBOB function groups 1-5 "
@@ -181,7 +185,7 @@ def bbob(
         _check_positive_int(name, value)
     all_fids = [f for fids in BBOB_GROUPS.values() for f in fids]
     functions = all_fids if functions is None else list(functions)
-    unknown = [f for f in functions if f not in all_fids]
+    unknown = [f for f in functions if not _is_int(f) or f not in all_fids]
     if unknown or not functions:
         raise ValueError(
             f"functions must be a non-empty list of BBOB function ids 1-24 "
