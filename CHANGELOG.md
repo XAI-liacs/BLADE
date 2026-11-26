@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.2.2 (unreleased)
+
+Changes since [v1.2.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.1).
+
+### Bug fixes
+
+- **EoH evaluated broken code.** EoH's code parser cut every LLM response
+  at its last `return` and appended `return f_opt, x_opt`, so classes that
+  return anything else (or keep the best in `self.f_opt`) failed with a
+  `NameError`; code without a leading `import` also lost its `class` line.
+  EoH now evaluates the fenced code block as the LLM wrote it, and takes the
+  description from the first `{...}` (or a `# Description:` line). In a
+  local trial on 31 problems, 93% of EoH's evaluations failed, against
+  about 30% for the other methods.
+- **EoH prompts stated the BBOB interface for every problem**
+  (`__init__(self, budget, dim)`, `__call__(self, func)` returning
+  `f_opt, x_opt`, the `Problem` defaults). When the interface a problem
+  declares does not match the class in its example code, EoH's prompts now
+  state the example's interface instead (BBOB prompts are unchanged).
+- EoH runs in parallel threads (`n_jobs > 1`) each use their own LLM (the
+  last run started used to win), and EoH's `EoHrun.jsonl` is written to the
+  run's `eoh` folder instead of the shared working directory.
+
 ## v1.2.1 (2026-11-26)
 
 Changes since [v1.2.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.0).

@@ -12,7 +12,7 @@ import warnings
 from typing import Any, Optional, Tuple
 
 from ..fitness import from_minimised, to_minimised
-from ..llm import LLM
+from ..llm import LLM, _extract_python_block
 from ..method import Method
 from ..problem import Problem
 from ..solution import Solution
@@ -20,19 +20,88 @@ from ..utils import class_info, first_class_name
 
 try:
     from eoh import eoh as eoh_main
-    from eoh.methods.eoh import eoh_evolution
+    from eoh.methods.eoh import eoh_evolution, eoh_interface_EC
     from eoh.utils.getParas import Paras
 except Exception:  # pragma: no cover - optional dependency
     eoh_main = None
     Paras = None
     eoh_evolution = None
+    eoh_interface_EC = None
+
+
+def _signature_args(func: ast.FunctionDef) -> list[str]:
+    """Parameter names of a method, without ``self``."""
+    args = func.args
+    names = [a.arg for a in args.posonlyargs + args.args]
+    return names[1:] if names and names[0] == "self" else names
+
+
+def _example_interface(problem: Problem) -> dict[str, Any] | None:
+    """The interface of the class in the problem's example code.
+
+    Returns:
+        ``{"class", "init_inputs", "func_name", "func_inputs"}`` of the first
+        class in the code block of ``problem.example_prompt``, or None when
+        there is no parsable example class. ``func_name`` is the problem's
+        ``func_name`` if the class defines it, else ``__call__`` if defined,
+        else None.
+    """
+    code = _extract_python_block(getattr(problem, "example_prompt", "") or "")
+    if not code:
+        return None
+    try:
+        tree = ast.parse(textwrap.dedent(code))
+    except SyntaxError:
+        return None
+    cls = next((n for n in tree.body if isinstance(n, ast.ClassDef)), None)
+    if cls is None:
+        return None
+    methods = {
+        n.name: n
+        for n in cls.body
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    func_name = getattr(problem, "func_name", "__call__")
+    if func_name not in methods:
+        func_name = "__call__" if "__call__" in methods else None
+    return {
+        "class": cls.name,
+        "init_inputs": (
+            _signature_args(methods["__init__"]) if "__init__" in methods else []
+        ),
+        "func_name": func_name,
+        "func_inputs": _signature_args(methods[func_name]) if func_name else [],
+    }
 
 
 class _BladePrompts:
-    """Adapter exposing the prompt interface expected by EoH."""
+    """Adapter exposing the prompt interface expected by EoH.
+
+    EoH states the interface of the code to write (``func_name``,
+    ``init_inputs``, ``func_inputs`` and ``func_outputs``) in every prompt.
+    ``Problem`` defaults these to the BBOB interface (``__init__(self,
+    budget, dim)``, ``__call__(self, func)`` returning ``f_opt, x_opt``),
+    which contradicts the task of most other problems. The declared
+    interface is used only when it matches the class in the problem's
+    example code (or there is no example class); otherwise the interface of
+    the example class is stated instead, and no output names (the task
+    describes what to return).
+    """
 
     def __init__(self, problem: Problem):
         self.problem = problem
+        example = _example_interface(problem)
+        declared = (
+            list(problem.init_inputs),
+            problem.func_name,
+            list(problem.func_inputs),
+        )
+        self.declared_interface = example is None or declared == (
+            example["init_inputs"],
+            example["func_name"],
+            example["func_inputs"],
+        )
+        self.example = example
 
     def get_task(self):
         return self.problem.task_prompt
@@ -56,12 +125,186 @@ class _BladePrompts:
             f" returning {', '.join(self.get_func_outputs())}."
         )
 
+    def get_example_interface(self) -> str:
+        """The instruction that replaces EoH's interface sentence when the
+        declared interface does not match the example (see the class
+        docstring)."""
+        ex = self.example
+        init = ", ".join(["self"] + ex["init_inputs"])
+        text = (
+            "implement it in Python as a class with the same interface as "
+            f"the example class `{ex['class']}` in the task: an "
+            f"`__init__({init})`"
+        )
+        if ex["func_name"]:
+            call = ", ".join(["self"] + ex["func_inputs"])
+            text += f" and a method `{ex['func_name']}({call})`"
+        return text + " that returns what the task asks for. "
+
     def get_other_inf(self):
         return (
             self.problem.task_prompt
             + self.problem.example_prompt
             + self.problem.format_prompt
         )
+
+
+# Per-run state of the EoH runs in this thread. Runs execute in parallel
+# threads of one process (Experiment n_jobs > 1) and EoH looks its LLM
+# interface and Evolution class up as module globals, so the globals are
+# patched once (_install_eoh_patches) and read the LLM and output folder of
+# the run in the current thread from here.
+_EOH_RUN = threading.local()
+
+_DESC_BRACES = re.compile(r"\{(.*?)\}", re.DOTALL)
+_DESC_LINE = re.compile(r"#\s*Description\s*:\s*(.*)", re.IGNORECASE)
+_CODE_START = re.compile(r"^(?:import|from|class|def|@)\b", re.MULTILINE)
+
+
+def _extract_eoh_response(response: str) -> tuple[str, str]:
+    """The code and the algorithm description in an LLM response to EoH.
+
+    EoH's own parser keeps the text from the first ``import`` (or ``def``)
+    up to the *last* ``return`` and appends ``return`` + the problem's
+    output names (``f_opt, x_opt`` by default), which breaks every class
+    that returns something else, drops a class line that is not preceded
+    by an import, and takes the description from the first ``{`` to the
+    last ``}`` of the response (dict literals included). Here the code is
+    the fenced python block (or, unfenced, everything from the first
+    ``import``/``from``/``class``/``def`` line), unchanged, and the
+    description the first ``{...}`` outside the code, else a
+    ``# Description:`` line, else the first line of text before the code.
+
+    Returns:
+        ``(code, description)``; ``code`` is ``""`` if there is none.
+    """
+    code = _extract_python_block(response)
+    if code is not None:
+        outside = response.replace(code, "\n")
+    else:
+        start = _CODE_START.search(response)
+        code = response[start.start() :] if start else ""
+        outside = response[: start.start()] if start else response
+    code = code.strip("\n")
+    match = _DESC_BRACES.search(outside) or _DESC_LINE.search(outside)
+    if match:
+        description = match.group(1)
+    else:
+        lines = [
+            ln.strip("# ").strip()
+            for ln in outside.splitlines()
+            if ln.strip() and not ln.strip().startswith("```")
+        ]
+        description = lines[0] if lines else ""
+    return code, " ".join(description.split())
+
+
+if eoh_evolution is not None:
+
+    class _BladeEvolution(eoh_evolution.Evolution):
+        """EoH's ``Evolution`` with BLADE's prompt interface and code
+        extraction (see :class:`_BladePrompts` and
+        :func:`_extract_eoh_response`)."""
+
+        _MAX_RETRIES = 3
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            prompts = args[6] if len(args) > 6 else kwargs["prompts"]
+            self._replacement = None
+            if isinstance(prompts, _BladePrompts) and not prompts.declared_interface:
+                # The sentence EoH builds in every prompt (eoh_evolution.py).
+                original = (
+                    "implement it in Python as a function named "
+                    + self.prompt_func_name
+                    + ". This function should accept "
+                    + str(len(self.prompt_func_inputs))
+                    + " input(s): "
+                    + self.joined_inputs
+                    + ". The function should return "
+                    + str(len(self.prompt_func_outputs))
+                    + " output(s): "
+                    + self.joined_outputs
+                    + ". "
+                    + self.prompt_inout_inf
+                    + " "
+                )
+                self._replacement = (original, prompts.get_example_interface())
+
+        def _fix_prompt(self, prompt: str) -> str:
+            if self._replacement is None:
+                return prompt
+            original, replacement = self._replacement
+            prompt = prompt.replace(original, replacement)
+            # m3 states only the class sentence.
+            return prompt.replace(self.prompt_inout_inf, replacement.strip())
+
+        def get_prompt_i1(self):
+            return self._fix_prompt(super().get_prompt_i1())
+
+        def get_prompt_e1(self, indivs):
+            return self._fix_prompt(super().get_prompt_e1(indivs))
+
+        def get_prompt_e2(self, indivs):
+            return self._fix_prompt(super().get_prompt_e2(indivs))
+
+        def get_prompt_m1(self, indiv1):
+            return self._fix_prompt(super().get_prompt_m1(indiv1))
+
+        def get_prompt_m2(self, indiv1):
+            return self._fix_prompt(super().get_prompt_m2(indiv1))
+
+        def get_prompt_m3(self, indiv1):
+            return self._fix_prompt(super().get_prompt_m3(indiv1))
+
+        def _get_alg(self, prompt_content):
+            """Query the LLM (EoH retries up to 4 times when there is no
+            code) and return ``[code, description]`` as written by the LLM."""
+            for _ in range(1 + self._MAX_RETRIES):
+                response = self.interface_llm.get_response(prompt_content)
+                code, description = _extract_eoh_response(response)
+                if code:
+                    return [code, description]
+            raise ValueError("EoH: no code found in the LLM response.")
+
+    class _JsonlinesToRunFolder:
+        """Stand-in for the ``jsonlines`` module in ``eoh_interface_EC``:
+        EoH appends every offspring to ``./EoHrun.jsonl``, shared by all
+        runs in the working directory; relative paths go to the run's
+        output folder instead."""
+
+        def __init__(self, jsonlines_module):
+            self._jsonlines = jsonlines_module
+
+        def open(self, path, *args, **kwargs):
+            folder = getattr(_EOH_RUN, "output_dir", None)
+            if folder and not os.path.isabs(path):
+                path = os.path.join(folder, os.path.basename(path))
+            return self._jsonlines.open(path, *args, **kwargs)
+
+        def __getattr__(self, name):
+            return getattr(self._jsonlines, name)
+
+
+def _run_llm(*args, **kwargs):
+    """EoH's ``InterfaceLLM`` replacement: the LLM of this thread's run
+    (None outside a run; querying it then fails)."""
+    return _BladeInterfaceLLM(getattr(_EOH_RUN, "llm", None))
+
+
+_EOH_PATCH_LOCK = threading.Lock()
+
+
+def _install_eoh_patches() -> None:
+    """Route EoH's LLM calls, prompts, code extraction and run log through
+    BLADE (idempotent; the patched globals read per-thread run state)."""
+    with _EOH_PATCH_LOCK:
+        eoh_evolution.InterfaceLLM = _run_llm
+        eoh_interface_EC.Evolution = _BladeEvolution
+        if not isinstance(eoh_interface_EC.jsonlines, _JsonlinesToRunFolder):
+            eoh_interface_EC.jsonlines = _JsonlinesToRunFolder(
+                eoh_interface_EC.jsonlines
+            )
 
 
 # Evaluations EoH makes, read from the installed ``eoh`` package
@@ -188,16 +431,15 @@ class EoH(Method):
                 "EoH package is not installed, , please install it using `poetry install --with methods`."
             )
 
-        # Patch the EoH LLM interface to use our LLM
-        if eoh_evolution is not None:
-            eoh_evolution.InterfaceLLM = lambda *args, **kwargs: _BladeInterfaceLLM(
-                self.llm
-            )
+        _install_eoh_patches()
 
         with contextlib.ExitStack() as stack:
             # A folder of its own per run: EoH writes its populations to
             # <output>/results and the result is read back from there.
             output_dir = self._output_dir(problem, stack)
+            _EOH_RUN.llm = self.llm
+            _EOH_RUN.output_dir = output_dir
+            stack.callback(_EOH_RUN.__dict__.clear)
             requested_pop_size = self.kwargs.get("pop_size", 4)
             paras = Paras()
             paras.set_paras(
