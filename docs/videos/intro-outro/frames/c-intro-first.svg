@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><defs>
+<radialGradient id="glowV" cx="85%" cy="5%" r="70%"><stop offset="0" stop-color="#7c5cff" stop-opacity=".40"/><stop offset="1" stop-color="#7c5cff" stop-opacity="0"/></radialGradient>
+<radialGradient id="glowP" cx="5%" cy="100%" r="60%"><stop offset="0" stop-color="#ff7ab6" stop-opacity=".22"/><stop offset="1" stop-color="#ff7ab6" stop-opacity="0"/></radialGradient>
+<radialGradient id="dot" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<linearGradient id="grad" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#7c5cff"/><stop offset=".55" stop-color="#ff7ab6"/><stop offset="1" stop-color="#ffb547"/></linearGradient>
+<filter id="blur8"><feGaussianBlur stdDeviation="8"/></filter>
+<filter id="blur3"><feGaussianBlur stdDeviation="3"/></filter>
+</defs><rect width="1920" height="1080" fill="#0b0d12"/><rect width="1920" height="1080" fill="url(#glowV)"/><rect width="1920" height="1080" fill="url(#glowP)"/><line x1="220.0" y1="435.0" x2="1700.0" y2="435.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+<line x1="220.0" y1="540.0" x2="1700.0" y2="540.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+<line x1="220.0" y1="645.0" x2="1700.0" y2="645.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+<line x1="220.0" y1="750.0" x2="1700.0" y2="750.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+<line x1="220.0" y1="855.0" x2="1700.0" y2="855.0" stroke="#ffffff" stroke-width="1" opacity="0.05"/>
+<line x1="220.0" y1="960.0" x2="1700.0" y2="960.0" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
+<line x1="220.0" y1="330.0" x2="220.0" y2="960.0" stroke="#ffffff" stroke-width="2" opacity="0.25"/>
+<path d="M220.0,890.0 L237.1,890.0 L254.3,890.0 L271.4,819.0 L288.6,819.0 L305.7,819.0 L322.9,819.0 L340.0,699.1 L357.1,666.9" fill="none" stroke="#7c5cff" stroke-width="10" opacity="0.25" filter="url(#blur8)"/>
+<path d="M220.0,890.0 L237.1,890.0 L254.3,890.0 L271.4,819.0 L288.6,819.0 L305.7,819.0 L322.9,819.0 L340.0,699.1 L357.1,666.9" fill="none" stroke="#7c5cff" stroke-width="4" stroke-linecap="round" opacity="1.00"/>
+<circle cx="357.1" cy="666.9" r="21.0" fill="#7c5cff" opacity="0.18" filter="url(#blur8)"/><circle cx="357.1" cy="666.9" r="7.0" fill="#7c5cff" opacity="1.00"/>
+<path d="M220.0,930.0 L237.1,930.0 L254.3,930.0 L271.4,930.0 L288.6,886.3 L305.7,886.3 L322.9,886.3 L340.0,839.0 L357.1,839.0" fill="none" stroke="#ff7ab6" stroke-width="10" opacity="0.25" filter="url(#blur8)"/>
+<path d="M220.0,930.0 L237.1,930.0 L254.3,930.0 L271.4,930.0 L288.6,886.3 L305.7,886.3 L322.9,886.3 L340.0,839.0 L357.1,839.0" fill="none" stroke="#ff7ab6" stroke-width="4" stroke-linecap="round" opacity="1.00"/>
+<circle cx="357.1" cy="839.0" r="21.0" fill="#ff7ab6" opacity="0.18" filter="url(#blur8)"/><circle cx="357.1" cy="839.0" r="7.0" fill="#ff7ab6" opacity="1.00"/>
+<path d="M220.0,890.0 L237.1,885.0 L254.3,885.0 L271.4,815.3 L288.6,815.3 L305.7,815.3 L322.9,815.3 L340.0,815.3 L357.1,744.2" fill="none" stroke="#ffb547" stroke-width="10" opacity="0.25" filter="url(#blur8)"/>
+<path d="M220.0,890.0 L237.1,885.0 L254.3,885.0 L271.4,815.3 L288.6,815.3 L305.7,815.3 L322.9,815.3 L340.0,815.3 L357.1,744.2" fill="none" stroke="#ffb547" stroke-width="4" stroke-linecap="round" opacity="1.00"/>
+<circle cx="357.1" cy="744.2" r="21.0" fill="#ffb547" opacity="0.18" filter="url(#blur8)"/><circle cx="357.1" cy="744.2" r="7.0" fill="#ffb547" opacity="1.00"/>
+<path d="M220.0,930.0 L237.1,930.0 L254.3,930.0 L271.4,930.0 L288.6,930.0 L305.7,930.0 L322.9,930.0 L340.0,845.9 L357.1,845.9" fill="none" stroke="#8ee6c0" stroke-width="10" opacity="0.25" filter="url(#blur8)"/>
+<path d="M220.0,930.0 L237.1,930.0 L254.3,930.0 L271.4,930.0 L288.6,930.0 L305.7,930.0 L322.9,930.0 L340.0,845.9 L357.1,845.9" fill="none" stroke="#8ee6c0" stroke-width="4" stroke-linecap="round" opacity="1.00"/>
+<circle cx="357.1" cy="845.9" r="21.0" fill="#8ee6c0" opacity="0.18" filter="url(#blur8)"/><circle cx="357.1" cy="845.9" r="7.0" fill="#8ee6c0" opacity="1.00"/></svg>
