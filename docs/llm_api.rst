@@ -5,3 +5,10 @@ LLM providers
    :members:
    :undoc-members:
    :show-inheritance:
+
+Token usage and cost
+--------------------
+
+.. automodule:: iohblade.llm_costs
+   :members:
+   :show-inheritance:

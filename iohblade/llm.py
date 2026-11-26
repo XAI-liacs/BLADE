@@ -43,26 +43,20 @@ except:
     load = None
     generate = None
 
-try:
-    from tokencost import (
-        calculate_completion_cost,
-        calculate_prompt_cost,
-        count_message_tokens,
-        count_string_tokens,
-    )
-except ImportError:
-    calculate_completion_cost = None
-    calculate_prompt_cost = None
-    count_message_tokens = None
-    count_string_tokens = None
-
-
 import platform
 import subprocess
 
 import psutil
 from cpuinfo import get_cpu_info
 
+from .llm_costs import (
+    TokenUsage,
+    anthropic_usage,
+    estimate_tokens,
+    gemini_usage,
+    ollama_usage,
+    openai_usage,
+)
 from .solution import Solution
 from .utils import NoCodeException
 
@@ -319,8 +313,9 @@ class LLM(ABC):
             desc_pattern if desc_pattern is not None else _DEFAULT_DESC_PATTERN
         )
         self.cs_pattern = cs_pattern if cs_pattern is not None else _DEFAULT_CS_PATTERN
-        # Mute tokecost logging
-        logging.getLogger("tokencost").setLevel(logging.ERROR)
+        # Token usage of the last call, as reported by the provider. Set by
+        # ``_query`` of the built-in providers; None when not reported.
+        self.last_usage: TokenUsage | None = None
 
     @abstractmethod
     def _query(self, session: list, **kwargs):
@@ -356,37 +351,54 @@ class LLM(ABC):
         ):
             return "Budget exhausted."
 
-        if self.log:
-            input_msg = "\n".join([d["content"] for d in session])
-            try:
-                cost = calculate_prompt_cost(input_msg, self.model)
-            except Exception:
-                cost = 0
-            try:
-                tokens = count_string_tokens(prompt=input_msg, model=self.model)
-            except Exception:
-                tokens = 0
-            self.logger.log_conversation(
-                "client",
-                input_msg,
-                cost,
-                tokens,
-            )
-
-        message = self._query(session, **kwargs) if kwargs else self._query(session)
+        self.last_usage = None
+        try:
+            message = self._query(session, **kwargs) if kwargs else self._query(session)
+        except Exception:
+            if self.log:  # still record what was sent
+                self._log_call(session, None)
+            raise
 
         if self.log:
-            try:
-                cost = calculate_completion_cost(message, self.model)
-            except Exception:
-                cost = 0
-            try:
-                tokens = count_string_tokens(prompt=message, model=self.model)
-            except Exception:
-                tokens = 0
-            self.logger.log_conversation(self.model, message, cost, tokens)
+            self._log_call(session, message)
 
         return message
+
+    def _log_call(self, session: list, message: str | None):
+        """Log the prompt and the response of one call with tokens and cost.
+
+        Uses the token usage the provider reported (``self.last_usage``).
+        Without it (custom LLM classes) the tokens are a rough estimate from
+        the text, priced the same way. A failed call (``message`` None) logs
+        only the prompt, with 0 tokens and cost.
+
+        Args:
+            session: The messages that were sent.
+            message: The response text, or None if the call failed.
+        """
+        input_msg = "\n".join([str(d["content"]) for d in session])
+        if message is None:
+            # A failed call is not billed; record only what was sent.
+            self.logger.log_conversation("client", input_msg, 0.0, 0)
+            return
+        usage = getattr(self, "last_usage", None)
+        if not isinstance(usage, TokenUsage):
+            usage = TokenUsage(
+                input_tokens=estimate_tokens(input_msg),
+                output_tokens=estimate_tokens(message),
+            )
+        self.logger.log_conversation(
+            "client",
+            input_msg,
+            usage.prompt_cost(self.model),
+            usage.prompt_tokens,
+        )
+        self.logger.log_conversation(
+            self.model,
+            message,
+            usage.completion_cost(self.model),
+            usage.output_tokens,
+        )
 
     def set_logger(self, logger):
         """
@@ -595,7 +607,11 @@ class Multi_LLM(LLM):
 
     def _query(self, session_messages, **kwargs):
         llm = self._pick_llm()
-        return llm._query(session_messages, **kwargs)
+        llm.last_usage = None
+        try:
+            return llm._query(session_messages, **kwargs)
+        finally:
+            self.last_usage = getattr(llm, "last_usage", None)
 
     def get_config(self) -> list[dict[str, Any]]:
         config_data = []
@@ -696,6 +712,7 @@ class OpenAI_LLM(LLM):
                     temperature=temperature,
                     **options,
                 )
+                self.last_usage = openai_usage(response)
                 return response.choices[0].message.content
 
             except openai.RateLimitError as err:
@@ -849,6 +866,7 @@ class Gemini_LLM(LLM):
                     model=self.model, history=history, config=config
                 )
                 response = chat.send_message(last)
+                self.last_usage = gemini_usage(response)
                 return response.text
 
             except Exception as err:
@@ -949,6 +967,7 @@ class Ollama_LLM(LLM):
                     messages=[{"role": "user", "content": big_message}],
                     options=kwargs,
                 )
+                self.last_usage = ollama_usage(response)
                 return response["message"]["content"]
 
             except ollama.ResponseError as err:
@@ -1043,6 +1062,8 @@ class Claude_LLM(LLM):
                 else:
                     response = self.client.messages.create(**request)
 
+                # A refusal is billed too, so record usage first.
+                self.last_usage = anthropic_usage(response)
                 if response.stop_reason == "refusal":
                     # Declined (by the fallback chain too, if one was set):
                     # any partial output is not a usable answer.

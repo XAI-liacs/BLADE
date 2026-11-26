@@ -196,6 +196,15 @@ see "Breaking changes" for the two exceptions.
   `{"chat_template_kwargs": {"enable_thinking": false}}` for Qwen3, and
   `timeout`. `docs/llm.rst` shows how to run one vLLM server per GPU,
   combined with `provider: multi`.
+- **Exact token counts and costs (#187):** the tokens logged per LLM call
+  are the ones the provider's API reports (thinking/reasoning and prompt
+  cache tokens included) instead of a `tokencost` estimate, which logged 0
+  for all current Claude models, many OpenAI and DeepSeek models and every
+  local model. Costs come from a dated price table in `iohblade.llm_costs`
+  (current Anthropic, OpenAI, Gemini and DeepSeek models; 0 for local and
+  unknown models). The `tokencost` dependency (and with it `tiktoken`) is
+  removed. Custom `LLM` subclasses can set `self.last_usage` in `_query`;
+  otherwise their tokens are estimated at four characters per token.
 
 ### Bug fixes
 
