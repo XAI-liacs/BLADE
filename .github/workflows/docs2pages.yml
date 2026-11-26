@@ -18,7 +18,22 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # A deployment from the release (tag) run reports success but does not
+  # replace the live site; a run on main does. So a release only starts a
+  # run on main, which builds every version including the new tag.
+  dispatch-on-main:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Rebuild the docs from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run docs2pages.yml --repo "${{ github.repository }}" --ref main
+
   build:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
