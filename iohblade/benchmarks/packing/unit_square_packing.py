@@ -106,7 +106,8 @@ class UnitSquarePacking(PackingBase, Problem):
                 raise ValueError(f"Non-finite sum of radii {score}.")
             solution.set_scores(
                 score,
-                f"sum_of_radii={score:.6f}; n={self.n_circles}, best known={self.best_known}",
+                f"sum_of_radii={score:.6f}; n={self.n_circles}"
+                + self.best_known_feedback(self.best_known),
             )
             return solution
         except Exception as e:

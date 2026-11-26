@@ -161,7 +161,8 @@ class RectanglePacking(PackingBase, Problem):
                 raise ValueError(f"non-finite sum of radii {score}")
             solution.set_scores(
                 score,
-                f"sum_of_radii={score:.6f}; dims={width:.6f}×{height:.6f}; n={self.n_circles}, best known={self.best_known}",
+                f"sum_of_radii={score:.6f}; dims={width:.6f}×{height:.6f}; "
+                f"n={self.n_circles}" + self.best_known_feedback(self.best_known),
             )
             return solution
         except Exception as e:

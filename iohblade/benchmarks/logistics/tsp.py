@@ -50,7 +50,7 @@ Write a python class with function `__call__`, that generate a solution for Trav
 An example response can be
 ---
 # Descripition:
-A random selection algorithm for Capacited Vehicle Routing Problem.
+A random tour: visit the customers in a random order.
 # Code:
 ```python
 import random

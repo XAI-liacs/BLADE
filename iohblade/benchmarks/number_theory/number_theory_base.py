@@ -32,7 +32,6 @@ class NumberTheoryBase:
         - where |U±U| are the cardinalities of the sum/difference sets and max(U) is the largest element of U.
         - The evaluator computes:
             c(U) = 1 + log(|U−U| / |U+U|) / log(2*max(U) + 1)
-            - which lower-bounds C6 per Gyarmati–Hennecart–Ruzsa.
 - Output contract:
     - The `__call__(self) -> iterable[int]` must yield U (list or set is fine).
 -   Notes/tips for search:

@@ -186,7 +186,8 @@ one-line description, describing the main idea. Give the response in the format:
                 raise ValueError(f"non-finite minimum area {score}")
             solution.set_scores(
                 score,
-                f"Area of Smallest Triangle={min_area:.6g}, best known={self.best_known}",
+                f"Area of Smallest Triangle={min_area:.6g}"
+                + self.best_known_feedback(self.best_known),
             )
         except Exception as e:
             solution.set_scores(

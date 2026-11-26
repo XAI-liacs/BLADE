@@ -59,7 +59,7 @@ Write a python class with function `__call__`, that generate a solution for Capa
 An example response can be
 ---
 # Descripition:
-A random selection algorithm for Capacited Vehicle Routing Problem.
+A random assignment of customers to vehicles, respecting their capacity.
 # Code:
 ```python
 import random
@@ -201,7 +201,9 @@ one-line description, describing the main idea. Give the response in the format:
             length = self._calculate_length(paths)
             solution = solution.set_scores(
                 length,
-                f"Got distance {length}, best known distance is {self.best_known}.",
+                f"Got distance {length}"
+                + self.best_known_feedback(self.best_known, "best known distance")
+                + ".",
             )
         except Exception as e:
             solution = solution.set_scores(float("inf"), f"Got error {e}", e)

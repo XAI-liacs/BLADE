@@ -177,7 +177,8 @@ class UncertaintyInequality(FourierBase, Problem):
             solution.set_scores(
                 score,
                 f"Score = {score:.9g}; r_max={r:.6g}; added H_{4 * self.n_terms} "
-                f"coefficient {full[-1]:.6g}; best known score = {self.best_known}",
+                f"coefficient {full[-1]:.6g}"
+                + self.best_known_feedback(self.best_known, "best known score"),
             )
         except Exception as e:
             solution.set_scores(float("inf"), f"calc-error {e}", e)

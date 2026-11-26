@@ -15,6 +15,19 @@ see "Breaking changes" for the two exceptions.
   fail before the generated code is used (a broken problem or environment),
   instead of spending its whole budget. `problem.max_harness_errors = None`
   restores the old behaviour.
+- **No task leakage to the LLM.** BBOB, MA-BBOB and photonics give the
+  generated algorithm a `BlackBoxFunction` instead of the IOH problem, so
+  `func.optimum` (the optimum itself), the function's name and id and
+  `func.reset()` are no longer available; `func(x)`, `func.bounds`,
+  `func.meta_data.n_variables` and `func.state` still are. Evaluation
+  feedback no longer mentions the best known score (set
+  `problem.show_best_known = True` to include it). The prompts no longer name
+  the benchmark: MA-BBOB, the BBOB function group titles, the sums vs
+  differences "C6" constant and reference, a CVRP mention in the TSP example,
+  and the kernel tuner applications are gone; the photonics descriptions now
+  describe the instances that are built (they named benchmark instances and
+  gave the optimal Bragg structure) and the matrix multiplication prompt
+  defines its score.
 
 ### Major changes
 

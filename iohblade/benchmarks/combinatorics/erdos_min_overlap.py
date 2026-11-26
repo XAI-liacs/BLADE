@@ -96,7 +96,7 @@ class ErdosMinOverlap(Problem):
 
 An example template of such program is given by:
 ```python
-class ErdosCandidate:{initialiser}
+class StepFunctionCandidate:{initialiser}
     def __call__(self):
 {body}```
 
@@ -146,7 +146,7 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
     def evaluate(self, solution: Solution, explogger=None):
         local_ns = {}
         code = solution.code
-        name = solution.name if solution.name else "ErdosCandidate"
+        name = solution.name if solution.name else "StepFunctionCandidate"
         try:
             safe_globals = prepare_namespace(code, self.dependencies)
             compiled = compile(code, filename=name, mode="exec")
@@ -187,7 +187,11 @@ Give an excellent and novel algorithm to solve this task and also give it a one-
             score = self._sup_overlap(f, g, dx)  # minimize
             if not np.isfinite(score):
                 raise ValueError(f"computed overlap is not finite ({score})")
-            msg = f"Score = {score:.6g}; with configuration: N={f.size}, dx={dx:.6g}, If={I_f:.6g}.\n\t Best known score = {self.best_known}"
+            msg = (
+                f"Score = {score:.6g}; with configuration: N={f.size}, "
+                f"dx={dx:.6g}, If={I_f:.6g}"
+                + self.best_known_feedback(self.best_known, "best known score")
+            )
             solution = solution.set_scores(score, msg)
         except Exception as e:
             solution = solution.set_scores(self.failure_fitness(), f"calc-error {e}", e)
