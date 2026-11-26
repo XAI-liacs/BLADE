@@ -15,21 +15,9 @@ from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import StandardScaler
 
+from .llm_costs import estimate_tokens
 from .loggers import ExperimentLogger
 from .misc.ast import analyse_complexity, process_code
-
-try:
-    from tokencost import (
-        calculate_completion_cost,
-        calculate_prompt_cost,
-        count_message_tokens,
-        count_string_tokens,
-    )
-except ImportError:
-    calculate_completion_cost = None
-    calculate_prompt_cost = None
-    count_message_tokens = None
-    count_string_tokens = None
 
 
 def plot_speedup(
@@ -1391,13 +1379,12 @@ def plot_token_usage(
             if os.path.isfile(convo_path):
                 with jsonlines.open(convo_path) as f:
                     for line in f:
-                        newtokens = line.get("tokens", 0)
+                        newtokens = line.get("tokens", 0) or 0
                         if newtokens > 0:
-                            tokens += line.get("tokens", 0)
-                        elif count_string_tokens is not None:
-                            # Fallback: count tokens from 'content' text
-                            response_text = line.get("content", "")
-                            tokens += count_string_tokens(response_text, model="gpt-4")
+                            tokens += newtokens
+                        else:
+                            # Older logs without counts: a rough estimate
+                            tokens += estimate_tokens(line.get("content", ""))
         token_records.append(
             {
                 "method_name": row["method_name"],

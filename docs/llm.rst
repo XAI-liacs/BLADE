@@ -118,9 +118,9 @@ Behaviour worth knowing:
   immediately.
 - ``get_config()`` (written to the experiment logs) never contains the API
   key.
-- The token counts and costs BLADE logs per call are estimates from
-  ``tokencost``. They do not include thinking tokens and are 0 for models
-  ``tokencost`` does not know; check the Claude Console for actual usage.
+- The tokens BLADE logs per call are the ones the API reports, thinking
+  tokens and prompt-cache reads and writes included (see
+  :ref:`llm-token-usage`).
 
 Local models with vLLM (OpenAI-compatible servers)
 --------------------------------------------------
@@ -189,7 +189,70 @@ LLM (``qwen`` above). With ``provider: multi``, ShinkaEvolve's bandit
 chooses between the servers; because all four serve the same model, this
 only balances the load.
 
+.. _llm-token-usage:
+
+Token usage and cost
+--------------------
+
+For every call, BLADE writes two entries to ``conversationlog.jsonl``: the
+prompt (``role: "client"``) and the reply (``role``: the model), each with a
+``tokens`` and a ``cost`` field (USD). :func:`iohblade.plots.plot_token_usage`
+adds up these tokens.
+
+**Tokens** are the counts the provider's API returns with the response, so
+no extra request is made:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 22 39 39
+
+   * - Provider
+     - Prompt entry
+     - Reply entry
+   * - Claude
+     - ``input_tokens`` + cache read + cache write tokens
+     - ``output_tokens`` (thinking included)
+   * - OpenAI, DeepSeek, OpenAI-compatible servers
+     - ``prompt_tokens`` (cached tokens included)
+     - ``completion_tokens`` (reasoning included)
+   * - Gemini
+     - ``prompt_token_count``
+     - ``candidates_token_count`` + ``thoughts_token_count``
+   * - Ollama
+     - ``prompt_eval_count``
+     - ``eval_count``
+
+The usage of the last call is also available as ``llm.last_usage`` (a
+:class:`iohblade.llm_costs.TokenUsage`). Providers that report no usage
+(LM Studio, MLX, ``Dummy_LLM`` and your own ``LLM`` subclasses, unless their
+``_query`` sets ``self.last_usage``) are logged with a rough estimate of
+four characters per token. A call that fails is logged with 0 tokens.
+
+**Cost** is computed by BLADE from these tokens and the list prices in
+:data:`iohblade.llm_costs.MODEL_PRICES` (USD per million tokens for input,
+output and cache reads, checked on the date in
+:data:`iohblade.llm_costs.PRICES_CHECKED`). The model the API says answered
+is priced, so a dated snapshot such as ``gpt-4o-2024-08-06`` or a Claude
+refusal fallback model gets its own price. The table covers the current
+first-party models of Anthropic, OpenAI, Google (Gemini) and DeepSeek.
+
+- Local models (Ollama, vLLM, LM Studio, MLX) and models that are not in the
+  table have cost 0; their tokens are still logged.
+- Prices are standard-tier list prices for the shortest context tier.
+  Long-context, batch, priority, fast-mode and regional prices, and discounts,
+  are not modelled. DeepSeek is priced at its peak rate (off-peak requests
+  cost half).
+- Prices change: for billing, use the provider's console. To price another
+  model, add it to the table before the run:
+
+  .. code-block:: python
+
+     from iohblade.llm_costs import MODEL_PRICES, ModelPrice
+
+     MODEL_PRICES["my-model"] = ModelPrice(input=1.0, output=4.0, cache_read=0.1)
+
 API reference
 -------------
 
-All providers are documented in :doc:`llm_api`.
+All providers and the usage and cost helpers are documented in
+:doc:`llm_api`.

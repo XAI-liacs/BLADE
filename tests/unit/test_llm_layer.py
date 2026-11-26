@@ -134,13 +134,11 @@ def test_prompt_tokens_are_counted(monkeypatch):
     logger = SimpleNamespace(
         log_conversation=lambda role, msg, cost, tokens: logged.append(tokens)
     )
-    monkeypatch.setattr(
-        llm_module, "count_string_tokens", lambda prompt, model: len(prompt)
-    )
     llm = _Recording(["reply"])
     llm.set_logger(logger)
     llm.query([{"role": "user", "content": "hello"}])
-    assert logged == [len("hello"), len("reply")]
+    # No reported usage: about four characters per token.
+    assert logged == [2, 2]
 
 
 def test_diff_mode_warns(monkeypatch):
