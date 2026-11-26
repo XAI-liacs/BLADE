@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.2.1 (unreleased)
+
+Changes since [v1.2.0](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.0).
+
 ## v1.2.0 (2026-11-26)
 
 Changes since [v1.1.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.1.1).
