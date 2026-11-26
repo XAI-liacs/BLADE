@@ -17,7 +17,8 @@ from `validate`, try variants with `--set`, and resume a stopped run.
 - An editor with YAML support (VS Code with the Red Hat YAML extension shows
   the schema completion).
 
-Outputs below were captured on `main` on 25 November 2026.
+Outputs below were captured on `main` on 25 November 2026; the suite
+names (`bbob_groups`) need BLADE 1.2.1.
 
 ---
 
@@ -120,7 +121,7 @@ $ uv run iohblade list methods
 
 ```yaml
 problems:
-  - suite: bbob
+  - suite: bbob_groups
     params: {dim: 5, budget_factor: 1000}
   - type: circle_packing
 ```
@@ -136,14 +137,15 @@ Show the docs page "Benchmarks" (the suites table) for a few seconds.
 **Narration:**
 
 > A problem is either a single benchmark, with `type`, or a whole suite.
-> The `bbob` suite gives the five BBOB function groups as five problems,
-> with fixed training and test instances, so results are comparable
-> between papers. Here we make them five-dimensional with a smaller budget
-> for the generated algorithms.
+> The `bbob_groups` suite gives the five BBOB function groups as five
+> problems, with fixed training and test instances, so results are
+> comparable between papers; the `bbob` suite has the 24 functions one by
+> one. Here we make the groups five-dimensional with a smaller budget for
+> the generated algorithms.
 >
 > Other suites cover the AlphaEvolve maths problems and combinatorial
-> problems; `quick` is a small mix for trying out a setup, and `full`
-> runs everything. The documentation lists them with estimated running
+> problems; `default` combines the BBOB groups with both, `quick` is a
+> small mix for trying out a setup, and `full` runs everything. The documentation lists them with estimated running
 > times.
 
 ## Scene 6 — Validate, and fixing mistakes (3:15–4:10)
@@ -154,7 +156,7 @@ First the version with mistakes:
 $ uv run iohblade validate typos.yml
 Invalid experiment configuration (2 issues):
   - typos.yml:23:5: methods[1].type: Unknown method 'shinka_evolv'. Did you mean 'shinka_evolve'?
-  - typos.yml:32:14: problems[0].params.dims: Unknown parameter 'dims' for suite 'bbob'. Did you mean 'dim'?
+  - typos.yml:32:14: problems[0].params.dims: Unknown parameter 'dims' for suite 'bbob_groups'. Did you mean 'dim'?
 ```
 
 Then the correct file:

@@ -28,6 +28,6 @@ methods:
     llm: qwen
 
 problems:
-  - suite: bbob
+  - suite: bbob_groups
     params: {dim: 5, budget_factor: 1000}
   - type: circle_packing
