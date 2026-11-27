@@ -12,7 +12,10 @@ Run from the repository root:
 
 from __future__ import annotations
 
+import base64
+import io
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -173,6 +176,84 @@ def card_yaml() -> str:
     return finish()
 
 
+# Landscape thumbnails (real 2-D BBOB / MA-BBOB functions via ioh) -----------
+LANDSCAPE_COLOURS = ["#ffe2a8", "#ffb547", "#ff7ab6", "#7c5cff", "#2a1f5c",
+                     "#11121b"]
+
+
+@lru_cache(maxsize=None)
+def landscape_uri(kind: str, number: int, px: int = 160) -> str:
+    """PNG data URI of a 2-D landscape: amber near the optimum, dark far."""
+    import ioh
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from matplotlib.colors import LinearSegmentedColormap
+
+    if kind == "ma":
+        problem = ioh.problem.ManyAffine(number, 2)
+    else:
+        problem = ioh.get_problem(number, 1, 2)
+    xs = np.linspace(-5, 5, 140)
+    z = np.array([[problem([x, y]) for x in xs] for y in xs]) - problem.optimum.y
+    z = np.log10(np.maximum(z, 0) + 1e-8 * (1 + np.abs(z).max()))
+    ranks = z.ravel().argsort().argsort().reshape(z.shape)
+    z = (ranks / ranks.max()) ** 0.55
+    fig = plt.figure(figsize=(px / 100, px / 100), dpi=100)
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.imshow(z, origin="lower", interpolation="bicubic",
+              cmap=LinearSegmentedColormap.from_list("b", LANDSCAPE_COLOURS))
+    ax.axis("off")
+    buffer = io.BytesIO()
+    fig.savefig(buffer, format="png")
+    plt.close(fig)
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def landscape_tiles(x, y, s, tiles) -> None:
+    """Draw (kind, number, tx, ty, size) tiles, in units of s, with an
+    amber frame round the whole icon."""
+    for kind, number, tx, ty, size in tiles:
+        cid = f"clip-{kind}{number}-{x:.0f}-{y:.0f}"
+        F.add(f'<clipPath id="{cid}"><rect x="{x + tx * s:.1f}" '
+              f'y="{y + ty * s:.1f}" width="{size * s:.1f}" '
+              f'height="{size * s:.1f}" rx="5"/></clipPath>')
+        F.add(f'<image href="{landscape_uri(kind, number)}" x="{x + tx * s:.1f}" '
+              f'y="{y + ty * s:.1f}" width="{size * s:.1f}" '
+              f'height="{size * s:.1f}" clip-path="url(#{cid})"/>')
+    F.add(f'<rect x="{x}" y="{y}" width="{s}" height="{s}" rx="12" fill="none" '
+          f'stroke="{AMBER}" stroke-width="1.4"/>')
+
+
+def thumb_bbob(x, y, s):
+    """All 24 functions are separate problems: a 3x3 grid of functions."""
+    F.thumb_frame(x, y, s, "amber")
+    fids = [1, 8, 15, 10, 21, 3, 12, 16, 22]
+    cell = (1 - 0.16 - 2 * 0.03) / 3
+    landscape_tiles(x, y, s, [
+        ("bbob", fid, 0.08 + (k % 3) * (cell + 0.03),
+         0.08 + (k // 3) * (cell + 0.03), cell) for k, fid in enumerate(fids)])
+
+
+def thumb_bbob_groups(x, y, s):
+    """One problem per group: two large and three small landscapes."""
+    F.thumb_frame(x, y, s, "amber")
+    big, small = (1 - 0.16 - 0.04) / 2, (1 - 0.16 - 0.08) / 3
+    landscape_tiles(x, y, s, [
+        ("bbob", 3, 0.08, 0.08, big), ("bbob", 8, 0.12 + big, 0.08, big),
+        ("bbob", 11, 0.08, 0.92 - small, small),
+        ("bbob", 16, 0.12 + small, 0.92 - small, small),
+        ("bbob", 22, 0.16 + 2 * small, 0.92 - small, small)])
+
+
+def thumb_ma_bbob(x, y, s):
+    """A single many-affine landscape."""
+    F.thumb_frame(x, y, s, "amber")
+    landscape_tiles(x, y, s, [("ma", 21, 0.08, 0.08, 0.84)])
+
+
 # 3 Suites --------------------------------------------------------------------
 def card_suites() -> str:
     start()
@@ -180,32 +261,52 @@ def card_suites() -> str:
     pill("Default suites")
     y = headline(["Benchmarks with fixed", "settings, ready to run."])
     subline(y + 58, "Name a suite in your experiment; instances are fixed.")
-    tiles = [
-        (F.thumb_landscape, "bbob_groups", "5 BBOB function groups",
-         "10-D · train iid 1-5 · test iid 6-15"),
-        (F.thumb_landscape, "ma_bbob", "MA-BBOB",
-         "10-D · 25 train · 50 test instances"),
+    top = y + 110
+    gap = 24
+    # continuous suites: three tiles in a row
+    tw, th = (W - 2 * PAD - 2 * gap) / 3, 262
+    for k, (thumb, key, title, sub) in enumerate([
+        (thumb_bbob, "bbob", "24 BBOB functions",
+         ["one problem each", "train iid 1-10 · test 11-30"]),
+        (thumb_bbob_groups, "bbob_groups", "5 BBOB groups",
+         ["one problem per group", "train iid 1-5 · test 6-15"]),
+        (thumb_ma_bbob, "ma_bbob", "MA-BBOB",
+         ["affine function mixes", "25 train · 50 test instances"]),
+    ]):
+        tx = PAD + k * (tw + gap)
+        card_box(tx, top, tw, th)
+        thumb(tx + 22, top + 22, 96)
+        F.chip(tx + 134, top + 54, key, "amber", 14)
+        F.text(tx + 22, top + 162, title, 21, WHITE, 700)
+        for j, line in enumerate(sub):
+            F.text(tx + 22, top + 196 + j * 28, line, 16, F.MUTED)
+    # the other default suites
+    tw2, th2 = (W - 2 * PAD - gap) / 2, 172
+    yy = top + th + gap
+    for k, (thumb, key, title, sub) in enumerate([
         (F.thumb_packing, "alphaevolve_math", "17 AlphaEvolve problems",
          "packing, Heilbronn, auto-correlation, ..."),
         (F.thumb_route, "combinatorial", "Steiner, TSP, CVRP, colouring",
          "6 combinatorial problems"),
-    ]
-    ty = y + 110
-    tw, th, gap = (W - 2 * PAD - 24) / 2, 300, 24
-    for k, (thumb, key, title, sub) in enumerate(tiles):
-        tx = PAD + (k % 2) * (tw + gap)
-        yy = ty + (k // 2) * (th + gap)
-        card_box(tx, yy, tw, th)
-        thumb(tx + 24, yy + 24, 104)
-        F.chip(tx + 24, yy + 150, key, "amber", 15)
-        F.text(tx + 24, yy + 224, title, 22, WHITE, 700)
-        F.text(tx + 24, yy + 258, sub, 17, F.MUTED)
-    yy = ty + 2 * (th + gap) + 20
-    F.chip(PAD, yy, "quick", "amber", 16)
-    F.text(PAD + 110, yy + 22, "a small set to try a setup", 20, F.MUTED)
-    F.chip(PAD, yy + 50, "full", "amber", 16)
-    F.text(PAD + 110, yy + 72, "everything; dim and budget_factor set the BBOB parts",
-           20, F.MUTED)
+    ]):
+        tx = PAD + k * (tw2 + gap)
+        card_box(tx, yy, tw2, th2)
+        thumb(tx + 22, yy + 22, 76)
+        F.chip(tx + 116, yy + 44, key, "amber", 14)
+        F.text(tx + 22, yy + 134, title, 20, WHITE, 700)
+        F.text(tx + 22, yy + 160, sub, 15, F.MUTED)
+    # collections
+    yy += th2 + 64
+    F.text(PAD, yy, "Collections", 20, WHITE, 700)
+    for k, (key, text) in enumerate([
+        ("quick", "a small set to try a setup"),
+        ("continuous_bbo", "bbob_groups + bbob + ma_bbob"),
+        ("default", "bbob_groups + alphaevolve_math + combinatorial"),
+        ("full", "everything; dim and budget_factor set the BBOB parts"),
+    ]):
+        cy = yy + 26 + k * 50
+        F.chip(PAD, cy, key, "amber", 15)
+        F.text(PAD + 190, cy + 21, text, 18, F.MUTED)
     footer(3)
     return finish()
 

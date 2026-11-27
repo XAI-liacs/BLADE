@@ -92,11 +92,11 @@ and 11–30 for testing
 auto-correlation, ...)
 🔸 combinatorial problems: Steiner trees, TSP, CVRP, graph colouring
 
-`quick` gives a small set to try a setup, `default` combines the BBOB
-groups, the maths and the combinatorial problems, and `full` runs
-everything. One
-`dim` and `budget_factor` set the BBOB and MA-BBOB parts; the other
-problems keep their own fixed settings.
+`quick` gives a small set to try a setup, `continuous_bbo` combines the
+three BBOB-based suites, `default` combines the BBOB groups, the maths and
+the combinatorial problems, and `full` runs everything. `dim` and
+`budget_factor` set the BBOB and MA-BBOB parts; the other problems keep
+their own fixed settings.
 
 Overview with run-time estimates: https://xai-liacs.github.io/BLADE/benchmarks.html
 
