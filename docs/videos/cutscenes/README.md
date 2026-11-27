@@ -2,7 +2,8 @@
 
 Stills (1920×1080) for the tutorial videos, in the style of the intro and
 outro (`../intro-outro`). Hold each for 2–5 s, or use as the first/last
-frame of a short Veo or Ken Burns move.
+frame of a short Veo clip: [`VEO.md`](VEO.md) has a prompt for every
+scene.
 
 | Frame | Content |
 |-------|---------|
@@ -17,7 +18,11 @@ frame of a short Veo or Ken Burns move.
 | `framework-detailed` | the platform figure (`docs/media/blade-platform-dark.png`) |
 | `aad-loop` | task prompt → LLM writes code → population → scoring → selection → LLM mutation |
 | `methods` | the nine built-in methods |
+| `isolation` | generated code → sandbox (process, environment, time limit) → score, error or timeout |
+| `llms` | hosted and local LLM providers, `provider: multi` |
+| `yaml-terminal` | the episode 2 experiment next to `validate`, `check` and `run` |
 | `episode-1` … `episode-7` | title cards |
+| `next-1` … `next-6` | "up next" cards for the end of episodes 1–6 |
 | `lower-third` | name and role, transparent background, to overlay on the camera shot |
 
 The landscapes are computed with `ioh` (2-D, log-scaled, colours by rank:
