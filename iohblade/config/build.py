@@ -617,6 +617,30 @@ class _Builder:
         result.update(provided)
         return result
 
+    def check_bo_problems(self, problems: list) -> None:
+        """Report LLaMEA-BO methods combined with unsuitable problems.
+
+        ``variant: bo`` designs Bayesian optimisation algorithms, so every
+        problem of the experiment must be a black-box optimisation problem;
+        the issue points at the method's ``variant``.
+        """
+        from ..methods.llamea import bo_unsupported_reason, resolve_variant
+
+        reasons = [r for r in map(bo_unsupported_reason, problems) if r]
+        if not reasons:
+            return
+        for i, spec in enumerate(self.config.methods):
+            variant = (spec.params or {}).get("variant")
+            if spec.type != "llamea" or not isinstance(variant, str):
+                continue
+            try:
+                key, _ = resolve_variant(variant)
+            except ValueError:  # reported by _llamea_variant
+                continue
+            if key == "bo":
+                for reason in reasons:
+                    self.issue(("methods", i, "params", "variant"), reason)
+
     def construct(self, target, kwargs: dict, path: Path_, what: str):
         try:
             return target(**kwargs)
@@ -928,13 +952,16 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
     methods, llm_names = builder.build_methods(llms)
     problems = builder.build_problems()
     builder.check_logger()
+    builder.check_bo_problems(problems)
     if builder.issues:
         raise ConfigError(builder.issues)
     # Enable HPO now, so that `iohblade check` builds the right environments
     # (Experiment does the same for the Python API).
     from ..hpo import configure_hpo
+    from ..methods.llamea import configure_bo
 
     notes, hpo_warnings = configure_hpo(methods, problems)
+    notes += configure_bo(methods, problems)
     section = config.experiment
     seeds = list(section.seeds) if section.seeds else list(range(section.runs))
     output_dir = Path(section.output_dir)

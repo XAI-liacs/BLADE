@@ -12,6 +12,13 @@
   called `LLaMEA-<VARIANT>`. `iohblade validate` reports an unknown variant
   with its line, and operator checks use the preset's `n_parents`.
   BLADE now needs `llamea>=1.6.0`.
+- **`variant: bo` only runs on black-box optimisation problems** (tagged
+  `PrimaryCategories.BBO`, except the auto-correlation construction
+  problems); `iohblade validate` and `Experiment` refuse others. Its BO
+  requirement (initial design, surrogate model, acquisition function) is
+  appended to the problem's task prompt, and `scipy` and `scikit-learn` are
+  added to the problem's evaluation environment, for every method compared
+  on it.
 - **LLaMEA's multi-objective mode is rejected** (`variant: mo` or
   `multi_objective: true`). It does not accept BLADE's multi-objective
   `Fitness` and replaced every score by the worst value, so such runs

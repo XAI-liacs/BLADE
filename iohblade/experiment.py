@@ -237,6 +237,9 @@ class Experiment(ABC):
         _, hpo_warnings = self._configure_hpo()
         for message in hpo_warnings:
             warnings.warn(message, UserWarning, stacklevel=2)
+        # LLaMEA-BO only runs on black-box optimisation problems (raises
+        # ValueError otherwise) and adds packages to their environments.
+        self._configure_bo()
 
     def _configure_hpo(self) -> tuple[list[str], list[str]]:
         """Enable HPO on the problems of methods that sample with HPO.
@@ -249,6 +252,22 @@ class Experiment(ABC):
         from .hpo import configure_hpo
 
         return configure_hpo(self.methods, self.problems)
+
+    def _configure_bo(self) -> list[str]:
+        """Prepare the problems of LLaMEA-BO methods.
+
+        See :func:`iohblade.methods.llamea.configure_bo`; idempotent.
+
+        Returns:
+            list[str]: Notes.
+
+        Raises:
+            ValueError: If LLaMEA-BO is combined with a problem that is not
+                a black-box optimisation problem.
+        """
+        from .methods.llamea import configure_bo
+
+        return configure_bo(self.methods, self.problems)
 
     @classmethod
     def from_yaml(cls, source, *, overrides=None, env=None) -> "Experiment":
@@ -397,6 +416,8 @@ class Experiment(ABC):
             log.info(message)
         for message in hpo_warnings:
             log.warning(message)
+        for message in self._configure_bo():
+            log.info(message)
         self._prepare_environments()
         if self.n_jobs is not None and self.n_jobs > 1 and total_runs > 1:
             self._warn_parallel_seeds()

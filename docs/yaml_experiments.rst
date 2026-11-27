@@ -342,16 +342,26 @@ parameter in ``params`` overrides the preset:
    * - ``hpo``
      - LLaMEA-HPO: ``HPO: true``, (5+5); see `Hyperparameter tuning (HPO)`_.
    * - ``bo``
-     - LLaMEA-BO: (4+16), crossover 0.6 and mutation 0.4.
+     - LLaMEA-BO: (4+16), crossover 0.6 and mutation 0.4; designs Bayesian
+       optimisation algorithms. Black-box optimisation problems only, see
+       below.
    * - ``sage``
      - LLaMEA-SAGE: ``feature_guided_mutation: true`` (needs the
        ``feature-guidance`` group).
 
 * BLADE always sets the prompts (from the problem), the ``budget`` and the
-  optimisation direction, so these parts of a preset do not apply. For
-  ``bo`` this means the problem's task prompt replaces LLaMEA-BO's
-  Bayesian-optimisation prompt; ask for BO algorithms in your own problem's
-  prompt if you want them.
+  optimisation direction, so these parts of a preset do not apply.
+* ``bo`` makes LLaMEA design Bayesian optimisation algorithms, so it only
+  runs on black-box optimisation problems: problems tagged
+  ``PrimaryCategories.BBO`` (``bbob_sbox``, ``ma_bbob``, ``photonics``,
+  ``kerneltuner``, or your own problem with that tag in ``get_config()``),
+  except the auto-correlation problems, whose candidates construct a
+  sequence. ``iohblade validate`` refuses other problems. The problem's task
+  prompt (interface, bounds, budget) is kept and LLaMEA-BO's requirement is
+  appended: an initial design, a surrogate model and an acquisition
+  function. The evaluation environment of the problem also installs
+  ``scipy`` and ``scikit-learn`` (for Gaussian processes); every method
+  compared on that problem can use them, and ``validate`` notes this.
 * Without a ``name``, the method is called ``LLaMEA-<VARIANT>``
   (e.g. ``LLaMEA-BO``).
 * ``variant: mo`` (and ``multi_objective: true``) are rejected: LLaMEA's
