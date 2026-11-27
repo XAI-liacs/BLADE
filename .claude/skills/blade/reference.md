@@ -10,6 +10,8 @@ Full guide: https://xai-liacs.github.io/BLADE/yaml_experiments.html.
 - [Custom method](#custom-method)
 - [Custom LLM](#custom-llm)
 - [LLaMEA operators](#llamea-operators)
+- [LLaMEA variants](#llamea-variants)
+- [LLaMEA HPO](#llamea-hpo)
 - [Python API](#python-api)
 - [Troubleshooting](#troubleshooting)
 
@@ -188,6 +190,22 @@ the reply text) and `get_config()` (a list with one
 ```
 
 `prompt` is required; `number_of_parents` must not exceed `n_parents`.
+
+## LLaMEA variants
+
+`params: {variant: hpo | bo | sage}` uses a ready-made LLaMEA configuration
+(llamea>=1.6.0): `hpo` = `HPO: true`, (5+5); `bo` = (4+16), crossover 0.6;
+`sage` = `feature_guided_mutation: true` (needs the `feature-guidance`
+group). Other `params` override the preset; BLADE still sets the prompts
+(from the problem), the budget and the direction. Without `name` the method
+is `LLaMEA-<VARIANT>`. `variant: mo` and `multi_objective: true` are
+rejected: LLaMEA's multi-objective mode does not accept BLADE's `Fitness`.
+
+```yaml
+- {type: llamea, llm: qwen, params: {variant: bo}}
+```
+
+## LLaMEA HPO
 
 `params: {HPO: true}` makes LLaMEA also generate a configuration space;
 problems that support tuning (`automl`, `bbob_sbox`, `ma_bbob`,

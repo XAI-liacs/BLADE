@@ -315,6 +315,52 @@ needs more parents than ``n_parents``. In Python:
     ]
     method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
 
+LLaMEA variants
+---------------
+
+LLaMEA ships ready-made configurations from its papers (``llamea.variants``,
+LLaMEA 1.6.0 or later). Choose one with ``variant``; any other LLaMEA
+parameter in ``params`` overrides the preset:
+
+.. code-block:: yaml
+
+    methods:
+      - type: llamea
+        llm: gemma
+        params: {variant: bo}                    # name: LLaMEA-BO
+      - type: llamea
+        llm: gemma
+        params: {variant: hpo, n_offspring: 10}  # preset (5+5) -> (5+10)
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``variant``
+     - Preset
+   * - ``llamea`` (default)
+     - The plain algorithm, (5+5).
+   * - ``hpo``
+     - LLaMEA-HPO: ``HPO: true``, (5+5); see `Hyperparameter tuning (HPO)`_.
+   * - ``bo``
+     - LLaMEA-BO: (4+16), crossover 0.6 and mutation 0.4.
+   * - ``sage``
+     - LLaMEA-SAGE: ``feature_guided_mutation: true`` (needs the
+       ``feature-guidance`` group).
+
+* BLADE always sets the prompts (from the problem), the ``budget`` and the
+  optimisation direction, so these parts of a preset do not apply. For
+  ``bo`` this means the problem's task prompt replaces LLaMEA-BO's
+  Bayesian-optimisation prompt; ask for BO algorithms in your own problem's
+  prompt if you want them.
+* Without a ``name``, the method is called ``LLaMEA-<VARIANT>``
+  (e.g. ``LLaMEA-BO``).
+* ``variant: mo`` (and ``multi_objective: true``) are rejected: LLaMEA's
+  multi-objective mode does not yet accept BLADE's multi-objective
+  ``Fitness``, so every score would be replaced by the worst value.
+* Operator checks use the preset's ``n_parents`` (4 for ``bo``).
+
+In Python: ``LLaMEA(llm, budget=100, variant="bo")``.
+
 Hyperparameter tuning (HPO)
 ---------------------------
 

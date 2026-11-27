@@ -76,10 +76,17 @@ def _llamea_operators(value, path, params, issue):
     from llamea import Operator
 
     fields = {f.name: f for f in dataclasses.fields(Operator)}
-    n_parents = params.get(
-        "n_parents",
-        inspect.signature(LLAMEA_Algorithm).parameters["n_parents"].default,
+    default_parents = (
+        inspect.signature(LLAMEA_Algorithm).parameters["n_parents"].default
     )
+    try:  # a variant's preset, e.g. 4 parents for "bo"
+        from ..methods.llamea import resolve_variant
+
+        _, variant_cls = resolve_variant(params.get("variant", "llamea"))
+        default_parents = variant_cls.default_config().get("n_parents", default_parents)
+    except (ValueError, AttributeError):  # reported by _llamea_variant
+        pass
+    n_parents = params.get("n_parents", default_parents)
     items = value if isinstance(value, list) else [value]
     if not items:
         issue(path, "'operators' is empty; leave it out to use the default mutation.")
@@ -136,10 +143,44 @@ def _llamea_operators(value, path, params, issue):
     return result if ok else None
 
 
+def _llamea_variant(value, path, params, issue):
+    """Check LLaMEA's ``variant`` (a ``llamea.get_variant`` name).
+
+    Reported here, with the line of ``variant``, rather than as a failure
+    to create the method.
+    """
+    from ..methods.llamea import resolve_variant
+
+    if not isinstance(value, str):
+        issue(path, f"'variant' must be a name such as 'bo' (got {value!r}).")
+        return None
+    try:
+        resolve_variant(value)
+    except ValueError as e:
+        issue(path, str(e))
+        return None
+    return value
+
+
+def _llamea_multi_objective(value, path, params, issue):
+    """Reject ``multi_objective: true``, which LLaMEA cannot run in BLADE."""
+    from ..methods.llamea import UNSUPPORTED_VARIANTS
+
+    if value:
+        issue(path, UNSUPPORTED_VARIANTS["mo"])
+        return None
+    return value
+
+
 # Converters for parameters that need Python objects instead of plain YAML
-# values: (kind, key) -> {param: converter(value, path, params, issue)}.
+# values, or a check with the line of the parameter:
+# (kind, key) -> {param: converter(value, path, params, issue)}.
 _PARAM_CONVERTERS: dict[tuple[str, str], dict[str, Any]] = {
-    ("method", "llamea"): {"operators": _llamea_operators},
+    ("method", "llamea"): {
+        "variant": _llamea_variant,
+        "multi_objective": _llamea_multi_objective,
+        "operators": _llamea_operators,
+    },
 }
 
 

@@ -15,7 +15,7 @@ dependencies = [
     "jsonlines>=4.0.0,<5",
     "google-genai>=1,<4",
     "joblib>=1.4.2,<2",
-    "llamea>=1.5.1,<2",
+    "llamea>=1.6.0,<2",
     "mlflow>=3.1.0,<4",
     "python-constraint2>=2.2.3,<3",
     "xmltodict>=0.14.2,<2",
@@ -90,7 +90,7 @@ trackio = [
 ]
 # xgboost for LLaMEA's feature_guided_mutation (optional since LLaMEA 1.5.1).
 feature-guidance = [
-    "llamea[feature-guidance]>=1.5.1,<2",
+    "llamea[feature-guidance]>=1.6.0,<2",
 ]
 # smac in BLADE's own environment, only needed to call iohblade.hpo.run_smac
 # directly: problems tune in their evaluation environments, which install

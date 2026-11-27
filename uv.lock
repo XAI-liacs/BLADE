@@ -2478,7 +2478,7 @@ requires-dist = [
     { name = "jsonlines", specifier = ">=4.0.0,<5" },
     { name = "jsonschema", specifier = ">=4.24.0,<5" },
     { name = "lizard", specifier = ">=1.17.31" },
-    { name = "llamea", specifier = ">=1.5.1,<2" },
+    { name = "llamea", specifier = ">=1.6.0,<2" },
     { name = "mlflow", specifier = ">=3.1.0,<4" },
     { name = "networkx", specifier = ">=3.5" },
     { name = "numpy", specifier = ">=2,<3" },
@@ -2528,7 +2528,7 @@ extraproblems = [
     { name = "openml", specifier = ">=0.14" },
     { name = "pymoosh", specifier = "==4.0.1" },
 ]
-feature-guidance = [{ name = "llamea", extras = ["feature-guidance"], specifier = ">=1.5.1,<2" }]
+feature-guidance = [{ name = "llamea", extras = ["feature-guidance"], specifier = ">=1.6.0,<2" }]
 hpo = [{ name = "smac", specifier = ">=2.4.1,<2.5" }]
 kerneltuner = [
     { name = "autotuning-methodology", git = "https://github.com/AutoTuningAssociation/autotuning_methodology.git?rev=5536c5a4a82fa6f3f14d36e38b8e32baf00b6347" },
@@ -3298,7 +3298,7 @@ wheels = [
 
 [[package]]
 name = "llamea"
-version = "1.5.1"
+version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anthropic" },
@@ -3316,9 +3316,9 @@ dependencies = [
     { name = "pymoo" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ce/5b/6662127fb82b93eb28dbf82f9f56685417fe1b2835c05393a586630b0281/llamea-1.5.1.tar.gz", hash = "sha256:5347dcd45f99fd0ce2d16f764e14961572e0b5c73629cd33bcfc9b522ff09a23", size = 8444452, upload-time = "2026-11-26T23:02:16.812Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/5a/d8bcd7d2bd2c0b61181a58c67afdbf84c8d6e320ed65fa56b962ced5adf2/llamea-1.6.0.tar.gz", hash = "sha256:16045cdf7cd56a4c71eb27840dc6ebb1b7b9345fbf19e36ee81c99a0594337c6", size = 8985492, upload-time = "2026-11-27T21:37:12.018Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/35/eba42287aec110ed59e0045ba21182be345f794f503f8e0ec6b7dba046b6/llamea-1.5.1-py3-none-any.whl", hash = "sha256:bbbab906a1f2f94846e55a9c6a622602ded1a888e17d6ee77d15254e600af3ec", size = 52710, upload-time = "2026-11-26T23:02:15.427Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/e6/f469434603c1bfc2e490750085e3e6b22eab9b9b9ad96417b5d6a7e39470/llamea-1.6.0-py3-none-any.whl", hash = "sha256:5ef517d1dbc36f7eaee12db5d2135104c41d8b25939648ceb3345d639e894393", size = 63061, upload-time = "2026-11-27T21:37:10.957Z" },
 ]
 
 [package.optional-dependencies]

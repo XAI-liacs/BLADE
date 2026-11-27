@@ -96,7 +96,8 @@ optionally its own ``params`` and ``budget``:
 ``params`` are checked against the method's constructor, so a misspelled
 parameter is reported by ``iohblade validate``. The parameters of each
 method are listed in the :doc:`API reference <methods>`; LLaMEA's operators
-are described in :doc:`yaml_experiments`.
+and its ready-made variants (``variant: hpo``, ``bo``, ``sage``) are
+described in :doc:`yaml_experiments`.
 
 Comparing fairly
 ----------------
