@@ -42,8 +42,7 @@ def test_resolve_variant_names():
     assert resolve_variant("llamea")[0] == "llamea"
     with pytest.raises(ValueError, match="Unknown LLaMEA variant"):
         resolve_variant("nope")
-    with pytest.raises(ValueError, match="multi-objective"):
-        resolve_variant("mo")
+    assert resolve_variant("mo")[0] == "mo"  # supported since llamea 1.6.1
 
 
 def test_variant_sets_name_and_config(llm):
@@ -62,11 +61,14 @@ def test_hpo_variant_uses_hpo_unless_overridden(llm):
     assert LLaMEA(llm, budget=10, HPO=True).uses_hpo
 
 
-def test_multi_objective_is_rejected(llm):
-    with pytest.raises(ValueError, match="multi-objective"):
-        LLaMEA(llm, budget=10, variant="mo")
-    with pytest.raises(ValueError, match="multi-objective"):
-        LLaMEA(llm, budget=10, multi_objective=True)
+def test_multi_objective_flag(llm):
+    assert LLaMEA(llm, budget=10, variant="mo").is_multi_objective
+    assert LLaMEA(llm, budget=10, multi_objective=True).is_multi_objective
+    assert not LLaMEA(
+        llm, budget=10, variant="mo", multi_objective=False
+    ).is_multi_objective
+    assert not LLaMEA(llm, budget=10).is_multi_objective
+    assert LLaMEA(llm, budget=10, variant="mo").name == "LLaMEA-MO"
 
 
 def test_sage_needs_xgboost(llm, monkeypatch):
@@ -191,6 +193,7 @@ def test_yaml_variant_builds_named_methods():
 def test_yaml_variant_errors_point_at_the_parameter():
     issues = _issues({"variant": "bayes"})
     assert "methods[0].params.variant: Unknown LLaMEA variant 'bayes'" in issues
+    # circle_packing is single-objective: multi-objective mode is refused
     issues = _issues({"variant": "mo"})
     assert "methods[0].params.variant: LLaMEA's multi-objective mode" in issues
     issues = _issues({"multi_objective": True})
@@ -220,3 +223,111 @@ def test_yaml_bo_on_bbob_adds_packages_and_a_note():
     assert any(d.startswith("scikit-learn") for d in problem.dependencies)
     assert any(d.startswith("scipy") for d in problem.dependencies)
     assert any("variant 'bo'" in n and "scikit-learn" in n for n in plan.notes)
+
+
+# ------------------------------------------------------- multi-objective (mo)
+
+
+def _mo_problem(keys=("f1", "f2"), name="mo"):
+    from iohblade.tags import ObjectiveType
+
+    problem = _problem([ObjectiveType.MULTI_OBJECTIVE], name=name)
+    config = {"keys": list(keys)} if keys else {}
+    problem.get_config = lambda: {
+        "tags": [ObjectiveType.MULTI_OBJECTIVE],
+        "config": config,
+    }
+    problem.minimisation = False
+    return problem
+
+
+def _solution(f1, f2):
+    from iohblade.fitness import Fitness
+    from iohblade.solution import Solution
+
+    s = Solution(code="x")
+    s.set_scores(Fitness({"f1": f1, "f2": f2}))
+    return s
+
+
+def test_mo_runs_with_the_problems_objectives_and_returns_one_solution(
+    llm, monkeypatch
+):
+    seen = {}
+    front = [_solution(-3.0, -1.0), _solution(-1.0, -1.5), _solution(-2.0, -2.0)]
+
+    def fake_run(self):
+        seen.update(
+            cls=type(self).__name__,
+            keys=self.multi_objective_keys,
+            mo=self.multi_objective,
+        )
+        return front
+
+    monkeypatch.setattr("llamea.llamea.LLaMEA.run", fake_run)
+    method = LLaMEA(llm, budget=6, variant="mo")
+    best = method(_mo_problem())
+    assert seen == {"cls": "LLaMEA_MO", "keys": ["f1", "f2"], "mo": True}
+    assert method.pareto_front == front
+    assert best is front[1]  # best mean objective (maximised): -1.25
+
+
+def test_multi_objective_flag_works_with_the_plain_algorithm(llm, monkeypatch):
+    seen = {}
+
+    def fake_run(self):
+        seen["mo"], seen["keys"] = self.multi_objective, self.multi_objective_keys
+        return [_solution(1.0, 1.0)]
+
+    monkeypatch.setattr("llamea.llamea.LLaMEA.run", fake_run)
+    method = LLaMEA(
+        llm, budget=6, multi_objective=True, multi_objective_keys=["f1", "f2"]
+    )
+    assert method(_mo_problem(keys=None)).fitness.to_dict() == {"f1": 1.0, "f2": 1.0}
+    assert seen == {"mo": True, "keys": ["f1", "f2"]}
+
+
+def test_mo_is_refused_for_unsuitable_problems(llm):
+    from iohblade.methods.llamea import check_multi_objective, mo_unsupported_reason
+
+    assert mo_unsupported_reason(_mo_problem()) is None
+    assert "needs a multi-objective problem" in mo_unsupported_reason(_bbo())
+    no_keys = _mo_problem(keys=None)
+    assert "multi_objective_keys" in mo_unsupported_reason(no_keys)
+    assert mo_unsupported_reason(no_keys, ["f1", "f2"]) is None
+    method = LLaMEA(llm, budget=5, variant="mo")
+    with pytest.raises(ValueError, match="multi-objective problem"):
+        method(_bbo())
+    with pytest.raises(ValueError, match="LLaMEA-MO"):
+        check_multi_objective([method], [_bbo()])
+    check_multi_objective([method], [_mo_problem()])  # fine
+
+
+def test_representative_handles_failed_members():
+    from iohblade.methods.llamea import _representative
+
+    failed = _solution(float("-inf"), float("-inf"))
+    good = _solution(1.0, 2.0)
+    assert _representative([failed, good], minimisation=False) is good
+    assert _representative([failed], minimisation=False) is failed
+    assert _representative([], minimisation=False) is None
+
+
+def test_yaml_mo_on_the_toy_multiobjective_problem():
+    data = _plan_data({"variant": "mo"})
+    data["problems"] = [{"type": "toy_multiobjective", "name": "toy"}]
+    plan = load_plan(data, env={})
+    (method,) = plan.methods
+    assert method.variant == "mo" and method.is_multi_objective
+    assert method.name == "LLaMEA-MO"
+
+
+def test_experiment_refuses_mo_on_single_objective_problems(llm):
+    from iohblade.experiment import Experiment
+
+    with pytest.raises(ValueError, match="multi-objective problem"):
+        Experiment(
+            methods=[LLaMEA(llm, budget=5, variant="mo")],
+            problems=[_bbo()],
+            runs=1,
+        )

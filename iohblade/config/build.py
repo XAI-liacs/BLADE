@@ -162,23 +162,12 @@ def _llamea_variant(value, path, params, issue):
     return value
 
 
-def _llamea_multi_objective(value, path, params, issue):
-    """Reject ``multi_objective: true``, which LLaMEA cannot run in BLADE."""
-    from ..methods.llamea import UNSUPPORTED_VARIANTS
-
-    if value:
-        issue(path, UNSUPPORTED_VARIANTS["mo"])
-        return None
-    return value
-
-
 # Converters for parameters that need Python objects instead of plain YAML
 # values, or a check with the line of the parameter:
 # (kind, key) -> {param: converter(value, path, params, issue)}.
 _PARAM_CONVERTERS: dict[tuple[str, str], dict[str, Any]] = {
     ("method", "llamea"): {
         "variant": _llamea_variant,
-        "multi_objective": _llamea_multi_objective,
         "operators": _llamea_operators,
     },
 }
@@ -641,6 +630,38 @@ class _Builder:
                 for reason in reasons:
                     self.issue(("methods", i, "params", "variant"), reason)
 
+    def check_mo_problems(self, problems: list) -> None:
+        """Report multi-objective LLaMEA methods on unsuitable problems.
+
+        ``variant: mo`` and ``multi_objective: true`` need multi-objective
+        problems with known objective names; the issue points at the
+        parameter that asks for multi-objective mode.
+        """
+        from ..methods.llamea import mo_unsupported_reason, resolve_variant
+
+        for i, spec in enumerate(self.config.methods):
+            params = spec.params or {}
+            if spec.type != "llamea":
+                continue
+            if "multi_objective" in params:
+                if not params["multi_objective"]:
+                    continue
+                path = ("methods", i, "params", "multi_objective")
+            else:
+                variant = params.get("variant")
+                try:
+                    key, _ = resolve_variant(variant) if variant else ("", None)
+                except ValueError:  # reported by _llamea_variant
+                    continue
+                if key != "mo":
+                    continue
+                path = ("methods", i, "params", "variant")
+            keys = params.get("multi_objective_keys")
+            for problem in problems:
+                reason = mo_unsupported_reason(problem, keys)
+                if reason:
+                    self.issue(path, reason)
+
     def construct(self, target, kwargs: dict, path: Path_, what: str):
         try:
             return target(**kwargs)
@@ -953,15 +974,16 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
     problems = builder.build_problems()
     builder.check_logger()
     builder.check_bo_problems(problems)
+    builder.check_mo_problems(problems)
     if builder.issues:
         raise ConfigError(builder.issues)
     # Enable HPO now, so that `iohblade check` builds the right environments
     # (Experiment does the same for the Python API).
     from ..hpo import configure_hpo
-    from ..methods.llamea import configure_bo
+    from ..methods.llamea import configure_llamea
 
     notes, hpo_warnings = configure_hpo(methods, problems)
-    notes += configure_bo(methods, problems)
+    notes += configure_llamea(methods, problems)
     section = config.experiment
     seeds = list(section.seeds) if section.seeds else list(range(section.runs))
     output_dir = Path(section.output_dir)

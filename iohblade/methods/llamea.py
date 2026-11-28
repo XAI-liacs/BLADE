@@ -13,15 +13,9 @@ from ..problem import Problem
 # We import the LLaMEA algorithm directly from the pypi package. This has the advantage that we can easily get the latest version.
 
 #: Variants (``llamea.get_variant`` names) that cannot run in BLADE, with the
-#: reason. LLaMEA's multi-objective mode expects ``llamea.Fitness`` objects
-#: and replaces BLADE's ``iohblade.fitness.Fitness`` by the worst value.
-UNSUPPORTED_VARIANTS: dict[str, str] = {
-    "mo": (
-        "LLaMEA's multi-objective mode does not work with BLADE problems yet: "
-        "it only accepts llamea.Fitness, so BLADE's multi-objective scores "
-        "would all be replaced by the worst value."
-    ),
-}
+#: reason. Empty since llamea 1.6.1, whose multi-objective mode accepts
+#: BLADE's ``iohblade.fitness.Fitness``.
+UNSUPPORTED_VARIANTS: dict[str, str] = {}
 
 
 #: Packages that LLaMEA-BO's algorithms need (Gaussian processes, optimisers
@@ -75,6 +69,86 @@ def bo_unsupported_reason(problem) -> str | None:
             "of a black-box function."
         )
     return None
+
+
+def objective_keys(problem) -> list[str] | None:
+    """The objective names a multi-objective problem declares, or None.
+
+    Read from ``problem.get_config()["config"]["keys"]`` (e.g. ``["f1",
+    "f2"]`` for ``toy_multiobjective``).
+    """
+    try:
+        keys = problem.get_config().get("config", {}).get("keys")
+    except Exception:
+        return None
+    if (
+        isinstance(keys, (list, tuple))
+        and keys
+        and all(isinstance(k, str) for k in keys)
+    ):
+        return list(keys)
+    return None
+
+
+def mo_unsupported_reason(problem, keys: list[str] | None = None) -> str | None:
+    """Why LLaMEA's multi-objective mode cannot run on ``problem``, or None.
+
+    It needs a problem tagged ``ObjectiveType.MULTI_OBJECTIVE`` whose
+    objective names are known: given as ``keys`` (``multi_objective_keys``)
+    or declared by the problem (see :func:`objective_keys`).
+    """
+    from ..tags import ObjectiveType
+
+    name = getattr(problem, "name", type(problem).__name__)
+    if ObjectiveType.MULTI_OBJECTIVE.value not in _tag_values(problem):
+        return (
+            f"LLaMEA's multi-objective mode (variant 'mo' or multi_objective: "
+            f"true) needs a multi-objective problem (tagged "
+            f"ObjectiveType.MULTI_OBJECTIVE); problem '{name}' is not one."
+        )
+    if not keys and not objective_keys(problem):
+        return (
+            f"Problem '{name}' does not declare its objective names "
+            "(get_config()['config']['keys']); give them as "
+            "multi_objective_keys."
+        )
+    return None
+
+
+def check_multi_objective(methods: Iterable, problems: Iterable) -> None:
+    """Check that multi-objective LLaMEA methods run on suitable problems.
+
+    Raises:
+        ValueError: If a multi-objective LLaMEA method is combined with a
+            problem that is not multi-objective or has unknown objectives.
+    """
+    problems = list(problems)
+    for method in methods:
+        if not getattr(method, "is_multi_objective", False):
+            continue
+        keys = method.kwargs.get("multi_objective_keys")
+        reasons = [mo_unsupported_reason(p, keys) for p in problems]
+        reasons = [r for r in reasons if r is not None]
+        if reasons:
+            raise ValueError(f"{method.name}: " + " ".join(reasons))
+
+
+def configure_llamea(methods: Iterable, problems: Iterable) -> list[str]:
+    """Check and prepare the problems of LLaMEA methods (variants).
+
+    Multi-objective methods need multi-objective problems
+    (:func:`check_multi_objective`); LLaMEA-BO needs black-box optimisation
+    problems and adds packages to them (:func:`configure_bo`).
+
+    Returns:
+        list[str]: Notes.
+
+    Raises:
+        ValueError: For an unsuitable problem.
+    """
+    methods, problems = list(methods), list(problems)
+    check_multi_objective(methods, problems)
+    return configure_bo(methods, problems)
 
 
 def _package(dep: str) -> str:
@@ -153,6 +227,29 @@ def resolve_variant(variant: str) -> tuple[str, type]:
     return key, cls
 
 
+def _representative(front: list, minimisation: bool):
+    """The Pareto-front member with the best mean objective (None if empty).
+
+    BLADE's harness (loggers, ``iohblade check``, test evaluation) expects
+    one solution per run; all members are equally good in the Pareto sense,
+    so the mean objective (``float(fitness)``) is used as a tie-breaker.
+    """
+    import math
+
+    def mean(solution):
+        try:
+            value = float(solution.fitness)
+        except (TypeError, ValueError):
+            return math.nan
+        return value
+
+    valid = [s for s in front if math.isfinite(mean(s))]
+    if not valid:
+        return front[0] if front else None
+    pick = min if minimisation else max
+    return pick(valid, key=mean)
+
+
 class LLaMEA(Method):
     def __init__(
         self, llm: LLM, budget: int, name="LLaMEA", variant: str = "llamea", **kwargs
@@ -173,12 +270,14 @@ class LLaMEA(Method):
                 black-box optimisation problems (see
                 :func:`bo_unsupported_reason`); :data:`BO_PROMPT` is appended
                 to their task prompt and :data:`BO_DEPENDENCIES` are added to
-                their evaluation environment.
+                their evaluation environment. ``"mo"`` (like
+                ``multi_objective=True``) only runs on multi-objective
+                problems (see :func:`mo_unsupported_reason`); the objective
+                names come from ``multi_objective_keys`` or the problem.
             kwargs: Additional arguments for configuring LLaMEA.
 
         Raises:
-            ValueError: For an unknown variant, or one BLADE cannot run
-                (``"mo"``), or for ``multi_objective=True``.
+            ValueError: For an unknown variant.
             ImportError: When feature-guided mutation is requested (directly
                 or by ``variant="sage"``) and xgboost is not installed.
         """
@@ -186,8 +285,8 @@ class LLaMEA(Method):
         if self.variant != "llamea" and name == "LLaMEA":
             name = f"LLaMEA-{self.variant.upper()}"
         super().__init__(llm, budget, name)
-        if kwargs.get("multi_objective"):
-            raise ValueError(UNSUPPORTED_VARIANTS["mo"])
+        #: The Pareto front of the last multi-objective run (else None).
+        self.pareto_front = None
         preset = self._variant_cls.default_config() if self.variant != "llamea" else {}
         if kwargs.get(
             "feature_guided_mutation", preset.get("feature_guided_mutation")
@@ -213,16 +312,32 @@ class LLaMEA(Method):
             return False
         return bool(self._variant_cls.default_config().get("HPO"))
 
+    @property
+    def is_multi_objective(self) -> bool:
+        """True for ``variant="mo"`` or ``multi_objective=True``."""
+        if "multi_objective" in self.kwargs:
+            return bool(self.kwargs["multi_objective"])
+        return self.variant == "mo"
+
     def __call__(self, problem: Problem):
         """
         Executes the evolutionary search process via LLaMEA.
 
         Returns:
-            Solution: The best solution found.
+            Solution: The best solution found. In multi-objective mode the
+            whole Pareto front is kept in :attr:`pareto_front` and the front
+            member with the best mean objective is returned.
         """
         # Get optimisation direction/ set default as maximisaiton.
         minimization = getattr(problem, "minimisation", False)
         task_prompt = problem.task_prompt
+        kwargs = dict(self.kwargs)
+        if self.is_multi_objective:
+            reason = mo_unsupported_reason(problem, kwargs.get("multi_objective_keys"))
+            if reason is not None:
+                raise ValueError(reason)
+            kwargs.setdefault("multi_objective", True)
+            kwargs.setdefault("multi_objective_keys", objective_keys(problem))
         if self.variant == "bo":
             reason = bo_unsupported_reason(problem)
             if reason is not None:
@@ -243,10 +358,14 @@ class LLaMEA(Method):
             budget=self.budget,
             max_workers=1,  # We do not use parallelization, as it is not supported in combination with the BLADE parrallelization.
             minimization=minimization,
-            **self.kwargs,
+            **kwargs,
         )
 
-        return self.llamea_instance.run()
+        result = self.llamea_instance.run()
+        if not self.is_multi_objective:
+            return result
+        self.pareto_front = list(result or [])
+        return _representative(self.pareto_front, minimization)
 
     def to_dict(self):
         """
@@ -259,6 +378,7 @@ class LLaMEA(Method):
             "method_name": self.name if self.name != None else "LLaMEA",
             "budget": self.budget,
             "variant": self.variant,
+            "multi_objective": self.is_multi_objective,
             "kwargs": self.kwargs,
         }
 

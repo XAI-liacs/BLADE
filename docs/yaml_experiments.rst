@@ -345,6 +345,9 @@ parameter in ``params`` overrides the preset:
      - LLaMEA-BO: (4+16), crossover 0.6 and mutation 0.4; designs Bayesian
        optimisation algorithms. Black-box optimisation problems only, see
        below.
+   * - ``mo``
+     - LLaMEA-MO: multi-objective, (5+10). Multi-objective problems only,
+       see below.
    * - ``sage``
      - LLaMEA-SAGE: ``feature_guided_mutation: true`` (needs the
        ``feature-guidance`` group).
@@ -364,12 +367,18 @@ parameter in ``params`` overrides the preset:
   compared on that problem can use them, and ``validate`` notes this.
 * Without a ``name``, the method is called ``LLaMEA-<VARIANT>``
   (e.g. ``LLaMEA-BO``).
-* ``variant: mo`` (and ``multi_objective: true``) are rejected: LLaMEA's
-  multi-objective mode does not yet accept BLADE's multi-objective
-  ``Fitness``, so every score would be replaced by the worst value.
+* ``mo`` (or ``multi_objective: true`` with any variant) selects survivors by
+  non-dominated sorting and crowding distance. It only runs on
+  multi-objective problems (tagged ``ObjectiveType.MULTI_OBJECTIVE``, e.g.
+  ``toy_multiobjective``); ``iohblade validate`` refuses others. The
+  objective names come from ``multi_objective_keys`` or, by default, from
+  the problem (``get_config()["config"]["keys"]``). The run keeps the whole
+  Pareto front in ``method.pareto_front`` and reports the front member with
+  the best mean objective as its result.
 * Operator checks use the preset's ``n_parents`` (4 for ``bo``).
 
-In Python: ``LLaMEA(llm, budget=100, variant="bo")``.
+In Python: ``LLaMEA(llm, budget=100, variant="bo")``. Variants need
+``llamea>=1.6.0``, and ``mo`` needs ``llamea>=1.6.1``.
 
 Hyperparameter tuning (HPO)
 ---------------------------

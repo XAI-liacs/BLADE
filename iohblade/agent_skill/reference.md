@@ -193,18 +193,22 @@ the reply text) and `get_config()` (a list with one
 
 ## LLaMEA variants
 
-`params: {variant: hpo | bo | sage}` uses a ready-made LLaMEA configuration
-(llamea>=1.6.0): `hpo` = `HPO: true`, (5+5); `bo` = (4+16), crossover 0.6;
-`sage` = `feature_guided_mutation: true` (needs the `feature-guidance`
-group). Other `params` override the preset; BLADE still sets the prompts
+`params: {variant: hpo | bo | mo | sage}` uses a ready-made LLaMEA
+configuration (llamea>=1.6.1): `hpo` = `HPO: true`, (5+5); `bo` = (4+16),
+crossover 0.6; `mo` = multi-objective, (5+10); `sage` =
+`feature_guided_mutation: true` (needs the `feature-guidance` group). Other `params` override the preset; BLADE still sets the prompts
 (from the problem), the budget and the direction. `bo` designs Bayesian
 optimisation algorithms and only runs on black-box optimisation problems
 (tagged `PrimaryCategories.BBO`, e.g. `bbob_sbox`, `ma_bbob`, `photonics`,
 `kerneltuner`; not the auto-correlation problems); `validate` refuses
 others. It appends its BO requirement to the problem's task prompt and adds
 `scipy` and `scikit-learn` to that problem's evaluation environment. Without `name` the method
-is `LLaMEA-<VARIANT>`. `variant: mo` and `multi_objective: true` are
-rejected: LLaMEA's multi-objective mode does not accept BLADE's `Fitness`.
+is `LLaMEA-<VARIANT>`. `mo` (or `multi_objective: true`)
+only runs on multi-objective problems (tagged
+`ObjectiveType.MULTI_OBJECTIVE`, e.g. `toy_multiobjective`); objectives come
+from `multi_objective_keys` or the problem's `get_config()["config"]["keys"]`.
+The run keeps the Pareto front in `method.pareto_front` and returns the
+member with the best mean objective.
 
 ```yaml
 - {type: llamea, llm: qwen, params: {variant: bo}}

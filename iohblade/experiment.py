@@ -237,9 +237,9 @@ class Experiment(ABC):
         _, hpo_warnings = self._configure_hpo()
         for message in hpo_warnings:
             warnings.warn(message, UserWarning, stacklevel=2)
-        # LLaMEA-BO only runs on black-box optimisation problems (raises
-        # ValueError otherwise) and adds packages to their environments.
-        self._configure_bo()
+        # LLaMEA variants need suitable problems (raises ValueError
+        # otherwise); LLaMEA-BO adds packages to their environments.
+        self._configure_llamea()
 
     def _configure_hpo(self) -> tuple[list[str], list[str]]:
         """Enable HPO on the problems of methods that sample with HPO.
@@ -253,21 +253,22 @@ class Experiment(ABC):
 
         return configure_hpo(self.methods, self.problems)
 
-    def _configure_bo(self) -> list[str]:
-        """Prepare the problems of LLaMEA-BO methods.
+    def _configure_llamea(self) -> list[str]:
+        """Check and prepare the problems of LLaMEA variants.
 
-        See :func:`iohblade.methods.llamea.configure_bo`; idempotent.
+        See :func:`iohblade.methods.llamea.configure_llamea`; idempotent.
 
         Returns:
             list[str]: Notes.
 
         Raises:
-            ValueError: If LLaMEA-BO is combined with a problem that is not
-                a black-box optimisation problem.
+            ValueError: If LLaMEA-BO runs on a problem that is not a
+                black-box optimisation problem, or multi-objective LLaMEA on
+                one that is not multi-objective.
         """
-        from .methods.llamea import configure_bo
+        from .methods.llamea import configure_llamea
 
-        return configure_bo(self.methods, self.problems)
+        return configure_llamea(self.methods, self.problems)
 
     @classmethod
     def from_yaml(cls, source, *, overrides=None, env=None) -> "Experiment":
@@ -416,7 +417,7 @@ class Experiment(ABC):
             log.info(message)
         for message in hpo_warnings:
             log.warning(message)
-        for message in self._configure_bo():
+        for message in self._configure_llamea():
             log.info(message)
         self._prepare_environments()
         if self.n_jobs is not None and self.n_jobs > 1 and total_runs > 1:

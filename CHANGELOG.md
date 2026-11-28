@@ -11,7 +11,7 @@
   sets the prompts, budget and direction. Without a `name` the method is
   called `LLaMEA-<VARIANT>`. `iohblade validate` reports an unknown variant
   with its line, and operator checks use the preset's `n_parents`.
-  BLADE now needs `llamea>=1.6.0`.
+  BLADE now needs `llamea>=1.6.1`.
 - **`variant: bo` only runs on black-box optimisation problems** (tagged
   `PrimaryCategories.BBO`, except the auto-correlation construction
   problems); `iohblade validate` and `Experiment` refuse others. Its BO
@@ -19,10 +19,16 @@
   appended to the problem's task prompt, and `scipy` and `scikit-learn` are
   added to the problem's evaluation environment, for every method compared
   on it.
-- **LLaMEA's multi-objective mode is rejected** (`variant: mo` or
-  `multi_objective: true`). It does not accept BLADE's multi-objective
-  `Fitness` and replaced every score by the worst value, so such runs
-  silently produced no results; `iohblade validate` now says so.
+- **LLaMEA's multi-objective mode works in BLADE** (`variant: mo`, or
+  `multi_objective: true`). Before llamea 1.6.1 it replaced BLADE's
+  multi-objective scores by the worst value, so such runs silently produced
+  no results. It runs on multi-objective problems (tagged
+  `ObjectiveType.MULTI_OBJECTIVE`, e.g. `toy_multiobjective`), with the
+  objective names from `multi_objective_keys` or the problem's
+  `get_config()["config"]["keys"]`; `iohblade validate` and `Experiment`
+  refuse other problems. The whole Pareto front is kept in
+  `method.pareto_front`; the run's result is the front member with the best
+  mean objective.
 
 ## v1.2.2 (2026-11-26)
 
