@@ -55,6 +55,7 @@ class BuiltinProblem(StrEnum):
     KERNELTUNER = "kerneltuner"
     PHOTONICS = "photonics"
     TOY_MULTIOBJECTIVE = "toy_multiobjective"
+    MULTIOBJECTIVE = "multiobjective"
     AUTO_CORRELATION_INEQ1 = "auto_correlation_ineq1"
     AUTO_CORRELATION_INEQ2 = "auto_correlation_ineq2"
     AUTO_CORRELATION_INEQ3 = "auto_correlation_ineq3"
@@ -98,6 +99,10 @@ class BuiltinSuite(StrEnum):
     CONTINUOUS_BBO = "continuous_bbo"
     ALPHAEVOLVE_MATH = "alphaevolve_math"
     COMBINATORIAL = "combinatorial"
+    MO_QUICK = "mo_quick"
+    MO_ZDT = "mo_zdt"
+    MO_DTLZ = "mo_dtlz"
+    MO_WFG = "mo_wfg"
     DEFAULT = "default"
     QUICK = "quick"
     FULL = "full"
@@ -409,6 +414,14 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
     ),
     (
         ComponentKind.PROBLEM,
+        BuiltinProblem.MULTIOBJECTIVE,
+        f"{_B}.multiobjective.mo_benchmark:MultiObjectiveBenchmark",
+        "Design multi-objective optimisers on ZDT, DTLZ and WFG functions "
+        "(pymoo), scored by the area under the hypervolume curve.",
+        None,
+    ),
+    (
+        ComponentKind.PROBLEM,
         BuiltinProblem.AUTO_CORRELATION_INEQ1,
         f"{_B}.analysis.auto_correlation_ineq1:AutoCorrIneq1",
         "First auto-correlation inequality.",
@@ -673,6 +686,34 @@ _BUILTINS: list[tuple[ComponentKind, StrEnum, str, str, str | None]] = [
         BuiltinSuite.COMBINATORIAL,
         f"{_B}.suites:combinatorial",
         "Steiner trees, graph colouring, TSP and VRP (6 problems).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.MO_QUICK,
+        f"{_B}.multiobjective.mo_benchmark:mo_quick",
+        "Multi-objective: design on ZDT1-2, test on ZDT3 (small budget).",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.MO_ZDT,
+        f"{_B}.multiobjective.mo_benchmark:mo_zdt",
+        "Multi-objective ZDT (2 objectives): design on ZDT1-3, test on ZDT4, ZDT6.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.MO_DTLZ,
+        f"{_B}.multiobjective.mo_benchmark:mo_dtlz",
+        "Multi-objective DTLZ (3 objectives): design on DTLZ1-4, test on DTLZ5-7.",
+        None,
+    ),
+    (
+        ComponentKind.SUITE,
+        BuiltinSuite.MO_WFG,
+        f"{_B}.multiobjective.mo_benchmark:mo_wfg",
+        "Multi-objective WFG (2 objectives): design on WFG1-5, test on WFG6-9.",
         None,
     ),
     (

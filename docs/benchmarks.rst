@@ -279,6 +279,71 @@ Ways to shorten a run:
 List of Benchmarks
 ------------------
 
+Multi-objective optimisation (ZDT, DTLZ, WFG)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The LLM designs a **multi-objective optimiser** for continuous problems with
+2 or 3 conflicting objectives, all minimised. Problems and their known Pareto
+fronts come from `pymoo <https://pymoo.org/problems/test_problems.html>`_;
+the indicators from `moocore <https://multi-objective.github.io/moocore/python/>`_.
+Both are installed in the evaluation environment.
+
+- Interface (as for BBOB): ``__init__(self, budget, dim)`` and
+  ``__call__(self, func)``. ``func(x)`` returns the objective vector of one
+  point, or one row per point for a batch of shape ``(k, dim)``; every point
+  counts towards the budget and is clipped to ``func.bounds.lb`` /
+  ``func.bounds.ub``. ``func.meta_data.n_objectives`` is the number of
+  objectives.
+- BLADE records every evaluation and scores everything that was evaluated;
+  what the algorithm returns is ignored.
+- Score (maximised, at most 1): the **area under the normalised hypervolume
+  curve** over the budget, the multi-objective counterpart of AOCC.
+  Objectives are normalised with the ideal and nadir points of the known
+  front, the reference point is 1.1 in every objective, and the hypervolume
+  is measured at the end of each of ``checkpoints`` (50) equal parts of the
+  budget, divided by the hypervolume of the reference front. While no point
+  lies inside the reference box, the value is :math:`-d/(1+d)` for the
+  distance :math:`d` of the closest point to the box, as in COCO's
+  bi-objective indicator, so weak algorithms are still ranked. The fitness
+  is the mean over the functions and runs.
+- Feedback per function: the area, the final hypervolume, IGD+ to the
+  reference front, the number of non-dominated points and the evaluations
+  used.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Key
+     - Problems
+   * - ``multiobjective`` (problem)
+     - Configurable: ``training_instances`` and ``test_instances`` are pymoo
+       functions, e.g. ``[zdt1, {name: dtlz2, n_obj: 3}]``; ``budget``
+       (evaluations per run, 2000), ``runs`` (3), ``checkpoints`` (50).
+   * - ``mo_quick`` (suite)
+     - Design on ZDT1 and ZDT2, test on ZDT3; 1000 evaluations, 2 runs.
+   * - ``mo_zdt`` (suite)
+     - 2 objectives: design on ZDT1-3, test on ZDT4 and ZDT6.
+   * - ``mo_dtlz`` (suite)
+     - 3 objectives: design on DTLZ1-4, test on DTLZ5-7.
+   * - ``mo_wfg`` (suite)
+     - 2 objectives, 10 variables: design on WFG1-5, test on WFG6-9.
+
+.. code-block:: yaml
+
+    problems:
+      - {suite: mo_zdt}
+      - type: multiobjective
+        name: DTLZ2-3obj
+        params:
+          training_instances: [{name: dtlz2, n_obj: 3}]
+          test_instances: [{name: dtlz4, n_obj: 3}]
+          budget: 1000
+
+For reference, random search scores about -0.49 on ``mo_zdt`` and +0.42 on
+``mo_wfg``, and pymoo's NSGA-II (population 40, the same budget) about -0.09
+and +0.61. ZDT with 30 variables and the multimodal DTLZ1 and DTLZ3 need more
+than 2000 evaluations for these algorithms to reach the front.
+
 Analysis
 ^^^^^^^^
 

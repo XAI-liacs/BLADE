@@ -34,6 +34,10 @@ DEFAULT_SUITES = {
     "full",
 }
 
+# Multi-objective suites take budget and runs (not use_best); a small budget
+# keeps the test fast.
+MO_SUITES = {"mo_quick", "mo_zdt", "mo_dtlz", "mo_wfg"}
+
 
 def _problem_instances():
     cases = {
@@ -47,6 +51,9 @@ def _problem_instances():
         "spherical_code": lambda: [registry.resolve("problem", "spherical_code")()],
         "toy_multiobjective": lambda: [
             registry.resolve("problem", "toy_multiobjective")()
+        ],
+        "multiobjective": lambda: [
+            registry.resolve("problem", "multiobjective")(budget=200, runs=1)
         ],
         "rectangle_packing": lambda: [
             registry.resolve("problem", "rectangle_packing")()
@@ -64,6 +71,11 @@ def _problem_instances():
     }
     for suite in registry.keys("suite"):
         if suite in DEFAULT_SUITES:
+            continue
+        if suite in MO_SUITES:
+            cases[f"suite:{suite}"] = lambda s=suite: registry.resolve("suite", s)(
+                budget=200, runs=1
+            )
             continue
         if suite == "matrix_multiplication":
             cases[f"suite:{suite}"] = lambda s=suite: [

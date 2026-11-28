@@ -375,7 +375,7 @@
             }
           ],
           "default": null,
-          "description": "Problem key ('custom' for your own class): bbob_sbox, ma_bbob, automl, kerneltuner, photonics, toy_multiobjective, auto_correlation_ineq1, auto_correlation_ineq2, auto_correlation_ineq3, erdos_min_overlap, euclidian_steiner_tree, graph_coloring, uncertainty_inequality, circle_packing, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, spherical_code, sum_vs_difference, matrix_multiplication, tsp, vrp",
+          "description": "Problem key ('custom' for your own class): bbob_sbox, ma_bbob, automl, kerneltuner, photonics, toy_multiobjective, multiobjective, auto_correlation_ineq1, auto_correlation_ineq2, auto_correlation_ineq3, erdos_min_overlap, euclidian_steiner_tree, graph_coloring, uncertainty_inequality, circle_packing, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, spherical_code, sum_vs_difference, matrix_multiplication, tsp, vrp",
           "examples": [
             "bbob_sbox",
             "ma_bbob",
@@ -383,6 +383,7 @@
             "kerneltuner",
             "photonics",
             "toy_multiobjective",
+            "multiobjective",
             "auto_correlation_ineq1",
             "auto_correlation_ineq2",
             "auto_correlation_ineq3",
@@ -417,7 +418,7 @@
             }
           ],
           "default": null,
-          "description": "Suite key (expands into several problems): auto_correlation, erdos_min_overlap, uncertainty_inequality, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, sum_vs_difference, matrix_multiplication, bbob_groups, bbob, ma_bbob, continuous_bbo, alphaevolve_math, combinatorial, default, quick, full",
+          "description": "Suite key (expands into several problems): auto_correlation, erdos_min_overlap, uncertainty_inequality, hexagon_packing, rectangle_packing, unit_square_packing, heilbronn_triangle, heilbronn_convex_region, kissing_number_11d, min_max_distance_ratio, sum_vs_difference, matrix_multiplication, bbob_groups, bbob, ma_bbob, continuous_bbo, alphaevolve_math, combinatorial, mo_quick, mo_zdt, mo_dtlz, mo_wfg, default, quick, full",
           "examples": [
             "auto_correlation",
             "erdos_min_overlap",
@@ -437,6 +438,10 @@
             "continuous_bbo",
             "alphaevolve_math",
             "combinatorial",
+            "mo_quick",
+            "mo_zdt",
+            "mo_dtlz",
+            "mo_wfg",
             "default",
             "quick",
             "full"
