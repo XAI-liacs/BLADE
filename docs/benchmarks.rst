@@ -345,10 +345,27 @@ Both are installed in the evaluation environment.
           test_instances: [{name: dtlz4, n_obj: 3}]
           budget_factor: 500
 
-For reference, random search scores about -0.49 on ``mo_zdt`` and +0.42 on
-``mo_wfg``, and pymoo's NSGA-II (population 40, the same budget) about -0.09
-and +0.61. ZDT with 30 variables and the multimodal DTLZ1 and DTLZ3 need more
-than 2000 evaluations for these algorithms to reach the front.
+For reference, with the default budget (training functions, 3 runs):
+
+.. list-table::
+   :header-rows: 1
+
+   * - Algorithm
+     - ``mo_zdt``
+     - ``mo_dtlz``
+     - ``mo_wfg``
+   * - Random search (the example)
+     - -0.41
+     - -0.31
+     - +0.51
+   * - pymoo NSGA-II (population 100)
+     - +0.92
+     - +0.02
+     - +0.79
+
+NSGA-II reaches the front on ZDT, DTLZ2 and DTLZ4, and on WFG2-5, but not on
+the multimodal DTLZ1 and DTLZ3 (about -0.9) or on WFG1, which leaves room for
+better algorithms.
 
 Analysis
 ^^^^^^^^

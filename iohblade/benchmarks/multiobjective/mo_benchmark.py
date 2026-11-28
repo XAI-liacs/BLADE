@@ -73,16 +73,11 @@ _EXAMPLE_CODE = textwrap.dedent("""\
         def __call__(self, func):
             lb, ub = func.bounds.lb, func.bounds.ub
             # Evaluate the whole budget as one batch; func returns one row
-            # of objective values (all minimised) per point.
+            # of objective values (all minimised) per point. BLADE scores
+            # everything that was evaluated, so nothing needs to be returned.
             X = np.random.uniform(lb, ub, size=(self.budget, self.dim))
             F = func(X)
-            # Return the non-dominated points (optional: BLADE scores
-            # everything that was evaluated, not what is returned).
-            keep = [
-                i for i in range(len(F))
-                if not np.any(np.all(F <= F[i], axis=1) & np.any(F < F[i], axis=1))
-            ]
-            return X[keep], F[keep]
+            return X, F
     """)
 
 
