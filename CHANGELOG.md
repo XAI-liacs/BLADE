@@ -1,5 +1,35 @@
 # Changelog
 
+## Unreleased
+
+### Changes
+
+- **LLaMEA variants** (#255). The `llamea` method takes `variant`, one of
+  LLaMEA 1.6's ready-made configurations: `hpo` (LLaMEA-HPO, `HPO: true`,
+  (5+5)), `bo` (LLaMEA-BO, (4+16), crossover 0.6) or `sage` (LLaMEA-SAGE,
+  feature-guided mutation). Other `params` override the preset; BLADE still
+  sets the prompts, budget and direction. Without a `name` the method is
+  called `LLaMEA-<VARIANT>`. `iohblade validate` reports an unknown variant
+  with its line, and operator checks use the preset's `n_parents`.
+  BLADE now needs `llamea>=1.6.1`.
+- **`variant: bo` only runs on black-box optimisation problems** (tagged
+  `PrimaryCategories.BBO`, except the auto-correlation construction
+  problems); `iohblade validate` and `Experiment` refuse others. Its BO
+  requirement (initial design, surrogate model, acquisition function) is
+  appended to the problem's task prompt, and `scipy` and `scikit-learn` are
+  added to the problem's evaluation environment, for every method compared
+  on it.
+- **LLaMEA's multi-objective mode works in BLADE** (`variant: mo`, or
+  `multi_objective: true`). Before llamea 1.6.1 it replaced BLADE's
+  multi-objective scores by the worst value, so such runs silently produced
+  no results. It runs on multi-objective problems (tagged
+  `ObjectiveType.MULTI_OBJECTIVE`, e.g. `toy_multiobjective`), with the
+  objective names from `multi_objective_keys` or the problem's
+  `get_config()["config"]["keys"]`; `iohblade validate` and `Experiment`
+  refuse other problems. The whole Pareto front is kept in
+  `method.pareto_front`; the run's result is the front member with the best
+  mean objective.
+
 ## v1.2.2 (2026-11-26)
 
 Changes since [v1.2.1](https://github.com/XAI-liacs/BLADE/releases/tag/v1.2.1).

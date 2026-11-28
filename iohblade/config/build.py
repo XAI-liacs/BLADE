@@ -76,10 +76,17 @@ def _llamea_operators(value, path, params, issue):
     from llamea import Operator
 
     fields = {f.name: f for f in dataclasses.fields(Operator)}
-    n_parents = params.get(
-        "n_parents",
-        inspect.signature(LLAMEA_Algorithm).parameters["n_parents"].default,
+    default_parents = (
+        inspect.signature(LLAMEA_Algorithm).parameters["n_parents"].default
     )
+    try:  # a variant's preset, e.g. 4 parents for "bo"
+        from ..methods.llamea import resolve_variant
+
+        _, variant_cls = resolve_variant(params.get("variant", "llamea"))
+        default_parents = variant_cls.default_config().get("n_parents", default_parents)
+    except (ValueError, AttributeError):  # reported by _llamea_variant
+        pass
+    n_parents = params.get("n_parents", default_parents)
     items = value if isinstance(value, list) else [value]
     if not items:
         issue(path, "'operators' is empty; leave it out to use the default mutation.")
@@ -136,10 +143,33 @@ def _llamea_operators(value, path, params, issue):
     return result if ok else None
 
 
+def _llamea_variant(value, path, params, issue):
+    """Check LLaMEA's ``variant`` (a ``llamea.get_variant`` name).
+
+    Reported here, with the line of ``variant``, rather than as a failure
+    to create the method.
+    """
+    from ..methods.llamea import resolve_variant
+
+    if not isinstance(value, str):
+        issue(path, f"'variant' must be a name such as 'bo' (got {value!r}).")
+        return None
+    try:
+        resolve_variant(value)
+    except ValueError as e:
+        issue(path, str(e))
+        return None
+    return value
+
+
 # Converters for parameters that need Python objects instead of plain YAML
-# values: (kind, key) -> {param: converter(value, path, params, issue)}.
+# values, or a check with the line of the parameter:
+# (kind, key) -> {param: converter(value, path, params, issue)}.
 _PARAM_CONVERTERS: dict[tuple[str, str], dict[str, Any]] = {
-    ("method", "llamea"): {"operators": _llamea_operators},
+    ("method", "llamea"): {
+        "variant": _llamea_variant,
+        "operators": _llamea_operators,
+    },
 }
 
 
@@ -576,6 +606,62 @@ class _Builder:
         result.update(provided)
         return result
 
+    def check_bo_problems(self, problems: list) -> None:
+        """Report LLaMEA-BO methods combined with unsuitable problems.
+
+        ``variant: bo`` designs Bayesian optimisation algorithms, so every
+        problem of the experiment must be a black-box optimisation problem;
+        the issue points at the method's ``variant``.
+        """
+        from ..methods.llamea import bo_unsupported_reason, resolve_variant
+
+        reasons = [r for r in map(bo_unsupported_reason, problems) if r]
+        if not reasons:
+            return
+        for i, spec in enumerate(self.config.methods):
+            variant = (spec.params or {}).get("variant")
+            if spec.type != "llamea" or not isinstance(variant, str):
+                continue
+            try:
+                key, _ = resolve_variant(variant)
+            except ValueError:  # reported by _llamea_variant
+                continue
+            if key == "bo":
+                for reason in reasons:
+                    self.issue(("methods", i, "params", "variant"), reason)
+
+    def check_mo_problems(self, problems: list) -> None:
+        """Report multi-objective LLaMEA methods on unsuitable problems.
+
+        ``variant: mo`` and ``multi_objective: true`` need multi-objective
+        problems with known objective names; the issue points at the
+        parameter that asks for multi-objective mode.
+        """
+        from ..methods.llamea import mo_unsupported_reason, resolve_variant
+
+        for i, spec in enumerate(self.config.methods):
+            params = spec.params or {}
+            if spec.type != "llamea":
+                continue
+            if "multi_objective" in params:
+                if not params["multi_objective"]:
+                    continue
+                path = ("methods", i, "params", "multi_objective")
+            else:
+                variant = params.get("variant")
+                try:
+                    key, _ = resolve_variant(variant) if variant else ("", None)
+                except ValueError:  # reported by _llamea_variant
+                    continue
+                if key != "mo":
+                    continue
+                path = ("methods", i, "params", "variant")
+            keys = params.get("multi_objective_keys")
+            for problem in problems:
+                reason = mo_unsupported_reason(problem, keys)
+                if reason:
+                    self.issue(path, reason)
+
     def construct(self, target, kwargs: dict, path: Path_, what: str):
         try:
             return target(**kwargs)
@@ -887,13 +973,17 @@ def build_plan(source: LoadedConfig) -> ExperimentPlan:
     methods, llm_names = builder.build_methods(llms)
     problems = builder.build_problems()
     builder.check_logger()
+    builder.check_bo_problems(problems)
+    builder.check_mo_problems(problems)
     if builder.issues:
         raise ConfigError(builder.issues)
     # Enable HPO now, so that `iohblade check` builds the right environments
     # (Experiment does the same for the Python API).
     from ..hpo import configure_hpo
+    from ..methods.llamea import configure_llamea
 
     notes, hpo_warnings = configure_hpo(methods, problems)
+    notes += configure_llamea(methods, problems)
     section = config.experiment
     seeds = list(section.seeds) if section.seeds else list(range(section.runs))
     output_dir = Path(section.output_dir)

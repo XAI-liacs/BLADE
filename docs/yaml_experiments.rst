@@ -315,6 +315,71 @@ needs more parents than ``n_parents``. In Python:
     ]
     method = LLaMEA(llm, budget=100, operators=operators, n_parents=2, n_offspring=2)
 
+LLaMEA variants
+---------------
+
+LLaMEA ships ready-made configurations from its papers (``llamea.variants``,
+LLaMEA 1.6.0 or later). Choose one with ``variant``; any other LLaMEA
+parameter in ``params`` overrides the preset:
+
+.. code-block:: yaml
+
+    methods:
+      - type: llamea
+        llm: gemma
+        params: {variant: bo}                    # name: LLaMEA-BO
+      - type: llamea
+        llm: gemma
+        params: {variant: hpo, n_offspring: 10}  # preset (5+5) -> (5+10)
+
+.. list-table::
+   :header-rows: 1
+
+   * - ``variant``
+     - Preset
+   * - ``llamea`` (default)
+     - The plain algorithm, (5+5).
+   * - ``hpo``
+     - LLaMEA-HPO: ``HPO: true``, (5+5); see `Hyperparameter tuning (HPO)`_.
+   * - ``bo``
+     - LLaMEA-BO: (4+16), crossover 0.6 and mutation 0.4; designs Bayesian
+       optimisation algorithms. Black-box optimisation problems only, see
+       below.
+   * - ``mo``
+     - LLaMEA-MO: multi-objective, (5+10). Multi-objective problems only,
+       see below.
+   * - ``sage``
+     - LLaMEA-SAGE: ``feature_guided_mutation: true`` (needs the
+       ``feature-guidance`` group).
+
+* BLADE always sets the prompts (from the problem), the ``budget`` and the
+  optimisation direction, so these parts of a preset do not apply.
+* ``bo`` makes LLaMEA design Bayesian optimisation algorithms, so it only
+  runs on black-box optimisation problems: problems tagged
+  ``PrimaryCategories.BBO`` (``bbob_sbox``, ``ma_bbob``, ``photonics``,
+  ``kerneltuner``, or your own problem with that tag in ``get_config()``),
+  except the auto-correlation problems, whose candidates construct a
+  sequence. ``iohblade validate`` refuses other problems. The problem's task
+  prompt (interface, bounds, budget) is kept and LLaMEA-BO's requirement is
+  appended: an initial design, a surrogate model and an acquisition
+  function. The evaluation environment of the problem also installs
+  ``scipy`` and ``scikit-learn`` (for Gaussian processes); every method
+  compared on that problem can use them, and ``validate`` notes this.
+* Without a ``name``, the method is called ``LLaMEA-<VARIANT>``
+  (e.g. ``LLaMEA-BO``).
+* ``mo`` (or ``multi_objective: true`` with any variant) selects survivors by
+  non-dominated sorting and crowding distance. It only runs on
+  multi-objective problems (tagged ``ObjectiveType.MULTI_OBJECTIVE``, e.g.
+  ``toy_multiobjective``); ``iohblade validate`` refuses others. The
+  objective names come from ``multi_objective_keys`` or, by default, from
+  the problem (``get_config()["config"]["keys"]``). The run keeps the whole
+  Pareto front in ``method.pareto_front`` and reports the front member with
+  the best mean objective as its result.
+* Operator checks use the preset's ``n_parents`` (4 for ``bo``).
+
+In Python: ``LLaMEA(llm, budget=100, variant="bo")``. Variants need
+``llamea>=1.6.0``, and ``mo`` needs ``llamea>=1.6.1``.
+
 Hyperparameter tuning (HPO)
 ---------------------------
 
