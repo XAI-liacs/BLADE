@@ -29,3 +29,8 @@ try:
     from .toy_multiobjective.toy_multiobjective import ToyMultiObjective
 except Exception:
     ToyMultiObjective = None
+
+try:
+    from .multiobjective.mo_benchmark import MultiObjectiveBenchmark
+except Exception:
+    MultiObjectiveBenchmark = None

@@ -68,6 +68,13 @@ problems:
 
 ## Built-in components
 
+Multi-objective optimiser design: problem `multiobjective` (pymoo ZDT/DTLZ/WFG
+functions as `training_instances`, e.g. `[zdt1, {name: dtlz2, n_obj: 3}]`)
+and suites `mo_quick`, `mo_zdt`, `mo_dtlz`, `mo_wfg`; `budget_factor` (2000)
+times the dimension evaluations per run; the candidate gets a
+vector-valued `func`, and the score is the area under the normalised
+hypervolume curve (higher is better, at most 1).
+
 Run `iohblade list` for the current list. To see the parameters of a
 component, print its constructor signature and docstring:
 
