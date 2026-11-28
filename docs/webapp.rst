@@ -98,3 +98,34 @@ generated optimiser searches, for example its exploration and exploitation,
 convergence rate and improvement statistics.
 
 Multi-objective problems have a Pareto front plot; see :doc:`fitness`.
+
+Multi-objective optimiser design
+--------------------------------
+
+For the multi-objective benchmarks (problem ``multiobjective`` and the
+``mo_*`` suites, see :doc:`benchmarks`) each evaluation run stores its
+hypervolume and IGD+ curves over the budget and its final non-dominated
+front. :mod:`iohblade.mo_analysis` analyses them for the best solution of
+every run; the web app shows the same in a *Multi-objective analysis*
+section (summary, over the budget, Pareto fronts, attainment).
+
+.. code-block:: python
+
+   from iohblade import mo_analysis as mo
+
+   mo.mo_summary_table(logger, "MO-ZDT", metric="area")   # also final_hv, igd_plus
+   mo.plot_mo_anytime(logger, "MO-ZDT", indicator="hv")   # or "igd_plus"
+   mo.plot_mo_fronts(logger, "MO-ZDT")                    # 2D, 3D or parallel coordinates
+   mo.plot_mo_attainment(logger, "MO-ZDT", "zdt1")        # median attainment surface
+   mo.plot_mo_eaf_difference(logger, "MO-ZDT", "zdt1", "LLaMEA", "RandomSearch")
+
+- The summary table gives mean ± std over the runs (each run's value is the
+  mean over its evaluation runs), marks the best method with ``*`` and the
+  methods that are not significantly worse with ``(=)`` (two-sided
+  Mann-Whitney U test). :func:`~iohblade.mo_analysis.mo_runs` returns the
+  underlying data.
+- All plots use the normalised objective space: 0 is the ideal and 1 the
+  nadir point of the reference front, and the hypervolume reference point
+  is 1.1.
+- Attainment surfaces and EAF differences (computed with `moocore
+  <https://multi-objective.github.io/moocore/python/>`_) need 2 objectives.

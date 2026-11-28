@@ -421,6 +421,62 @@ def _auto_refresh() -> None:
     _REFRESH_FRAGMENT()
 
 
+def multi_objective_section(logger: ExperimentLogger) -> None:
+    """Analysis of multi-objective benchmarks (``multiobjective`` problems).
+
+    Shown only when the experiment has such problems: a summary table,
+    hypervolume / IGD+ over the budget, Pareto fronts, and attainment
+    surfaces and EAF differences (2 objectives).
+    """
+    from iohblade import mo_analysis
+
+    problems = mo_analysis.mo_problems(logger)
+    if not problems:
+        return
+    st.markdown("#### Multi-objective analysis")
+    problem = st.selectbox("Problem", problems, key="mo_problem")
+    runs = mo_analysis.mo_runs(logger, problem)
+    functions = list(dict.fromkeys(runs["function"]))
+    methods = list(dict.fromkeys(runs["method_label"]))
+    tab_table, tab_anytime, tab_fronts, tab_eaf = st.tabs(
+        ["Summary", "Over the budget", "Pareto fronts", "Attainment"]
+    )
+    with tab_table:
+        metric = st.selectbox(
+            "Metric",
+            list(mo_analysis.METRICS),
+            format_func=lambda m: mo_analysis._LABELS[m],
+            key="mo_metric",
+        )
+        st.dataframe(mo_analysis.mo_summary_table(logger, problem, metric))
+        st.caption(
+            "Mean ± std over the runs of each method's best solutions. "
+            "* best method; (=) not significantly worse (Mann-Whitney U, p >= 0.05)."
+        )
+    with tab_anytime:
+        indicator = st.radio(
+            "Indicator", ["hv", "igd_plus"], horizontal=True, key="mo_indicator"
+        )
+        st.pyplot(mo_analysis.plot_mo_anytime(logger, problem, indicator))
+    with tab_fronts:
+        st.pyplot(mo_analysis.plot_mo_fronts(logger, problem))
+    with tab_eaf:
+        function = st.selectbox("Function", functions, key="mo_function")
+        try:
+            st.pyplot(mo_analysis.plot_mo_attainment(logger, problem, function))
+            if len(methods) >= 2:
+                a = st.selectbox("Method A", methods, index=0, key="mo_a")
+                b = st.selectbox("Method B", methods, index=1, key="mo_b")
+                if a != b:
+                    st.pyplot(
+                        mo_analysis.plot_mo_eaf_difference(
+                            logger, problem, function, a, b
+                        )
+                    )
+        except ValueError as e:  # e.g. more than 2 objectives
+            st.info(str(e))
+
+
 def run() -> None:
     st.set_page_config(
         page_title="BLADE Experiment Browser",
@@ -586,6 +642,8 @@ def run() -> None:
                     st.plotly_chart(ceg_fig)
                 else:
                     st.write("No data for selected run.")
+
+            multi_objective_section(logger)
 
             st.markdown("#### Top Solutions")
             runs = logger.get_data()

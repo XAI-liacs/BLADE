@@ -19,6 +19,7 @@ The configuration API (``load_plan``, ``ExperimentPlan``) is at the end of
    loggers
    registry
    plots
+   mo_analysis
    behaviour_metrics
    baselines
    assets
