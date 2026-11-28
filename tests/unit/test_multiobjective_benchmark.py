@@ -54,19 +54,24 @@ def test_function_spec_defaults_and_errors():
 
 
 def _func(name="zdt1", budget=10):
-    return MultiObjectiveFunction(_pymoo_problem(function_spec(name)), budget)
+    func, _ = _func_and_record(name, budget)
+    return func
+
+
+def _func_and_record(name="zdt1", budget=10):
+    return MultiObjectiveFunction.create(_pymoo_problem(function_spec(name)), budget)
 
 
 def test_function_single_and_batch_calls_are_recorded():
-    func = _func("zdt1", budget=10)
+    func, record = _func_and_record("zdt1", budget=10)
     assert func.meta_data.n_variables == 30 and func.meta_data.n_objectives == 2
     f = func(np.full(30, 0.5))
     assert f.shape == (2,)
     F = func(np.random.uniform(0, 1, (4, 30)))
     assert F.shape == (4, 2)
     assert func.state.evaluations == 5
-    assert len(func._archive) == 5
-    assert np.allclose(func._archive[0], f)
+    assert record.evaluations == 5
+    assert np.allclose(record.objectives()[0], f)
 
 
 def test_function_clips_to_bounds_and_checks_input():
@@ -81,11 +86,11 @@ def test_function_clips_to_bounds_and_checks_input():
 
 
 def test_function_enforces_the_budget_and_keeps_what_fits():
-    func = _func("zdt1", budget=5)
+    func, record = _func_and_record("zdt1", budget=5)
     func(np.random.uniform(0, 1, (3, 30)))
     with pytest.raises(OverBudgetException):
         func(np.random.uniform(0, 1, (4, 30)))  # only 2 more fit
-    assert func.state.evaluations == 5 and len(func._archive) == 5
+    assert func.state.evaluations == 5 and len(record.objectives()) == 5
     with pytest.raises(OverBudgetException):
         func(np.zeros(30))
     assert func.state.evaluations == 5
@@ -95,6 +100,41 @@ def test_function_hides_the_problem():
     func = _func()
     assert not hasattr(func, "problem")
     assert not hasattr(func, "pareto_front")
+
+
+def test_candidate_cannot_reach_the_scoring_record():
+    func, record = _func_and_record("zdt1", budget=10)
+    # No attribute holds the record (review finding on #258).
+    assert not any(hasattr(func, a) for a in ("_archive", "_record", "_count"))
+    with pytest.raises(AttributeError):
+        func._archive = []  # __slots__: no new attributes
+    F = func(np.full(30, 0.5))
+    F[:] = -100.0  # the returned array is a copy
+    assert np.all(record.objectives()[0] > -100.0)
+    copy = record.objectives()
+    copy[:] = -100.0  # objectives() returns a copy too
+    assert np.all(record.objectives()[0] > -100.0)
+
+
+def test_tampering_attempt_does_not_change_the_score():
+    cheat = (
+        "import numpy as np\n"
+        "class Cheat:\n"
+        "    def __init__(self, budget, dim):\n"
+        "        self.budget, self.dim = budget, dim\n"
+        "    def __call__(self, func):\n"
+        "        func(np.full(self.dim, 0.5))\n"
+        "        for name in ('_archive', '_record'):\n"
+        "            try:\n"
+        "                getattr(func, name).extend([np.zeros(2)] * 1000)\n"
+        "            except AttributeError:\n"
+        "                pass\n"
+    )
+    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget_factor=5, runs=1)
+    solution = problem.evaluate(Solution(code=cheat, name="Cheat"))
+    run = solution.metadata["performance_data"][0]
+    assert run["evaluations"] == 1
+    assert run["final_hv"] < 0.5
 
 
 # ---------------------------------------------------------------- scoring
