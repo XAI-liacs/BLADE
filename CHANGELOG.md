@@ -14,6 +14,15 @@
   reference point 1.1 after normalising with the known front's ideal and
   nadir points; a COCO-style negative distance while no point reaches the
   reference box). Feedback also reports the final hypervolume and IGD+.
+- **Multi-objective analysis** (#257, phase 2). Each evaluation run of the
+  multi-objective benchmarks now stores its hypervolume and IGD+ curves
+  over the budget and its final non-dominated front (normalised, at most
+  100 points). New module `iohblade.mo_analysis`: per-run data, a summary
+  table (mean ± std, best method, Mann-Whitney U), hypervolume / IGD+ over
+  the budget, Pareto fronts against the reference front (2D, 3D or parallel
+  coordinates), and attainment surfaces and EAF differences (moocore, 2
+  objectives). The web app shows them in a *Multi-objective analysis*
+  section.
 
 ## v1.2.2 (2026-11-26)
 

@@ -45,6 +45,10 @@ MO_DEPENDENCIES = ["pymoo>=0.6.1,<0.7", "moocore>=0.1.7,<1"]
 #: Hypervolume reference point in the normalised objective space.
 REFERENCE_POINT = 1.1
 
+#: At most this many points of a run's final non-dominated set are kept in
+#: the solution's metadata (for Pareto-front and attainment plots).
+MAX_FRONT_POINTS = 100
+
 #: Default evaluations per run: ``BUDGET_FACTOR * n_var`` (as for BBOB).
 BUDGET_FACTOR = 2000
 
@@ -267,8 +271,11 @@ def anytime_hypervolume(
         ``final_hv`` (normalised
         hypervolume at the end), ``distance`` (distance of the closest final
         point to the reference box, 0 once inside), ``igd_plus`` (IGD+ of the
-        final set to the reference front, normalised space) and
-        ``n_nondominated``.
+        final set to the reference front, normalised space),
+        ``n_nondominated``, ``curve`` (``fraction`` of the budget, ``hv`` and
+        ``igd_plus`` at each checkpoint) and ``front`` (the final
+        non-dominated points in the normalised space, at most
+        :data:`MAX_FRONT_POINTS`).
     """
     import moocore
 
@@ -286,6 +293,8 @@ def anytime_hypervolume(
             "distance": math.inf,
             "igd_plus": math.inf,
             "n_nondominated": 0,
+            "curve": {"fraction": [], "hv": [], "igd_plus": []},
+            "front": [],
         }
     F_n = (F - ideal) / span
     # Distance of each point to the reference box [ideal, ref] (0 inside),
@@ -295,20 +304,38 @@ def anytime_hypervolume(
     steps = np.unique(
         np.ceil(np.arange(1, checkpoints + 1) * budget / checkpoints).astype(int)
     )
-    values, hv = [], 0.0
+    values, igds, hv = [], [], 0.0
     for t in steps:
         n = min(t, len(F_n))
         hv = min(1.0, float(moocore.hypervolume(F_n[:n], ref=ref)) / hv_front)
         d = float(closest[n - 1])
         values.append(hv if hv > 0 else -d / (1.0 + d))
+        igds.append(
+            float(moocore.igd_plus(moocore.filter_dominated(F_n[:n]), ref=front_n))
+        )
     final = moocore.filter_dominated(F_n)
     return {
         "area": float(np.mean(values)),
         "final_hv": hv,
         "distance": float(closest[-1]),
-        "igd_plus": float(moocore.igd_plus(final, ref=front_n)),
+        "igd_plus": igds[-1],
         "n_nondominated": int(len(final)),
+        "curve": {
+            "fraction": [float(t) / budget for t in steps],
+            "hv": values,
+            "igd_plus": igds,
+        },
+        "front": _thin(final, MAX_FRONT_POINTS).tolist(),
     }
+
+
+def _thin(points: np.ndarray, limit: int) -> np.ndarray:
+    """At most ``limit`` points, evenly spread along the first objective."""
+    if len(points) <= limit:
+        return points
+    order = np.lexsort(points.T[::-1])
+    keep = np.unique(np.linspace(0, len(points) - 1, limit).round().astype(int))
+    return points[order[keep]]
 
 
 class MultiObjectiveBenchmark(Problem):
@@ -427,6 +454,7 @@ class MultiObjectiveBenchmark(Problem):
         result = anytime_hypervolume(F, front, budget, self.checkpoints)
         return {
             "function": _label(spec),
+            "spec": dict(spec),
             "seed": seed,
             "budget": budget,
             "evaluations": len(F),
