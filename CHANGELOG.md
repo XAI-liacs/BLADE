@@ -8,7 +8,8 @@
   `multiobjective` and suites `mo_quick`, `mo_zdt`, `mo_dtlz` and `mo_wfg`:
   the LLM designs a multi-objective optimiser (BBOB-style interface; `func`
   returns the objective vector, also for a batch of points) for ZDT, DTLZ
-  and WFG functions from pymoo. BLADE records every evaluation and scores
+  and WFG functions from pymoo, with `budget_factor` × dimension
+  evaluations per run (2000, as for BBOB). BLADE records every evaluation and scores
   the area under the normalised hypervolume curve over the budget (moocore;
   reference point 1.1 after normalising with the known front's ideal and
   nadir points; a COCO-style negative distance while no point reaches the

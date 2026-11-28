@@ -288,6 +288,10 @@ fronts come from `pymoo <https://pymoo.org/problems/test_problems.html>`_;
 the indicators from `moocore <https://multi-objective.github.io/moocore/python/>`_.
 Both are installed in the evaluation environment.
 
+- Budget: ``budget_factor`` × the number of variables per run (default
+  2000, as for BBOB): 60 000 evaluations for the 30-variable ZDT1-3, 20 000
+  for 10-variable functions. The default ``eval_timeout`` scales with the
+  total number of evaluations.
 - Interface (as for BBOB): ``__init__(self, budget, dim)`` and
   ``__call__(self, func)``. ``func(x)`` returns the objective vector of one
   point, or one row per point for a batch of shape ``(k, dim)``; every point
@@ -317,10 +321,12 @@ Both are installed in the evaluation environment.
      - Problems
    * - ``multiobjective`` (problem)
      - Configurable: ``training_instances`` and ``test_instances`` are pymoo
-       functions, e.g. ``[zdt1, {name: dtlz2, n_obj: 3}]``; ``budget``
-       (evaluations per run, 2000), ``runs`` (3), ``checkpoints`` (50).
+       functions, e.g. ``[zdt1, {name: dtlz2, n_obj: 3}]``;
+       ``budget_factor`` (evaluations per run = ``budget_factor`` × the
+       function's number of variables; 2000, as for BBOB), ``runs`` (3),
+       ``checkpoints`` (50).
    * - ``mo_quick`` (suite)
-     - Design on ZDT1 and ZDT2, test on ZDT3; 1000 evaluations, 2 runs.
+     - Design on ZDT1 and ZDT2, test on ZDT3; 2 runs.
    * - ``mo_zdt`` (suite)
      - 2 objectives: design on ZDT1-3, test on ZDT4 and ZDT6.
    * - ``mo_dtlz`` (suite)
@@ -337,7 +343,7 @@ Both are installed in the evaluation environment.
         params:
           training_instances: [{name: dtlz2, n_obj: 3}]
           test_instances: [{name: dtlz4, n_obj: 3}]
-          budget: 1000
+          budget_factor: 500
 
 For reference, random search scores about -0.49 on ``mo_zdt`` and +0.42 on
 ``mo_wfg``, and pymoo's NSGA-II (population 40, the same budget) about -0.09

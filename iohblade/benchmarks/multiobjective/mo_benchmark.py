@@ -45,6 +45,15 @@ MO_DEPENDENCIES = ["pymoo>=0.6.1,<0.7", "moocore>=0.1.7,<1"]
 #: Hypervolume reference point in the normalised objective space.
 REFERENCE_POINT = 1.1
 
+#: Default evaluations per run: ``BUDGET_FACTOR * n_var`` (as for BBOB).
+BUDGET_FACTOR = 2000
+
+#: Seconds allowed per function evaluation for the default ``eval_timeout``
+#: (generous: candidates often evaluate point by point in Python, and the
+#: hypervolume is computed at every checkpoint).
+SECONDS_PER_EVALUATION = 2e-3
+MIN_EVAL_TIMEOUT = 300
+
 #: Function families and their default pymoo arguments.
 FAMILIES: dict[str, dict[str, Any]] = {
     "zdt": {},
@@ -267,11 +276,16 @@ class MultiObjectiveBenchmark(Problem):
             ``["zdt1", {"name": "dtlz2", "n_obj": 3}]`` (see
             :func:`function_spec`). Default: ZDT1 and ZDT2.
         test_instances: Functions for the final test. Default: ZDT3.
-        budget: Evaluations per run.
+        budget_factor: Evaluations per run = ``budget_factor * n_var`` of the
+            function (default 2000, as for BBOB): e.g. 60 000 for the
+            30-variable ZDT1, 20 000 for a 10-variable DTLZ or WFG function.
         runs: Independent runs per function (seeds ``0..runs-1``).
-        checkpoints: Evaluation counts at which the hypervolume is measured.
+        checkpoints: Number of equal parts of each run's budget at whose end
+            the hypervolume is measured.
         name: Problem name.
-        eval_timeout: Seconds per evaluation of a candidate.
+        eval_timeout: Seconds per evaluation of a candidate. Default: from
+            the number of function evaluations of the larger of the training
+            and test sets (2 ms each, at least 300 s).
         logger, dependencies, imports: See :class:`~iohblade.problem.Problem`.
     """
 
@@ -281,11 +295,11 @@ class MultiObjectiveBenchmark(Problem):
         self,
         training_instances=None,
         test_instances=None,
-        budget: int = 2000,
+        budget_factor: int = BUDGET_FACTOR,
         runs: int = 3,
         checkpoints: int = 50,
         name: str = "MO-ZDT",
-        eval_timeout: int = 600,
+        eval_timeout: int | None = None,
         logger=None,
         dependencies=None,
         imports=None,
@@ -295,7 +309,7 @@ class MultiObjectiveBenchmark(Problem):
         if test_instances is None:
             test_instances = ["zdt3"]
         for value, label in (
-            (budget, "budget"),
+            (budget_factor, "budget_factor"),
             (runs, "runs"),
             (checkpoints, "checkpoints"),
         ):
@@ -303,8 +317,17 @@ class MultiObjectiveBenchmark(Problem):
                 raise ValueError(f"'{label}' must be an integer >= 1 (got {value!r}).")
         train = [function_spec(e) for e in training_instances]
         test = [function_spec(e) for e in test_instances]
+        n_vars = {}
         for spec in train + test:  # fail early on a wrong name or argument
-            _pymoo_problem(spec)
+            n_vars[_label(spec)] = int(_pymoo_problem(spec).n_var)
+        if eval_timeout is None:
+            evaluations = max(
+                sum(runs * budget_factor * n_vars[_label(s)] for s in specs)
+                for specs in (train, test)
+            )
+            eval_timeout = max(
+                MIN_EVAL_TIMEOUT, math.ceil(evaluations * SECONDS_PER_EVALUATION)
+            )
         super().__init__(
             logger=logger,
             training_instances=train,
@@ -314,13 +337,13 @@ class MultiObjectiveBenchmark(Problem):
             dependencies=list(dependencies) if dependencies else list(MO_DEPENDENCIES),
             imports=imports or "import numpy as np\n",
         )
-        self.budget = budget
+        self.budget_factor = budget_factor
         self.runs = runs
         self.checkpoints = checkpoints
         self.task_prompt = textwrap.dedent("""
             You are a Python expert working on a new multi-objective optimization algorithm. You can use numpy v2.
             Your task is to develop a novel heuristic optimization algorithm for continuous multi-objective optimization problems with 2 or 3 conflicting objectives, all to be minimized (functions from the ZDT, DTLZ and WFG suites).
-            The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations.
+            The code should contain an `__init__(self, budget, dim)` function with optional additional arguments and the function `def __call__(self, func)`, which should optimize the black box function `func` using `self.budget` function evaluations (the budget is proportional to `dim`).
             `func(x)` takes one point (a numpy array of length `dim`) and returns a numpy array with one value per objective; it also takes a batch of points (shape `(k, dim)`) and returns one row per point. Every point counts towards the budget, and func() can only be called as many times as the budget allows, not more.
             The search space is `func.bounds.lb` to `func.bounds.ub` (points are clipped to it), and `func.meta_data.n_objectives` is the number of objectives.
             The goal is a good approximation of the whole Pareto front, found early: the score is the area under the hypervolume curve of all evaluated points over the budget (normalised, 1.0 is best; negative while no point is close enough to the Pareto front to add hypervolume).
@@ -344,16 +367,23 @@ class MultiObjectiveBenchmark(Problem):
     def _run(self, alg_cls, spec: dict, seed: int) -> dict[str, Any]:
         problem = _pymoo_problem(spec)
         front = problem.pareto_front()
-        func = MultiObjectiveFunction(problem, self.budget)
+        budget = self.budget_factor * int(problem.n_var)
+        func = MultiObjectiveFunction(problem, budget)
         np.random.seed(seed)
-        algorithm = alg_cls(budget=self.budget, dim=int(problem.n_var))
+        algorithm = alg_cls(budget=budget, dim=int(problem.n_var))
         try:
             algorithm(func)
         except OverBudgetException:
             pass
         F = np.array(func._archive)
-        result = anytime_hypervolume(F, front, self.budget, self.checkpoints)
-        return {"function": _label(spec), "seed": seed, "evaluations": len(F), **result}
+        result = anytime_hypervolume(F, front, budget, self.checkpoints)
+        return {
+            "function": _label(spec),
+            "seed": seed,
+            "budget": budget,
+            "evaluations": len(F),
+            **result,
+        }
 
     def evaluate(self, solution: Solution, test: bool = False) -> Solution:
         """Run the candidate on the training (or test) functions and score it.
@@ -397,7 +427,7 @@ class MultiObjectiveBenchmark(Problem):
                 )
                 + f"{np.mean([r['n_nondominated'] for r in rows]):.0f} non-dominated "
                 f"points, {np.mean([r['evaluations'] for r in rows]):.0f}/"
-                f"{self.budget} evaluations"
+                f"{rows[0]['budget']} evaluations"
             )
         feedback = (
             f"The algorithm {solution.name} scored {score:.3f} on the area under "
@@ -418,7 +448,7 @@ class MultiObjectiveBenchmark(Problem):
             "name": self.name,
             "training_instances": self.training_instances,
             "test_instances": self.test_instances,
-            "budget": self.budget,
+            "budget_factor": self.budget_factor,
             "runs": self.runs,
             "checkpoints": self.checkpoints,
         }
@@ -453,12 +483,12 @@ class MultiObjectiveBenchmark(Problem):
         }
 
 
-def _suite(train, test, name, budget=2000, runs=3, eval_timeout=600):
+def _suite(train, test, name, budget_factor, runs, eval_timeout=None):
     return [
         MultiObjectiveBenchmark(
             training_instances=train,
             test_instances=test,
-            budget=budget,
+            budget_factor=budget_factor,
             runs=runs,
             name=name,
             eval_timeout=eval_timeout,
@@ -466,25 +496,31 @@ def _suite(train, test, name, budget=2000, runs=3, eval_timeout=600):
     ]
 
 
-def mo_quick(budget: int = 1000, runs: int = 2) -> list[Problem]:
+def mo_quick(budget_factor: int = BUDGET_FACTOR, runs: int = 2) -> list[Problem]:
     """A small multi-objective suite: design on ZDT1 and ZDT2, test on ZDT3."""
-    return _suite(["zdt1", "zdt2"], ["zdt3"], "MO-quick", budget, runs)
+    return _suite(["zdt1", "zdt2"], ["zdt3"], "MO-quick", budget_factor, runs)
 
 
-def mo_zdt(budget: int = 2000, runs: int = 3) -> list[Problem]:
+def mo_zdt(budget_factor: int = BUDGET_FACTOR, runs: int = 3) -> list[Problem]:
     """ZDT (2 objectives): design on ZDT1-3, test on ZDT4 and ZDT6."""
-    return _suite(["zdt1", "zdt2", "zdt3"], ["zdt4", "zdt6"], "MO-ZDT", budget, runs)
+    return _suite(
+        ["zdt1", "zdt2", "zdt3"], ["zdt4", "zdt6"], "MO-ZDT", budget_factor, runs
+    )
 
 
-def mo_dtlz(budget: int = 2000, runs: int = 3, n_obj: int = 3) -> list[Problem]:
+def mo_dtlz(
+    budget_factor: int = BUDGET_FACTOR, runs: int = 3, n_obj: int = 3
+) -> list[Problem]:
     """DTLZ (3 objectives by default): design on DTLZ1-4, test on DTLZ5-7."""
     train = [{"name": f"dtlz{i}", "n_obj": n_obj} for i in range(1, 5)]
     test = [{"name": f"dtlz{i}", "n_obj": n_obj} for i in range(5, 8)]
-    return _suite(train, test, "MO-DTLZ", budget, runs)
+    return _suite(train, test, "MO-DTLZ", budget_factor, runs)
 
 
-def mo_wfg(budget: int = 2000, runs: int = 3, n_obj: int = 2) -> list[Problem]:
+def mo_wfg(
+    budget_factor: int = BUDGET_FACTOR, runs: int = 3, n_obj: int = 2
+) -> list[Problem]:
     """WFG (2 objectives, 10 variables): design on WFG1-5, test on WFG6-9."""
     train = [{"name": f"wfg{i}", "n_var": 10, "n_obj": n_obj} for i in range(1, 6)]
     test = [{"name": f"wfg{i}", "n_var": 10, "n_obj": n_obj} for i in range(6, 10)]
-    return _suite(train, test, "MO-WFG", budget, runs)
+    return _suite(train, test, "MO-WFG", budget_factor, runs)

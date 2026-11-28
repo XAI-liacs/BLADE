@@ -138,26 +138,27 @@ def test_better_front_scores_higher():
 
 
 def test_evaluate_scores_and_reports():
-    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget=200, runs=2)
+    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget_factor=5, runs=2)
     solution = problem.evaluate(Solution(code=RANDOM, name="RandomSearch"))
     assert -1.0 < solution.fitness <= 1.0
     data = solution.metadata["performance_data"]
     assert [r["seed"] for r in data] == [0, 1]
-    assert all(r["evaluations"] == 200 for r in data)
+    # budget = budget_factor * n_var = 5 * 30 for ZDT1
+    assert all(r["budget"] == 150 and r["evaluations"] == 150 for r in data)
     assert "zdt1" in solution.feedback and "IGD+" in solution.feedback
     tested = problem.test(Solution(code=RANDOM, name="RandomSearch"))
     assert {r["function"] for r in tested.metadata["performance_data"]} == {"zdt2"}
 
 
 def test_evaluate_is_reproducible_per_seed():
-    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget=100, runs=1)
+    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget_factor=3, runs=1)
     a = problem.evaluate(Solution(code=RANDOM, name="RandomSearch")).fitness
     b = problem.evaluate(Solution(code=RANDOM, name="RandomSearch")).fitness
     assert a == b
 
 
 def test_evaluate_errors():
-    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget=50, runs=1)
+    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget_factor=2, runs=1)
     lazy = "class Lazy:\n    def __init__(self, budget, dim):\n        pass\n    def __call__(self, func):\n        return None\n"
     with pytest.raises(ValueError, match="never called func"):
         problem.evaluate(Solution(code=lazy, name="Lazy"))
@@ -167,17 +168,17 @@ def test_evaluate_errors():
 
 def test_over_budget_candidates_are_scored_on_what_fits():
     greedy = RANDOM.replace("(self.budget, self.dim)", "(self.budget * 2, self.dim)")
-    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget=50, runs=1)
+    problem = MultiObjectiveBenchmark(["zdt1"], ["zdt2"], budget_factor=2, runs=1)
     solution = problem.evaluate(Solution(code=greedy, name="RandomSearch"))
-    assert solution.metadata["performance_data"][0]["evaluations"] == 50
+    assert solution.metadata["performance_data"][0]["evaluations"] == 2 * 30
     assert math.isfinite(solution.fitness)
 
 
 def test_constructor_validation():
     with pytest.raises(ValueError, match="Unknown multi-objective"):
         MultiObjectiveBenchmark(["sphere"])
-    with pytest.raises(ValueError, match="'budget' must be an integer"):
-        MultiObjectiveBenchmark(budget=0)
+    with pytest.raises(ValueError, match="'budget_factor' must be an integer"):
+        MultiObjectiveBenchmark(budget_factor=0)
     with pytest.raises(Exception):
         MultiObjectiveBenchmark([{"name": "dtlz2", "n_obj": "three"}])
 
@@ -225,7 +226,7 @@ def test_yaml_problem_and_suite():
                     "params": {
                         "training_instances": ["zdt1", {"name": "dtlz2", "n_obj": 3}],
                         "test_instances": ["wfg4"],
-                        "budget": 500,
+                        "budget_factor": 100,
                     },
                 },
                 {"suite": "mo_quick"},
@@ -235,7 +236,7 @@ def test_yaml_problem_and_suite():
     )
     names = [p.name for p in plan.problems]
     assert names == ["mine", "MO-quick"]
-    assert plan.problems[0].budget == 500
+    assert plan.problems[0].budget_factor == 100
 
 
 def test_yaml_reports_an_unknown_function():
@@ -253,3 +254,12 @@ def test_yaml_reports_an_unknown_function():
             env={},
         )
     assert "zdt9" in "\n".join(str(i) for i in exc.value.issues)
+
+
+def test_default_budget_and_timeout_scale_with_dimension():
+    problem = MultiObjectiveBenchmark(["zdt1"], [{"name": "dtlz2", "n_obj": 3}])
+    assert problem.budget_factor == 2000
+    # 3 runs * 2000 * 30 variables (ZDT1) = 180 000 evaluations, 2 ms each
+    assert problem.eval_timeout == 360
+    assert MultiObjectiveBenchmark(["zdt1"], budget_factor=1).eval_timeout == 300
+    assert MultiObjectiveBenchmark(eval_timeout=42).eval_timeout == 42
