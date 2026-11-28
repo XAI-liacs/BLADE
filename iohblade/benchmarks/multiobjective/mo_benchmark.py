@@ -135,17 +135,39 @@ class MultiObjectiveFunction:
 
     Calls beyond the budget raise
     :class:`~iohblade.utils.OverBudgetException` (the points that still fit
-    are evaluated first). Every evaluated objective vector is recorded in
-    order, for scoring.
+    are evaluated first).
+
+    Every evaluated objective vector is recorded, in order, for scoring. The
+    record is not an attribute of this object (a candidate could otherwise
+    add made-up points to it): the harness creates the function with
+    :meth:`create`, which also returns a :class:`EvaluationRecord`, and only
+    the function is given to the candidate. As for
+    :class:`~iohblade.benchmarks.blackbox.BlackBoxFunction`, this removes the
+    documented ways to tamper with the score; code in the same process can
+    still reach closures by introspection.
     """
 
-    __slots__ = ("_evaluate", "_count", "bounds", "meta_data", "_archive")
+    __slots__ = ("_evaluate", "_progress", "bounds", "meta_data")
 
-    def __init__(self, problem, budget: int):
+    @classmethod
+    def create(cls, problem, budget: int):
+        """The function for the candidate and the record for the harness.
+
+        Returns:
+            tuple[MultiObjectiveFunction, EvaluationRecord]: Give only the
+            function to the candidate; score with the record.
+        """
+        record = EvaluationRecord()
+        return cls(problem, budget, _record=record), record
+
+    def __init__(self, problem, budget: int, _record: "EvaluationRecord | None" = None):
         lb, ub = (np.array(b, dtype=float) for b in problem.bounds())
         n_var, n_obj = int(problem.n_var), int(problem.n_obj)
+        # Kept only in closures (and in the harness's EvaluationRecord).
         archive: list[np.ndarray] = []
         count = [0]
+        if _record is not None:
+            _record._attach(archive, count, n_obj)
 
         def evaluate(x):
             X = np.asarray(x, dtype=float)
@@ -173,9 +195,11 @@ class MultiObjectiveFunction:
                 )
             return F[0].copy() if single else F.copy()
 
+        def progress():
+            return SimpleNamespace(evaluations=count[0])
+
         self._evaluate = evaluate
-        self._count = count
-        self._archive = archive
+        self._progress = progress
         self.bounds = SimpleNamespace(lb=lb.copy(), ub=ub.copy())
         self.meta_data = SimpleNamespace(n_variables=n_var, n_objectives=n_obj)
 
@@ -185,13 +209,42 @@ class MultiObjectiveFunction:
     @property
     def state(self) -> SimpleNamespace:
         """Number of evaluations used so far."""
-        return SimpleNamespace(evaluations=self._count[0])
+        return self._progress()
 
     def __repr__(self) -> str:
         return (
             f"MultiObjectiveFunction(dim={self.meta_data.n_variables}, "
             f"n_objectives={self.meta_data.n_objectives})"
         )
+
+
+class EvaluationRecord:
+    """The harness's view of a :class:`MultiObjectiveFunction`'s evaluations.
+
+    Created by :meth:`MultiObjectiveFunction.create`; never given to the
+    candidate.
+    """
+
+    __slots__ = ("_archive", "_count", "_n_obj")
+
+    def __init__(self):
+        self._archive: list[np.ndarray] = []
+        self._count = [0]
+        self._n_obj = 0
+
+    def _attach(self, archive: list, count: list, n_obj: int) -> None:
+        self._archive, self._count, self._n_obj = archive, count, n_obj
+
+    @property
+    def evaluations(self) -> int:
+        """Number of evaluations so far."""
+        return self._count[0]
+
+    def objectives(self) -> np.ndarray:
+        """A copy of the evaluated objective vectors, in order."""
+        if not self._archive:
+            return np.empty((0, self._n_obj))
+        return np.array(self._archive, dtype=float)
 
 
 def anytime_hypervolume(
@@ -390,14 +443,14 @@ class MultiObjectiveBenchmark(Problem):
         problem = _pymoo_problem(spec)
         front = problem.pareto_front()
         budget = self.budget_factor * int(problem.n_var)
-        func = MultiObjectiveFunction(problem, budget)
+        func, record = MultiObjectiveFunction.create(problem, budget)
         np.random.seed(seed)
         algorithm = alg_cls(budget=budget, dim=int(problem.n_var))
         try:
             algorithm(func)
         except OverBudgetException:
             pass
-        F = np.array(func._archive)
+        F = record.objectives()
         result = anytime_hypervolume(F, front, budget, self.checkpoints)
         return {
             "function": _label(spec),
