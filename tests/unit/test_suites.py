@@ -214,7 +214,10 @@ def test_problem_default_timeout_is_at_least_120_seconds(key):
         pytest.skip(f"{key} needs an optional dependency group")
     params = inspect.signature(cls).parameters
     assert "eval_timeout" in params, f"{key} has no eval_timeout parameter"
-    assert params["eval_timeout"].default >= 120
+    default = params["eval_timeout"].default
+    if default is None:  # computed from the budget: check a default instance
+        default = cls().eval_timeout
+    assert default >= 120
 
 
 def test_sum_vs_difference_name_and_reference():
